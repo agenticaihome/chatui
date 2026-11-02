@@ -10,6 +10,7 @@ import '../services/activity_classifier.dart' show compareActivityRows;
 import '../services/wallet_sync_controller.dart';
 import '../services/wallet_service.dart';
 import '../theme/argus_theme.dart';
+import 'layout.dart';
 import 'transaction_detail_screen.dart';
 import 'widgets/activity_tile.dart';
 import 'widgets/empty_state.dart';
@@ -310,7 +311,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
         ],
       ),
-      body: body,
+      body: ReadableWidth(
+        child: body,
+      ),
     );
   }
 

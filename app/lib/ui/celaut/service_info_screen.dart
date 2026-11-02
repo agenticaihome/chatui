@@ -6,6 +6,7 @@ import '../../bridge/api/celaut_service_info.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
+import '../layout.dart';
 import '../widgets/soft_card.dart';
 
 /// Read what a service says about itself: from its file in the library, or from [node].
@@ -63,61 +64,63 @@ class _ServiceInfoScreenState extends State<ServiceInfoScreen> {
     final l = context.l10n;
     return Scaffold(
       appBar: AppBar(title: Text(widget.name ?? l.serviceInfoTitle)),
-      body: FutureBuilder<ServiceInfoView>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return Center(
-              key: const Key('service-info-loading'),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(l.serviceInfoLoading),
-                ],
-              ),
-            );
-          }
-          if (snapshot.hasError) {
-            final e = snapshot.error;
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
+      body: ReadableWidth(
+        child: FutureBuilder<ServiceInfoView>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return Center(
+                key: const Key('service-info-loading'),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      e is CelautError ? CelautStrings.errorText(e.kind) : l.serviceInfoReadFailed,
-                      key: const Key('service-info-error'),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (e is CelautError) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        e.message,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12.5, color: ArgusColors.of(context).muted),
-                      ),
-                    ],
+                    const CircularProgressIndicator(),
                     const SizedBox(height: 16),
-                    TextButton(
-                      key: const Key('service-info-retry'),
-                      onPressed: () {
-                        // The callback must not return the Future, so it is not an arrow.
-                        setState(() {
-                          _future = _read();
-                        });
-                      },
-                      child: Text(l.commonRetry),
-                    ),
+                    Text(l.serviceInfoLoading),
                   ],
                 ),
-              ),
-            );
-          }
-          return ServiceInfoBody(info: snapshot.data!);
-        },
+              );
+            }
+            if (snapshot.hasError) {
+              final e = snapshot.error;
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        e is CelautError ? CelautStrings.errorText(e.kind) : l.serviceInfoReadFailed,
+                        key: const Key('service-info-error'),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (e is CelautError) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          e.message,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12.5, color: ArgusColors.of(context).muted),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      TextButton(
+                        key: const Key('service-info-retry'),
+                        onPressed: () {
+                          // The callback must not return the Future, so it is not an arrow.
+                          setState(() {
+                            _future = _read();
+                          });
+                        },
+                        child: Text(l.commonRetry),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return ServiceInfoBody(info: snapshot.data!);
+          },
+        ),
       ),
     );
   }

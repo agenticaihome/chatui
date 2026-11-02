@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../celaut/auto_top_up.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
+import '../layout.dart';
 
 /// Settings, Compute, "Keep running" (Josemi, 2026-10-29): when the app tops up an instance
 /// that the user asked to keep running, and how much time each top-up gives ([AutoTopUp]).
@@ -76,55 +77,57 @@ class _AutoTopUpScreenState extends State<AutoTopUpScreen> {
     final t = HomeText.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l.celautTopUpTitle)),
-      body: !_ready
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: EdgeInsets.fromLTRB(homeGutter, 8, homeGutter, 32 + MediaQuery.paddingOf(context).bottom),
-              children: [
-                Text(l.celautTopUpIntro, key: const Key('top-up-intro'), style: t.secondary),
-                const SizedBox(height: 16),
-                TextField(
-                  key: const Key('top-up-threshold'),
-                  controller: _threshold,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: (_) => setState(() {}),
-                  onSubmitted: (_) => _save(),
-                  decoration: InputDecoration(
-                    labelText: l.celautTopUpThreshold,
-                    suffixText: 'min',
-                    errorText: _error(_threshold, AutoTopUp.maxThreshold),
+      body: ReadableWidth(
+        child: !_ready
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: EdgeInsets.fromLTRB(homeGutter, 8, homeGutter, 32 + MediaQuery.paddingOf(context).bottom),
+                children: [
+                  Text(l.celautTopUpIntro, key: const Key('top-up-intro'), style: t.secondary),
+                  const SizedBox(height: 16),
+                  TextField(
+                    key: const Key('top-up-threshold'),
+                    controller: _threshold,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (_) => _save(),
+                    decoration: InputDecoration(
+                      labelText: l.celautTopUpThreshold,
+                      suffixText: 'min',
+                      errorText: _error(_threshold, AutoTopUp.maxThreshold),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  key: const Key('top-up-amount'),
-                  controller: _chunk,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: (_) => setState(() {}),
-                  onSubmitted: (_) => _save(),
-                  decoration: InputDecoration(
-                    labelText: l.celautTopUpAmount,
-                    suffixText: 'min',
-                    errorText: _error(_chunk, AutoTopUp.maxChunk),
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const Key('top-up-amount'),
+                    controller: _chunk,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (_) => _save(),
+                    decoration: InputDecoration(
+                      labelText: l.celautTopUpAmount,
+                      suffixText: 'min',
+                      errorText: _error(_chunk, AutoTopUp.maxChunk),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton(
-                    key: const Key('top-up-save'),
-                    // The theme asks for the full width; this button is alone in its row.
-                    style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-                    onPressed: _save,
-                    child: Text(l.commonSave),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton(
+                      key: const Key('top-up-save'),
+                      // The theme asks for the full width; this button is alone in its row.
+                      style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                      onPressed: _save,
+                      child: Text(l.commonSave),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(l.celautTopUpNote, key: const Key('top-up-note'), style: t.secondary),
-              ],
-            ),
+                  const SizedBox(height: 20),
+                  Text(l.celautTopUpNote, key: const Key('top-up-note'), style: t.secondary),
+                ],
+              ),
+      ),
     );
   }
 }

@@ -1495,6 +1495,7 @@
   "chatsOtherEmpty": "No hay otras instancias. Aquí aparece, mientras corre, un servicio que no tiene conversación.",
   "chatsEmptyTitle": "Aún no hay conversaciones",
   "chatsEmptyBody": "Cada conversación es un servicio que corre en un nodo. Empieza una con el botón del lápiz.",
+  "chatsPaneEmpty": "Elige una conversación de la lista, o empieza una nueva.",
   "chatsTabChats": "Chats",
   "chatsTabWallet": "Billetera",
   "chatsTabCompute": "Cómputo",

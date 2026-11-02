@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../l10n/l10n.dart';
+import '../layout.dart';
 
 const _lettersRows = ['qwertyuiop', 'asdfghjklñ', 'zxcvbnm'];
 const _symbolsRows = ['1234567890', '@#€_&-+()/', '*"\':;!?'];
@@ -54,6 +55,10 @@ const _repeatEvery = Duration(milliseconds: 60);
 const _shiftDoubleTap = Duration(milliseconds: 350);
 
 const _keyHeight = 48.0;
+
+/// The height of a key on a short window (a phone on its side, [AppLayout.short]): four
+/// rows of full keys would leave almost no room for the conversation.
+const _shortKeyHeight = 36.0;
 
 enum _Shift { off, once, lock }
 
@@ -180,7 +185,10 @@ class _ChatVirtualKeyboardState extends State<ChatVirtualKeyboard> {
               unawaited(HapticFeedback.selectionClick());
               onTap();
             },
-      child: SizedBox(height: _keyHeight, child: Center(child: child)),
+      child: SizedBox(
+        height: AppLayout.short(context) ? _shortKeyHeight : _keyHeight,
+        child: Center(child: child),
+      ),
     );
     return Expanded(
       flex: (flex * 10).round(),

@@ -13,6 +13,7 @@ import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_scene.dart';
 import '../home/home_style.dart';
+import '../layout.dart';
 import 'client_unknown_dialog.dart';
 
 /// The compute view (`docs/celaut/ui.md`, section 2), in the look of the Celaut landing
@@ -176,43 +177,45 @@ class ComputeHomeScreenState extends State<ComputeHomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: refresh,
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(0, 8, 0, 32 + MediaQuery.paddingOf(context).bottom),
-          children: [
-            // A thin line while the nodes are asked: the last overview stays readable.
-            SizedBox(
-              height: 2,
-              child: _loading && data != null
-                  ? const LinearProgressIndicator(key: Key('compute-home-updating'))
-                  : null,
-            ),
-            if (_error != null)
-              _Pad(
-                child: Text(
-                  CelautStrings.errorText(_error!.kind),
-                  key: const Key('compute-home-error'),
-                  style: t.secondary.copyWith(color: rustFor(context)),
-                ),
+      body: ReadableWidth(
+        child: RefreshIndicator(
+          onRefresh: refresh,
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(0, 8, 0, 32 + MediaQuery.paddingOf(context).bottom),
+            children: [
+              // A thin line while the nodes are asked: the last overview stays readable.
+              SizedBox(
+                height: 2,
+                child: _loading && data != null
+                    ? const LinearProgressIndicator(key: Key('compute-home-updating'))
+                    : null,
               ),
-            if (_failure != null)
-              _Pad(
-                child: Text(
-                  _failure!,
-                  key: const Key('compute-home-failure'),
-                  style: t.secondary.copyWith(color: rustFor(context)),
+              if (_error != null)
+                _Pad(
+                  child: Text(
+                    CelautStrings.errorText(_error!.kind),
+                    key: const Key('compute-home-error'),
+                    style: t.secondary.copyWith(color: rustFor(context)),
+                  ),
                 ),
-              ),
-            const SizedBox(height: 16),
-            ..._state(context, data),
-            if (widget.sections.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              const HomeRule(),
-              const SizedBox(height: 4),
-              ...widget.sections,
+              if (_failure != null)
+                _Pad(
+                  child: Text(
+                    _failure!,
+                    key: const Key('compute-home-failure'),
+                    style: t.secondary.copyWith(color: rustFor(context)),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              ..._state(context, data),
+              if (widget.sections.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const HomeRule(),
+                const SizedBox(height: 4),
+                ...widget.sections,
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

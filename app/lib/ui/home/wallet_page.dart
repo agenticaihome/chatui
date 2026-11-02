@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../format.dart';
 import '../../theme/argus_theme.dart';
 import '../../theme/argus_tones.dart';
+import '../layout.dart';
 import 'home_format.dart';
 import 'home_glass.dart';
 import 'home_hero.dart';
@@ -110,7 +111,9 @@ class WalletPageScreen extends StatelessWidget {
               ),
         actions: [...actions, const SizedBox(width: 4)],
       ),
-      body: body,
+      body: ReadableWidth(
+        child: body,
+      ),
       bottomNavigationBar: navBar,
     );
     if (!immersive) return scaffold;
@@ -118,11 +121,17 @@ class WalletPageScreen extends StatelessWidget {
     final top = media.padding.top + toolbar;
     return ColoredBox(
       color: page,
-      child: HomeScene(
-        light: SceneLight.medallion,
-        lightAt: Offset(medallionInset + medallionSize / 2, top + medallionSize / 2 - 4),
-        height: top + 560,
-        child: scaffold,
+      // The light follows the medallion, which keeps to a column on a wide window.
+      child: LayoutBuilder(
+        builder: (context, box) => HomeScene(
+          light: SceneLight.medallion,
+          lightAt: Offset(
+            AppLayout.readableSide(box.maxWidth) + medallionInset + medallionSize / 2,
+            top + medallionSize / 2 - 4,
+          ),
+          height: top + 560,
+          child: scaffold,
+        ),
       ),
     );
   }

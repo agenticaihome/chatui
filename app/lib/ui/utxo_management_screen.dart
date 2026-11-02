@@ -1,3 +1,4 @@
+import 'layout.dart';
 import 'widgets/tx_batch_result_view.dart';
 import 'widgets/tx_result_view.dart';
 import 'widgets/error_sheet.dart';
@@ -811,285 +812,287 @@ class _UtxoManagementScreenState extends State<UtxoManagementScreen>
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: rustFor(context)),
-                    ),
-                        const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: _loadBoxes,
-                      child: Text(context.l10n.commonRetry),
-                    ),
-                      ],
-                    ),
-                  ),
-                )
-              // One scroll for cards and boxes, so large text never squeezes
-              // the list out of the screen.
-              : CustomScrollView(
-                  slivers: [
-                    if (suggestion != null)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                          child: CleanupSuggestionCard(
-                            suggestion: suggestion,
-                            resultingBoxes: cleanup?.estimate?.boxes.length,
-                            fragmented: _boxes.length > utxoFragmentationThreshold,
-                            highlight: widget.openCleanup,
-                            onReview: _busy
-                                ? null
-                                : () => _openCleanupFlow(suggestion, cleanup?.estimate),
-                          ),
-                        ),
-                      ),
-                    // Overview Summary Card
-                    SliverToBoxAdapter(
-                      child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                      child: SoftCard(
-                      padding: const EdgeInsets.all(16),
+      body: ReadableWidth(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    context.l10n.utxoCount('${_boxes.length}'),
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineSmall,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    context.l10n.utxoValueTokens(formatNanoErg(totalErgNano), '$totalTokensCount'),
-                                    style: Theme.of(context).textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                                decoration: BoxDecoration(
-                                  color: healthColor.withValues(alpha: 0.15),
-                                  border: Border.all(color: healthColor),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  healthLabel,
-                                  style: TextStyle(
-                                    color: healthColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${health.hint}${dustCount > 0 ? ' ${context.l10n.utxoDustLine(dustCount, formatErg(dustThresholdNano))}' : ''}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            context.l10n.utxoOldestFirst,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          const SizedBox(height: 6),
-                          RentSummaryLine(
-                            parameters: _rent?.parameters,
-                            atRisk: atRisk,
-                            wholeErgOnly: wholeErgOnly,
-                            dueSoon: dueSoon,
-                            unmeasured: unmeasured,
-                            loading: _rentLoading,
-                            failed: _rentFailed,
-                          ),
-                          const SizedBox(height: 14),
-                          const Hairline(),
-                          const SizedBox(height: 12),
-                          // Quick actions. They wrap instead of sharing a
-                          // row: at 390 dp a third of the card cannot hold
-                          // "Consolidate" without breaking the word.
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              OutlinedButton.icon(
-                                style: inlineButtonStyle,
-                                icon: const Icon(Icons.merge_type, size: 16),
-                                label: Text(context.l10n.utxoConsolidate),
-                                onPressed: _busy || _boxes.length < 2
-                                    ? null
-                                    : _openConsolidateFlow,
-                              ),
-                              OutlinedButton.icon(
-                                style: inlineButtonStyle,
-                                icon: const Icon(Icons.call_split, size: 16),
-                                label: Text(context.l10n.utxoSplit),
-                                onPressed: _busy || _boxes.isEmpty
-                                    ? null
-                                    : _openSplitFlow,
-                              ),
-                              OutlinedButton.icon(
-                                style: inlineButtonStyle,
-                                icon: const Icon(Icons.tune, size: 16),
-                                label: Text(context.l10n.utxoRestructure),
-                                onPressed: _busy || _boxes.isEmpty
-                                    ? null
-                                    : _openRestructureFlow,
-                              ),
-                            ],
-                          ),
-                          if (_boxes.any((b) => b.assets.length >= 2)) ...[
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                icon: const Icon(Icons.account_tree_outlined, size: 16),
-                                label: Text(context.l10n.utxoSeparateTokenTypes),
-                                onPressed: _busy ? null : _openSeparateTokensFlow,
-                              ),
-                            ),
-                          ],
-                          if (dustCount >= 2) ...[
-                            const SizedBox(height: 8),
-                            OutlinedButton.icon(
-                              icon: const Icon(Icons.cleaning_services_outlined, size: 16),
-                              label: Text(context.l10n.utxoSweepDust('$dustCount')),
-                              onPressed: _busy ? null : _sweepDust,
-                            ),
-                          ],
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: rustFor(context)),
+                      ),
+                          const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _loadBoxes,
+                        child: Text(context.l10n.commonRetry),
+                      ),
                         ],
                       ),
                     ),
-                    ),
-                    ),
-
-                    // Filter & Search
-                    SliverToBoxAdapter(
-                      child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: TextField(
-                        controller: _searchCtrl,
-                        decoration: InputDecoration(
-                          hintText: context.l10n.utxoSearchHint,
-                          prefixIcon: const Icon(Icons.search, size: 20),
-                          isDense: true,
-                          suffixIcon: _tools.search.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear, size: 18),
-                                  onPressed: () => _searchCtrl.clear(),
-                                )
-                              : null,
+                  )
+                // One scroll for cards and boxes, so large text never squeezes
+                // the list out of the screen.
+                : CustomScrollView(
+                    slivers: [
+                      if (suggestion != null)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            child: CleanupSuggestionCard(
+                              suggestion: suggestion,
+                              resultingBoxes: cleanup?.estimate?.boxes.length,
+                              fragmented: _boxes.length > utxoFragmentationThreshold,
+                              highlight: widget.openCleanup,
+                              onReview: _busy
+                                  ? null
+                                  : () => _openCleanupFlow(suggestion, cleanup?.estimate),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    ),
-
-                    const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                    // Filter Chips & Selection Controls
-                    SliverToBoxAdapter(
-                      child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: [
-                          _filterChip(UtxoFilter.all, context.l10n.utxoFilterAll('${_boxes.length}')),
-                          const SizedBox(width: 6),
-                      _filterChip(
-                        UtxoFilter.ergOnly,
-                        context.l10n.utxoFilterErgOnly('${_boxes.where((b) => b.assets.isEmpty).length}'),
-                      ),
-                          const SizedBox(width: 6),
-                      _filterChip(
-                        UtxoFilter.withTokens,
-                        context.l10n.utxoFilterTokens('${_boxes.where((b) => b.assets.isNotEmpty).length}'),
-                      ),
-                          const SizedBox(width: 6),
-                      _filterChip(
-                        UtxoFilter.dust,
-                        context.l10n.utxoFilterDust('${_boxes.where((b) => b.valueNanoErg < BigInt.from(dustThresholdNano)).length}'),
-                      ),
-                          if (_rent != null) ...[
-                            const SizedBox(width: 6),
-                            _filterChip(
-                              UtxoFilter.rent,
-                              context.l10n.utxoFilterRent('${_tools.rentFlaggedCount}'),
-                            ),
-                          ],
-                          const SizedBox(width: 12),
-                          if (_selectedBoxIds.isNotEmpty) ...[
-                            TextButton(
-                              onPressed: _tools.clearSelection,
-                              child: Text(context.l10n.utxoClearSelection('${_selectedBoxIds.length}')),
-                            ),
-                          ] else ...[
-                            TextButton(
-                              onPressed: _tools.selectAllFiltered,
-                              child: Text(context.l10n.utxoSelectAll),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    ),
-
-                    const SliverToBoxAdapter(child: SizedBox(height: 6)),
-
-                    // Boxes List
-                    if (filtered.isEmpty)
+                      // Overview Summary Card
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 32, 16, 80),
-                          child: Center(child: Text(context.l10n.utxoNoMatch)),
-                        ),
-                      )
-                    else
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
-                        sliver: SliverList.builder(
-                          itemCount: filtered.length,
-                          itemBuilder: (ctx, i) {
-                            final box = filtered[i];
-                            final isSelected = _selectedBoxIds.contains(
-                              box.boxId,
-                            );
-                            return _UtxoCard(
-                              box: box,
-                              isSelected: isSelected,
-                              rent: _tools.rent[box.boxId],
-                              rentParameters: rentParameters,
-                              onToggle: () => _tools.toggle(box.boxId),
-                              onSeparateTokens: _busy || box.assets.length < 2
-                                  ? null
-                                  : () => _openSeparateTokensFlow(sourceBoxId: box.boxId),
-                            );
-                          },
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                        child: SoftCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      context.l10n.utxoCount('${_boxes.length}'),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineSmall,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      context.l10n.utxoValueTokens(formatNanoErg(totalErgNano), '$totalTokensCount'),
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                                  decoration: BoxDecoration(
+                                    color: healthColor.withValues(alpha: 0.15),
+                                    border: Border.all(color: healthColor),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    healthLabel,
+                                    style: TextStyle(
+                                      color: healthColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${health.hint}${dustCount > 0 ? ' ${context.l10n.utxoDustLine(dustCount, formatErg(dustThresholdNano))}' : ''}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              context.l10n.utxoOldestFirst,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 6),
+                            RentSummaryLine(
+                              parameters: _rent?.parameters,
+                              atRisk: atRisk,
+                              wholeErgOnly: wholeErgOnly,
+                              dueSoon: dueSoon,
+                              unmeasured: unmeasured,
+                              loading: _rentLoading,
+                              failed: _rentFailed,
+                            ),
+                            const SizedBox(height: 14),
+                            const Hairline(),
+                            const SizedBox(height: 12),
+                            // Quick actions. They wrap instead of sharing a
+                            // row: at 390 dp a third of the card cannot hold
+                            // "Consolidate" without breaking the word.
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  style: inlineButtonStyle,
+                                  icon: const Icon(Icons.merge_type, size: 16),
+                                  label: Text(context.l10n.utxoConsolidate),
+                                  onPressed: _busy || _boxes.length < 2
+                                      ? null
+                                      : _openConsolidateFlow,
+                                ),
+                                OutlinedButton.icon(
+                                  style: inlineButtonStyle,
+                                  icon: const Icon(Icons.call_split, size: 16),
+                                  label: Text(context.l10n.utxoSplit),
+                                  onPressed: _busy || _boxes.isEmpty
+                                      ? null
+                                      : _openSplitFlow,
+                                ),
+                                OutlinedButton.icon(
+                                  style: inlineButtonStyle,
+                                  icon: const Icon(Icons.tune, size: 16),
+                                  label: Text(context.l10n.utxoRestructure),
+                                  onPressed: _busy || _boxes.isEmpty
+                                      ? null
+                                      : _openRestructureFlow,
+                                ),
+                              ],
+                            ),
+                            if (_boxes.any((b) => b.assets.length >= 2)) ...[
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.account_tree_outlined, size: 16),
+                                  label: Text(context.l10n.utxoSeparateTokenTypes),
+                                  onPressed: _busy ? null : _openSeparateTokensFlow,
+                                ),
+                              ),
+                            ],
+                            if (dustCount >= 2) ...[
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.cleaning_services_outlined, size: 16),
+                                label: Text(context.l10n.utxoSweepDust('$dustCount')),
+                                onPressed: _busy ? null : _sweepDust,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                  ],
-                ),
+                      ),
+                      ),
+  
+                      // Filter & Search
+                      SliverToBoxAdapter(
+                        child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: TextField(
+                          controller: _searchCtrl,
+                          decoration: InputDecoration(
+                            hintText: context.l10n.utxoSearchHint,
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            isDense: true,
+                            suffixIcon: _tools.search.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear, size: 18),
+                                    onPressed: () => _searchCtrl.clear(),
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ),
+                      ),
+  
+                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
+  
+                      // Filter Chips & Selection Controls
+                      SliverToBoxAdapter(
+                        child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            _filterChip(UtxoFilter.all, context.l10n.utxoFilterAll('${_boxes.length}')),
+                            const SizedBox(width: 6),
+                        _filterChip(
+                          UtxoFilter.ergOnly,
+                          context.l10n.utxoFilterErgOnly('${_boxes.where((b) => b.assets.isEmpty).length}'),
+                        ),
+                            const SizedBox(width: 6),
+                        _filterChip(
+                          UtxoFilter.withTokens,
+                          context.l10n.utxoFilterTokens('${_boxes.where((b) => b.assets.isNotEmpty).length}'),
+                        ),
+                            const SizedBox(width: 6),
+                        _filterChip(
+                          UtxoFilter.dust,
+                          context.l10n.utxoFilterDust('${_boxes.where((b) => b.valueNanoErg < BigInt.from(dustThresholdNano)).length}'),
+                        ),
+                            if (_rent != null) ...[
+                              const SizedBox(width: 6),
+                              _filterChip(
+                                UtxoFilter.rent,
+                                context.l10n.utxoFilterRent('${_tools.rentFlaggedCount}'),
+                              ),
+                            ],
+                            const SizedBox(width: 12),
+                            if (_selectedBoxIds.isNotEmpty) ...[
+                              TextButton(
+                                onPressed: _tools.clearSelection,
+                                child: Text(context.l10n.utxoClearSelection('${_selectedBoxIds.length}')),
+                              ),
+                            ] else ...[
+                              TextButton(
+                                onPressed: _tools.selectAllFiltered,
+                                child: Text(context.l10n.utxoSelectAll),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      ),
+  
+                      const SliverToBoxAdapter(child: SizedBox(height: 6)),
+  
+                      // Boxes List
+                      if (filtered.isEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 32, 16, 80),
+                            child: Center(child: Text(context.l10n.utxoNoMatch)),
+                          ),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                          sliver: SliverList.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (ctx, i) {
+                              final box = filtered[i];
+                              final isSelected = _selectedBoxIds.contains(
+                                box.boxId,
+                              );
+                              return _UtxoCard(
+                                box: box,
+                                isSelected: isSelected,
+                                rent: _tools.rent[box.boxId],
+                                rentParameters: rentParameters,
+                                onToggle: () => _tools.toggle(box.boxId),
+                                onSeparateTokens: _busy || box.assets.length < 2
+                                    ? null
+                                    : () => _openSeparateTokensFlow(sourceBoxId: box.boxId),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+      ),
       bottomSheet: _selectedBoxIds.isNotEmpty
           ? UtxoSelectionActions(
               count: _selectedBoxIds.length,

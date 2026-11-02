@@ -10,6 +10,7 @@ import '../services/session_lock.dart';
 import '../services/token_metadata.dart';
 import '../services/wallet_service.dart';
 import '../theme/argus_theme.dart';
+import 'layout.dart';
 import 'widgets/soft_card.dart';
 
 class TransactionDetailScreen extends StatelessWidget {
@@ -178,163 +179,165 @@ class TransactionDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.txTitle)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: tint.withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  activity != null
-                      ? icon
-                      : outgoing
-                          ? Icons.arrow_upward
-                          : Icons.arrow_downward,
-                  size: 20,
-                  color: tint,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(headline, style: Theme.of(context).textTheme.headlineSmall),
-              ),
-            ],
-          ),
-          if (activity != null) ...[
-            const SizedBox(height: 6),
-            Text(figure(view.primary), style: Theme.of(context).textTheme.titleMedium),
-            if (view.secondary case final s?)
-              Text(figure(s), style: Theme.of(context).textTheme.bodyMedium),
-            if (view.who case final who?)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(who, style: Theme.of(context).textTheme.bodySmall),
-              ),
-          ] else if (networkController.fiatText(nano?.abs()) != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              networkController.fiatText(nano?.abs())!,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-          const SizedBox(height: 8),
-          Text(
-            confirmed
-                ? context.l10n.txConfirmedAt(formatHeight(height))
-                : tx['confirmed'] == true
-                    ? context.l10n.txConfirmed
-                    : context.l10n.txNotInBlock,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          if (formatTxTime(ts).isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(formatTxTime(ts), style: Theme.of(context).textTheme.bodySmall),
-          ],
-          const SizedBox(height: 24),
-          if (activity != null)
-            ..._breakdown(context, activity)
-          else ...[
-            if (counterparty != null && counterparty.isNotEmpty) ...[
-              SectionLabel(outgoing ? context.l10n.txTo : context.l10n.txFrom),
-              const SizedBox(height: 8),
-              SoftCard(
-                padding: const EdgeInsets.all(12),
-                child: SelectableText(counterparty, style: monoStyle(context, size: 12)),
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (fee != null && fee > 0) ...[
-              SectionLabel(context.l10n.commonMinerFee),
-              const SizedBox(height: 8),
-              Text(formatErg(fee), style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: 16),
-            ],
-            if (sent.isNotEmpty) ...[
-              SectionLabel(context.l10n.txTokensSent),
-              const SizedBox(height: 8),
-              for (final t in sent) _tokenLine(context, t),
-              const SizedBox(height: 10),
-            ],
-          ],
-          SectionLabel(context.l10n.txIdLabel),
-          const SizedBox(height: 8),
-          SelectableText(txId, style: monoStyle(context, size: 12)),
-          const SizedBox(height: 16),
-          if (activity == null)
-            if (received.isNotEmpty) ...[
-              SectionLabel(context.l10n.txTokensReceived),
-              const SizedBox(height: 8),
-              for (final t in received) _tokenLine(context, t),
-              // Compare identities, not lengths: token_ids may repeat and
-              // arrivals cover a subset of the unique ids.
-              if (missingTokenIds.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2, bottom: 6),
-                  child: Text(
-                    context.l10n.txFurtherTokenIds('${missingTokenIds.length}'),
-                    style: Theme.of(context).textTheme.bodySmall,
+      body: ReadableWidth(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: tint.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    activity != null
+                        ? icon
+                        : outgoing
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                    size: 20,
+                    color: tint,
                   ),
                 ),
-              const SizedBox(height: 8),
-            ] else if (tokens.isNotEmpty) ...[
-              SectionLabel(context.l10n.commonTokens),
-              const SizedBox(height: 8),
-              ...tokens.map((id) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Text(
-                      tokenName(id) == null
-                          ? shorten(id, head: 12, tail: 10)
-                          : '${tokenName(id)} · ${shorten(id, head: 8, tail: 6)}',
-                      style: monoStyle(context, size: 12),
-                    ),
-                  )),
-              const SizedBox(height: 8),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(headline, style: Theme.of(context).textTheme.headlineSmall),
+                ),
+              ],
+            ),
+            if (activity != null) ...[
+              const SizedBox(height: 6),
+              Text(figure(view.primary), style: Theme.of(context).textTheme.titleMedium),
+              if (view.secondary case final s?)
+                Text(figure(s), style: Theme.of(context).textTheme.bodyMedium),
+              if (view.who case final who?)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(who, style: Theme.of(context).textTheme.bodySmall),
+                ),
+            ] else if (networkController.fiatText(nano?.abs()) != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                networkController.fiatText(nano?.abs())!,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ],
-          FilledButton(
-            onPressed: txId.isEmpty
-                ? null
-                : () {
-                    Clipboard.setData(ClipboardData(text: txId));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(context.l10n.txIdCopied)),
-                    );
-                  },
-            child: Text(context.l10n.commonCopyId),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: txId.isEmpty
-                ? null
-                : () async {
-                    try {
-                      final ok = await sessionLock.run(
-                        () => launchUrl(
-                          Uri.parse(networkController.explorerTx(txId)),
-                          mode: LaunchMode.externalApplication,
-                        ),
+            const SizedBox(height: 8),
+            Text(
+              confirmed
+                  ? context.l10n.txConfirmedAt(formatHeight(height))
+                  : tx['confirmed'] == true
+                      ? context.l10n.txConfirmed
+                      : context.l10n.txNotInBlock,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            if (formatTxTime(ts).isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(formatTxTime(ts), style: Theme.of(context).textTheme.bodySmall),
+            ],
+            const SizedBox(height: 24),
+            if (activity != null)
+              ..._breakdown(context, activity)
+            else ...[
+              if (counterparty != null && counterparty.isNotEmpty) ...[
+                SectionLabel(outgoing ? context.l10n.txTo : context.l10n.txFrom),
+                const SizedBox(height: 8),
+                SoftCard(
+                  padding: const EdgeInsets.all(12),
+                  child: SelectableText(counterparty, style: monoStyle(context, size: 12)),
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (fee != null && fee > 0) ...[
+                SectionLabel(context.l10n.commonMinerFee),
+                const SizedBox(height: 8),
+                Text(formatErg(fee), style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(height: 16),
+              ],
+              if (sent.isNotEmpty) ...[
+                SectionLabel(context.l10n.txTokensSent),
+                const SizedBox(height: 8),
+                for (final t in sent) _tokenLine(context, t),
+                const SizedBox(height: 10),
+              ],
+            ],
+            SectionLabel(context.l10n.txIdLabel),
+            const SizedBox(height: 8),
+            SelectableText(txId, style: monoStyle(context, size: 12)),
+            const SizedBox(height: 16),
+            if (activity == null)
+              if (received.isNotEmpty) ...[
+                SectionLabel(context.l10n.txTokensReceived),
+                const SizedBox(height: 8),
+                for (final t in received) _tokenLine(context, t),
+                // Compare identities, not lengths: token_ids may repeat and
+                // arrivals cover a subset of the unique ids.
+                if (missingTokenIds.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2, bottom: 6),
+                    child: Text(
+                      context.l10n.txFurtherTokenIds('${missingTokenIds.length}'),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                const SizedBox(height: 8),
+              ] else if (tokens.isNotEmpty) ...[
+                SectionLabel(context.l10n.commonTokens),
+                const SizedBox(height: 8),
+                ...tokens.map((id) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        tokenName(id) == null
+                            ? shorten(id, head: 12, tail: 10)
+                            : '${tokenName(id)} · ${shorten(id, head: 8, tail: 6)}',
+                        style: monoStyle(context, size: 12),
+                      ),
+                    )),
+                const SizedBox(height: 8),
+              ],
+            FilledButton(
+              onPressed: txId.isEmpty
+                  ? null
+                  : () {
+                      Clipboard.setData(ClipboardData(text: txId));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(context.l10n.txIdCopied)),
                       );
-                      if (!ok && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(context.l10n.txExplorerFailed)),
+                    },
+              child: Text(context.l10n.commonCopyId),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: txId.isEmpty
+                  ? null
+                  : () async {
+                      try {
+                        final ok = await sessionLock.run(
+                          () => launchUrl(
+                            Uri.parse(networkController.explorerTx(txId)),
+                            mode: LaunchMode.externalApplication,
+                          ),
                         );
+                        if (!ok && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(context.l10n.txExplorerFailed)),
+                          );
+                        }
+                      } catch (_) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(context.l10n.txExplorerFailed)),
+                          );
+                        }
                       }
-                    } catch (_) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(context.l10n.txExplorerFailed)),
-                        );
-                      }
-                    }
-                  },
-            child: Text(context.l10n.txOpenExplorer),
-          ),
-        ],
+                    },
+              child: Text(context.l10n.txOpenExplorer),
+            ),
+          ],
+        ),
       ),
     );
   }

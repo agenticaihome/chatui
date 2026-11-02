@@ -9,6 +9,7 @@ import '../services/verified_tokens.dart';
 import '../services/wallet_service.dart';
 import '../services/wallet_sync_controller.dart';
 import '../theme/argus_theme.dart';
+import 'layout.dart';
 import 'send_screen.dart';
 import 'token_avatar.dart';
 import 'widgets/asset_tile.dart';
@@ -81,163 +82,165 @@ class _AssetsScreenState extends State<AssetsScreen> {
         ),
       ],
     ),
-    body: ListenableBuilder(
-      listenable: Listenable.merge([
-        networkController,
-        privacyService,
-        tokenPricer,
-        walletSyncController,
-        walletService.metadataChanges,
-      ]),
-      builder: (context, _) {
-        final live = walletSyncController;
-        final hidden = privacyService.hideBalances;
-        final holdings = live.tokens
-            .map(walletService.displayMetadata)
-            .toList();
-        final rows = holdings
-            .where(
-              (t) =>
-                  (!_collectibles || t.isCollectible) &&
-                  (t.label.toLowerCase().contains(_query) ||
-                      t.id.toLowerCase().contains(_query)),
-            )
-            .toList();
-        final unknown = holdings
-            .where((t) => t.metadataState != MetadataState.complete)
-            .length;
-        final collectibleCount = holdings.where((t) => t.isCollectible).length;
-        final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  if (textScale > 1.4)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ChoiceChip(
-                          label: Text(context.l10n.assetsAll),
-                          selected: !_collectibles,
-                          onSelected: (_) =>
-                              setState(() => _collectibles = false),
-                        ),
-                        ChoiceChip(
-                          label: Text(context.l10n.assetsCollectibles),
-                          selected: _collectibles,
-                          onSelected: (_) =>
-                              setState(() => _collectibles = true),
-                        ),
-                      ],
-                    )
-                  else
-                    SizedBox(
-                      width: double.infinity,
-                      child: SegmentedButton<bool>(
-                        segments: [
-                          ButtonSegment(value: false, label: Text(context.l10n.assetsAll)),
-                          ButtonSegment(
-                            value: true,
+    body: ReadableWidth(
+      child: ListenableBuilder(
+        listenable: Listenable.merge([
+          networkController,
+          privacyService,
+          tokenPricer,
+          walletSyncController,
+          walletService.metadataChanges,
+        ]),
+        builder: (context, _) {
+          final live = walletSyncController;
+          final hidden = privacyService.hideBalances;
+          final holdings = live.tokens
+              .map(walletService.displayMetadata)
+              .toList();
+          final rows = holdings
+              .where(
+                (t) =>
+                    (!_collectibles || t.isCollectible) &&
+                    (t.label.toLowerCase().contains(_query) ||
+                        t.id.toLowerCase().contains(_query)),
+              )
+              .toList();
+          final unknown = holdings
+              .where((t) => t.metadataState != MetadataState.complete)
+              .length;
+          final collectibleCount = holdings.where((t) => t.isCollectible).length;
+          final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    if (textScale > 1.4)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ChoiceChip(
+                            label: Text(context.l10n.assetsAll),
+                            selected: !_collectibles,
+                            onSelected: (_) =>
+                                setState(() => _collectibles = false),
+                          ),
+                          ChoiceChip(
                             label: Text(context.l10n.assetsCollectibles),
+                            selected: _collectibles,
+                            onSelected: (_) =>
+                                setState(() => _collectibles = true),
                           ),
                         ],
-                        selected: {_collectibles},
-                        onSelectionChanged: (s) =>
-                            setState(() => _collectibles = s.single),
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _search,
-                    decoration: InputDecoration(
-                      labelText: context.l10n.assetsSearchLabel,
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      suffixIcon: _query.isEmpty
-                          ? null
-                          : IconButton(
-                              tooltip: context.l10n.assetsClearSearch,
-                              onPressed: _clearSearch,
-                              icon: const Icon(Icons.close, size: 18),
+                      )
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<bool>(
+                          segments: [
+                            ButtonSegment(value: false, label: Text(context.l10n.assetsAll)),
+                            ButtonSegment(
+                              value: true,
+                              label: Text(context.l10n.assetsCollectibles),
                             ),
+                          ],
+                          selected: {_collectibles},
+                          onSelectionChanged: (s) =>
+                              setState(() => _collectibles = s.single),
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _search,
+                      decoration: InputDecoration(
+                        labelText: context.l10n.assetsSearchLabel,
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        suffixIcon: _query.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: context.l10n.assetsClearSearch,
+                                onPressed: _clearSearch,
+                                icon: const Icon(Icons.close, size: 18),
+                              ),
+                      ),
+                      enabled: !hidden,
+                      onChanged: (q) =>
+                          setState(() => _query = q.trim().toLowerCase()),
                     ),
-                    enabled: !hidden,
-                    onChanged: (q) =>
-                        setState(() => _query = q.trim().toLowerCase()),
-                  ),
-                  const SizedBox(height: 10),
-                  if (!hidden)
-                    Text(
-                      _collectibles
-                          ? context.l10n.assetsCollectibleCount(collectibleCount)
-                          : unknown > 0
-                          ? context.l10n.assetsTokenIdCountIncomplete('${holdings.length}', '$unknown')
-                          : context.l10n.assetsTokenIdCount('${holdings.length}'),
-                      style: TextStyle(color: ArgusColors.of(context).muted),
-                    ),
-                  if (live.publicSnapshotOnly)
-                    Text(context.l10n.assetsPublicOnly),
-                  if (live.balanceNano == null)
-                    Text(context.l10n.assetsNotLoaded),
-                  if (live.lastSyncedAt != null)
-                    Text(
-                      context.l10n.assetsLastSynced(formatSyncAge(live.lastSyncedAt)),
-                    ),
-                  PendingBalanceLine(pending: live.pending, hidden: hidden),
-                ],
+                    const SizedBox(height: 10),
+                    if (!hidden)
+                      Text(
+                        _collectibles
+                            ? context.l10n.assetsCollectibleCount(collectibleCount)
+                            : unknown > 0
+                            ? context.l10n.assetsTokenIdCountIncomplete('${holdings.length}', '$unknown')
+                            : context.l10n.assetsTokenIdCount('${holdings.length}'),
+                        style: TextStyle(color: ArgusColors.of(context).muted),
+                      ),
+                    if (live.publicSnapshotOnly)
+                      Text(context.l10n.assetsPublicOnly),
+                    if (live.balanceNano == null)
+                      Text(context.l10n.assetsNotLoaded),
+                    if (live.lastSyncedAt != null)
+                      Text(
+                        context.l10n.assetsLastSynced(formatSyncAge(live.lastSyncedAt)),
+                      ),
+                    PendingBalanceLine(pending: live.pending, hidden: hidden),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: hidden
-                  ? Center(child: Text(context.l10n.assetsHidden))
-                  : rows.isEmpty && (_collectibles || _query.isNotEmpty)
-                  ? _EmptyAssets(
-                      searching: _query.isNotEmpty,
-                      unknown: unknown,
-                      onClearSearch: _clearSearch,
-                    )
-                  : _collectibles && _grid
-                  ? GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 260 * textScale,
-                        mainAxisExtent:
-                            270 +
-                            (textScale - 1).clamp(0, double.infinity) * 110,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                      ),
-                      itemCount: rows.length,
-                      itemBuilder: (context, index) => _CollectibleCard(
-                        token: rows[index],
-                        onTap: () => _open(rows[index]),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-                      itemCount:
-                          rows.length +
-                          (!_collectibles && _query.isEmpty ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        final hasErg = !_collectibles && _query.isEmpty;
-                        if (index == 0 && hasErg)
-                          return AssetTile.erg(
-                            balanceNano: live.balanceNano,
-                            fiatText: networkController.fiatText(live.balanceNano),
+              Expanded(
+                child: hidden
+                    ? Center(child: Text(context.l10n.assetsHidden))
+                    : rows.isEmpty && (_collectibles || _query.isNotEmpty)
+                    ? _EmptyAssets(
+                        searching: _query.isNotEmpty,
+                        unknown: unknown,
+                        onClearSearch: _clearSearch,
+                      )
+                    : _collectibles && _grid
+                    ? GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 260 * textScale,
+                          mainAxisExtent:
+                              270 +
+                              (textScale - 1).clamp(0, double.infinity) * 110,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemCount: rows.length,
+                        itemBuilder: (context, index) => _CollectibleCard(
+                          token: rows[index],
+                          onTap: () => _open(rows[index]),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                        itemCount:
+                            rows.length +
+                            (!_collectibles && _query.isEmpty ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          final hasErg = !_collectibles && _query.isEmpty;
+                          if (index == 0 && hasErg)
+                            return AssetTile.erg(
+                              balanceNano: live.balanceNano,
+                              fiatText: networkController.fiatText(live.balanceNano),
+                            );
+                          final token = rows[index - (hasErg ? 1 : 0)];
+                          return AssetTile.token(
+                            token,
+                            onTap: () => _open(token),
                           );
-                        final token = rows[index - (hasErg ? 1 : 0)];
-                        return AssetTile.token(
-                          token,
-                          onTap: () => _open(token),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        );
-      },
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
     ),
   );
 }

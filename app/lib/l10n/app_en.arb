@@ -4165,6 +4165,7 @@
   "chatsOtherEmpty": "No other instances. A service that has no conversation shows here while it runs.",
   "chatsEmptyTitle": "No conversations yet",
   "chatsEmptyBody": "Each conversation is a service that runs on a node. Start one with the pencil button.",
+  "chatsPaneEmpty": "Choose a conversation from the list, or start a new one.",
   "chatsTabChats": "Chats",
   "chatsTabWallet": "Wallet",
   "chatsTabCompute": "Compute",

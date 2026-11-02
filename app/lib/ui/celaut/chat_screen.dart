@@ -31,6 +31,7 @@ import '../../celaut/secret_answers.dart';
 import '../../celaut/typewriter.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
+import '../layout.dart';
 import 'chat_floating.dart';
 import 'env_questions_screen.dart';
 import 'html_widget.dart';
@@ -1485,182 +1486,192 @@ class _ChatScreenState extends State<ChatScreen>
         listenable: chatPrefs,
         builder: (context, _) {
           final base = chatPrefs.textStyle;
+          // On a wide window the conversation is a column in the middle, over the
+          // background of the whole page, as the conversation of a messenger on a desktop.
           return Stack(
             children: [
               ChatBackdrop(id: chatPrefs.background(_id)),
               Positioned.fill(
-                child: messages.isEmpty && _flying.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            24,
-                            headerBottom + 24,
-                            24,
-                            _bottomHeight + 24,
-                          ),
-                          child: _waitingStart
-                              ? Column(
-                                  key: const Key('chat-starting'),
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const CircularProgressIndicator(),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      l10n.chatStarting,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
-                                )
-                              : Text(
-                                  l10n.chatEmpty,
-                                  textAlign: TextAlign.center,
+                child: ReadableWidth(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: messages.isEmpty && _flying.isEmpty
+                            ? Center(
+                                child: Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    24,
+                                    headerBottom + 24,
+                                    24,
+                                    _bottomHeight + 24,
+                                  ),
+                                  child: _waitingStart
+                                      ? Column(
+                                          key: const Key('chat-starting'),
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const CircularProgressIndicator(),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              l10n.chatStarting,
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        )
+                                      : Text(
+                                          l10n.chatEmpty,
+                                          textAlign: TextAlign.center,
+                                        ),
                                 ),
+                              )
+                            : _fadeEdges(
+                                top: headerBottom + _bannerHeight,
+                                bottom: _bottomHeight,
+                                child: NotificationListener<ScrollNotification>(
+                                onNotification: _onScroll,
+                                // A tap on the conversation takes the keyboard away, as it does
+                                // in a messenger: the keyboard of the system loses the focus, the
+                                // one of the app hides.
+                                child: GestureDetector(
+                                behavior: HitTestBehavior.translucent,
+                                onTap: () {
+                                  if (chatPrefs.systemKeyboard) {
+                                    _inputFocus.unfocus();
+                                  } else {
+                                    _hideKeyboard();
+                                  }
+                                },
+                                child: ListView.custom(
+                                key: const Key('chat-messages'),
+                                controller: _scroll,
+                                // A drag on the list takes the focus from the input, and with it the
+                                // keyboard of the system.
+                                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                                // Room for the bars that float over the list.
+                                padding: EdgeInsets.fromLTRB(
+                                  16,
+                                  headerBottom + _bannerHeight + 8,
+                                  16,
+                                  _bottomHeight + 8,
+                                ),
+                                childrenDelegate: _LayoutDelegate(
+                                  childCount: messages.length + _flying.length + (typing ? 1 : 0),
+                                  onLayout: (first) {
+                                    _firstBuilt = first;
+                                    WidgetsBinding.instance.addPostFrameCallback((_) => _updatePinned());
+                                  },
+                                  (context, i) {
+                                    if (i < messages.length) {
+                                      final m = messages[i];
+                                      final reveal = _reveals[m.seq];
+                                      final bubble = _Bubble(
+                                        message: m,
+                                        scheme: scheme,
+                                        textStyle: base,
+                                        shownText: reveal?.text.text ?? m.text,
+                                        shownReasoning: reveal?.reasoning.text ?? m.reasoning,
+                                        html: chatPrefs.htmlWidgets,
+                                        read: _chat.readAttachment,
+                                        onLoaded: _fileLoaded,
+                                        onPin: _chat.canPin && m.id.isNotEmpty ? () => _togglePin(m) : null,
+                                        onCopy: () => _copy(m),
+                                        secretAnswer: _secretAnswers.of,
+                                        answering: _answering,
+                                        onSecret: (r) => _answerSecret(m, r),
+                                        onReopenKeyboard:
+                                            (m.seq == _keyboardClosedSeq || _keyboardHidden) && i == messages.length - 1
+                                                ? () => setState(() {
+                                                      _keyboardClosedSeq = null;
+                                                      _keyboardHiddenAt = null;
+                                                      _formField = null;
+                                                    })
+                                                : null,
+                                      );
+                                      return m.pinned
+                                          ? KeyedSubtree(
+                                              key: _pinKeys.putIfAbsent(
+                                                m.seq,
+                                                GlobalKey.new,
+                                              ),
+                                              child: bubble,
+                                            )
+                                          : bubble;
+                                    }
+                                    if (i < messages.length + _flying.length) {
+                                      final flying = _flying[i - messages.length];
+                                      return _FlyingBubble(
+                                        text: flying.text,
+                                        files: flying.files,
+                                        scheme: scheme,
+                                        textStyle: base,
+                                      );
+                                    }
+                                    return _TypingBubble(
+                                      seconds: _waited,
+                                      scheme: scheme,
+                                    );
+                                  },
+                                ),
+                              ),
+                              ),
+                              ),
+                              ),
+                      ),
+                      if (pinned != null)
+                        Positioned(
+                          top: headerBottom,
+                          left: 8,
+                          right: 8,
+                          child: MeasureHeight(
+                            // The list leaves room for the banner as it is before the user taps
+                            // it. An open banner covers the list for a while.
+                            onHeight: (h) {
+                              if (_pinExpanded || h == _bannerHeight) return;
+                              final atEnd = !_scroll.hasClients ||
+                                  _scroll.position.maxScrollExtent - _scroll.position.pixels < 80;
+                              setState(() => _bannerHeight = h);
+                              if (atEnd) _scrollToEnd();
+                            },
+                            child: _PinnedBanner(
+                              message: pinned,
+                              shownText: _reveals[pinned.seq]?.text.text ?? pinned.text,
+                              style: base.copyWith(color: scheme.onSurface),
+                              html: chatPrefs.htmlWidgets,
+                              expanded: _pinExpanded,
+                              maxHeight: chatArea * chatPrefs.pinnedMaxFraction,
+                              maxExpandedHeight: chatArea * pinnedExpandedFraction,
+                              onToggle: () => setState(() => _pinExpanded = !_pinExpanded),
+                            ),
+                          ),
                         ),
-                      )
-                    : _fadeEdges(
-                        top: headerBottom + _bannerHeight,
-                        bottom: _bottomHeight,
-                        child: NotificationListener<ScrollNotification>(
-                        onNotification: _onScroll,
-                        // A tap on the conversation takes the keyboard away, as it does
-                        // in a messenger: the keyboard of the system loses the focus, the
-                        // one of the app hides.
-                        child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTap: () {
-                          if (chatPrefs.systemKeyboard) {
-                            _inputFocus.unfocus();
-                          } else {
-                            _hideKeyboard();
-                          }
-                        },
-                        child: ListView.custom(
-                        key: const Key('chat-messages'),
-                        controller: _scroll,
-                        // A drag on the list takes the focus from the input, and with it the
-                        // keyboard of the system.
-                        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                        // Room for the bars that float over the list.
-                        padding: EdgeInsets.fromLTRB(
-                          16,
-                          headerBottom + _bannerHeight + 8,
-                          16,
-                          _bottomHeight + 8,
-                        ),
-                        childrenDelegate: _LayoutDelegate(
-                          childCount: messages.length + _flying.length + (typing ? 1 : 0),
-                          onLayout: (first) {
-                            _firstBuilt = first;
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: MeasureHeight(
+                          onHeight: (h) {
+                            setState(() => _headerExtent = h);
                             WidgetsBinding.instance.addPostFrameCallback((_) => _updatePinned());
                           },
-                          (context, i) {
-                            if (i < messages.length) {
-                              final m = messages[i];
-                              final reveal = _reveals[m.seq];
-                              final bubble = _Bubble(
-                                message: m,
-                                scheme: scheme,
-                                textStyle: base,
-                                shownText: reveal?.text.text ?? m.text,
-                                shownReasoning: reveal?.reasoning.text ?? m.reasoning,
-                                html: chatPrefs.htmlWidgets,
-                                read: _chat.readAttachment,
-                                onLoaded: _fileLoaded,
-                                onPin: _chat.canPin && m.id.isNotEmpty ? () => _togglePin(m) : null,
-                                onCopy: () => _copy(m),
-                                secretAnswer: _secretAnswers.of,
-                                answering: _answering,
-                                onSecret: (r) => _answerSecret(m, r),
-                                onReopenKeyboard:
-                                    (m.seq == _keyboardClosedSeq || _keyboardHidden) && i == messages.length - 1
-                                        ? () => setState(() {
-                                              _keyboardClosedSeq = null;
-                                              _keyboardHiddenAt = null;
-                                              _formField = null;
-                                            })
-                                        : null,
-                              );
-                              return m.pinned
-                                  ? KeyedSubtree(
-                                      key: _pinKeys.putIfAbsent(
-                                        m.seq,
-                                        GlobalKey.new,
-                                      ),
-                                      child: bubble,
-                                    )
-                                  : bubble;
-                            }
-                            if (i < messages.length + _flying.length) {
-                              final flying = _flying[i - messages.length];
-                              return _FlyingBubble(
-                                text: flying.text,
-                                files: flying.files,
-                                scheme: scheme,
-                                textStyle: base,
-                              );
-                            }
-                            return _TypingBubble(
-                              seconds: _waited,
-                              scheme: scheme,
-                            );
-                          },
+                          child: header,
                         ),
                       ),
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: MeasureHeight(
+                          onHeight: (h) {
+                            final atEnd = !_scroll.hasClients ||
+                                _scroll.position.maxScrollExtent - _scroll.position.pixels < 80;
+                            setState(() => _bottomHeight = h);
+                            if (atEnd && !_userScrolling) _scrollToEnd();
+                          },
+                          child: inputBar,
+                        ),
                       ),
-                      ),
-                      ),
-              ),
-              if (pinned != null)
-                Positioned(
-                  top: headerBottom,
-                  left: 8,
-                  right: 8,
-                  child: MeasureHeight(
-                    // The list leaves room for the banner as it is before the user taps
-                    // it. An open banner covers the list for a while.
-                    onHeight: (h) {
-                      if (_pinExpanded || h == _bannerHeight) return;
-                      final atEnd = !_scroll.hasClients ||
-                          _scroll.position.maxScrollExtent - _scroll.position.pixels < 80;
-                      setState(() => _bannerHeight = h);
-                      if (atEnd) _scrollToEnd();
-                    },
-                    child: _PinnedBanner(
-                      message: pinned,
-                      shownText: _reveals[pinned.seq]?.text.text ?? pinned.text,
-                      style: base.copyWith(color: scheme.onSurface),
-                      html: chatPrefs.htmlWidgets,
-                      expanded: _pinExpanded,
-                      maxHeight: chatArea * chatPrefs.pinnedMaxFraction,
-                      maxExpandedHeight: chatArea * pinnedExpandedFraction,
-                      onToggle: () => setState(() => _pinExpanded = !_pinExpanded),
-                    ),
+                    ],
                   ),
-                ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: MeasureHeight(
-                  onHeight: (h) {
-                    setState(() => _headerExtent = h);
-                    WidgetsBinding.instance.addPostFrameCallback((_) => _updatePinned());
-                  },
-                  child: header,
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: MeasureHeight(
-                  onHeight: (h) {
-                    final atEnd = !_scroll.hasClients ||
-                        _scroll.position.maxScrollExtent - _scroll.position.pixels < 80;
-                    setState(() => _bottomHeight = h);
-                    if (atEnd && !_userScrolling) _scrollToEnd();
-                  },
-                  child: inputBar,
                 ),
               ),
             ],
@@ -1691,58 +1702,61 @@ class _FlyingBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     const r = Radius.circular(16);
     final color = scheme.onPrimaryContainer;
-    return Align(
-      alignment: AlignmentDirectional.centerEnd,
-      child: Opacity(
-        opacity: 0.7,
-        child: Semantics(
-          liveRegion: true,
-          child: Container(
-            key: const Key('chat-flying'),
-            margin: const EdgeInsets.symmetric(vertical: 3),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.sizeOf(context).width * 0.8,
-            ),
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              borderRadius: const BorderRadius.only(
-                topLeft: r,
-                topRight: r,
-                bottomLeft: r,
-                bottomRight: Radius.circular(4),
+    // The bubble of the user takes at most 80% of the width of the conversation.
+    return LayoutBuilder(
+      builder: (context, box) => Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: Opacity(
+          opacity: 0.7,
+          child: Semantics(
+            liveRegion: true,
+            child: Container(
+              key: const Key('chat-flying'),
+              margin: const EdgeInsets.symmetric(vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              constraints: BoxConstraints(
+                maxWidth: box.maxWidth * 0.8,
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final file in files)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        file.kind == 'audio' ? Icons.audiotrack : Icons.image,
-                        color: color,
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          file.name ?? file.mime,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: color),
-                        ),
-                      ),
-                    ],
-                  ),
-                if (text.isNotEmpty) Text(text, style: textStyle.copyWith(color: color)),
-                Text(
-                  context.l10n.chatSending,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: color),
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer,
+                borderRadius: const BorderRadius.only(
+                  topLeft: r,
+                  topRight: r,
+                  bottomLeft: r,
+                  bottomRight: Radius.circular(4),
                 ),
-              ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final file in files)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          file.kind == 'audio' ? Icons.audiotrack : Icons.image,
+                          color: color,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            file.name ?? file.mime,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: color),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (text.isNotEmpty) Text(text, style: textStyle.copyWith(color: color)),
+                  Text(
+                    context.l10n.chatSending,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelSmall?.copyWith(color: color),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1980,118 +1994,121 @@ class _Bubble extends StatelessWidget {
     const r = Radius.circular(16);
     const tail = Radius.circular(4);
     final color = mine ? scheme.onPrimaryContainer : scheme.onSurface;
-    return Align(
-      alignment: mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onLongPressStart: (d) => _menu(context, d.globalPosition),
-          child: Container(
-          key: Key('chat-bubble-${message.seq}'),
-          margin: EdgeInsets.symmetric(vertical: mine ? 3 : 8),
-          padding: mine
-              ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-              : const EdgeInsets.symmetric(horizontal: 4),
-          constraints: mine ? BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.8) : null,
-          decoration: mine
-              ? BoxDecoration(
-                  color: scheme.primaryContainer,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: r,
-                    topRight: r,
-                    bottomLeft: r,
-                    bottomRight: tail,
+    // The bubble of the user takes at most 80% of the width of the conversation.
+    return LayoutBuilder(
+      builder: (context, box) => Align(
+        alignment: mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onLongPressStart: (d) => _menu(context, d.globalPosition),
+            child: Container(
+            key: Key('chat-bubble-${message.seq}'),
+            margin: EdgeInsets.symmetric(vertical: mine ? 3 : 8),
+            padding: mine
+                ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                : const EdgeInsets.symmetric(horizontal: 4),
+            constraints: mine ? BoxConstraints(maxWidth: box.maxWidth * 0.8) : null,
+            decoration: mine
+                ? BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: r,
+                      topRight: r,
+                      bottomLeft: r,
+                      bottomRight: tail,
+                    ),
+                  )
+                : null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (message.pinned)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Icon(
+                      Icons.push_pin,
+                      key: Key('chat-pin-icon-${message.seq}'),
+                      size: 14,
+                      color: scheme.onSurfaceVariant,
+                      semanticLabel: context.l10n.chatPinnedIcon,
+                    ),
                   ),
-                )
-              : null,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (message.pinned)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Icon(
-                    Icons.push_pin,
-                    key: Key('chat-pin-icon-${message.seq}'),
-                    size: 14,
+                for (var i = 0; i < message.attachments.length; i++)
+                  _AttachmentView(
+                    key: Key('chat-file-${message.seq}-$i'),
+                    attachment: message.attachments[i],
+                    load: () => read(message.seq, i),
+                    onLoaded: onLoaded,
+                    color: color,
+                  ),
+                if (shownReasoning.isNotEmpty)
+                  _Reasoning(
+                    key: Key('chat-reasoning-${message.seq}'),
+                    text: shownReasoning,
+                    // The user sees the reasoning grow until the text starts.
+                    openByDefault: message.isOpen && message.text.isEmpty,
                     color: scheme.onSurfaceVariant,
-                    semanticLabel: context.l10n.chatPinnedIcon,
                   ),
-                ),
-              for (var i = 0; i < message.attachments.length; i++)
-                _AttachmentView(
-                  key: Key('chat-file-${message.seq}-$i'),
-                  attachment: message.attachments[i],
-                  load: () => read(message.seq, i),
-                  onLoaded: onLoaded,
-                  color: color,
-                ),
-              if (shownReasoning.isNotEmpty)
-                _Reasoning(
-                  key: Key('chat-reasoning-${message.seq}'),
-                  text: shownReasoning,
-                  // The user sees the reasoning grow until the text starts.
-                  openByDefault: message.isOpen && message.text.isEmpty,
-                  color: scheme.onSurfaceVariant,
-                ),
-              if (shownText.isNotEmpty)
-                _MessageText(
-                  text: shownText,
-                  style: textStyle.copyWith(color: color),
-                  // Only the text of the service has HTML blocks: the user writes plain text.
-                  html: html && !mine,
-                  markdown: !mine,
-                  streaming: message.isOpen,
-                  onKeyboardTap: onReopenKeyboard,
-                  // Not selectable: a long press opens the menu, which can select the text.
-                  selectable: false,
-                ),
-              for (final r in message.secretRequests)
-                _SecretCard(
-                  key: Key('chat-secret-${r.requestId}'),
-                  request: r,
-                  answer: secretAnswer?.call(r.requestId),
-                  busy: answering.contains(r.requestId),
-                  onTap: onSecret == null ? null : () => onSecret!(r),
-                  scheme: scheme,
-                ),
-              if (message.isFailed || message.isCancelled)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    message.isFailed ? context.l10n.chatAnswerFailed : context.l10n.chatAnswerCancelled,
-                    key: Key('chat-${message.isFailed ? 'failed' : 'cancelled'}-${message.seq}'),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelSmall?.copyWith(color: rustFor(context)),
+                if (shownText.isNotEmpty)
+                  _MessageText(
+                    text: shownText,
+                    style: textStyle.copyWith(color: color),
+                    // Only the text of the service has HTML blocks: the user writes plain text.
+                    html: html && !mine,
+                    markdown: !mine,
+                    streaming: message.isOpen,
+                    onKeyboardTap: onReopenKeyboard,
+                    // Not selectable: a long press opens the menu, which can select the text.
+                    selectable: false,
                   ),
-                ),
-              if (message.isFailed && message.error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    message.error!,
-                    key: Key('chat-error-${message.seq}'),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelSmall?.copyWith(color: rustFor(context)),
+                for (final r in message.secretRequests)
+                  _SecretCard(
+                    key: Key('chat-secret-${r.requestId}'),
+                    request: r,
+                    answer: secretAnswer?.call(r.requestId),
+                    busy: answering.contains(r.requestId),
+                    onTap: onSecret == null ? null : () => onSecret!(r),
+                    scheme: scheme,
                   ),
-                ),
-              if (message.createdAt > 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 3),
-                  child: Text(
-                    _messageTime(context, message.createdAt),
-                    key: Key('chat-time-${message.seq}'),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          // In a bubble, the colour of the text of the bubble: the colour of
-                          // the page was 1.8:1 on the bubble of the dark theme.
-                          color: mine ? color : scheme.onSurfaceVariant,
-                          fontSize: 11,
-                        ),
+                if (message.isFailed || message.isCancelled)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      message.isFailed ? context.l10n.chatAnswerFailed : context.l10n.chatAnswerCancelled,
+                      key: Key('chat-${message.isFailed ? 'failed' : 'cancelled'}-${message.seq}'),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: rustFor(context)),
+                    ),
                   ),
-                ),
-            ],
+                if (message.isFailed && message.error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      message.error!,
+                      key: Key('chat-error-${message.seq}'),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: rustFor(context)),
+                    ),
+                  ),
+                if (message.createdAt > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      _messageTime(context, message.createdAt),
+                      key: Key('chat-time-${message.seq}'),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            // In a bubble, the colour of the text of the bubble: the colour of
+                            // the page was 1.8:1 on the bubble of the dark theme.
+                            color: mine ? color : scheme.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

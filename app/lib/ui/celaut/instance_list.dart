@@ -54,6 +54,21 @@ InstanceListView instanceOfLaunch(LaunchOutcome outcome, String serviceId, Strin
   );
 }
 
+/// The pane next to the list where a conversation and the info of an instance open, on a
+/// wide window (`ChatsScreen`). With no pane, or a null [navigator], they open over the
+/// list.
+class ChatPane extends InheritedWidget {
+  const ChatPane({super.key, required this.navigator, required super.child});
+
+  final GlobalKey<NavigatorState>? navigator;
+
+  static GlobalKey<NavigatorState>? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ChatPane>()?.navigator;
+
+  @override
+  bool updateShouldNotify(ChatPane oldWidget) => oldWidget.navigator != navigator;
+}
+
 /// The rows of the instances of the app, as the chat list of a messenger
 /// (`docs/celaut/ui-chat-first.md`): the instances whose interface has a chat slot
 /// ([chats] true, the home screen: all of them), or only those with no chat and no web
@@ -142,6 +157,11 @@ class InstanceListState extends State<InstanceList> {
   late final StoppedFilter _filter = widget.filter ?? stoppedFilter;
   late final ChatGroups _groups = widget.groups ?? chatGroups;
 
+  /// The pane where conversations open ([ChatPane]), and the instance whose conversation
+  /// or info it shows, if any.
+  GlobalKey<NavigatorState>? _pane;
+  InstanceListView? _inPane;
+
   @override
   void initState() {
     super.initState();
@@ -160,8 +180,36 @@ class InstanceListState extends State<InstanceList> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final pane = ChatPane.of(context);
+    // The window got narrow (a tablet turned upright): the pane is gone, with the
+    // conversation in it. The conversation opens again over the list.
+    final open = _inPane;
+    if (_pane != null && pane == null && open != null) {
+      _inPane = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && open.stoppedAt == null && open.chatSlots.isNotEmpty) unawaited(openChat(open));
+      });
+    }
+    _pane = pane;
+  }
+
   void _onNotes() {
     if (mounted) setState(() {});
+  }
+
+  /// Push [route] in the pane, in place of what it shows, or over the list if there is no
+  /// pane. The row of [instance] shows as chosen while its page is in the pane.
+  Future<T?> _push<T>(InstanceListView instance, Route<T> route) async {
+    final pane = _pane?.currentState;
+    if (pane == null) return Navigator.of(context).push<T>(route);
+    pane.popUntil((r) => r.isFirst);
+    setState(() => _inPane = instance);
+    final result = await pane.push<T>(route);
+    if (mounted && identical(_inPane, instance)) setState(() => _inPane = null);
+    return result;
   }
 
   /// The home list has every instance: all of them are a conversation, and one that has
@@ -272,7 +320,8 @@ class InstanceListState extends State<InstanceList> {
         error: e is CelautError ? e : CelautError(kind: CelautErrorKind.protocol, message: '$e'),
       ),
     );
-    final failed = await Navigator.of(context).push<CelautError>(
+    final failed = await _push<CelautError>(
+      instance,
       MaterialPageRoute(
         builder: (_) => _TunnelPage(
           title: instanceTitle(instance),
@@ -299,7 +348,8 @@ class InstanceListState extends State<InstanceList> {
   }
 
   Future<void> _openInfo(InstanceListView i, InstanceState state) async {
-    await Navigator.of(context).push<bool>(
+    await _push<bool>(
+      i,
       MaterialPageRoute(
         builder: (_) => InstanceInfoScreen(
           instance: i,
@@ -518,6 +568,7 @@ class InstanceListState extends State<InstanceList> {
           last: _notes.lastMessage(i.instanceId),
           keepAlive: i.stoppedAt == null &&
               (widget.topUp ?? autoTopUp).planOf(i.instanceId)?.keepAlive == true,
+          selected: _inPane?.instanceId == i.instanceId,
           onTap: () => _tap(i, _stateOf(i)),
           onLongPress: () => _actions(i, _stateOf(i)),
         );
@@ -627,7 +678,11 @@ class _InstanceRow extends StatelessWidget {
     required this.onTap,
     required this.onLongPress,
     this.keepAlive = false,
+    this.selected = false,
   });
+
+  /// Its conversation is open in the pane next to the list.
+  final bool selected;
 
   /// The instance runs until the user stops it ([AutoTopUp]).
   final bool keepAlive;
@@ -661,7 +716,7 @@ class _InstanceRow extends StatelessWidget {
         : last!.fromUser
             ? l.chatsPreviewYou(messagePreview(last!, l))
             : messagePreview(last!, l);
-    return InkWell(
+    final row = InkWell(
       key: Key('chats-row-$id'),
       onTap: onTap,
       onLongPress: onLongPress,
@@ -751,6 +806,11 @@ class _InstanceRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+    if (!selected) return row;
+    return Semantics(
+      selected: true,
+      child: ColoredBox(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.07), child: row),
     );
   }
 }

@@ -17,6 +17,7 @@ import 'package:argus_wallet/l10n/l10n.dart';
 import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/ui/celaut/chat_screen.dart';
 import 'package:argus_wallet/ui/celaut/instance_info_screen.dart';
+import 'package:argus_wallet/ui/layout.dart';
 import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1153,6 +1154,30 @@ void main() {
       expect(find.textContaining('message 0 '), findsNothing);
     });
 
+    testWidgets('on a wide window the conversation is a column in the middle', (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      chat = _FakeChat(
+        history: [
+          ChatMessage(seq: 0, role: 'user', text: 'a long message of the user ' * 20),
+          const ChatMessage(seq: 1, role: 'assistant', text: 'the answer'),
+        ],
+      );
+      await open(tester);
+      final column = tester.getRect(find.byKey(const Key('chat-messages')));
+      expect(column.width, AppLayout.readable);
+      expect(column.center.dx, 700);
+      // The header and the input are in the column too.
+      expect(tester.getRect(find.byKey(const Key('chat-header'))).left, greaterThanOrEqualTo(column.left));
+      expect(tester.getRect(find.byKey(const Key('chat-input-bar'))).right, lessThanOrEqualTo(column.right));
+      // A bubble of the user takes at most 80% of the column, not of the window.
+      expect(
+        tester.getSize(find.byKey(const Key('chat-bubble-0'))).width,
+        lessThanOrEqualTo(AppLayout.readable * 0.8),
+      );
+    });
+
     testWidgets('the header and the input float over the list, which leaves room for them', (
       tester,
     ) async {
@@ -1184,7 +1209,9 @@ void main() {
         findsOneWidget,
       );
       // The list runs under both bars, and its padding clears them.
-      expect(tester.getRect(find.byKey(const Key('chat-messages'))), screen);
+      final listRect = tester.getRect(find.byKey(const Key('chat-messages')));
+      expect(listRect.top, screen.top);
+      expect(listRect.bottom, screen.bottom);
       expect(pad.top, greaterThanOrEqualTo(header.bottom));
       expect(pad.bottom, greaterThanOrEqualTo(screen.bottom - input.top));
       // At the end of the list the last message is above the input.

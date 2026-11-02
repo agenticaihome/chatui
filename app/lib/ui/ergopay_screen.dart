@@ -15,6 +15,7 @@ import '../services/session_lock.dart';
 import '../services/wallet_service.dart';
 import '../theme/argus_theme.dart';
 import 'confirm_transaction_sheet.dart';
+import 'layout.dart';
 import 'offline_banner.dart';
 import 'widgets/soft_card.dart';
 import 'widgets/error_sheet.dart';
@@ -227,13 +228,15 @@ class _ErgoPayScreenState extends State<ErgoPayScreen> with TxReceiptOwner {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('ErgoPay')),
-      body: switch (_stage) {
-        _Stage.loading || _Stage.signing => _busy(),
-        _Stage.message => _messageOnly(),
-        _Stage.ready => _ready(),
-        _Stage.done => _done(),
-        _Stage.error => _errorView(),
-      },
+      body: ReadableWidth(
+        child: switch (_stage) {
+          _Stage.loading || _Stage.signing => _busy(),
+          _Stage.message => _messageOnly(),
+          _Stage.ready => _ready(),
+          _Stage.done => _done(),
+          _Stage.error => _errorView(),
+        },
+      ),
     );
   }
 

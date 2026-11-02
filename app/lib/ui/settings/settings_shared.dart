@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/argus_theme.dart';
+import '../layout.dart';
 import '../widgets/soft_card.dart';
 
 /// One tappable row in a settings group.
@@ -107,9 +108,11 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + MediaQuery.paddingOf(context).bottom),
-        children: children,
+      body: ReadableWidth(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + MediaQuery.paddingOf(context).bottom),
+          children: children,
+        ),
       ),
     );
   }

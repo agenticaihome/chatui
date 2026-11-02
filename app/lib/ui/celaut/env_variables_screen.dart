@@ -6,6 +6,7 @@ import '../../celaut/celaut_strings.dart';
 import '../../celaut/env_store.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
+import '../layout.dart';
 
 /// The text for a problem with a name or a value.
 String envProblemText(AppLocalizations l, EnvProblem problem) => switch (problem) {
@@ -108,38 +109,40 @@ class _EnvVariablesScreenState extends State<EnvVariablesScreen> {
         icon: const Icon(Icons.add),
         label: Text(l.celautEnvAdd),
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16, 8, 16, 96 + MediaQuery.paddingOf(context).bottom),
-        children: [
-          Text(l.celautEnvIntro, style: TextStyle(fontSize: 13, color: colors.muted)),
-          const SizedBox(height: 16),
-          if (_names.isEmpty)
-            Padding(
-              key: const Key('env-empty'),
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              child: Center(child: Text(l.celautEnvEmpty, style: TextStyle(color: colors.muted))),
-            ),
-          for (final n in _names)
-            ListTile(
-              key: Key('env-row-${n.name}'),
-              contentPadding: EdgeInsets.zero,
-              leading: IconButton(
-                key: Key('env-sensitive-${n.name}'),
-                tooltip: n.sensitive ? l.celautEnvMarkNotSensitive : l.celautEnvMarkSensitive,
-                icon: Icon(n.sensitive ? Icons.lock_outline : Icons.lock_open_outlined),
-                onPressed: () => _toggleSensitive(n),
+      body: ReadableWidth(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 96 + MediaQuery.paddingOf(context).bottom),
+          children: [
+            Text(l.celautEnvIntro, style: TextStyle(fontSize: 13, color: colors.muted)),
+            const SizedBox(height: 16),
+            if (_names.isEmpty)
+              Padding(
+                key: const Key('env-empty'),
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Center(child: Text(l.celautEnvEmpty, style: TextStyle(color: colors.muted))),
               ),
-              title: Text(n.name, style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 14)),
-              subtitle: Text('••••••••  ·  ${n.sensitive ? l.celautEnvSensitive : l.celautEnvNotSensitive}'),
-              onTap: () => _edit(n.name),
-              trailing: IconButton(
-                key: Key('env-delete-${n.name}'),
-                tooltip: l.celautEnvDelete,
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => _delete(n.name),
+            for (final n in _names)
+              ListTile(
+                key: Key('env-row-${n.name}'),
+                contentPadding: EdgeInsets.zero,
+                leading: IconButton(
+                  key: Key('env-sensitive-${n.name}'),
+                  tooltip: n.sensitive ? l.celautEnvMarkNotSensitive : l.celautEnvMarkSensitive,
+                  icon: Icon(n.sensitive ? Icons.lock_outline : Icons.lock_open_outlined),
+                  onPressed: () => _toggleSensitive(n),
+                ),
+                title: Text(n.name, style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 14)),
+                subtitle: Text('••••••••  ·  ${n.sensitive ? l.celautEnvSensitive : l.celautEnvNotSensitive}'),
+                onTap: () => _edit(n.name),
+                trailing: IconButton(
+                  key: Key('env-delete-${n.name}'),
+                  tooltip: l.celautEnvDelete,
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => _delete(n.name),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

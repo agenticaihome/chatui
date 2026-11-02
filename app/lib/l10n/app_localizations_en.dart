@@ -5588,6 +5588,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Each conversation is a service that runs on a node. Start one with the pencil button.';
 
   @override
+  String get chatsPaneEmpty =>
+      'Choose a conversation from the list, or start a new one.';
+
+  @override
   String get chatsTabChats => 'Chats';
 
   @override

@@ -13,6 +13,7 @@ import '../../format.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
+import '../layout.dart';
 import 'instance_actions.dart';
 import 'instance_receipts.dart';
 import 'instance_time_section.dart';
@@ -280,82 +281,84 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _reloadReceipts,
-        child: ListView(
-        padding: EdgeInsets.fromLTRB(
-          homeGutter,
-          16,
-          homeGutter,
-          32 + MediaQuery.paddingOf(context).bottom,
-        ),
-        children: [
-          Row(
-            children: [
-              InstanceAvatar(instanceId: _instance.instanceId, size: 56),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  key: const Key('info-name'),
-                  style: Theme.of(context).textTheme.titleLarge,
+      body: ReadableWidth(
+        child: RefreshIndicator(
+          onRefresh: _reloadReceipts,
+          child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            homeGutter,
+            16,
+            homeGutter,
+            32 + MediaQuery.paddingOf(context).bottom,
+          ),
+          children: [
+            Row(
+              children: [
+                InstanceAvatar(instanceId: _instance.instanceId, size: 56),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    key: const Key('info-name'),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            for (final (label, value, key) in rows)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label.toUpperCase(), style: t.label),
+                    const SizedBox(height: 2),
+                    SelectableText(value, key: key, style: t.primary),
+                  ],
                 ),
               ),
+            if (widget.state == InstanceState.unreachable && (widget.reason ?? '').isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  widget.reason!,
+                  key: const Key('info-reason'),
+                  style: t.secondary.copyWith(color: rustFor(context)),
+                ),
+              ),
+            if (widget.state != InstanceState.stopped) ...[
+              const SizedBox(height: 16),
+              InstanceTimeSection(instanceId: _instance.instanceId, wallets: widget.wallets),
             ],
-          ),
-          const SizedBox(height: 20),
-          for (final (label, value, key) in rows)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label.toUpperCase(), style: t.label),
-                  const SizedBox(height: 2),
-                  SelectableText(value, key: key, style: t.primary),
-                ],
+            if (_receipts case final receipts?) ...[
+              const SizedBox(height: 16),
+              InstanceReceiptsSection(view: receipts, onExport: _exportReceipts),
+            ],
+            if (widget.state != InstanceState.stopped) ...[
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                key: const Key('info-stop'),
+                onPressed: _stopping ? null : _stop,
+                icon: const Icon(Icons.stop_circle_outlined),
+                label: Text(l.chatStop),
               ),
-            ),
-          if (widget.state == InstanceState.unreachable && (widget.reason ?? '').isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                widget.reason!,
-                key: const Key('info-reason'),
-                style: t.secondary.copyWith(color: rustFor(context)),
+              const SizedBox(height: 8),
+              Text(l.chatsInfoStopNote, style: t.secondary),
+            ] else ...[
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                key: const Key('info-delete'),
+                onPressed: _delete,
+                icon: const Icon(Icons.delete_outline),
+                label: Text(l.chatsDelete),
               ),
-            ),
-          if (widget.state != InstanceState.stopped) ...[
-            const SizedBox(height: 16),
-            InstanceTimeSection(instanceId: _instance.instanceId, wallets: widget.wallets),
+              const SizedBox(height: 8),
+              Text(l.chatsInfoDeleteNote, style: t.secondary),
+            ],
           ],
-          if (_receipts case final receipts?) ...[
-            const SizedBox(height: 16),
-            InstanceReceiptsSection(view: receipts, onExport: _exportReceipts),
-          ],
-          if (widget.state != InstanceState.stopped) ...[
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              key: const Key('info-stop'),
-              onPressed: _stopping ? null : _stop,
-              icon: const Icon(Icons.stop_circle_outlined),
-              label: Text(l.chatStop),
-            ),
-            const SizedBox(height: 8),
-            Text(l.chatsInfoStopNote, style: t.secondary),
-          ] else ...[
-            const SizedBox(height: 24),
-            OutlinedButton.icon(
-              key: const Key('info-delete'),
-              onPressed: _delete,
-              icon: const Icon(Icons.delete_outline),
-              label: Text(l.chatsDelete),
-            ),
-            const SizedBox(height: 8),
-            Text(l.chatsInfoDeleteNote, style: t.secondary),
-          ],
-        ],
-      ),
+        ),
+        ),
       ),
     );
   }

@@ -10,6 +10,7 @@ import '../services/session_lock.dart';
 import '../services/privacy_service.dart';
 import '../services/wallet_service.dart';
 import '../theme/argus_theme.dart';
+import 'layout.dart';
 import 'widgets/soft_card.dart';
 import 'widgets/entry_dialogs.dart';
 
@@ -118,140 +119,142 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.receiveTitle)),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(
-                28, 16, 28, 40 + MediaQuery.paddingOf(context).bottom),
-        children: [
-          SectionLabel(fresh
-              ? context.l10n.receiveUnusedAddress : context.l10n.receiveAddress),
-          const SizedBox(height: 8),
-          Text(
-            fresh
-                ? context.l10n.receiveFreshNote
-                : context.l10n.receiveStaticNote,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            key: const Key('receive-amount'),
-            controller: _amountCtrl,
-            decoration: InputDecoration(
-              labelText: context.l10n.receiveAmountLabel,
-              hintText: '0.001',
-              errorText: _amountError,
-              suffixIcon: const Icon(Icons.tag),
-            ),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 28),
-          if (address.isNotEmpty)
-            Center(
-              child: Container(
-                // Scanners need dark-on-light; the pale card reads as a
-                // deliberate "ticket" in both palettes.
-                decoration: BoxDecoration(
-                  color: paper,
-                  borderRadius: BorderRadius.circular(cardRadius),
-                  border: Border.all(color: accentOf(context).withValues(alpha: 0.45)),
-                ),
-                padding: const EdgeInsets.all(18),
-                child: QrImageView(
-                  data: _qrData.isEmpty ? address : _qrData,
-                  semanticsLabel: _qrData.isEmpty ? address : _qrData,
-                  version: QrVersions.auto,
-                  size: 220,
-                  backgroundColor: paper,
-                  padding: EdgeInsets.zero,
-                  eyeStyle: const QrEyeStyle(
-                    eyeShape: QrEyeShape.square,
-                    color: ink,
-                  ),
-                  dataModuleStyle: const QrDataModuleStyle(
-                    dataModuleShape: QrDataModuleShape.square,
-                    color: ink,
-                  ),
-          ),
-            ),
-          ),
-          const SizedBox(height: 28),
-          if (address.isNotEmpty)
-            ListenableBuilder(
-              listenable: addressLabelService,
-              builder: (context, _) {
-                final label = addressLabelService.labelFor(address);
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (label != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: accentOf(context).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(label, style: TextStyle(color: accentTextOf(context), fontSize: 12)),
-                      ),
-                    if (label != null) const SizedBox(width: 8),
-                    TextButton.icon(
-                      onPressed: () => _editLabel(address),
-                      icon: const Icon(Icons.edit, size: 14),
-                      label: Text(label == null ? context.l10n.receiveAddLabel : context.l10n.receiveEditLabel),
-                    ),
-                  ],
-                );
-              },
-            ),
-          const SizedBox(height: 20),
-          SelectableText(
-            address,
-            style: monoStyle(context, size: 13),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: address.isEmpty
-                ? null
-                : () {
-                    Clipboard.setData(ClipboardData(text: address));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(context.l10n.commonAddressCopied)),
-                    );
-                  },
-            child: Text(context.l10n.receiveCopyAddress),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: address.isEmpty || _amountError != null
-                ? null
-                : () => sessionLock.run(
-                      () => SharePlus.instance.share(ShareParams(text: _qrData)),
-                    ),
-            child: Text(context.l10n.receiveShare),
-          ),
-          if (args.historyAddresses.where((a) => a != address).isNotEmpty) ...[
-            const SizedBox(height: 28),
-            SectionLabel(context.l10n.receiveUsedAddresses),
-            const SizedBox(height: 4),
+      body: ReadableWidth(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+                  28, 16, 28, 40 + MediaQuery.paddingOf(context).bottom),
+          children: [
+            SectionLabel(fresh
+                ? context.l10n.receiveUnusedAddress : context.l10n.receiveAddress),
+            const SizedBox(height: 8),
             Text(
-              context.l10n.receiveUsedAddressesNote,
-              style: Theme.of(context).textTheme.bodySmall,
+              fresh
+                  ? context.l10n.receiveFreshNote
+                  : context.l10n.receiveStaticNote,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 10),
-            ListenableBuilder(
-              listenable: addressLabelService,
-              builder: (context, _) => SoftCard(
-                padding: EdgeInsets.zero,
-                child: DividedColumn(
-                  indent: 16,
-                  children: [
-                    for (final a in args.historyAddresses)
-                      if (a != address) _usedAddressRow(context, a),
-                  ],
-                ),
+            const SizedBox(height: 20),
+            TextField(
+              key: const Key('receive-amount'),
+              controller: _amountCtrl,
+              decoration: InputDecoration(
+                labelText: context.l10n.receiveAmountLabel,
+                hintText: '0.001',
+                errorText: _amountError,
+                suffixIcon: const Icon(Icons.tag),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 28),
+            if (address.isNotEmpty)
+              Center(
+                child: Container(
+                  // Scanners need dark-on-light; the pale card reads as a
+                  // deliberate "ticket" in both palettes.
+                  decoration: BoxDecoration(
+                    color: paper,
+                    borderRadius: BorderRadius.circular(cardRadius),
+                    border: Border.all(color: accentOf(context).withValues(alpha: 0.45)),
+                  ),
+                  padding: const EdgeInsets.all(18),
+                  child: QrImageView(
+                    data: _qrData.isEmpty ? address : _qrData,
+                    semanticsLabel: _qrData.isEmpty ? address : _qrData,
+                    version: QrVersions.auto,
+                    size: 220,
+                    backgroundColor: paper,
+                    padding: EdgeInsets.zero,
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.square,
+                      color: ink,
+                    ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square,
+                      color: ink,
+                    ),
+            ),
               ),
             ),
+            const SizedBox(height: 28),
+            if (address.isNotEmpty)
+              ListenableBuilder(
+                listenable: addressLabelService,
+                builder: (context, _) {
+                  final label = addressLabelService.labelFor(address);
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (label != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: accentOf(context).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(label, style: TextStyle(color: accentTextOf(context), fontSize: 12)),
+                        ),
+                      if (label != null) const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: () => _editLabel(address),
+                        icon: const Icon(Icons.edit, size: 14),
+                        label: Text(label == null ? context.l10n.receiveAddLabel : context.l10n.receiveEditLabel),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            const SizedBox(height: 20),
+            SelectableText(
+              address,
+              style: monoStyle(context, size: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: address.isEmpty
+                  ? null
+                  : () {
+                      Clipboard.setData(ClipboardData(text: address));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(context.l10n.commonAddressCopied)),
+                      );
+                    },
+              child: Text(context.l10n.receiveCopyAddress),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: address.isEmpty || _amountError != null
+                  ? null
+                  : () => sessionLock.run(
+                        () => SharePlus.instance.share(ShareParams(text: _qrData)),
+                      ),
+              child: Text(context.l10n.receiveShare),
+            ),
+            if (args.historyAddresses.where((a) => a != address).isNotEmpty) ...[
+              const SizedBox(height: 28),
+              SectionLabel(context.l10n.receiveUsedAddresses),
+              const SizedBox(height: 4),
+              Text(
+                context.l10n.receiveUsedAddressesNote,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 10),
+              ListenableBuilder(
+                listenable: addressLabelService,
+                builder: (context, _) => SoftCard(
+                  padding: EdgeInsets.zero,
+                  child: DividedColumn(
+                    indent: 16,
+                    children: [
+                      for (final a in args.historyAddresses)
+                        if (a != address) _usedAddressRow(context, a),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

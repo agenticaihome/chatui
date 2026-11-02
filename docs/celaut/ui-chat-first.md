@@ -102,6 +102,20 @@ The list asks the nodes for its running instances when it opens, when the user c
 to it (from a page or from another tab), and on a pull. It does not poll. A stopped instance
 is not asked for.
 
+**Large screens and a phone on its side** (`AppLayout`, `app/lib/ui/layout.dart`). The
+layout follows the window size classes of Material 3:
+
+| Window | Layout |
+|---|---|
+| Under 600 wide (a phone held upright) | The bottom bar, as above |
+| 600 wide or more (a phone on its side, a small tablet) | The tabs are a rail on the left, so the bar does not take the little height there is. A conversation still opens over the tabs |
+| 840 wide or more and 480 high or more (a tablet on its side, a desktop window) | The rail, and Chats shows the list (360 wide) with the open conversation next to it, as a messenger on a tablet. The pane keeps its own pages (the info page of an instance opens there too); the open row is marked; Back closes the pane first. A tablet turned upright opens the conversation of the pane again over the list |
+
+On any window the text and the forms of a page keep to a column of at most 760 in the
+middle (`ReadableWidth`), and the conversation too, over its background. A window under
+500 high (a phone on its side) has the keys of the keyboard of the app lower (36, not 48),
+so the conversation keeps room above it.
+
 ## 3. Flows
 
 - **New conversation.** Pencil → "New conversation" → a skill → its services, best first →

@@ -6,6 +6,7 @@ import '../../celaut/egress.dart';
 import '../../celaut/env_store.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
+import '../layout.dart';
 import 'env_variables_screen.dart' show envProblemText;
 
 /// What the user chose for one declared variable.
@@ -254,9 +255,11 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: ListView(
-          padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + MediaQuery.paddingOf(context).bottom),
-          children: _review ? _reviewPage(l) : _questionPage(l, _index, total),
+        body: ReadableWidth(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + MediaQuery.paddingOf(context).bottom),
+            children: _review ? _reviewPage(l) : _questionPage(l, _index, total),
+          ),
         ),
       ),
     );

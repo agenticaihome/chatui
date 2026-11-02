@@ -19,6 +19,7 @@ import 'celaut/deposit_screen.dart';
 import 'celaut/env_variables_screen.dart';
 import 'celaut/known_nodes_screen.dart';
 import 'celaut/service_screen.dart';
+import 'layout.dart';
 import 'settings/about_page.dart';
 import 'settings/address_book_page.dart';
 import 'settings/chat_settings_page.dart';
@@ -84,42 +85,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: widget.embedded ? null : AppBar(title: Text(context.l10n.commonSettings)),
-      body: ListenableBuilder(
-        listenable: Listenable.merge([
-          themeController,
-          networkController,
-          walletService.unlocked,
-          contactsService,
-        ]),
-        builder: (context, _) {
-          return FutureBuilder<List<WalletInfo>>(
-            future: _walletsFuture,
-            builder: (context, snapshot) {
-              final wallets = snapshot.data ?? const <WalletInfo>[];
-              // The wallet of the page, or else the one wallet of the app.
-              WalletInfo? current;
-              for (final w in wallets) {
-                if (w.walletId == (widget.walletId ?? w.walletId)) {
-                  current = w;
-                  break;
+      body: ReadableWidth(
+        child: ListenableBuilder(
+          listenable: Listenable.merge([
+            themeController,
+            networkController,
+            walletService.unlocked,
+            contactsService,
+          ]),
+          builder: (context, _) {
+            return FutureBuilder<List<WalletInfo>>(
+              future: _walletsFuture,
+              builder: (context, snapshot) {
+                final wallets = snapshot.data ?? const <WalletInfo>[];
+                // The wallet of the page, or else the one wallet of the app.
+                WalletInfo? current;
+                for (final w in wallets) {
+                  if (w.walletId == (widget.walletId ?? w.walletId)) {
+                    current = w;
+                    break;
+                  }
                 }
-              }
-              return ListView(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + MediaQuery.paddingOf(context).bottom),
-                children: [
-                  const UpdateNotice(),
-                  if (current != null) ...[
-                    _walletHeader(context, current),
-                    const SizedBox(height: 24),
+                return ListView(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + MediaQuery.paddingOf(context).bottom),
+                  children: [
+                    const UpdateNotice(),
+                    if (current != null) ...[
+                      _walletHeader(context, current),
+                      const SizedBox(height: 24),
+                    ],
+                    _ergoGroup(current),
+                    _computeGroup(),
+                    _generalGroup(current),
                   ],
-                  _ergoGroup(current),
-                  _computeGroup(),
-                  _generalGroup(current),
-                ],
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

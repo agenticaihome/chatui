@@ -9,6 +9,7 @@ import '../l10n/l10n.dart';
 import '../services/contacts_service.dart';
 import '../services/wallet_service.dart';
 import '../theme/argus_theme.dart';
+import 'layout.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -108,7 +109,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   onPressed: () => _addOrEdit(),
                   child: const Icon(Icons.person_add),
                 ),
-          body: _contactList(),
+          body: ReadableWidth(
+            child: _contactList(),
+          ),
         );
       },
     );

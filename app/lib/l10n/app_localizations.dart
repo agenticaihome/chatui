@@ -8873,6 +8873,12 @@ abstract class AppLocalizations {
   /// **'Each conversation is a service that runs on a node. Start one with the pencil button.'**
   String get chatsEmptyBody;
 
+  /// No description provided for @chatsPaneEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a conversation from the list, or start a new one.'**
+  String get chatsPaneEmpty;
+
   /// No description provided for @chatsTabChats.
   ///
   /// In en, this message translates to:

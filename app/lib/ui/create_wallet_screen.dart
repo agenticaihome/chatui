@@ -1,3 +1,4 @@
+import 'layout.dart';
 import 'widgets/error_sheet.dart';
 import 'package:flutter/material.dart';
 
@@ -136,22 +137,24 @@ class _CreateWalletScreenState extends State<CreateWalletScreen> {
           },
         ),
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(
-                20, 8, 20, 32 + MediaQuery.paddingOf(context).bottom),
-        children: [
-          StepDots(total: 2, index: _step),
-          const SizedBox(height: 24),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            child: switch (_step) {
-              1 => _confirmStep(),
-              _ => _backupStep(),
-            },
-          ),
-        ],
+      body: ReadableWidth(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+                  20, 8, 20, 32 + MediaQuery.paddingOf(context).bottom),
+          children: [
+            StepDots(total: 2, index: _step),
+            const SizedBox(height: 24),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              child: switch (_step) {
+                1 => _confirmStep(),
+                _ => _backupStep(),
+              },
+            ),
+          ],
+        ),
       ),
     ),
     );

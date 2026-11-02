@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/api/celaut_service.dart';
 import '../../celaut/payers.dart';
 import '../../l10n/l10n.dart';
+import '../layout.dart';
 import 'run_service_section.dart';
 
 /// Run a service: the catalog of skills, the service files of the user, and the import
@@ -41,18 +42,20 @@ class RunServiceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(title ?? context.l10n.celautRunTitle)),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(0, 8, 0, 32 + MediaQuery.paddingOf(context).bottom),
-        children: [
-          section ??
-              RunServiceSection(
-                wallets: wallets,
-                newClient: newClient,
-                onChanged: onChanged,
-                onStarted: onStarted,
-                showTitle: false,
-              ),
-        ],
+      body: ReadableWidth(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(0, 8, 0, 32 + MediaQuery.paddingOf(context).bottom),
+          children: [
+            section ??
+                RunServiceSection(
+                  wallets: wallets,
+                  newClient: newClient,
+                  onChanged: onChanged,
+                  onStarted: onStarted,
+                  showTitle: false,
+                ),
+          ],
+        ),
       ),
     );
   }

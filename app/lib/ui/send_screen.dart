@@ -1,3 +1,4 @@
+import 'layout.dart';
 import 'widgets/error_sheet.dart';
 import 'widgets/tx_result_view.dart';
 import 'dart:async';
@@ -869,405 +870,407 @@ class _SendScreenState extends State<SendScreen> with TxReceiptOwner {
           ),
         ],
       ),
-      body: _resultTxId != null
-          ? Center(
-              child: TxResultView(
-                txId: _resultTxId!,
-                headline: context.l10n.sendSent,
-                onDismiss: () => Navigator.pop(context),
-              ),
-            )
-          : Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  children: [
-                    const OfflineBanner(),
-                    SectionLabel(context.l10n.sendDestination),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _recipientCtrl,
-                      style: monoStyle(context, size: 13),
-                      decoration: InputDecoration(
-                        labelText: context.l10n.sendRecipientAddress,
-                        hintText: context.l10n.sendRecipientHint,
-                        helperText: _contactForRecipient,
-                      ),
-                      onChanged: (_) {
-                        // Free-typed or re-pasted text loses trusted provenance.
-                        _recipientTrusted = false;
-                        setState(() {});
-                      },
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return context.l10n.sendRequired;
-                        if (!looksLikeRecipient(v)) return context.l10n.commonNotAnErgoAddress;
-                        return null;
-                      },
-                    ),
-                    if (_recipientValid)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: _saveRecipientToContacts,
-                          icon: const Icon(Icons.person_add_alt, size: 18),
-                          label: Text(context.l10n.sendSaveToContacts),
-                        ),
-                      ),
-                    const SizedBox(height: 24),
-                    SectionLabel(context.l10n.sendAsset),
-                    const SizedBox(height: 12),
-                    Align(alignment: Alignment.centerLeft, child: FilledButton.icon(
-                      onPressed: () async {
-                        final ids = await showHeldTokenPicker(context, tokens: _args.tokens, selected: _heldAmounts.keys.toSet());
-                        if (ids != null && mounted) _selectHeld(ids);
-                      },
-                      icon: const Icon(Icons.checklist),
-                      label: Text(_heldAmounts.isEmpty ? context.l10n.sendChooseTokens : context.l10n.sendChooseTokensCount('${_heldAmounts.length}')),
-                    )),
-                    const SizedBox(height: 12),
-                    if (token == null)
-                      AmountEntry(
-                        controller: _amountCtrl,
-                        helperText: _availableLine(),
-                        onMax: _applyMaxErg,
-                        onChanged: (_) => setState(() {}),
-                        validator: (v) {
-                          final n = parseErgToNano(v ?? '');
-                          if (n == null || n < minBoxNano) return context.l10n.sendMinimumBox;
-                          return null;
-                        },
-                      ),
-                    _heldTokenRows(),
-                    // A token send may carry ERG too, and more tokens: they
-                    // all travel in the recipient's one box.
-                    if (token != null) ...[
+      body: ReadableWidth(
+        child: _resultTxId != null
+            ? Center(
+                child: TxResultView(
+                  txId: _resultTxId!,
+                  headline: context.l10n.sendSent,
+                  onDismiss: () => Navigator.pop(context),
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: Form(
+                  key: _formKey,
+                  child: ListView(
+                    children: [
+                      const OfflineBanner(),
+                      SectionLabel(context.l10n.sendDestination),
                       const SizedBox(height: 12),
-                      AmountEntry(
-                        controller: _amountCtrl,
-                        label: context.l10n.sendErgWithIt,
-                        helperText: context.l10n.sendBlankFundsTokens(_availableLine() ?? ''),
-                        onMax: _applyMaxErg,
-                        onChanged: (_) => setState(() {}),
+                      TextFormField(
+                        controller: _recipientCtrl,
+                        style: monoStyle(context, size: 13),
+                        decoration: InputDecoration(
+                          labelText: context.l10n.sendRecipientAddress,
+                          hintText: context.l10n.sendRecipientHint,
+                          helperText: _contactForRecipient,
+                        ),
+                        onChanged: (_) {
+                          // Free-typed or re-pasted text loses trusted provenance.
+                          _recipientTrusted = false;
+                          setState(() {});
+                        },
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return null;
-                          final n = parseErgToNano(v);
-                          if (n == null || n < minBoxNano) return context.l10n.sendMinimumBox;
+                          if (v == null || v.trim().isEmpty) return context.l10n.sendRequired;
+                          if (!looksLikeRecipient(v)) return context.l10n.commonNotAnErgoAddress;
                           return null;
                         },
                       ),
-                      if (_rentHint(
-                        address: _recipientCtrl.text,
-                        erg: _amountCtrl,
-                        tokens: _mainRecipientTokens,
-                      ) case final hint?)
-                        hint,
-                    ],
-                    const SizedBox(height: 16),
-                    if (_multiRecipient)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.l10n.sendAdditionalRecipients,
-                            style: Theme.of(context).textTheme.titleSmall,
+                      if (_recipientValid)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: _saveRecipientToContacts,
+                            icon: const Icon(Icons.person_add_alt, size: 18),
+                            label: Text(context.l10n.sendSaveToContacts),
                           ),
-                          const SizedBox(height: 8),
-                          ..._extraRecipients.asMap().entries.map((e) {
-                            final idx = e.key;
-                            final entry = e.value;
-                            final entryToken = _tokenById(entry.tokenId);
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 6),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    TextFormField(
-                                      controller: entry.addressCtrl,
-                                      decoration: InputDecoration(
-                                        labelText: context.l10n.sendRecipientNAddress('${idx + 2}'),
-                                        hintText: '9...',
-                                      ),
-                                      style: monoStyle(context, size: 13),
-                                      onChanged: (_) => setState(() {}),
-                                      validator: (v) {
-                                        if (v == null || v.trim().isEmpty) return context.l10n.sendRequired;
-                                        if (!looksLikeRecipient(v)) {
-                                          return context.l10n.commonNotAnErgoAddress;
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 12),
-                                    AmountEntry(
-                                      controller: entry.amountCtrl,
-                                      label: entryToken == null ? context.l10n.sendAmountErg : context.l10n.sendErgWithIt,
-                                      helperText: entryToken == null ? null : context.l10n.sendBlankFundsToken,
-                                      onChanged: (_) => setState(() {}),
-                                      validator: (v) {
-                                        if (entryToken != null && (v == null || v.trim().isEmpty)) return null;
-                                        final n = parseErgToNano(v ?? '');
-                                        if (n == null || n < minBoxNano) return context.l10n.sendMinimumBox;
-                                        return null;
-                                      },
-                                    ),
-                                    if (_args.tokens.isNotEmpty) ...[
-                                      const SizedBox(height: 12),
-                                      DropdownButtonFormField<String?>(
-                                        initialValue: entry.tokenId,
-                                        decoration: InputDecoration(labelText: context.l10n.commonToken),
-                                        items: [
-                                          DropdownMenuItem(value: null, child: Text(context.l10n.sendTokenNone)),
-                                          ..._args.tokens.map(
-                                            (t) => DropdownMenuItem(value: t.id, child: Text(t.label)),
-                                          ),
-                                        ],
-                                        onChanged: (v) {
-                                          if (entry.tokenId != v) entry.tokenAmtCtrl?.clear();
-                                          entry.tokenId = v;
-                                          if (v != null && v.isNotEmpty && entry.tokenAmtCtrl == null) {
-                                            entry.tokenAmtCtrl = TextEditingController();
-                                          }
-                                          setState(() {});
-                                        },
-                                      ),
-                                      if (entryToken != null && entry.tokenAmtCtrl != null) ...[
-                                        const SizedBox(height: 12),
-                                        if (entryToken.amount == 1 && entryToken.decimals == 0)
-                                          Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: Text(context.l10n.sendSendsOne(entryToken.label)),
-                                          )
-                                        else TextFormField(
-                                          controller: entry.tokenAmtCtrl,
-                                          decoration: InputDecoration(
-                                            labelText: context.l10n.sendTokenAmount(entryToken.label),
-                                            helperText: context.l10n.sendAvailable(
-                                                formatTokenAmount(entryToken.amount, entryToken.decimals)),
-                                          ),
-                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                          onChanged: (_) => setState(() {}),
-                                          validator: (v) {
-                                            final n = parseDecimalToBase(v ?? '', entryToken.decimals);
-                                            if (n == null || n <= 0) return context.l10n.sendEnterTokenAmount;
-                                            if (n > entryToken.amount) {
-                                              return context.l10n.sendYouHold(formatTokenAmount(entryToken.amount, entryToken.decimals));
-                                            }
-                                            return null;
-                                          },
-                                        ),
-                                        if (_rentHint(
-                                          address: entry.address,
-                                          erg: entry.amountCtrl,
-                                          tokens: {
-                                            entryToken.id: _rawTokenAmount(
-                                              entryToken,
-                                              entry.tokenAmtCtrl!.text,
-                                            ),
-                                          },
-                                        ) case final hint?)
-                                          hint,
-                                      ],
-                                    ],
-                                    const SizedBox(height: 8),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: TextButton.icon(
-                                        onPressed: () {
-                                          setState(() => _extraRecipients.removeAt(idx));
-                                          WidgetsBinding.instance.addPostFrameCallback((_) => entry.dispose());
-                                        },
-                                        icon: const Icon(Icons.delete, size: 16),
-                                        label: Text(context.l10n.commonRemove),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }),
-                          TextButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _extraRecipients.add(_RecipientEntry());
-                              });
-                            },
-                            icon: const Icon(Icons.add, size: 18),
-                            label: Text(context.l10n.sendAddRecipient),
-                          ),
-                        ],
-                      )
-                    else
-                      TextButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _extraRecipients.add(_RecipientEntry());
-                          });
+                        ),
+                      const SizedBox(height: 24),
+                      SectionLabel(context.l10n.sendAsset),
+                      const SizedBox(height: 12),
+                      Align(alignment: Alignment.centerLeft, child: FilledButton.icon(
+                        onPressed: () async {
+                          final ids = await showHeldTokenPicker(context, tokens: _args.tokens, selected: _heldAmounts.keys.toSet());
+                          if (ids != null && mounted) _selectHeld(ids);
                         },
-                        icon: const Icon(Icons.person_add, size: 18),
-                        label: Text(context.l10n.sendAddRecipient),
-                      ),
-                    const SizedBox(height: 16),
-                    ExpansionTile(
-                      title: Text(context.l10n.sendAdvanced),
-                      subtitle: Text(
-                        _advancedSummary(),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: const EdgeInsets.only(bottom: 8),
-                      onExpansionChanged: (_) => setState(() {}),
-                      children: [
-                        if (token != null) ...[
-                          TextFormField(
-                            controller: _amountCtrl,
-                            decoration: InputDecoration(
-                              labelText: context.l10n.sendErgCarried,
-                              hintText: formatErg(minBoxNano, unit: false),
-                              helperText:
-                                  context.l10n.sendBlankMinimumBox(formatErg(minBoxNano)),
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) return null;
-                              final n = parseErgToNano(v);
-                              if (n == null || n < minBoxNano) return context.l10n.sendMinimumBox;
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            context.l10n.ergopayRowInputs,
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
+                        icon: const Icon(Icons.checklist),
+                        label: Text(_heldAmounts.isEmpty ? context.l10n.sendChooseTokens : context.l10n.sendChooseTokensCount('${_heldAmounts.length}')),
+                      )),
+                      const SizedBox(height: 12),
+                      if (token == null)
+                        AmountEntry(
+                          controller: _amountCtrl,
+                          helperText: _availableLine(),
+                          onMax: _applyMaxErg,
+                          onChanged: (_) => setState(() {}),
+                          validator: (v) {
+                            final n = parseErgToNano(v ?? '');
+                            if (n == null || n < minBoxNano) return context.l10n.sendMinimumBox;
+                            return null;
+                          },
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                selectionSummary(_selection),
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ),
-                            TextButton(
-                              key: const Key('choose-inputs'),
-                              onPressed: _loadingBoxes ? null : _openInputPicker,
-                              child: Text(_loadingBoxes ? context.l10n.homeLoading : context.l10n.sendChoose),
-                            ),
-                          ],
-                        ),
-                        if (selectionPrivacyNote(_selection) case final note?)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text(note,
-                                style: TextStyle(fontSize: 12.5, color: rustFor(context))),
-                          ),
+                      _heldTokenRows(),
+                      // A token send may carry ERG too, and more tokens: they
+                      // all travel in the recipient's one box.
+                      if (token != null) ...[
                         const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            context.l10n.sendSpendFrom,
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            context.l10n.sendDeselectedNote,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 4,
-                          children: _allSpendAddresses.map((addr) {
-                              final sel = _selectedSpendAddresses.contains(addr);
-                              return FilterChip(
-                                label: Text(
-                                  shorten(addr, head: 4, tail: 4),
-                                  style: monoStyle(context, size: 10),
-                                ),
-                                selected: sel,
-                                onSelected: (_) {
-                                  setState(() {
-                                    if (sel) {
-                                      _selectedSpendAddresses.remove(addr);
-                                    } else {
-                                      _selectedSpendAddresses.add(addr);
-                                    }
-                                  });
-                                },
-                              );
-                            }).toList(),
-                        ),
-                        if (_selectedSpendAddresses.isNotEmpty)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              onPressed: () => setState(() => _selectedSpendAddresses.clear()),
-                              child: Text(context.l10n.sendUseAllAddresses),
-                            ),
-                          ),
-                        if (_args.tokens.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String?>(
-                            key: const Key('send-fee-token'),
-                            initialValue: _feeTokenId,
-                            decoration: InputDecoration(
-                              labelText: context.l10n.sendPayFeeIn,
-                              helperText: context.l10n.sendPayFeeInHelp,
-                              helperMaxLines: 3,
-                            ),
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text('ERG')),
-                              for (final t in _args.tokens)
-                                DropdownMenuItem(value: t.id, child: Text(t.label, overflow: TextOverflow.ellipsis)),
-                            ],
-                            onChanged: (v) => setState(() => _feeTokenId = v),
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _feeCtrl,
-                          decoration: InputDecoration(
-                            labelText: context.l10n.sendMinerFeeErg,
-                            hintText: formatErg(minerFeeNano, unit: false),
-                            helperText: context.l10n.sendBlankDefaultFee(formatErg(minerFeeNano)),
-                          ),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        AmountEntry(
+                          controller: _amountCtrl,
+                          label: context.l10n.sendErgWithIt,
+                          helperText: context.l10n.sendBlankFundsTokens(_availableLine() ?? ''),
+                          onMax: _applyMaxErg,
                           onChanged: (_) => setState(() {}),
                           validator: (v) {
                             if (v == null || v.trim().isEmpty) return null;
                             final n = parseErgToNano(v);
-                            if (n == null || n < minerFeeNano) return context.l10n.sendMinimum(formatErg(minerFeeNano));
+                            if (n == null || n < minBoxNano) return context.l10n.sendMinimumBox;
                             return null;
                           },
                         ),
+                        if (_rentHint(
+                          address: _recipientCtrl.text,
+                          erg: _amountCtrl,
+                          tokens: _mainRecipientTokens,
+                        ) case final hint?)
+                          hint,
                       ],
-                    ),
-                    const SizedBox(height: 28),
-                    FilledButton(
-                      onPressed: _sending ? null : _send,
-                      child: _sending
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(context.l10n.sendReview),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      if (_multiRecipient)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.l10n.sendAdditionalRecipients,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            const SizedBox(height: 8),
+                            ..._extraRecipients.asMap().entries.map((e) {
+                              final idx = e.key;
+                              final entry = e.value;
+                              final entryToken = _tokenById(entry.tokenId);
+                              return Card(
+                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      TextFormField(
+                                        controller: entry.addressCtrl,
+                                        decoration: InputDecoration(
+                                          labelText: context.l10n.sendRecipientNAddress('${idx + 2}'),
+                                          hintText: '9...',
+                                        ),
+                                        style: monoStyle(context, size: 13),
+                                        onChanged: (_) => setState(() {}),
+                                        validator: (v) {
+                                          if (v == null || v.trim().isEmpty) return context.l10n.sendRequired;
+                                          if (!looksLikeRecipient(v)) {
+                                            return context.l10n.commonNotAnErgoAddress;
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      const SizedBox(height: 12),
+                                      AmountEntry(
+                                        controller: entry.amountCtrl,
+                                        label: entryToken == null ? context.l10n.sendAmountErg : context.l10n.sendErgWithIt,
+                                        helperText: entryToken == null ? null : context.l10n.sendBlankFundsToken,
+                                        onChanged: (_) => setState(() {}),
+                                        validator: (v) {
+                                          if (entryToken != null && (v == null || v.trim().isEmpty)) return null;
+                                          final n = parseErgToNano(v ?? '');
+                                          if (n == null || n < minBoxNano) return context.l10n.sendMinimumBox;
+                                          return null;
+                                        },
+                                      ),
+                                      if (_args.tokens.isNotEmpty) ...[
+                                        const SizedBox(height: 12),
+                                        DropdownButtonFormField<String?>(
+                                          initialValue: entry.tokenId,
+                                          decoration: InputDecoration(labelText: context.l10n.commonToken),
+                                          items: [
+                                            DropdownMenuItem(value: null, child: Text(context.l10n.sendTokenNone)),
+                                            ..._args.tokens.map(
+                                              (t) => DropdownMenuItem(value: t.id, child: Text(t.label)),
+                                            ),
+                                          ],
+                                          onChanged: (v) {
+                                            if (entry.tokenId != v) entry.tokenAmtCtrl?.clear();
+                                            entry.tokenId = v;
+                                            if (v != null && v.isNotEmpty && entry.tokenAmtCtrl == null) {
+                                              entry.tokenAmtCtrl = TextEditingController();
+                                            }
+                                            setState(() {});
+                                          },
+                                        ),
+                                        if (entryToken != null && entry.tokenAmtCtrl != null) ...[
+                                          const SizedBox(height: 12),
+                                          if (entryToken.amount == 1 && entryToken.decimals == 0)
+                                            Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(context.l10n.sendSendsOne(entryToken.label)),
+                                            )
+                                          else TextFormField(
+                                            controller: entry.tokenAmtCtrl,
+                                            decoration: InputDecoration(
+                                              labelText: context.l10n.sendTokenAmount(entryToken.label),
+                                              helperText: context.l10n.sendAvailable(
+                                                  formatTokenAmount(entryToken.amount, entryToken.decimals)),
+                                            ),
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            onChanged: (_) => setState(() {}),
+                                            validator: (v) {
+                                              final n = parseDecimalToBase(v ?? '', entryToken.decimals);
+                                              if (n == null || n <= 0) return context.l10n.sendEnterTokenAmount;
+                                              if (n > entryToken.amount) {
+                                                return context.l10n.sendYouHold(formatTokenAmount(entryToken.amount, entryToken.decimals));
+                                              }
+                                              return null;
+                                            },
+                                          ),
+                                          if (_rentHint(
+                                            address: entry.address,
+                                            erg: entry.amountCtrl,
+                                            tokens: {
+                                              entryToken.id: _rawTokenAmount(
+                                                entryToken,
+                                                entry.tokenAmtCtrl!.text,
+                                              ),
+                                            },
+                                          ) case final hint?)
+                                            hint,
+                                        ],
+                                      ],
+                                      const SizedBox(height: 8),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: TextButton.icon(
+                                          onPressed: () {
+                                            setState(() => _extraRecipients.removeAt(idx));
+                                            WidgetsBinding.instance.addPostFrameCallback((_) => entry.dispose());
+                                          },
+                                          icon: const Icon(Icons.delete, size: 16),
+                                          label: Text(context.l10n.commonRemove),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                            TextButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _extraRecipients.add(_RecipientEntry());
+                                });
+                              },
+                              icon: const Icon(Icons.add, size: 18),
+                              label: Text(context.l10n.sendAddRecipient),
+                            ),
+                          ],
+                        )
+                      else
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _extraRecipients.add(_RecipientEntry());
+                            });
+                          },
+                          icon: const Icon(Icons.person_add, size: 18),
+                          label: Text(context.l10n.sendAddRecipient),
+                        ),
+                      const SizedBox(height: 16),
+                      ExpansionTile(
+                        title: Text(context.l10n.sendAdvanced),
+                        subtitle: Text(
+                          _advancedSummary(),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: const EdgeInsets.only(bottom: 8),
+                        onExpansionChanged: (_) => setState(() {}),
+                        children: [
+                          if (token != null) ...[
+                            TextFormField(
+                              controller: _amountCtrl,
+                              decoration: InputDecoration(
+                                labelText: context.l10n.sendErgCarried,
+                                hintText: formatErg(minBoxNano, unit: false),
+                                helperText:
+                                    context.l10n.sendBlankMinimumBox(formatErg(minBoxNano)),
+                              ),
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return null;
+                                final n = parseErgToNano(v);
+                                if (n == null || n < minBoxNano) return context.l10n.sendMinimumBox;
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              context.l10n.ergopayRowInputs,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  selectionSummary(_selection),
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                              TextButton(
+                                key: const Key('choose-inputs'),
+                                onPressed: _loadingBoxes ? null : _openInputPicker,
+                                child: Text(_loadingBoxes ? context.l10n.homeLoading : context.l10n.sendChoose),
+                              ),
+                            ],
+                          ),
+                          if (selectionPrivacyNote(_selection) case final note?)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(note,
+                                  style: TextStyle(fontSize: 12.5, color: rustFor(context))),
+                            ),
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              context.l10n.sendSpendFrom,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              context.l10n.sendDeselectedNote,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: _allSpendAddresses.map((addr) {
+                                final sel = _selectedSpendAddresses.contains(addr);
+                                return FilterChip(
+                                  label: Text(
+                                    shorten(addr, head: 4, tail: 4),
+                                    style: monoStyle(context, size: 10),
+                                  ),
+                                  selected: sel,
+                                  onSelected: (_) {
+                                    setState(() {
+                                      if (sel) {
+                                        _selectedSpendAddresses.remove(addr);
+                                      } else {
+                                        _selectedSpendAddresses.add(addr);
+                                      }
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                          ),
+                          if (_selectedSpendAddresses.isNotEmpty)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                onPressed: () => setState(() => _selectedSpendAddresses.clear()),
+                                child: Text(context.l10n.sendUseAllAddresses),
+                              ),
+                            ),
+                          if (_args.tokens.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<String?>(
+                              key: const Key('send-fee-token'),
+                              initialValue: _feeTokenId,
+                              decoration: InputDecoration(
+                                labelText: context.l10n.sendPayFeeIn,
+                                helperText: context.l10n.sendPayFeeInHelp,
+                                helperMaxLines: 3,
+                              ),
+                              items: [
+                                const DropdownMenuItem(value: null, child: Text('ERG')),
+                                for (final t in _args.tokens)
+                                  DropdownMenuItem(value: t.id, child: Text(t.label, overflow: TextOverflow.ellipsis)),
+                              ],
+                              onChanged: (v) => setState(() => _feeTokenId = v),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _feeCtrl,
+                            decoration: InputDecoration(
+                              labelText: context.l10n.sendMinerFeeErg,
+                              hintText: formatErg(minerFeeNano, unit: false),
+                              helperText: context.l10n.sendBlankDefaultFee(formatErg(minerFeeNano)),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            onChanged: (_) => setState(() {}),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return null;
+                              final n = parseErgToNano(v);
+                              if (n == null || n < minerFeeNano) return context.l10n.sendMinimum(formatErg(minerFeeNano));
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+                      FilledButton(
+                        onPressed: _sending ? null : _send,
+                        child: _sending
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(context.l10n.sendReview),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 }

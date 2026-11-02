@@ -1,3 +1,4 @@
+import 'layout.dart';
 import 'widgets/error_sheet.dart';
 import 'package:flutter/material.dart';
 
@@ -83,10 +84,12 @@ class _RestoreWalletScreenState extends State<RestoreWalletScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(
-                20, 8, 20, 32 + MediaQuery.paddingOf(context).bottom),
-        children: [_phraseStep()],
+      body: ReadableWidth(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+                  20, 8, 20, 32 + MediaQuery.paddingOf(context).bottom),
+          children: [_phraseStep()],
+        ),
       ),
     );
   }

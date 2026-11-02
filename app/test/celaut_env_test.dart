@@ -589,6 +589,9 @@ void main() {
         expect(find.byKey(const Key('env-warn-egress')), findsOneWidget);
         expect(find.byKey(const Key('env-warn-networks')), findsOneWidget);
         expect(find.byKey(const Key('env-warn-nodes')), findsOneWidget);
+        // Three warnings make a long page: the button can be under the fold.
+        await tester.ensureVisible(find.byKey(const Key('env-deny')));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(const Key('env-deny')));
         await tester.pumpAndSettle();
       }, c: c, variables: declared, networks: [...egress, ...local], nodes: untrusted);

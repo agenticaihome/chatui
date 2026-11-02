@@ -11,6 +11,7 @@ import '../../celaut/payers.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
+import '../layout.dart';
 import 'deposit_screen.dart';
 import 'group_widgets.dart';
 import 'instance_list.dart';
@@ -26,6 +27,11 @@ import 'run_service_section.dart' show StartedCall;
 ///   service files, then the confirmation, the wallet, the launch, and the conversation.
 ///
 /// The other tabs of the bottom bar ([HomeTabs]) hold the rest of the app.
+///
+/// On a wide window ([AppLayout.twoPane]) the list and the open conversation show side by
+/// side, as a messenger on a tablet or a desktop: a conversation, and the info page of a
+/// stopped instance, open in the pane next to the list, which keeps them as a page stack
+/// of its own.
 class ChatsScreen extends StatefulWidget {
   const ChatsScreen({
     super.key,
@@ -38,7 +44,12 @@ class ChatsScreen extends StatefulWidget {
     this.topUp,
     this.openDeposit,
     this.groups,
+    this.active = true,
   });
+
+  /// The tab shows. On a wide window, Back closes the conversation of the pane only while
+  /// the tab shows.
+  final bool active;
 
   /// The groups of the conversations. Tests give their own.
   final ChatGroups? groups;
@@ -72,6 +83,7 @@ class ChatsScreen extends StatefulWidget {
 
 class ChatsScreenState extends State<ChatsScreen> {
   final _list = GlobalKey<InstanceListState>();
+  final _pane = GlobalKey<NavigatorState>();
   late final ConversationNotes _notes = widget.notes ?? conversationNotes;
   late final ChatGroups _groups = widget.groups ?? chatGroups;
 
@@ -185,7 +197,8 @@ class ChatsScreenState extends State<ChatsScreen> {
         ],
       ),
     );
-    return Scaffold(
+    final twoPane = AppLayout.twoPane(context);
+    final list = Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
         actions: [_groupsMenu()],
@@ -225,6 +238,71 @@ class ChatsScreenState extends State<ChatsScreen> {
                 ),
           ),
         ],
+      ),
+    );
+    return ChatPane(
+      navigator: twoPane ? _pane : null,
+      child: twoPane ? _twoPanes(list) : list,
+    );
+  }
+
+  /// The list and, next to it, the pane where the conversations open.
+  Widget _twoPanes(Widget list) {
+    return Row(
+      children: [
+        SizedBox(
+          width: AppLayout.listPaneWidth,
+          child: MediaQuery.removePadding(context: context, removeRight: true, child: list),
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(
+          child: MediaQuery.removePadding(
+            context: context,
+            removeLeft: true,
+            // Back closes what the pane shows before it leaves the app.
+            child: NavigatorPopHandler<Object?>(
+              enabled: widget.active,
+              // The callback runs on a Back that another scope of the page held too (the
+              // tabs, on another tab): only the shown tab closes its pane.
+              onPopWithResult: (_) {
+                if (widget.active) _pane.currentState?.maybePop();
+              },
+              child: Navigator(
+                key: _pane,
+                onGenerateRoute: (settings) => MaterialPageRoute(
+                  settings: settings,
+                  builder: (_) => const _NoConversation(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The pane next to the list while no conversation is open in it.
+class _NoConversation extends StatelessWidget {
+  const _NoConversation();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = HomeText.of(context);
+    return Scaffold(
+      key: const Key('chats-pane-empty'),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.forum_outlined, size: 56, color: t.muted),
+              const SizedBox(height: 16),
+              Text(context.l10n.chatsPaneEmpty, style: t.secondary, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'layout.dart';
 import 'widgets/tx_result_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
@@ -31,7 +32,9 @@ class _TokenToolsScreenState extends State<TokenToolsScreen> {
           title: Text(context.l10n.commonTokens),
           bottom: TabBar(tabs: [Tab(text: context.l10n.tokenIssue), Tab(text: context.l10n.tokenBurn)]),
         ),
-        body: const TabBarView(children: [_IssueTab(), _BurnTab()]),
+        body: ReadableWidth(
+          child: const TabBarView(children: [_IssueTab(), _BurnTab()]),
+        ),
       ),
     );
   }

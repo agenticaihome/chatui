@@ -290,8 +290,13 @@ void main() {
         ),
       );
 
-  Future<void> open(WidgetTester tester, {bool full = true, bool settle = true}) async {
-    tester.view.physicalSize = const Size(390, 844);
+  Future<void> open(
+    WidgetTester tester, {
+    bool full = true,
+    bool settle = true,
+    Size size = const Size(390, 844),
+  }) async {
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -955,6 +960,91 @@ void main() {
       await show(tester, HomeTab.compute);
       await tester.ensureVisible(find.byKey(const Key('place-services')));
       expect(find.text(appL10n.chatsServicesTitle), findsOneWidget);
+    });
+  });
+
+  group('wide windows', () {
+    const phoneOnItsSide = Size(844, 390);
+    const tablet = Size(1280, 800);
+
+    testWidgets('a phone on its side has the tabs on a rail, and a conversation over it', (tester) async {
+      node.db = [_instance('i1')];
+      node.answers['i1'] = _status('1');
+      await open(tester, size: phoneOnItsSide);
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
+      await tester.tap(find.byKey(const Key('tab-compute')));
+      await tester.pumpAndSettle();
+      expect(tabs, ['compute']);
+      await tester.tap(find.byKey(const Key('tab-chats')));
+      await tester.pumpAndSettle();
+      // Too short for two panes: the conversation takes the whole window.
+      expect(find.byKey(const Key('chats-pane-empty')), findsNothing);
+      await tester.tap(find.byKey(const Key('chats-row-i1')));
+      await tester.pumpAndSettle();
+      expect(find.text('chat i1 Echo chat 4321 running'), findsOneWidget);
+      expect(find.byKey(const Key('home-tabs')), findsNothing);
+    });
+
+    testWidgets('a tablet shows the conversation next to the list, and back closes it', (tester) async {
+      node.db = [_instance('i1'), _instance('i2', name: 'Other', startedAt: 50)];
+      node.answers['i1'] = _status('1');
+      node.answers['i2'] = _status('2');
+      await open(tester, size: tablet);
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byKey(const Key('chats-pane-empty')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('chats-row-i1')));
+      await tester.pumpAndSettle();
+      expect(find.text('chat i1 Echo chat 4321 running'), findsOneWidget);
+      // The list and the tabs stay in view, the row of the open conversation chosen.
+      expect(find.byKey(const Key('home-tabs')), findsOneWidget);
+      expect(tester.getRect(find.byKey(const Key('chats-row-i1'))).right,
+          lessThan(tester.getRect(find.text('chat i1 Echo chat 4321 running')).left));
+      final chosen = find.byWidgetPredicate((w) => w is Semantics && w.properties.selected == true);
+      expect(find.ancestor(of: find.byKey(const Key('chats-row-i1')), matching: chosen), findsOneWidget);
+      // Another row takes the place of the conversation.
+      await tester.tap(find.byKey(const Key('chats-row-i2')));
+      await tester.pumpAndSettle();
+      expect(find.text('chat i1 Echo chat 4321 running'), findsNothing);
+      expect(find.text('chat i2 Other 4321 running'), findsOneWidget);
+      // Back closes the conversation, not the app.
+      final popped = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(popped, isTrue);
+      expect(find.text('chat i2 Other 4321 running'), findsNothing);
+      expect(find.byKey(const Key('chats-pane-empty')), findsOneWidget);
+      expect(find.byKey(const Key('chats-row-i2')), findsOneWidget);
+    });
+
+    testWidgets('back on another tab goes to Chats, and keeps the conversation of the pane', (tester) async {
+      node.db = [_instance('i1')];
+      node.answers['i1'] = _status('1');
+      await open(tester, size: tablet);
+      await tester.tap(find.byKey(const Key('chats-row-i1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tab-compute')));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(tabs.last, 'chats');
+      expect(find.text('chat i1 Echo chat 4321 running'), findsOneWidget);
+    });
+
+    testWidgets('a tablet turned upright keeps the open conversation, over the list', (tester) async {
+      node.db = [_instance('i1')];
+      node.answers['i1'] = _status('1');
+      await open(tester, size: tablet);
+      await tester.tap(find.byKey(const Key('chats-row-i1')));
+      await tester.pumpAndSettle();
+      tester.view.physicalSize = const Size(800, 1280);
+      await tester.pumpAndSettle();
+      expect(find.text('chat i1 Echo chat 4321 running'), findsOneWidget);
+      expect(find.byKey(const Key('home-tabs')), findsNothing);
+      expect(node.tunnels, ['i1:8080', 'i1:8080']);
+      // Back is the list.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('chats-row-i1')), findsOneWidget);
     });
   });
 

@@ -6,6 +6,7 @@ import '../../celaut/conversations.dart';
 import '../../celaut/payers.dart';
 import '../../celaut/wallet_money.dart';
 import '../../l10n/l10n.dart';
+import '../layout.dart';
 import '../settings_screen.dart';
 import 'chats_screen.dart';
 import 'compute_home_screen.dart';
@@ -176,6 +177,7 @@ class HomeTabsState extends State<HomeTabs> {
           list: widget.list,
           runPage: widget.runPage,
           onConversation: () => select(HomeTab.chats),
+          active: _tab == HomeTab.chats,
         );
       case HomeTab.wallet:
         final deposit = _row(
@@ -214,53 +216,90 @@ class HomeTabsState extends State<HomeTabs> {
     }
   }
 
+  /// The icons and the name of each tab.
+  ({IconData icon, IconData selected, String label}) _look(HomeTab tab) {
+    final l = context.l10n;
+    return switch (tab) {
+      HomeTab.chats => (icon: Icons.forum_outlined, selected: Icons.forum, label: l.chatsTabChats),
+      HomeTab.wallet => (
+          icon: Icons.account_balance_wallet_outlined,
+          selected: Icons.account_balance_wallet,
+          label: l.chatsTabWallet,
+        ),
+      HomeTab.compute => (icon: Icons.memory_outlined, selected: Icons.memory, label: l.chatsTabCompute),
+      HomeTab.settings => (icon: Icons.settings_outlined, selected: Icons.settings, label: l.commonSettings),
+    };
+  }
+
+  /// The bottom bar: a phone held upright.
+  Widget _bar() => NavigationBar(
+        key: const Key('home-tabs'),
+        selectedIndex: _tab.index,
+        onDestinationSelected: (i) => select(HomeTab.values[i]),
+        destinations: [
+          for (final t in HomeTab.values)
+            NavigationDestination(
+              key: Key('tab-${t.name}'),
+              icon: Icon(_look(t).icon),
+              selectedIcon: Icon(_look(t).selected),
+              label: _look(t).label,
+            ),
+        ],
+      );
+
+  /// The rail on the side: a wide window, or a phone on its side, where a bar at the
+  /// bottom would take height that the page needs. A destination of the rail takes no
+  /// key, so its icon has the key of the tab.
+  Widget _rail() => SafeArea(
+        right: false,
+        child: NavigationRail(
+          key: const Key('home-tabs'),
+          // The ground of the bottom bar, which the rail stands for.
+          backgroundColor: NavigationBarTheme.of(context).backgroundColor,
+          selectedIndex: _tab.index,
+          onDestinationSelected: (i) => select(HomeTab.values[i]),
+          labelType: NavigationRailLabelType.all,
+          groupAlignment: 0,
+          destinations: [
+            for (final t in HomeTab.values)
+              NavigationRailDestination(
+                icon: Icon(_look(t).icon, key: Key('tab-${t.name}')),
+                selectedIcon: Icon(_look(t).selected, key: Key('tab-${t.name}')),
+                label: Text(_look(t).label),
+              ),
+          ],
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
-    final l = context.l10n;
+    final rail = AppLayout.rail(context);
+    final pages = IndexedStack(
+      index: _tab.index,
+      children: [
+        for (final t in HomeTab.values)
+          _built.contains(t) ? _page(t) : const SizedBox.shrink(),
+      ],
+    );
     return PopScope(
       canPop: _tab == HomeTab.chats,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) select(HomeTab.chats);
       },
       child: Scaffold(
-        body: IndexedStack(
-          index: _tab.index,
-          children: [
-            for (final t in HomeTab.values)
-              _built.contains(t) ? _page(t) : const SizedBox.shrink(),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          key: const Key('home-tabs'),
-          selectedIndex: _tab.index,
-          onDestinationSelected: (i) => select(HomeTab.values[i]),
-          destinations: [
-            NavigationDestination(
-              key: const Key('tab-chats'),
-              icon: const Icon(Icons.forum_outlined),
-              selectedIcon: const Icon(Icons.forum),
-              label: l.chatsTabChats,
-            ),
-            NavigationDestination(
-              key: const Key('tab-wallet'),
-              icon: const Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: const Icon(Icons.account_balance_wallet),
-              label: l.chatsTabWallet,
-            ),
-            NavigationDestination(
-              key: const Key('tab-compute'),
-              icon: const Icon(Icons.memory_outlined),
-              selectedIcon: const Icon(Icons.memory),
-              label: l.chatsTabCompute,
-            ),
-            NavigationDestination(
-              key: const Key('tab-settings'),
-              icon: const Icon(Icons.settings_outlined),
-              selectedIcon: const Icon(Icons.settings),
-              label: l.commonSettings,
-            ),
-          ],
-        ),
+        body: rail
+            ? Row(
+                children: [
+                  _rail(),
+                  const VerticalDivider(width: 1),
+                  // The rail keeps the left inset of the screen; the pages keep the rest.
+                  Expanded(
+                    child: MediaQuery.removePadding(context: context, removeLeft: true, child: pages),
+                  ),
+                ],
+              )
+            : pages,
+        bottomNavigationBar: rail ? null : _bar(),
       ),
     );
   }

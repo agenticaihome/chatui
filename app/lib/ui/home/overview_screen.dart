@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/argus_theme.dart';
+import '../layout.dart';
 import 'home_glass.dart';
 import 'home_hero.dart';
 import 'home_models.dart';
@@ -122,32 +123,37 @@ class OverviewScreen extends StatelessWidget {
           const SizedBox(width: 8),
         ],
       ),
-      body: OverviewView(
-        data: data,
-        onOpenWallet: onOpenWallet,
-        onAdd: onAdd,
-        onToggleHidden: onToggleHidden,
-        onNetwork: onNetwork,
-        networkAction: networkAction,
-        onLearnMore: onLearnMore,
-        onRefresh: onRefresh,
-        footnote: footnote,
-        notice: notice,
-        noticeIsError: noticeIsError,
-        onAction: onAction,
-        extra: extra,
+      body: ReadableWidth(
+        child: OverviewView(
+          data: data,
+          onOpenWallet: onOpenWallet,
+          onAdd: onAdd,
+          onToggleHidden: onToggleHidden,
+          onNetwork: onNetwork,
+          networkAction: networkAction,
+          onLearnMore: onLearnMore,
+          onRefresh: onRefresh,
+          footnote: footnote,
+          notice: notice,
+          noticeIsError: noticeIsError,
+          onAction: onAction,
+          extra: extra,
+        ),
       ),
     );
     if (data.isEmpty) return scaffold;
     final top = MediaQuery.paddingOf(context).top + 72;
     return ColoredBox(
       color: page,
-      child: HomeScene(
-        light: SceneLight.eclipse,
-        lightAt: Offset(96, top + 66),
-        lightRadius: 80,
-        height: top + 520,
-        child: scaffold,
+      // The light follows the content, which keeps to a column on a wide window.
+      child: LayoutBuilder(
+        builder: (context, box) => HomeScene(
+          light: SceneLight.eclipse,
+          lightAt: Offset(AppLayout.readableSide(box.maxWidth) + 96, top + 66),
+          lightRadius: 80,
+          height: top + 520,
+          child: scaffold,
+        ),
       ),
     );
   }

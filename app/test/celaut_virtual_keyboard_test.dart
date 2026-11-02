@@ -61,6 +61,19 @@ void main() {
       expect(controller.text, 'hIj ');
     });
 
+    testWidgets('on a short window (a phone on its side) the keys are lower', (t) async {
+      addTearDown(t.view.reset);
+      t.view.devicePixelRatio = 1;
+      t.view.physicalSize = const Size(390, 844);
+      await pump(t);
+      final tall = t.getSize(find.byKey(const Key('chat-virtual-keyboard'))).height;
+      expect(t.getSize(find.byKey(const Key('vk-char-a'))).height, 48);
+      t.view.physicalSize = const Size(844, 390);
+      await t.pump();
+      expect(t.getSize(find.byKey(const Key('vk-char-a'))).height, 36);
+      expect(t.getSize(find.byKey(const Key('chat-virtual-keyboard'))).height, tall - 4 * 12);
+    });
+
     testWidgets('the symbols layer has digits, and ABC goes back', (t) async {
       await pump(t);
       expect(find.byKey(const Key('vk-char-1')), findsNothing);
