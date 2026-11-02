@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
+import '../../services/motion_cues.dart';
 import '../../services/network_controller.dart';
 import '../../services/privacy_service.dart';
 import '../../services/token_pricer.dart';
@@ -26,7 +27,7 @@ class DisplaySettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([themeController, networkController, privacyService, tokenPricer]),
+      listenable: Listenable.merge([themeController, networkController, privacyService, tokenPricer, motionCues]),
       builder: (context, _) => SettingsPage(
         title: context.l10n.displayTitle,
         children: [
@@ -73,6 +74,49 @@ class DisplaySettingsPage extends StatelessWidget {
             onPick: themeController.setLightPalette,
           ),
           const SizedBox(height: 24),
+          SettingsGroup(
+            title: context.l10n.displayVehicleMotionCues,
+            scope: context.l10n.settingsScopeAppWide,
+            children: [
+              for (final m in MotionCuesMode.values)
+                SettingsRow(
+                  icon: switch (m) {
+                    MotionCuesMode.off => Icons.block_outlined,
+                    MotionCuesMode.automatic => Icons.directions_car_outlined,
+                    MotionCuesMode.always => Icons.blur_on_outlined,
+                  },
+                  title: switch (m) {
+                    MotionCuesMode.off => context.l10n.displayMotionCuesOff,
+                    MotionCuesMode.automatic => context.l10n.displayMotionCuesAutomatic,
+                    MotionCuesMode.always => context.l10n.displayMotionCuesAlways,
+                  },
+                  subtitle: switch (m) {
+                    MotionCuesMode.off => null,
+                    MotionCuesMode.automatic => context.l10n.displayMotionCuesAutomaticSubtitle,
+                    MotionCuesMode.always => context.l10n.displayMotionCuesAlwaysSubtitle,
+                  },
+                  trailing: _radio(motionCues.mode == m),
+                  onTap: () => motionCues.setMode(m),
+                ),
+              if (motionCues.mode == MotionCuesMode.automatic)
+                SettingsRow(
+                  icon: Icons.speed_outlined,
+                  title: context.l10n.displayMotionCuesGps,
+                  subtitle: context.l10n.displayMotionCuesGpsSubtitle,
+                  trailing: Switch(
+                    value: motionCues.useGps,
+                    onChanged: (v) async {
+                      final ok = await motionCues.setUseGps(v);
+                      if (!ok && context.mounted) {
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: Text(context.l10n.displayMotionCuesGpsDenied)));
+                      }
+                    },
+                  ),
+                ),
+            ],
+          ),
+          SettingsNote(context.l10n.displayVehicleMotionCuesNote),
           SettingsGroup(
             title: context.l10n.displayMoney,
             scope: context.l10n.settingsScopeAppWide,

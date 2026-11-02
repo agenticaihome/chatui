@@ -11,6 +11,7 @@ import 'l10n/l10n.dart';
 import 'services/address_label_service.dart';
 import 'services/contacts_service.dart';
 import 'services/deep_link_channel.dart';
+import 'services/motion_cues.dart';
 import 'services/notification_service.dart';
 import 'services/network_controller.dart';
 import 'services/preview/preview_service.dart';
@@ -34,6 +35,7 @@ import 'ui/transaction_detail_screen.dart';
 import 'ui/transactions_screen.dart';
 import 'ui/token_tools_screen.dart';
 import 'ui/utxo_management_screen.dart';
+import 'ui/widgets/motion_cues_overlay.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -64,6 +66,7 @@ Future<void> main() async {
     contactsService.load().catchError((_) {}),
     addressLabelService.load().catchError((_) {}),
     privacyService.load().catchError((_) {}),
+    motionCues.load().catchError((_) {}),
     spendPolicy.load().catchError((_) {}),
     previewSettings.load().catchError((_) {}),
     chatPrefs.load().catchError((_) {}),
@@ -155,7 +158,8 @@ class _ArgusAppState extends State<ArgusApp> with WidgetsBindingObserver {
                 listenable: walletSyncController,
                 builder: (context, _) => WalletArgsScope(
                   args: walletSyncController.routeArgs,
-                  child: child!,
+                  // The dots of the vehicle motion cues, when they are on (Display).
+                  child: MotionCuesOverlay(child: child!),
                 ),
               ),
             );

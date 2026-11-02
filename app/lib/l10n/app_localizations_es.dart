@@ -735,6 +735,40 @@ class AppLocalizationsEs extends AppLocalizations {
       'Oculta las cantidades en la pantalla de inicio';
 
   @override
+  String get displayVehicleMotionCues => 'Señales de movimiento del vehículo';
+
+  @override
+  String get displayVehicleMotionCuesNote =>
+      'Unos puntos a los lados de la pantalla se mueven con el vehículo, para que leer en un viaje te maree menos.';
+
+  @override
+  String get displayMotionCuesOff => 'Apagadas';
+
+  @override
+  String get displayMotionCuesAutomatic => 'Automáticas';
+
+  @override
+  String get displayMotionCuesAutomaticSubtitle =>
+      'Cuando el teléfono nota que vas en un vehículo';
+
+  @override
+  String get displayMotionCuesAlways => 'Siempre';
+
+  @override
+  String get displayMotionCuesAlwaysSubtitle => 'Todo el tiempo';
+
+  @override
+  String get displayMotionCuesGps => 'Usar la velocidad del GPS';
+
+  @override
+  String get displayMotionCuesGpsSubtitle =>
+      'Distingue mejor un vehículo de un paseo. Necesita la ubicación precisa; la app no guarda ninguna posición ni la envía';
+
+  @override
+  String get displayMotionCuesGpsDenied =>
+      'Sin la ubicación precisa la app no puede leer la velocidad del GPS';
+
+  @override
   String get themeTealName => 'Celaut Turquesa';
 
   @override

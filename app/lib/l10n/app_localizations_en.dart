@@ -729,6 +729,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get displayHideBalancesSubtitle => 'Mask amounts on the home screen';
 
   @override
+  String get displayVehicleMotionCues => 'Vehicle motion cues';
+
+  @override
+  String get displayVehicleMotionCuesNote =>
+      'Dots at the sides of the screen move with the car, bus or train, so reading on the road makes you less sick.';
+
+  @override
+  String get displayMotionCuesOff => 'Off';
+
+  @override
+  String get displayMotionCuesAutomatic => 'Automatic';
+
+  @override
+  String get displayMotionCuesAutomaticSubtitle =>
+      'When the phone feels that you ride a vehicle';
+
+  @override
+  String get displayMotionCuesAlways => 'Always';
+
+  @override
+  String get displayMotionCuesAlwaysSubtitle => 'All the time';
+
+  @override
+  String get displayMotionCuesGps => 'Use the speed of the GPS';
+
+  @override
+  String get displayMotionCuesGpsSubtitle =>
+      'Tells a vehicle from a walk better. Needs the precise location; the app keeps no position and sends nothing';
+
+  @override
+  String get displayMotionCuesGpsDenied =>
+      'Without the precise location the app cannot read the speed of the GPS';
+
+  @override
   String get themeTealName => 'Celaut Teal';
 
   @override

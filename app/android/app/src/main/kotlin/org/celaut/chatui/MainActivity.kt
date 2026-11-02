@@ -29,6 +29,7 @@ class MainActivity : FlutterFragmentActivity() {
         UpdateHandler.registerWith(flutterEngine, this)
         ConversationHandler.registerWith(flutterEngine, this)
         PackageHandler.registerWith(flutterEngine, this)
+        MotionHandler.registerWith(flutterEngine, this)
     }
 
     override fun onRequestPermissionsResult(
@@ -38,6 +39,7 @@ class MainActivity : FlutterFragmentActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         ConversationHandler.onRequestPermissionsResult(requestCode, grantResults)
+        MotionHandler.onRequestPermissionsResult(this, requestCode)
     }
 
     @Deprecated("The picker of PackageHandler uses startActivityForResult")

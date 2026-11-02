@@ -1328,6 +1328,66 @@ abstract class AppLocalizations {
   /// **'Mask amounts on the home screen'**
   String get displayHideBalancesSubtitle;
 
+  /// No description provided for @displayVehicleMotionCues.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle motion cues'**
+  String get displayVehicleMotionCues;
+
+  /// No description provided for @displayVehicleMotionCuesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Dots at the sides of the screen move with the car, bus or train, so reading on the road makes you less sick.'**
+  String get displayVehicleMotionCuesNote;
+
+  /// No description provided for @displayMotionCuesOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get displayMotionCuesOff;
+
+  /// No description provided for @displayMotionCuesAutomatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get displayMotionCuesAutomatic;
+
+  /// No description provided for @displayMotionCuesAutomaticSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'When the phone feels that you ride a vehicle'**
+  String get displayMotionCuesAutomaticSubtitle;
+
+  /// No description provided for @displayMotionCuesAlways.
+  ///
+  /// In en, this message translates to:
+  /// **'Always'**
+  String get displayMotionCuesAlways;
+
+  /// No description provided for @displayMotionCuesAlwaysSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All the time'**
+  String get displayMotionCuesAlwaysSubtitle;
+
+  /// No description provided for @displayMotionCuesGps.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the speed of the GPS'**
+  String get displayMotionCuesGps;
+
+  /// No description provided for @displayMotionCuesGpsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tells a vehicle from a walk better. Needs the precise location; the app keeps no position and sends nothing'**
+  String get displayMotionCuesGpsSubtitle;
+
+  /// No description provided for @displayMotionCuesGpsDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Without the precise location the app cannot read the speed of the GPS'**
+  String get displayMotionCuesGpsDenied;
+
   /// No description provided for @themeTealName.
   ///
   /// In en, this message translates to:
