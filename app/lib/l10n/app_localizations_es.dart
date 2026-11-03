@@ -6783,6 +6783,161 @@ class AppLocalizationsEs extends AppLocalizations {
       'Tu reputación para este nodo, de 0 a 100 (50 es neutral). Al comparar precios, un número más alto favorece a este nodo. La plena confianza siempre es 100.';
 
   @override
+  String get balancerTitle =>
+      'Pesos del balanceador';
+
+  @override
+  String get balancerRowSubtitle =>
+      'Cómo elige la app el nodo que ejecuta un servicio';
+
+  @override
+  String get balancerIntro =>
+      'Para elegir un nodo, la app pide un precio a cada uno y le da una puntuación: el término del precio más los términos de abajo, cada uno multiplicado por su peso. Va primero el nodo con la puntuación más alta. Un peso mayor hace que ese término cuente más; 0 lo desactiva. Una oferta gratuita siempre va primero.';
+
+  @override
+  String get balancerPriceName =>
+      'Precio';
+
+  @override
+  String get balancerPriceDesc =>
+      'Cuánto cuenta una cotización más barata. Cada vez que el precio se divide entre e (unos 2,7), la puntuación sube en este peso.';
+
+  @override
+  String get balancerReputationName =>
+      'Reputación local';
+
+  @override
+  String get balancerReputationDesc =>
+      'Lo que esta app aprendió de su propio historial con cada nodo. Aún no se registran eventos, así que este término vale 0 por ahora.';
+
+  @override
+  String get balancerOnchainName =>
+      'Reputación en cadena';
+
+  @override
+  String get balancerOnchainDesc =>
+      'La opinión que otros editores registran en la cadena de bloques. La app aún no la lee, así que este término vale 0 por ahora.';
+
+  @override
+  String get balancerDonationName =>
+      'Donaciones';
+
+  @override
+  String get balancerDonationDesc =>
+      'Una bonificación para los nodos que donan. La app aún no la usa, así que este término vale 0 por ahora.';
+
+  @override
+  String get balancerPriorityName =>
+      'Tu prioridad por nodo';
+
+  @override
+  String get balancerPriorityDesc =>
+      'La prioridad de 0 a 100 que das a cada nodo en la lista de nodos (50 es neutral, la plena confianza es 100).';
+
+  @override
+  String get balancerDefaultLabel =>
+      'Por defecto';
+
+  @override
+  String get balancerOffLabel =>
+      'Desactivado';
+
+  @override
+  String get balancerReset =>
+      'Restaurar valores por defecto';
+
+  @override
+  String get balancerPresetsLabel =>
+      'Ajustes rápidos';
+
+  @override
+  String get balancerPresetBalanced =>
+      'Equilibrado';
+
+  @override
+  String get balancerPresetCheapest =>
+      'Lo más barato primero';
+
+  @override
+  String get balancerPresetTrusted =>
+      'Mis nodos primero';
+
+  @override
+  String get balancerCustom =>
+      'Mezcla personalizada';
+
+  @override
+  String get balancerMainTitle =>
+      'Lo que más te importa';
+
+  @override
+  String get balancerExampleTitle =>
+      'Pruébalo';
+
+  @override
+  String get balancerExampleIntro =>
+      'Tres nodos de ejemplo. Mueve los deslizadores y mira cómo cambia el orden. Tus nodos reales siguen la misma regla.';
+
+  @override
+  String get balancerExampleCheap =>
+      'Nodo barato';
+
+  @override
+  String get balancerExampleTrusted =>
+      'Tu nodo de confianza';
+
+  @override
+  String get balancerExampleRisky =>
+      'El más barato, poca confianza';
+
+  @override
+  String get balancerAdvancedTitle =>
+      'Términos aún sin datos';
+
+  @override
+  String get balancerAdvancedNote =>
+      'Estos términos hoy no suman nada porque la app aún no tiene sus datos. Puedes fijar su peso ya, para cuando los tenga.';
+
+  @override
+  String get balancerRestoreTerm =>
+      'Restaurar';
+
+  @override
+  String get balancerScaleLow =>
+      'Ignorar';
+
+  @override
+  String get balancerScaleHigh =>
+      'Máximo';
+
+  @override
+  String get balancerReadingNothing =>
+      'Con los dos en 0, nada distingue a unos nodos de otros.';
+
+  @override
+  String get balancerReadingPriceIgnored =>
+      'Se ignora el precio: solo decide tu prioridad.';
+
+  @override
+  String get balancerReadingPriorityIgnored =>
+      'Se ignora tu prioridad: siempre va primero el nodo más barato.';
+
+  @override
+  String balancerReadingTradeoff(String factor) {
+    return 'Un nodo de tu plena confianza puede ganar a otro hasta $factor× más barato.';
+  }
+
+  @override
+  String balancerExampleDetail(String cost, String priority) {
+    return 'Cuesta $cost× · prioridad $priority';
+  }
+
+  @override
+  String balancerExampleFirst(String name) {
+    return '$name va primero.';
+  }
+
+  @override
   String get celautRunModeTime => 'Por tiempo';
 
   @override

@@ -418,3 +418,75 @@ class RunningInstanceView {
           costSoFarMu == other.costSoFarMu &&
           costSoFarNanoErg == other.costSoFarNanoErg;
 }
+
+/// The weights of the terms of the score of the balancer, the parametrization that
+/// decides on which node a service runs (`docs/celaut/balancer.md`). The balancer adds
+/// the terms and takes the node with the highest total; a higher weight makes a term count
+/// more against the others, and 0 switches it off.
+class BalancerWeightsView {
+  /// Of the price: `-ln(cost)`. Default 1.
+  final double price;
+
+  /// Of the local reputation (the events of this client). Default 2.
+  final double reputation;
+
+  /// Of the on-chain reputation. Default 0.3.
+  final double onchain;
+
+  /// Of the donations. Default 0.3.
+  final double donation;
+
+  /// Of the priority that the user gives to each node (0 to 100). Default 2.
+  final double priority;
+
+  const BalancerWeightsView({
+    required this.price,
+    required this.reputation,
+    required this.onchain,
+    required this.donation,
+    required this.priority,
+  });
+
+  @override
+  int get hashCode =>
+      price.hashCode ^
+      reputation.hashCode ^
+      onchain.hashCode ^
+      donation.hashCode ^
+      priority.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BalancerWeightsView &&
+          runtimeType == other.runtimeType &&
+          price == other.price &&
+          reputation == other.reputation &&
+          onchain == other.onchain &&
+          donation == other.donation &&
+          priority == other.priority;
+}
+
+/// The weights that the balancer uses now: the ones that the user set, else the defaults.
+BalancerWeightsView celautBalancerWeights() =>
+    RustLib.instance.api.crateApiCelautHomeCelautBalancerWeights();
+
+/// The default weights of the balancer, to show and to go back to.
+BalancerWeightsView celautBalancerDefaultWeights() =>
+    RustLib.instance.api.crateApiCelautHomeCelautBalancerDefaultWeights();
+
+/// Set the weights of the balancer. Each one is a number from 0 to 10; a number outside
+/// that range or NaN is an error. They count from the next quote.
+void celautSetBalancerWeights({
+  required double price,
+  required double reputation,
+  required double onchain,
+  required double donation,
+  required double priority,
+}) => RustLib.instance.api.crateApiCelautHomeCelautSetBalancerWeights(
+  price: price,
+  reputation: reputation,
+  onchain: onchain,
+  donation: donation,
+  priority: priority,
+);

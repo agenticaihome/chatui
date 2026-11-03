@@ -17,6 +17,7 @@ import 'celaut/network_screen.dart';
 import 'celaut/node_connect_screen.dart';
 import 'celaut/deposit_screen.dart';
 import 'celaut/env_variables_screen.dart';
+import 'celaut/balancer_screen.dart';
 import 'celaut/known_nodes_screen.dart';
 import 'celaut/service_screen.dart';
 import 'layout.dart';
@@ -182,6 +183,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: t.celautNodesTitle,
           subtitle: t.celautNodesRowSubtitle,
           onTap: () => _open(const KnownNodesScreen()),
+        ),
+        SettingsRow(
+          key: const Key('settings-balancer'),
+          icon: Icons.tune_outlined,
+          title: t.balancerTitle,
+          subtitle: t.balancerRowSubtitle,
+          onTap: () => _open(const BalancerScreen()),
         ),
         SettingsRow(
           key: const Key('settings-deposit'),

@@ -486,10 +486,95 @@ pub fn celaut_set_node_priority(peer_id: String, priority: u8) -> Result<(), Cel
     .map_err(storage_error)?
 }
 
+/// The weights of the terms of the score of the balancer, the parametrization that
+/// decides on which node a service runs (`docs/celaut/balancer.md`). The balancer adds
+/// the terms and takes the node with the highest total; a higher weight makes a term count
+/// more against the others, and 0 switches it off.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BalancerWeightsView {
+    /// Of the price: `-ln(cost)`. Default 1.
+    pub price: f64,
+    /// Of the local reputation (the events of this client). Default 2.
+    pub reputation: f64,
+    /// Of the on-chain reputation. Default 0.3.
+    pub onchain: f64,
+    /// Of the donations. Default 0.3.
+    pub donation: f64,
+    /// Of the priority that the user gives to each node (0 to 100). Default 2.
+    pub priority: f64,
+}
+
+impl From<celaut_balancer::Weights> for BalancerWeightsView {
+    fn from(w: celaut_balancer::Weights) -> Self {
+        BalancerWeightsView {
+            price: w.price,
+            reputation: w.reputation,
+            onchain: w.onchain,
+            donation: w.donation,
+            priority: w.priority,
+        }
+    }
+}
+
+/// The weights that the balancer uses now: the ones that the user set, else the defaults.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_balancer_weights() -> BalancerWeightsView {
+    db().read(|d| d.balancer_weights()).into()
+}
+
+/// The default weights of the balancer, to show and to go back to.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_balancer_default_weights() -> BalancerWeightsView {
+    celaut_balancer::Weights::default().into()
+}
+
+/// Set the weights of the balancer. Each one is a number from 0 to 10; a number outside
+/// that range or NaN is an error. They count from the next quote.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_set_balancer_weights(
+    price: f64,
+    reputation: f64,
+    onchain: f64,
+    donation: f64,
+    priority: f64,
+) -> Result<(), CelautError> {
+    let all = [price, reputation, onchain, donation, priority];
+    if all
+        .iter()
+        .any(|w| !(0.0..=celaut_balancer::WEIGHT_MAX).contains(w))
+    {
+        return Err(invalid("Each weight is a number from 0 to 10."));
+    }
+    let weights = celaut_balancer::Weights {
+        price,
+        reputation,
+        onchain,
+        donation,
+        priority,
+    };
+    db().update(|d| d.set_balancer_weights(weights))
+        .map_err(storage_error)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use celaut_client::db::{DepositRecord, DepositStage, NodeRecord};
+
+    #[test]
+    fn the_weights_are_kept_checked_and_reset_to_the_defaults() {
+        assert_eq!(celaut_balancer_weights(), celaut_balancer_default_weights());
+        celaut_set_balancer_weights(1.5, 0.0, 0.3, 0.3, 4.0).unwrap();
+        let w = celaut_balancer_weights();
+        assert_eq!((w.price, w.reputation, w.priority), (1.5, 0.0, 4.0));
+        assert!(celaut_set_balancer_weights(11.0, 0.0, 0.0, 0.0, 0.0).is_err());
+        assert!(celaut_set_balancer_weights(f64::NAN, 0.0, 0.0, 0.0, 0.0).is_err());
+        assert_eq!(celaut_balancer_weights().price, 1.5);
+        let d = celaut_balancer_default_weights();
+        celaut_set_balancer_weights(d.price, d.reputation, d.onchain, d.donation, d.priority)
+            .unwrap();
+        assert_eq!(celaut_balancer_weights(), d);
+    }
 
     #[test]
     fn a_removed_node_leaves_the_list_and_keeps_its_deposits() {

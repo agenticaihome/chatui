@@ -1774,6 +1774,105 @@ fn wire__crate__api__celaut_network__celaut_set_network_impl(
         },
     )
 }
+fn wire__crate__api__celaut_home__celaut_balancer_weights_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_balancer_weights",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>(crate::api::celaut_home::celaut_balancer_weights())?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__celaut_home__celaut_balancer_default_weights_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_balancer_default_weights",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok =
+                    Ok::<_, ()>(crate::api::celaut_home::celaut_balancer_default_weights())?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__celaut_home__celaut_set_balancer_weights_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_set_balancer_weights",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_price = <f64>::sse_decode(&mut deserializer);
+            let api_reputation = <f64>::sse_decode(&mut deserializer);
+            let api_onchain = <f64>::sse_decode(&mut deserializer);
+            let api_donation = <f64>::sse_decode(&mut deserializer);
+            let api_priority = <f64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, crate::api::celaut::CelautError>((move || {
+                let output_ok = crate::api::celaut_home::celaut_set_balancer_weights(
+                    api_price,
+                    api_reputation,
+                    api_onchain,
+                    api_donation,
+                    api_priority,
+                )?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__celaut_home__celaut_set_node_priority_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -5854,6 +5953,19 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
+        101 => {
+            wire__crate__api__celaut_home__celaut_balancer_weights_impl(ptr, rust_vec_len, data_len)
+        }
+        102 => wire__crate__api__celaut_home__celaut_balancer_default_weights_impl(
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        103 => wire__crate__api__celaut_home__celaut_set_balancer_weights_impl(
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
         50 => wire__crate__api__celaut_home__celaut_set_node_priority_impl(
             ptr,
             rust_vec_len,
@@ -6455,6 +6567,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut::KeyValueView>
     for crate::api::celaut::KeyValueView
 {
     fn into_into_dart(self) -> crate::api::celaut::KeyValueView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::celaut_home::BalancerWeightsView {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.price.into_into_dart().into_dart(),
+            self.reputation.into_into_dart().into_dart(),
+            self.onchain.into_into_dart().into_dart(),
+            self.donation.into_into_dart().into_dart(),
+            self.priority.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::celaut_home::BalancerWeightsView
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut_home::BalancerWeightsView>
+    for crate::api::celaut_home::BalancerWeightsView
+{
+    fn into_into_dart(self) -> crate::api::celaut_home::BalancerWeightsView {
         self
     }
 }
@@ -7721,6 +7857,17 @@ impl SseEncode for crate::api::celaut::KeyValueView {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.key, serializer);
         <String>::sse_encode(self.value, serializer);
+    }
+}
+
+impl SseEncode for crate::api::celaut_home::BalancerWeightsView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <f64>::sse_encode(self.price, serializer);
+        <f64>::sse_encode(self.reputation, serializer);
+        <f64>::sse_encode(self.onchain, serializer);
+        <f64>::sse_encode(self.donation, serializer);
+        <f64>::sse_encode(self.priority, serializer);
     }
 }
 

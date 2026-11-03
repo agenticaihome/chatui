@@ -315,6 +315,11 @@ pub struct EventRecord {
 pub struct CelautData {
     #[serde(default)]
     pub version: u32,
+    /// The weights of the balancer that the user set, in thousandths: price, reputation,
+    /// on-chain, donation, priority (`celaut_balancer::Weights::to_milli`). `None` means
+    /// the defaults. Use [`CelautData::balancer_weights`].
+    #[serde(default)]
+    pub balancer_weights_milli: Option<[u32; 5]>,
     /// The nodes, by peer_id.
     #[serde(default)]
     pub nodes: BTreeMap<String, NodeRecord>,
@@ -434,6 +439,25 @@ impl CelautData {
                 node.paid_mu = Some(paid.to_string());
             }
         }
+    }
+
+    /// The weights of the score that the balancer uses: the ones that the user set, else
+    /// the defaults.
+    pub fn balancer_weights(&self) -> celaut_balancer::Weights {
+        self.balancer_weights_milli
+            .map(celaut_balancer::Weights::from_milli)
+            .unwrap_or_default()
+    }
+
+    /// Set the weights of the balancer. Values are limited by `Weights::sanitized`.
+    /// Weights equal to the defaults are stored as "not set".
+    pub fn set_balancer_weights(&mut self, weights: celaut_balancer::Weights) {
+        let milli = weights.to_milli();
+        self.balancer_weights_milli = if milli == celaut_balancer::Weights::default().to_milli() {
+            None
+        } else {
+            Some(milli)
+        };
     }
 
     /// What the balancer knows about each node of the database, by peer_id: for now the

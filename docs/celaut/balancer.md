@@ -136,3 +136,44 @@ whatever number is saved, and the number comes back when the mark is taken off. 
 reads `CelautData::standings()` and gives it to `celaut_client::quotes_with`. FFI:
 `celaut_set_node_priority(peer_id, priority)`; `KnownNodeView.priority` is the effective
 value and `set_priority` the saved number.
+
+## Weights of the score (user setting)
+
+The weights of the terms are a setting of the user (`celaut_balancer::Weights`), and the
+app shows them in Settings, Compute, "Balancer weights" (`balancer_screen.dart`):
+
+```
+score = -W_price * ln(cost) + W_rep * f(r, H_r) + W_onchain * ô + W_donation * d̂
+        + W_priority * (p - 50) / 50
+```
+
+| Term | Default | Note |
+|---|---|---|
+| price | 1 | nodo's value |
+| reputation | 2 | `SOCIALIZATION_FACTOR`; the term is 0 until the event log exists |
+| onchain | 0.3 | the term is 0 until the app reads it |
+| donation | 0.3 | the term is 0 for now |
+| priority | 2 | the 0 to 100 priority of each node |
+
+Each weight is from 0 (the term is off) to 10 (`WEIGHT_MAX`); a bad value is limited, and the
+FFI refuses a value outside the range. They are kept in the database
+(`CelautData::balancer_weights_milli`, thousandths; absent = defaults, so an old database
+works) and every real quote uses them (`quotes_weighted`). A free offer is still first
+whatever the weights. FFI: `celaut_balancer_weights`, `celaut_balancer_default_weights`,
+`celaut_set_balancer_weights`.
+
+### How the screen explains it
+
+Raw numbers say little, so `balancer_screen.dart` (logic in `app/lib/celaut/balancer_model.dart`,
+which mirrors `score_with`) shows the weights three ways:
+
+- **Quick setups:** balanced (the defaults), cheapest first (price only) and my nodes first
+  (the priority weight x3, so a node of full trust beats one up to e^6, about 400 times,
+  cheaper).
+- **A sentence from the real formula:** a node of full trust beats a neutral node that is up
+  to `e^(W_priority / W_price)` times cheaper (7.4x by default).
+- **An example:** three nodes (cheap and neutral; 3x the price and fully trusted; half the
+  price and no trust) that change order while a slider is dragged.
+
+Price and priority are the main sliders. The three terms with no data yet are in a closed
+section, marked as adding nothing today.

@@ -291,6 +291,18 @@ abstract class RustLibApi extends BaseApi {
     required String dataDir,
   });
 
+  BalancerWeightsView crateApiCelautHomeCelautBalancerWeights();
+
+  BalancerWeightsView crateApiCelautHomeCelautBalancerDefaultWeights();
+
+  void crateApiCelautHomeCelautSetBalancerWeights({
+    required double price,
+    required double reputation,
+    required double onchain,
+    required double donation,
+    required double priority,
+  });
+
   void crateApiCelautHomeCelautSetNodePriority({
     required String peerId,
     required int priority,
@@ -2078,6 +2090,86 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(
         debugName: "celaut_set_network",
         argNames: ["choice", "socksAddress", "dataDir"],
+      );
+
+  @override
+  BalancerWeightsView crateApiCelautHomeCelautBalancerWeights() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 101)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_balancer_weights_view,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCelautHomeCelautBalancerWeightsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCelautHomeCelautBalancerWeightsConstMeta =>
+      const TaskConstMeta(debugName: "celaut_balancer_weights", argNames: []);
+
+  @override
+  BalancerWeightsView crateApiCelautHomeCelautBalancerDefaultWeights() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 102)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_balancer_weights_view,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCelautHomeCelautBalancerDefaultWeightsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCelautHomeCelautBalancerDefaultWeightsConstMeta =>
+      const TaskConstMeta(debugName: "celaut_balancer_default_weights", argNames: []);
+
+  @override
+  void crateApiCelautHomeCelautSetBalancerWeights({
+    required double price,
+    required double reputation,
+    required double onchain,
+    required double donation,
+    required double priority,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_f_64(price, serializer);
+          sse_encode_f_64(reputation, serializer);
+          sse_encode_f_64(onchain, serializer);
+          sse_encode_f_64(donation, serializer);
+          sse_encode_f_64(priority, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 103)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_celaut_error,
+        ),
+        constMeta: kCrateApiCelautHomeCelautSetBalancerWeightsConstMeta,
+        argValues: [price, reputation, onchain, donation, priority],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCelautHomeCelautSetBalancerWeightsConstMeta =>
+      const TaskConstMeta(
+        debugName: "celaut_set_balancer_weights",
+        argNames: ["price", "reputation", "onchain", "donation", "priority"],
       );
 
   @override
@@ -5751,6 +5843,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_key = sse_decode_String(deserializer);
     var var_value = sse_decode_String(deserializer);
     return KeyValueView(key: var_key, value: var_value);
+  }
+
+  @protected
+  BalancerWeightsView sse_decode_balancer_weights_view(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_price = sse_decode_f_64(deserializer);
+    var var_reputation = sse_decode_f_64(deserializer);
+    var var_onchain = sse_decode_f_64(deserializer);
+    var var_donation = sse_decode_f_64(deserializer);
+    var var_priority = sse_decode_f_64(deserializer);
+    return BalancerWeightsView(
+      price: var_price,
+      reputation: var_reputation,
+      onchain: var_onchain,
+      donation: var_donation,
+      priority: var_priority,
+    );
   }
 
   @protected
