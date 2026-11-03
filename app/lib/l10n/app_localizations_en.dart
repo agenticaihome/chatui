@@ -6707,8 +6707,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your reputation for this node, from 0 to 100 (50 is neutral). When the app compares prices, a higher number favors this node. Full trust is always 100.';
 
   @override
-  String get balancerTitle =>
-      'Balancer weights';
+  String get balancerTitle => 'Balancer weights';
 
   @override
   String get balancerRowSubtitle =>
@@ -6719,120 +6718,98 @@ class AppLocalizationsEn extends AppLocalizations {
       'To choose a node, the app asks each one for a price and gives it a score: the price term plus the terms below, each multiplied by its weight. The node with the highest score goes first. A higher weight makes that term count more; 0 switches it off. A free offer always comes first.';
 
   @override
-  String get balancerPriceName =>
-      'Price';
+  String get balancerPriceName => 'Price';
 
   @override
   String get balancerPriceDesc =>
       'How much a cheaper quote counts. Each time the price is divided by e (about 2.7), the score rises by this weight.';
 
   @override
-  String get balancerReputationName =>
-      'Local reputation';
+  String get balancerReputationName => 'Local reputation';
 
   @override
   String get balancerReputationDesc =>
       'What this app learned from its own history with each node. There are no recorded events yet, so this term is 0 for now.';
 
   @override
-  String get balancerOnchainName =>
-      'On-chain reputation';
+  String get balancerOnchainName => 'On-chain reputation';
 
   @override
   String get balancerOnchainDesc =>
       'The opinion that other publishers record on the blockchain. Not read by the app yet, so this term is 0 for now.';
 
   @override
-  String get balancerDonationName =>
-      'Donations';
+  String get balancerDonationName => 'Donations';
 
   @override
   String get balancerDonationDesc =>
       'A bonus for nodes that donate. Not used by the app yet, so this term is 0 for now.';
 
   @override
-  String get balancerPriorityName =>
-      'Your priority for each node';
+  String get balancerPriorityName => 'Your priority for each node';
 
   @override
   String get balancerPriorityDesc =>
       'The 0 to 100 priority that you give each node in the node list (50 is neutral, full trust is 100).';
 
   @override
-  String get balancerDefaultLabel =>
-      'Default';
+  String get balancerDefaultLabel => 'Default';
 
   @override
-  String get balancerOffLabel =>
-      'Off';
+  String get balancerOffLabel => 'Off';
 
   @override
-  String get balancerReset =>
-      'Restore defaults';
+  String get balancerReset => 'Restore defaults';
 
   @override
-  String get balancerPresetsLabel =>
-      'Quick setups';
+  String get balancerPresetsLabel => 'Quick setups';
 
   @override
-  String get balancerPresetBalanced =>
-      'Balanced';
+  String get balancerPresetBalanced => 'Balanced';
 
   @override
-  String get balancerPresetCheapest =>
-      'Cheapest first';
+  String get balancerPresetCheapest => 'Cheapest first';
 
   @override
-  String get balancerPresetTrusted =>
-      'My nodes first';
+  String get balancerPresetTrusted => 'My nodes first';
 
   @override
-  String get balancerCustom =>
-      'Custom mix';
+  String get balancerCustom => 'Custom mix';
 
   @override
-  String get balancerMainTitle =>
-      'What matters to you';
+  String get balancerMainTitle => 'What matters to you';
 
   @override
-  String get balancerExampleTitle =>
-      'Try it';
+  String get balancerExampleTitle => 'Try it';
 
   @override
   String get balancerExampleIntro =>
       'Three example nodes. Move the sliders and watch the order change. Your real nodes follow the same rule.';
 
   @override
-  String get balancerExampleCheap =>
-      'Cheap node';
+  String get balancerExampleCheap => 'Cheap node';
 
   @override
-  String get balancerExampleTrusted =>
-      'Your trusted node';
+  String get balancerExampleTrusted => 'Your trusted node';
 
   @override
-  String get balancerExampleRisky =>
-      'Cheapest, little trust';
+  String get balancerExampleRisky => 'Cheapest, little trust';
 
   @override
-  String get balancerAdvancedTitle =>
-      'Terms without data yet';
+  String get balancerAdvancedTitle => 'Terms without data yet';
 
   @override
   String get balancerAdvancedNote =>
       'These terms add nothing today because the app does not have their data yet. You can set their weight now for when it does.';
 
   @override
-  String get balancerRestoreTerm =>
-      'Restore';
+  String get balancerRestoreTerm => 'Restore';
 
   @override
-  String get balancerScaleLow =>
-      'Ignore';
+  String get balancerScaleLow => 'Ignore';
 
   @override
-  String get balancerScaleHigh =>
-      'Maximum';
+  String get balancerScaleHigh => 'Maximum';
 
   @override
   String get balancerReadingNothing =>
