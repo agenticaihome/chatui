@@ -17,6 +17,8 @@
 //!   needs the resources of the service ([`ServiceAsk`]), which the client does not
 //!   have from a hash alone.
 //!
+//! - [`Weights`]: how much each term of the score weighs. The user can change them.
+//!
 //! - [`Standing::priority`]: the reputation that the user gives to a node, a whole number
 //!   from [`PRIORITY_MIN`] to [`PRIORITY_MAX`]. [`PRIORITY_NEUTRAL`] adds nothing; the
 //!   maximum is "full trust" and adds the most. It weighs in [`score`] with
@@ -60,6 +62,11 @@ pub const PRIORITY_NEUTRAL: u8 = 50;
 /// The weight of the priority of the user. At the maximum it is worth a price `e^2` times
 /// (about 7.4) lower than that of a node of neutral priority.
 pub const PRIORITY_WEIGHT: f64 = 2.0;
+
+/// The weight of the price term, `-ln(cost)`. 1 is nodo's value.
+pub const PRICE_WEIGHT: f64 = 1.0;
+/// The most that the user can give to one weight.
+pub const WEIGHT_MAX: f64 = 10.0;
 
 const HOUR_SECONDS: f64 = 3600.0;
 
@@ -195,18 +202,96 @@ impl Default for Standing {
     }
 }
 
-/// `-ln(cost) + W_r * f(r, H_r) + W_o * o + W_d * d + W_p * p`, where `p` is the
-/// [`priority_factor`] of the node. A cost of 0 or less is `+inf`
-/// (a free offer is the best one). Higher is better.
+/// How much each term of the [`score`] weighs. The user can change them (`docs/celaut/
+/// balancer.md`, "Weights of the score"): a higher weight makes that term count more
+/// against the others. A weight of 0 switches the term off. [`Weights::default`] is the
+/// parametrization of nodo plus the priority of the user.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Weights {
+    /// Of `-ln(cost)`: how much the price counts. Default [`PRICE_WEIGHT`].
+    pub price: f64,
+    /// Of the local reputation. Default [`REPUTATION_WEIGHT`].
+    pub reputation: f64,
+    /// Of the on-chain reputation. Default [`ONCHAIN_WEIGHT`].
+    pub onchain: f64,
+    /// Of the donations. Default [`DONATION_WEIGHT`].
+    pub donation: f64,
+    /// Of the priority that the user gave to the node. Default [`PRIORITY_WEIGHT`].
+    pub priority: f64,
+}
+
+impl Default for Weights {
+    fn default() -> Self {
+        Weights {
+            price: PRICE_WEIGHT,
+            reputation: REPUTATION_WEIGHT,
+            onchain: ONCHAIN_WEIGHT,
+            donation: DONATION_WEIGHT,
+            priority: PRIORITY_WEIGHT,
+        }
+    }
+}
+
+impl Weights {
+    /// The same weights with each one made finite and put between 0 and [`WEIGHT_MAX`]
+    /// (NaN becomes 0), so a bad value cannot make the order meaningless.
+    pub fn sanitized(self) -> Self {
+        let fix = |w: f64| {
+            if w.is_nan() {
+                0.0
+            } else {
+                w.clamp(0.0, WEIGHT_MAX)
+            }
+        };
+        Weights {
+            price: fix(self.price),
+            reputation: fix(self.reputation),
+            onchain: fix(self.onchain),
+            donation: fix(self.donation),
+            priority: fix(self.priority),
+        }
+    }
+
+    /// The weights as whole thousandths, in the order price, reputation, on-chain,
+    /// donation, priority (for storage; a weight is rounded to 0.001).
+    pub fn to_milli(self) -> [u32; 5] {
+        let w = self.sanitized();
+        [w.price, w.reputation, w.onchain, w.donation, w.priority]
+            .map(|x| (x * 1000.0).round() as u32)
+    }
+
+    /// The inverse of [`Weights::to_milli`].
+    pub fn from_milli(m: [u32; 5]) -> Self {
+        let f = |x: u32| f64::from(x) / 1000.0;
+        Weights {
+            price: f(m[0]),
+            reputation: f(m[1]),
+            onchain: f(m[2]),
+            donation: f(m[3]),
+            priority: f(m[4]),
+        }
+        .sanitized()
+    }
+}
+
+/// `-W_c * ln(cost) + W_r * f(r, H_r) + W_o * o + W_d * d + W_p * p` with the default
+/// [`Weights`].
 pub fn score(cost: f64, standing: Standing) -> f64 {
+    score_with(cost, standing, &Weights::default())
+}
+
+/// [`score`] with the weights of the user. `p` is the [`priority_factor`] of the node. A
+/// cost of 0 or less is `+inf` (a free offer is the best one). Higher is better.
+pub fn score_with(cost: f64, standing: Standing, weights: &Weights) -> f64 {
     if cost <= 0.0 {
         return f64::INFINITY;
     }
-    -cost.ln()
-        + REPUTATION_WEIGHT * reputation_factor(standing.reputation, REPUTATION_HALF_CREDIT)
-        + ONCHAIN_WEIGHT * standing.onchain
-        + DONATION_WEIGHT * standing.donation
-        + PRIORITY_WEIGHT * priority_factor(standing.priority)
+    let w = weights.sanitized();
+    -w.price * cost.ln()
+        + w.reputation * reputation_factor(standing.reputation, REPUTATION_HALF_CREDIT)
+        + w.onchain * standing.onchain
+        + w.donation * standing.donation
+        + w.priority * priority_factor(standing.priority)
 }
 
 /// One quote of one node.
@@ -239,6 +324,11 @@ pub struct Ranked {
 /// input order: the client can still use them (M2 runs on free credit), but it cannot
 /// compare their price.
 pub fn rank(candidates: Vec<Candidate>) -> Vec<Ranked> {
+    rank_with(candidates, &Weights::default())
+}
+
+/// [`rank`] with the weights of the user.
+pub fn rank_with(candidates: Vec<Candidate>, weights: &Weights) -> Vec<Ranked> {
     let mut priced = Vec::new();
     let mut unpriced = Vec::new();
     for candidate in candidates {
@@ -248,7 +338,7 @@ pub fn rank(candidates: Vec<Candidate>) -> Vec<Ranked> {
         match candidate.mu_per_nano_erg.filter(|r| *r > 0) {
             Some(rate) => {
                 let cost = (cost / rate as f64).ceil();
-                let score = score(cost, candidate.standing);
+                let score = score_with(cost, candidate.standing, weights);
                 priced.push(Ranked {
                     candidate,
                     cost_nano_erg: Some(cost),

@@ -10727,6 +10727,234 @@ abstract class AppLocalizations {
   /// **'Your reputation for this node, from 0 to 100 (50 is neutral). When the app compares prices, a higher number favors this node. Full trust is always 100.'**
   String get celautNodesPriorityHint;
 
+  /// No description provided for @balancerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Balancer weights'**
+  String get balancerTitle;
+
+  /// No description provided for @balancerRowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How the app chooses the node that runs a service'**
+  String get balancerRowSubtitle;
+
+  /// No description provided for @balancerIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'To choose a node, the app asks each one for a price and gives it a score: the price term plus the terms below, each multiplied by its weight. The node with the highest score goes first. A higher weight makes that term count more; 0 switches it off. A free offer always comes first.'**
+  String get balancerIntro;
+
+  /// No description provided for @balancerPriceName.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get balancerPriceName;
+
+  /// No description provided for @balancerPriceDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'How much a cheaper quote counts. Each time the price is divided by e (about 2.7), the score rises by this weight.'**
+  String get balancerPriceDesc;
+
+  /// No description provided for @balancerReputationName.
+  ///
+  /// In en, this message translates to:
+  /// **'Local reputation'**
+  String get balancerReputationName;
+
+  /// No description provided for @balancerReputationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'What this app learned from its own history with each node. There are no recorded events yet, so this term is 0 for now.'**
+  String get balancerReputationDesc;
+
+  /// No description provided for @balancerOnchainName.
+  ///
+  /// In en, this message translates to:
+  /// **'On-chain reputation'**
+  String get balancerOnchainName;
+
+  /// No description provided for @balancerOnchainDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'The opinion that other publishers record on the blockchain. Not read by the app yet, so this term is 0 for now.'**
+  String get balancerOnchainDesc;
+
+  /// No description provided for @balancerDonationName.
+  ///
+  /// In en, this message translates to:
+  /// **'Donations'**
+  String get balancerDonationName;
+
+  /// No description provided for @balancerDonationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A bonus for nodes that donate. Not used by the app yet, so this term is 0 for now.'**
+  String get balancerDonationDesc;
+
+  /// No description provided for @balancerPriorityName.
+  ///
+  /// In en, this message translates to:
+  /// **'Your priority for each node'**
+  String get balancerPriorityName;
+
+  /// No description provided for @balancerPriorityDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'The 0 to 100 priority that you give each node in the node list (50 is neutral, full trust is 100).'**
+  String get balancerPriorityDesc;
+
+  /// No description provided for @balancerDefaultLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get balancerDefaultLabel;
+
+  /// No description provided for @balancerOffLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get balancerOffLabel;
+
+  /// No description provided for @balancerReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get balancerReset;
+
+  /// No description provided for @balancerPresetsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick setups'**
+  String get balancerPresetsLabel;
+
+  /// No description provided for @balancerPresetBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get balancerPresetBalanced;
+
+  /// No description provided for @balancerPresetCheapest.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheapest first'**
+  String get balancerPresetCheapest;
+
+  /// No description provided for @balancerPresetTrusted.
+  ///
+  /// In en, this message translates to:
+  /// **'My nodes first'**
+  String get balancerPresetTrusted;
+
+  /// No description provided for @balancerCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom mix'**
+  String get balancerCustom;
+
+  /// No description provided for @balancerMainTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What matters to you'**
+  String get balancerMainTitle;
+
+  /// No description provided for @balancerExampleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Try it'**
+  String get balancerExampleTitle;
+
+  /// No description provided for @balancerExampleIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Three example nodes. Move the sliders and watch the order change. Your real nodes follow the same rule.'**
+  String get balancerExampleIntro;
+
+  /// No description provided for @balancerExampleCheap.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheap node'**
+  String get balancerExampleCheap;
+
+  /// No description provided for @balancerExampleTrusted.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trusted node'**
+  String get balancerExampleTrusted;
+
+  /// No description provided for @balancerExampleRisky.
+  ///
+  /// In en, this message translates to:
+  /// **'Cheapest, little trust'**
+  String get balancerExampleRisky;
+
+  /// No description provided for @balancerAdvancedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms without data yet'**
+  String get balancerAdvancedTitle;
+
+  /// No description provided for @balancerAdvancedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'These terms add nothing today because the app does not have their data yet. You can set their weight now for when it does.'**
+  String get balancerAdvancedNote;
+
+  /// No description provided for @balancerRestoreTerm.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get balancerRestoreTerm;
+
+  /// No description provided for @balancerScaleLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore'**
+  String get balancerScaleLow;
+
+  /// No description provided for @balancerScaleHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum'**
+  String get balancerScaleHigh;
+
+  /// No description provided for @balancerReadingNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'With both at 0, nothing separates the nodes.'**
+  String get balancerReadingNothing;
+
+  /// No description provided for @balancerReadingPriceIgnored.
+  ///
+  /// In en, this message translates to:
+  /// **'The price is ignored: only your priority decides.'**
+  String get balancerReadingPriceIgnored;
+
+  /// No description provided for @balancerReadingPriorityIgnored.
+  ///
+  /// In en, this message translates to:
+  /// **'Your priority is ignored: the cheapest node always goes first.'**
+  String get balancerReadingPriorityIgnored;
+
+  /// No description provided for @balancerReadingTradeoff.
+  ///
+  /// In en, this message translates to:
+  /// **'A node you fully trust can win against one up to {factor}× cheaper.'**
+  String balancerReadingTradeoff(String factor);
+
+  /// No description provided for @balancerExampleDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Costs {cost}× · priority {priority}'**
+  String balancerExampleDetail(String cost, String priority);
+
+  /// No description provided for @balancerExampleFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} goes first.'**
+  String balancerExampleFirst(String name);
+
   /// No description provided for @celautRunModeTime.
   ///
   /// In en, this message translates to:

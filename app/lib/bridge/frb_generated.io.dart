@@ -40,6 +40,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ApiSlotView dco_decode_api_slot_view(dynamic raw);
 
   @protected
+  BalancerWeightsView dco_decode_balancer_weights_view(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
 
   @protected
@@ -406,6 +409,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ApiSlotView sse_decode_api_slot_view(SseDeserializer deserializer);
+
+  @protected
+  BalancerWeightsView sse_decode_balancer_weights_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
@@ -850,6 +858,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_api_slot_view(ApiSlotView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_balancer_weights_view(
+    BalancerWeightsView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);

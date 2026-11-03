@@ -5,7 +5,8 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use celaut_balancer::{
-    cost_mu, rank, Candidate, Misfit, QuoteCache, QuoteKey, Ranked, ServiceAsk, Standing,
+    cost_mu, rank_with, Candidate, Misfit, QuoteCache, QuoteKey, Ranked, ServiceAsk, Standing,
+    Weights,
 };
 use celaut_proto::celaut::Configuration;
 use celaut_proto::Message;
@@ -96,6 +97,29 @@ pub async fn quotes_with<T: Transport>(
     ask: Option<&ServiceAsk>,
     standings: &HashMap<String, Standing>,
 ) -> Quotes {
+    quotes_weighted(
+        sessions,
+        service_id,
+        configuration,
+        cache,
+        ask,
+        standings,
+        &Weights::default(),
+    )
+    .await
+}
+
+/// [`quotes_with`], with the weights of the score that the user set (`docs/celaut/
+/// balancer.md`, "Weights of the score").
+pub async fn quotes_weighted<T: Transport>(
+    sessions: &[&NodeSession<T>],
+    service_id: [u8; 32],
+    configuration: &Configuration,
+    cache: &Mutex<QuoteCache>,
+    ask: Option<&ServiceAsk>,
+    standings: &HashMap<String, Standing>,
+    weights: &Weights,
+) -> Quotes {
     let mut skipped = Vec::new();
     let mut to_ask = Vec::new();
     for session in sessions {
@@ -167,7 +191,7 @@ pub async fn quotes_with<T: Transport>(
         }
     }
     Quotes {
-        ranked: rank(candidates),
+        ranked: rank_with(candidates, weights),
         failures,
         skipped,
     }

@@ -10,7 +10,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `at_least`, `bytes_total`, `known_node`, `list_node`, `nano_erg_total`, `node_timeout`, `reach_within`, `reach`, `to_i64`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Reached`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`
 
 /// Ask every node of the node list for its advertisement and the balance of the client,
 /// and every instance for its balance. The nodes are asked at the same time. A removed
@@ -53,6 +53,78 @@ void celautSetNodePriority({required String peerId, required int priority}) =>
       peerId: peerId,
       priority: priority,
     );
+
+/// The weights that the balancer uses now: the ones that the user set, else the defaults.
+BalancerWeightsView celautBalancerWeights() =>
+    RustLib.instance.api.crateApiCelautHomeCelautBalancerWeights();
+
+/// The default weights of the balancer, to show and to go back to.
+BalancerWeightsView celautBalancerDefaultWeights() =>
+    RustLib.instance.api.crateApiCelautHomeCelautBalancerDefaultWeights();
+
+/// Set the weights of the balancer. Each one is a number from 0 to 10; a number outside
+/// that range or NaN is an error. They count from the next quote.
+void celautSetBalancerWeights({
+  required double price,
+  required double reputation,
+  required double onchain,
+  required double donation,
+  required double priority,
+}) => RustLib.instance.api.crateApiCelautHomeCelautSetBalancerWeights(
+  price: price,
+  reputation: reputation,
+  onchain: onchain,
+  donation: donation,
+  priority: priority,
+);
+
+/// The weights of the terms of the score of the balancer, the parametrization that
+/// decides on which node a service runs (`docs/celaut/balancer.md`). The balancer adds
+/// the terms and takes the node with the highest total; a higher weight makes a term count
+/// more against the others, and 0 switches it off.
+class BalancerWeightsView {
+  /// Of the price: `-ln(cost)`. Default 1.
+  final double price;
+
+  /// Of the local reputation (the events of this client). Default 2.
+  final double reputation;
+
+  /// Of the on-chain reputation. Default 0.3.
+  final double onchain;
+
+  /// Of the donations. Default 0.3.
+  final double donation;
+
+  /// Of the priority that the user gives to each node (0 to 100). Default 2.
+  final double priority;
+
+  const BalancerWeightsView({
+    required this.price,
+    required this.reputation,
+    required this.onchain,
+    required this.donation,
+    required this.priority,
+  });
+
+  @override
+  int get hashCode =>
+      price.hashCode ^
+      reputation.hashCode ^
+      onchain.hashCode ^
+      donation.hashCode ^
+      priority.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BalancerWeightsView &&
+          runtimeType == other.runtimeType &&
+          price == other.price &&
+          reputation == other.reputation &&
+          onchain == other.onchain &&
+          donation == other.donation &&
+          priority == other.priority;
+}
 
 /// [`CoresTotalView`] for a number of bytes.
 class BytesTotalView {

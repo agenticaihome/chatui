@@ -64,7 +64,9 @@ pub use deposit::{DepositBox, DepositError, ErgPayment};
 pub use health::{Availability, Health};
 pub use local_port::LocalPort;
 pub use peer::PeerError;
-pub use quotes::{quotes, quotes_for, quotes_with, QuoteFailure, QuoteSkip, Quotes};
+pub use quotes::{
+    quotes, quotes_for, quotes_weighted, quotes_with, QuoteFailure, QuoteSkip, Quotes,
+};
 pub use refusal::Refusal;
 pub use session::{NodeSession, StartedInstance};
 pub use store::{FilePeerStore, MemoryPeerStore, PeerStore, Seen, StoreError};

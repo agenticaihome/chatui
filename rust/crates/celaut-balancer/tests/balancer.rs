@@ -287,3 +287,41 @@ fn a_free_offer_still_comes_first() {
     ]);
     assert_eq!(order(&ranked), ["free", "full"]);
 }
+
+#[test]
+fn the_weights_of_the_user_change_what_counts() {
+    use celaut_balancer::{rank_with, score_with, Weights};
+    let e = std::f64::consts::E;
+    assert!((score_with(e, Standing::default(), &Weights::default()) + 1.0).abs() < 1e-12);
+    let no_price = Weights {
+        price: 0.0,
+        ..Weights::default()
+    };
+    assert!(score_with(e, Standing::default(), &no_price).abs() < 1e-12);
+    let double = Weights {
+        price: 2.0,
+        ..Weights::default()
+    };
+    assert!((score_with(e, Standing::default(), &double) + 2.0).abs() < 1e-12);
+    assert_eq!(
+        score_with(0.0, Standing::default(), &no_price),
+        f64::INFINITY
+    );
+    let bad = Weights {
+        price: f64::NAN,
+        reputation: -3.0,
+        onchain: 99.0,
+        ..Weights::default()
+    }
+    .sanitized();
+    assert_eq!((bad.price, bad.reputation, bad.onchain), (0.0, 0.0, 10.0));
+    let w = Weights {
+        price: 1.5,
+        reputation: 0.25,
+        onchain: 0.0,
+        donation: 3.0,
+        priority: 7.125,
+    };
+    assert_eq!(Weights::from_milli(w.to_milli()), w);
+    let _ = rank_with(vec![], &w);
+}
