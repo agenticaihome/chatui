@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/api/celaut_home.dart';
 import '../../celaut/balancer_model.dart';
-import '../../l10n/app_localizations.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../settings/settings_shared.dart';
