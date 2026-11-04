@@ -10,6 +10,7 @@ import '../../celaut/launcher.dart';
 import '../../celaut/payers.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
+import '../home/home_scene.dart';
 import '../home/home_style.dart';
 import '../layout.dart';
 import 'deposit_screen.dart';
@@ -199,6 +200,7 @@ class ChatsScreenState extends State<ChatsScreen> {
     );
     final twoPane = AppLayout.twoPane(context);
     final list = Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         titleSpacing: 16,
         actions: [_groupsMenu()],
@@ -242,7 +244,7 @@ class ChatsScreenState extends State<ChatsScreen> {
     );
     return ChatPane(
       navigator: twoPane ? _pane : null,
-      child: twoPane ? _twoPanes(list) : list,
+      child: twoPane ? _twoPanes(SceneBackdrop(child: list)) : SceneBackdrop(child: list),
     );
   }
 
