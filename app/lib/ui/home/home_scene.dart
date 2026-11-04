@@ -29,6 +29,7 @@ class HomeScene extends StatelessWidget {
     required this.lightAt,
     required this.height,
     this.lightRadius = 70,
+    this.rimStrength = 1,
   });
 
   /// How much of the top of the page the scene covers; it settles into the
@@ -44,6 +45,10 @@ class HomeScene extends StatelessWidget {
 
   /// The eclipse's radius.
   final double lightRadius;
+
+  /// How strongly the crests catch the light: 1 on the home pages, less where rows of
+  /// text lie over the range ([SceneBackdrop]).
+  final double rimStrength;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +71,7 @@ class HomeScene extends StatelessWidget {
                     light: light,
                     lightAt: lightAt,
                     lightRadius: lightRadius,
+                    rimStrength: rimStrength,
                     dark: Theme.of(context).brightness == Brightness.dark,
                   ),
                   devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
@@ -89,7 +95,8 @@ WidgetStateColor sceneBarColor(Color page) => WidgetStateColor.resolveWith(
 /// The scene of the Compute tab behind the other pages of the app: the chats, the
 /// Wallet tab, the settings, the nodes, the services and the info of an instance. It is lower than on
 /// the home pages, with a smaller eclipse beside the top of the content, because these
-/// pages start with their content and not with a figure.
+/// pages start with their content and not with a figure. Its crests catch less light,
+/// because rows of text lie over them.
 ///
 /// [child] is a [Scaffold] with a clear background. The bar of an [AppBar] in it is
 /// clear over the scene and takes the page's colour once the content scrolls under it.
@@ -116,6 +123,8 @@ class SceneBackdrop extends StatelessWidget {
           light: SceneLight.eclipse,
           lightAt: Offset(AppLayout.readableSide(box.maxWidth) + 76, top + 44),
           lightRadius: 50,
+          // Rows of text lie over the range here: its crests catch less light.
+          rimStrength: 0.4,
           height: top + depth,
           child: Theme(
             data: theme.copyWith(
@@ -167,7 +176,7 @@ class SceneImagePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     final s = scene;
-    final key = (s.spec, s.page, s.light, s.lightAt, s.lightRadius, s.dark, size, devicePixelRatio);
+    final key = (s.spec, s.page, s.light, s.lightAt, s.lightRadius, s.rimStrength, s.dark, size, devicePixelRatio);
     var image = _images.remove(key);
     if (image == null) {
       final recorder = ui.PictureRecorder();
@@ -205,6 +214,7 @@ class ScenePainter extends CustomPainter {
     required this.light,
     required this.lightAt,
     required this.lightRadius,
+    this.rimStrength = 1,
     required this.dark,
   });
 
@@ -213,6 +223,7 @@ class ScenePainter extends CustomPainter {
   final SceneLight light;
   final Offset lightAt;
   final double lightRadius;
+  final double rimStrength;
   final bool dark;
 
   @override
@@ -281,7 +292,7 @@ class ScenePainter extends CustomPainter {
             stops: const [0, 0.55, 1],
           ).createShader(bounds),
       );
-      final strength = range.rim;
+      final strength = range.rim * rimStrength;
       if (strength == 0) continue;
       // The slope nearest the light, washed with it.
       canvas.drawPath(
@@ -450,6 +461,7 @@ class ScenePainter extends CustomPainter {
       old.light != light ||
       old.lightAt != lightAt ||
       old.lightRadius != lightRadius ||
+      old.rimStrength != rimStrength ||
       old.dark != dark;
 }
 
