@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:characters/characters.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:grpc/grpc.dart';
 import 'package:protobuf/protobuf.dart' show GeneratedMessage;
 
 import 'chat/gen/chat.pbgrpc.dart' as pb;
+import 'chat_corrector.dart' show CorrectorReport;
 import 'sha3.dart';
 
 /// The description of one file of a message (`docs/celaut/chat.md`, section 5.1). The
@@ -115,6 +117,7 @@ class ChatMessage {
     this.createdAt = 0,
     this.error,
     this.secretRequests = const [],
+    this.suggestions = const [],
   });
 
   /// The values of [status] (`docs/celaut/chat.md`, section 5.2). `streaming` is a message
@@ -170,6 +173,10 @@ class ChatMessage {
   /// assistant message has them.
   final List<ChatSecretRequest> secretRequests;
 
+  /// Up to 3 short replies that the service proposes after this message (section 5.7). Only
+  /// a done assistant message has them.
+  final List<String> suggestions;
+
   bool get fromUser => role == 'user';
 
   /// An answer that grows: its [text] and [reasoning] are not final yet.
@@ -184,6 +191,7 @@ class ChatMessage {
     bool? pinned,
     int? updatedAt,
     String? error,
+    List<String>? suggestions,
   }) =>
       ChatMessage(
         seq: seq,
@@ -200,6 +208,7 @@ class ChatMessage {
         createdAt: createdAt,
         error: error ?? this.error,
         secretRequests: secretRequests,
+        suggestions: suggestions ?? this.suggestions,
       );
 }
 
@@ -731,7 +740,30 @@ class ChatClient extends ChangeNotifier {
       createdAt: m.createdAt.toInt(),
       error: _errorOf(m.error),
       secretRequests: secrets,
+      suggestions: m.fromService && m.status == pb.MessageStatus.MESSAGE_STATUS_COMPLETED
+          ? suggestionsOf(m.suggestions)
+          : const [],
     );
+  }
+
+  /// The most suggestions of a message, and the most characters of one (section 5.7).
+  static const maxSuggestions = 3;
+  static const maxSuggestionChars = 64;
+
+  /// The suggestions of the service that the client shows: the first [maxSuggestions] of
+  /// [raw] that are valid. One that is empty, longer than [maxSuggestionChars], or not in
+  /// one line is ignored. White space at the ends goes, and a suggestion that is the same
+  /// as an earlier one is ignored.
+  static List<String> suggestionsOf(Iterable<String> raw) {
+    final out = <String>[];
+    for (final s in raw) {
+      final t = s.trim();
+      if (t.isEmpty || t.characters.length > maxSuggestionChars) continue;
+      if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(t) || out.contains(t)) continue;
+      out.add(t);
+      if (out.length == maxSuggestions) break;
+    }
+    return List.unmodifiable(out);
   }
 
   /// `error` of a message, or null if it is empty. At most 1 024 bytes are expected
@@ -803,6 +835,8 @@ class ChatClient extends ChangeNotifier {
       updatedAt: s.updatedAt.toInt(),
       // The service sets `error` one time, with the status FAILED.
       error: status == ChatMessage.statusFailed ? _errorOf(s.error) : null,
+      // And the suggestions one time, with the status COMPLETED (section 5.7).
+      suggestions: status == ChatMessage.statusDone && !have.fromUser ? suggestionsOf(s.suggestions) : null,
     );
   }
 
@@ -1101,9 +1135,13 @@ class ChatClient extends ChangeNotifier {
   ///
   /// [attachments] are sent only if the service accepts their media types ([accepts]). A
   /// send with files and no text is valid.
+  ///
+  /// [corrector] is the state of the corrector of the keyboard while the user wrote [text]
+  /// (section 5.7). It is null for a text that the user did not write.
   Future<void> send(
     String text, {
     List<OutgoingAttachment> attachments = const [],
+    CorrectorReport? corrector,
   }) async {
     final caps = await _ensureCaps();
     _checkSend(caps, text, attachments);
@@ -1116,6 +1154,15 @@ class ChatClient extends ChangeNotifier {
         for (var i = 0; i < attachments.length; i++) _part(attachments[i], hashes[i]),
       ],
       idempotencyKey: key,
+      corrector: corrector == null
+          ? null
+          : pb.CorrectorState(
+              enabled: corrector.enabled,
+              corrections: [
+                for (final c in corrector.corrections)
+                  pb.Correction(original: c.original, replacement: c.replacement),
+              ],
+            ),
     );
     if (request.writeToBuffer().length > maxRequestBytes) {
       throw const ChatException(ChatErrorKind.badRequest);

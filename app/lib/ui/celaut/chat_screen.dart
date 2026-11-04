@@ -16,6 +16,7 @@ import '../../celaut/attachment_picker.dart';
 import '../../celaut/audio_recorder.dart';
 import '../../celaut/celaut_format.dart';
 import '../../celaut/chat_client.dart';
+import '../../celaut/chat_corrector.dart';
 import '../../celaut/chat_done_watcher.dart';
 import '../../celaut/chat_notifier.dart';
 import '../../celaut/chat_prefs.dart';
@@ -40,6 +41,7 @@ import 'instance_info_screen.dart';
 import 'keyboard_widget.dart';
 import 'open_web.dart';
 import 'service_info_screen.dart' show readServiceInfo;
+import 'suggestion_bar.dart';
 import 'virtual_keyboard.dart';
 
 /// The conversation with a running instance that follows the chat convention
@@ -345,6 +347,7 @@ class _ChatScreenState extends State<ChatScreen>
     // node again.
     _notes.answered(_id);
     _afterRead(read: read);
+    _learnWords();
     _opened = true;
     if (mounted) setState(() => _waitingStart = false);
     // The history shows at its end at once, not after the read of the cost: until then the
@@ -398,6 +401,7 @@ class _ChatScreenState extends State<ChatScreen>
     // The stream failed 3 times at its first event and stopped (section 6.5).
     _error ??= _chat.streamError?.kind;
     _afterRead(read: true);
+    _learnWords();
     setState(() {});
     _syncTicker();
     _updatePinned();
@@ -486,6 +490,53 @@ class _ChatScreenState extends State<ChatScreen>
 
   /// The `seq` of the message whose keyboard the user closed.
   int? _keyboardClosedSeq;
+
+  /// The corrector of the keyboard of the app, and the words that it changed in the
+  /// message that the user writes (`docs/celaut/chat.md`, section 5.7).
+  final _corrector = ChatCorrector();
+  final _corrections = CorrectionLog();
+
+  /// The messages up to this `seq` are in [_corrector].
+  int _learnedSeq = 0;
+
+  /// The corrector proposes words: the user wants it, and types with the keyboard of the
+  /// app.
+  bool get _correctorOn => chatPrefs.wordSuggestions && !chatPrefs.systemKeyboard;
+
+  /// Learn the words of the final messages that the corrector does not know yet.
+  void _learnWords() {
+    final messages = _chat.messages;
+    while (_learnedSeq < messages.length) {
+      final m = messages[_learnedSeq];
+      if (m.isOpen) break;
+      _corrector.learn(m.text);
+      for (final s in m.suggestions) {
+        _corrector.learn(s);
+      }
+      _learnedSeq++;
+    }
+  }
+
+  /// The suggestions of the service that are active: the ones of the last message, if the
+  /// service made it and it is complete (section 5.7).
+  List<String> get _suggestions {
+    final m = _chat.messages.lastOrNull;
+    if (m == null || m.fromUser || m.status != ChatMessage.statusDone) return const [];
+    return m.suggestions;
+  }
+
+  /// A tap on a suggestion of the service: it goes in the input, as a key of a keyboard
+  /// block without `data-send`. The user sends it.
+  void _takeSuggestion(String text) {
+    final next = applySay(_input.text, text);
+    _input.value = TextEditingValue(text: next, selection: TextSelection.collapsed(offset: next.length));
+  }
+
+  /// A tap on a word of the corrector: it takes the place of the word at the cursor.
+  void _takeWord(String original, String replacement) {
+    _corrections.tapped(original, replacement);
+    _input.value = replaceWordAtCursor(_input.value, replacement);
+  }
 
   /// The `seq` of the last message (-1 if there is none) when the user scrolled the
   /// conversation: the form and the keyboard of the app hide while that is still the last
@@ -613,10 +664,14 @@ class _ChatScreenState extends State<ChatScreen>
         _pending.clear();
       }
     });
+    // The state of the corrector goes with a text that the user wrote, not with the text
+    // of a key that sends at once (section 5.7).
+    final corrector = only != null ? null : CorrectorReport(enabled: _correctorOn, corrections: _corrections.inText(text));
+    if (only == null) _corrections.clear();
     _syncTicker();
     _scrollToEnd();
     try {
-      await _chat.send(text, attachments: files);
+      await _chat.send(text, attachments: files, corrector: corrector);
     } on ChatException catch (e) {
       // The text and the files come back, so the user can send them again. What the
       // user has written meanwhile stays: the old text goes before it.
@@ -1253,6 +1308,14 @@ class _ChatScreenState extends State<ChatScreen>
         ),
       ),
     );
+    final suggestions = _suggestions;
+    final bar = SuggestionBar(
+      controller: _input,
+      suggestions: suggestions,
+      corrector: _correctorOn ? _corrector : null,
+      onSuggestion: _takeSuggestion,
+      onWord: _takeWord,
+    );
     final inputBar = SafeArea(
       top: false,
       child: Padding(
@@ -1467,8 +1530,18 @@ class _ChatScreenState extends State<ChatScreen>
                   ],
                 )
                 : !chatPrefs.systemKeyboard && !_recording && !_keyboardHidden
-                    ? ChatVirtualKeyboard(controller: _input, focusNode: _inputFocus, autoCapitalize: true)
-                    : const SizedBox(width: double.infinity),
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_correctorOn || suggestions.isNotEmpty) bar,
+                          ChatVirtualKeyboard(controller: _input, focusNode: _inputFocus, autoCapitalize: true),
+                        ],
+                      )
+                    // With the keyboard of the system, only the suggestions of the service
+                    // show: the system keyboard has its own corrector.
+                    : chatPrefs.systemKeyboard && !_recording && suggestions.isNotEmpty
+                        ? bar
+                        : const SizedBox(width: double.infinity),
               ),
             ],
           ),

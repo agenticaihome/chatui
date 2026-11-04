@@ -487,6 +487,16 @@ class AppLocalizationsEs extends AppLocalizations {
       'Si está apagado, el chat escribe con el teclado de la app, debajo del input. Si está encendido, se muestra el del sistema, salvo mientras hay un formulario.';
 
   @override
+  String get chatSettingsWordSuggestions => 'Sugerencias de palabras';
+
+  @override
+  String get chatSettingsWordSuggestionsSubtitle =>
+      'El teclado de la app muestra palabras que completan o corrigen la palabra que escribes, con las palabras de la conversación. Nunca cambia una palabra por sí solo. Las respuestas que sugiere el servicio se muestran igual.';
+
+  @override
+  String get chatSuggestionsLabel => 'Sugerencias';
+
+  @override
   String get chatVkBackspace => 'Borrar';
 
   @override

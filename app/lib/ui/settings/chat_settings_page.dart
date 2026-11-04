@@ -114,6 +114,16 @@ class ChatSettingsPage extends StatelessWidget {
                     onChanged: chatPrefs.setSystemKeyboard,
                   ),
                 ),
+                SettingsRow(
+                  icon: Icons.spellcheck,
+                  title: context.l10n.chatSettingsWordSuggestions,
+                  subtitle: context.l10n.chatSettingsWordSuggestionsSubtitle,
+                  trailing: Switch(
+                    key: const Key('chat-settings-word-suggestions'),
+                    value: chatPrefs.wordSuggestions,
+                    onChanged: chatPrefs.setWordSuggestions,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),

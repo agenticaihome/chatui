@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:argus_wallet/celaut/chat/gen/chat.pbgrpc.dart' as pb;
 import 'package:argus_wallet/celaut/chat_client.dart';
+import 'package:argus_wallet/celaut/chat_corrector.dart';
 import 'package:argus_wallet/celaut/sha3.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1358,6 +1359,69 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 100));
       expect(notices, 0);
       expect(chat.count, 1);
+    });
+  });
+
+  group('suggestions and corrector (section 5.7)', () {
+    test('a whole answer has its suggestions; the client keeps 3 valid ones', () async {
+      final u = svc.user('q');
+      svc.assistant('a', replyTo: u.messageId, suggestions: ['Yes', ' No ', 'Yes', 'bad\nline', 'x' * 65, 'More', 'Fourth']);
+      await boot();
+      await chat.sync();
+      expect(chat.messages.last.suggestions, ['Yes', 'No', 'More']);
+      // A user message has none.
+      expect(chat.messages.first.suggestions, isEmpty);
+    });
+
+    test('a streamed answer gets them with COMPLETED, not before', () async {
+      final u = svc.user('q');
+      final a = svc.assistant('', replyTo: u.messageId, status: pb.MessageStatus.MESSAGE_STATUS_IN_PROGRESS);
+      await boot();
+      await chat.sync();
+      await until(() => chat.streaming);
+      svc.emitDelta(a.messageId, text: 'Hi');
+      await until(() => chat.messages.last.text == 'Hi');
+      expect(chat.messages.last.suggestions, isEmpty);
+      svc.setStatus(a.messageId, pb.MessageStatus.MESSAGE_STATUS_COMPLETED, suggestions: ['Thanks', 'Again']);
+      await until(() => !chat.messages.last.isOpen);
+      expect(chat.messages.last.suggestions, ['Thanks', 'Again']);
+    });
+
+    test('a FAILED answer and an open answer have none, even if the service sends them', () async {
+      final u = svc.user('q');
+      svc.assistant('a', replyTo: u.messageId, status: pb.MessageStatus.MESSAGE_STATUS_FAILED, error: 'no', suggestions: ['x']);
+      svc.assistant('b', replyTo: u.messageId, status: pb.MessageStatus.MESSAGE_STATUS_IN_PROGRESS, suggestions: ['y']);
+      await boot();
+      await chat.sync();
+      expect(chat.messages[1].suggestions, isEmpty);
+      expect(chat.messages[2].suggestions, isEmpty);
+    });
+
+    test('the send has the state of the corrector, over the stream and with SendMessage', () async {
+      svc.connectError = GrpcError.unimplemented();
+      await boot();
+      await chat.sync();
+      await chat.send('the cat',
+          corrector: const CorrectorReport(enabled: true, corrections: [Correction('teh', 'the')]));
+      final c = svc.unarySends.single.corrector;
+      expect(c.enabled, isTrue);
+      expect([for (final x in c.corrections) (x.original, x.replacement)], [('teh', 'the')]);
+      // The text is the text that the user sends.
+      expect(svc.unarySends.single.content.single.text.text, 'the cat');
+      // No state: no field.
+      await chat.send('plain');
+      expect(svc.unarySends.last.hasCorrector(), isFalse);
+    });
+
+    test('over the stream too', () async {
+      await boot();
+      await chat.sync();
+      await until(() => chat.streaming);
+      await chat.send('hi', corrector: const CorrectorReport(enabled: false));
+      final sent = svc.streamEvents.where((e) => e.hasSendMessage()).single.sendMessage;
+      expect(sent.hasCorrector(), isTrue);
+      expect(sent.corrector.enabled, isFalse);
+      expect(sent.corrector.corrections, isEmpty);
     });
   });
 }
