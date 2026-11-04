@@ -42,6 +42,22 @@ class FakeChatService {
   /// The next calls to `AnswerSecretRequest` fail with these errors, in order.
   final secretErrors = <GrpcError>[];
 
+  /// The title of the conversation (`docs/celaut/chat.md`, section 6.10), or null.
+  String? title;
+  int conversationCalls = 0;
+
+  /// The service gives the conversation a new title, or removes it ([value] null): each
+  /// open stream gets `ConversationTitleChanged`.
+  void setTitle(String? value) {
+    title = value;
+    emit(ServerEvent(
+      conversationTitleChanged: ConversationTitleChanged(
+        title: value,
+        updatedAt: Int64(_clock++),
+      ),
+    ));
+  }
+
   /// Each user message gets a whole answer `echo: <text>` at once.
   bool autoAnswer = false;
 
@@ -440,7 +456,7 @@ class _Chat extends ChatServiceBase {
             out.add(ServerEvent(messageCreated: MessageCreated(message: m.deepCopy())));
           }
           out.add(ServerEvent(
-            subscriptionReady: SubscriptionReady(latestSequence: Int64(f.msgs.length)),
+            subscriptionReady: SubscriptionReady(latestSequence: Int64(f.msgs.length), title: f.title),
           ));
           f._streams.add(out);
         } else if (e.hasSendMessage()) {
@@ -476,8 +492,10 @@ class _Chat extends ChatServiceBase {
       throw GrpcError.unimplemented();
 
   @override
-  Future<Conversation> getConversation(ServiceCall call, GetConversationRequest request) async =>
-      Conversation();
+  Future<Conversation> getConversation(ServiceCall call, GetConversationRequest request) async {
+    f.conversationCalls++;
+    return Conversation(title: f.title);
+  }
 
   @override
   Future<AnswerSecretRequestResponse> answerSecretRequest(

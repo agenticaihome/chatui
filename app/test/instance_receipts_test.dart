@@ -22,6 +22,7 @@ final _instance = InstanceListView(
   startChargeMu: '1000',
   name: 'Echo',
   alias: '',
+  title: '',
   refundMu: '',
 );
 

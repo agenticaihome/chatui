@@ -85,7 +85,12 @@ class ChatScreen extends StatefulWidget {
     this.trustedNodes,
     this.envStore,
     this.secretAnswers,
+    this.saveTitle,
   });
+
+  /// Keeps the title that the service gave the conversation in the database. Null:
+  /// `celautSetInstanceTitle`. Tests give their own.
+  final void Function(String instanceId, String title)? saveTitle;
 
   /// Reads the networks of the service of the instance, before a secret goes to it
   /// (`docs/celaut/chat.md`, section 5.6). Null: [readServiceInfo]. Tests give their own.
@@ -346,6 +351,7 @@ class _ChatScreenState extends State<ChatScreen>
     _notes.answered(_id);
     _afterRead(read: read);
     _opened = true;
+    _takeTitle();
     if (mounted) setState(() => _waitingStart = false);
     // The history shows at its end at once, not after the read of the cost: until then the
     // list would show its first message.
@@ -389,9 +395,27 @@ class _ChatScreenState extends State<ChatScreen>
     _poll = Timer(every, _pollOnce);
   }
 
+  /// The service gave the conversation a new title (`docs/celaut/chat.md`, section 6.10):
+  /// keep it in the database, so the list shows it too. A name that the user gave the
+  /// instance stays stronger ([instanceTitle]).
+  void _takeTitle() {
+    if (!_chat.titleKnown) return;
+    final title = _chat.title ?? '';
+    if (title == _instance.title) return;
+    try {
+      (widget.saveTitle ?? (id, t) => celautSetInstanceTitle(instanceId: id, title: t))(_id, title);
+    } on CelautError {
+      // The database did not take it: the title shows the next time.
+      return;
+    }
+    _instance = withTitle(_instance, title);
+    _notes.titled(_id);
+  }
+
   /// The stream of the client changed the messages: show them.
   void _onChat() {
     if (!mounted || !_opened || _waitingStart) return;
+    _takeTitle();
     final atEnd =
         !_scroll.hasClients || _scroll.position.maxScrollExtent - _scroll.position.pixels < 80;
     if (_error == ChatErrorKind.unreachable && _chat.streaming) _error = null;
