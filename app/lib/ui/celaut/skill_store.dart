@@ -187,9 +187,11 @@ class _Tag extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      // The chip colour is the card's own on some palettes: the border draws the tag.
       decoration: BoxDecoration(
         color: ArgusColors.of(context).chip,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: ArgusColors.of(context).cardBorder),
       ),
       child: Text(
         text,
