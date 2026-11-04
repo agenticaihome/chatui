@@ -309,6 +309,8 @@ class Message extends $pb.GeneratedMessage {
     $core.String? reasoning,
     $core.String? idempotencyKey,
     $core.String? error,
+    $core.Iterable<$core.String>? suggestions,
+    CorrectorState? corrector,
   }) {
     final result = Message._();
     if (messageId != null) result.messageId = messageId;
@@ -325,6 +327,8 @@ class Message extends $pb.GeneratedMessage {
     if (reasoning != null) result.reasoning = reasoning;
     if (idempotencyKey != null) result.idempotencyKey = idempotencyKey;
     if (error != null) result.error = error;
+    if (suggestions != null) result.suggestions.addAll(suggestions);
+    if (corrector != null) result.corrector = corrector;
     return result;
   }
 
@@ -361,6 +365,9 @@ class Message extends $pb.GeneratedMessage {
     ..aOS(12, _omitFieldNames ? '' : 'reasoning')
     ..aOS(13, _omitFieldNames ? '' : 'idempotencyKey')
     ..aOS(14, _omitFieldNames ? '' : 'error')
+    ..pPS(15, _omitFieldNames ? '' : 'suggestions')
+    ..aOM<CorrectorState>(16, _omitFieldNames ? '' : 'corrector',
+        subBuilder: CorrectorState.$_createMessage)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -526,6 +533,29 @@ class Message extends $pb.GeneratedMessage {
   $core.bool hasError() => $_has(13);
   @$pb.TagNumber(14)
   void clearError() => $_clearField(14);
+
+  /// Revisión 6 (ronda 10, propuesta #88).
+  /// De 0 a 3 respuestas cortas que el servicio propone al usuario después
+  /// de este mensaje (chat.md, 5.7). Cada una: UTF-8, de 1 a 64 caracteres,
+  /// en una línea. Solo un mensaje del servicio con estado COMPLETED las
+  /// tiene. Se fijan una vez, con ese estado, y no cambian después.
+  @$pb.TagNumber(15)
+  $pb.PbList<$core.String> get suggestions => $_getList(14);
+
+  /// Revisión 6 (ronda 10, propuesta #88).
+  /// Estado del corrector del cliente para este mensaje del usuario, como
+  /// lo dio el envío (SendMessageRequest.corrector). Solo un mensaje del
+  /// usuario lo tiene, y solo si el servicio lo guarda.
+  @$pb.TagNumber(16)
+  CorrectorState get corrector => $_getN(15);
+  @$pb.TagNumber(16)
+  set corrector(CorrectorState value) => $_setField(16, value);
+  @$pb.TagNumber(16)
+  $core.bool hasCorrector() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearCorrector() => $_clearField(16);
+  @$pb.TagNumber(16)
+  CorrectorState ensureCorrector() => $_ensure(15);
 }
 
 class SendMessageRequest extends $pb.GeneratedMessage {
@@ -534,12 +564,14 @@ class SendMessageRequest extends $pb.GeneratedMessage {
     $core.Iterable<ContentPart>? content,
     $core.String? replyToMessageId,
     $core.String? idempotencyKey,
+    CorrectorState? corrector,
   }) {
     final result = SendMessageRequest._();
     if (conversationId != null) result.conversationId = conversationId;
     if (content != null) result.content.addAll(content);
     if (replyToMessageId != null) result.replyToMessageId = replyToMessageId;
     if (idempotencyKey != null) result.idempotencyKey = idempotencyKey;
+    if (corrector != null) result.corrector = corrector;
     return result;
   }
 
@@ -560,6 +592,8 @@ class SendMessageRequest extends $pb.GeneratedMessage {
         subBuilder: ContentPart.$_createMessage)
     ..aOS(3, _omitFieldNames ? '' : 'replyToMessageId')
     ..aOS(4, _omitFieldNames ? '' : 'idempotencyKey')
+    ..aOM<CorrectorState>(5, _omitFieldNames ? '' : 'corrector',
+        subBuilder: CorrectorState.$_createMessage)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -622,6 +656,160 @@ class SendMessageRequest extends $pb.GeneratedMessage {
   $core.bool hasIdempotencyKey() => $_has(3);
   @$pb.TagNumber(4)
   void clearIdempotencyKey() => $_clearField(4);
+
+  /// Revisión 6 (ronda 10, propuesta #88).
+  /// Estado del corrector del cliente mientras el usuario escribió este
+  /// mensaje (chat.md, 5.7). No cambia el texto. El servicio puede usarlo o
+  /// ignorarlo; un envío nunca falla por él.
+  @$pb.TagNumber(5)
+  CorrectorState get corrector => $_getN(4);
+  @$pb.TagNumber(5)
+  set corrector(CorrectorState value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasCorrector() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCorrector() => $_clearField(5);
+  @$pb.TagNumber(5)
+  CorrectorState ensureCorrector() => $_ensure(4);
+}
+
+/// Revisión 6 (ronda 10, propuesta #88).
+/// Estado del corrector del cliente para un mensaje del usuario (chat.md, 5.7).
+class CorrectorState extends $pb.GeneratedMessage {
+  factory CorrectorState({
+    $core.bool? enabled,
+    $core.Iterable<Correction>? corrections,
+  }) {
+    final result = CorrectorState._();
+    if (enabled != null) result.enabled = enabled;
+    if (corrections != null) result.corrections.addAll(corrections);
+    return result;
+  }
+
+  CorrectorState._();
+
+  factory CorrectorState.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      CorrectorState()..mergeFromBuffer(data, registry);
+  factory CorrectorState.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      CorrectorState()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CorrectorState',
+      createEmptyInstance: CorrectorState.$_createMessage)
+    ..aOB(1, _omitFieldNames ? '' : 'enabled')
+    ..pPM<Correction>(2, _omitFieldNames ? '' : 'corrections',
+        subBuilder: Correction.$_createMessage)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CorrectorState clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CorrectorState copyWith(void Function(CorrectorState) updates) =>
+      super.copyWith((message) => updates(message as CorrectorState))
+          as CorrectorState;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use CorrectorState() / CorrectorState.new instead')
+  static CorrectorState create() => CorrectorState._();
+  static $pb.GeneratedMessage $_createMessage() => CorrectorState._();
+  @$core.override
+  CorrectorState createEmptyInstance() => CorrectorState._();
+  @$core.pragma('dart2js:noInline')
+  static CorrectorState getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CorrectorState>(
+          CorrectorState.$_createMessage);
+  static CorrectorState? _defaultInstance;
+
+  /// true si el corrector estaba activo mientras el usuario escribió.
+  @$pb.TagNumber(1)
+  $core.bool get enabled => $_getBF(0);
+  @$pb.TagNumber(1)
+  set enabled($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEnabled() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEnabled() => $_clearField(1);
+
+  /// Palabras que el corrector cambió en el texto, en el orden de los cambios.
+  /// De 0 a 32.
+  @$pb.TagNumber(2)
+  $pb.PbList<Correction> get corrections => $_getList(1);
+}
+
+/// Revisión 6 (ronda 10, propuesta #88).
+/// Una palabra que el corrector cambió.
+class Correction extends $pb.GeneratedMessage {
+  factory Correction({
+    $core.String? original,
+    $core.String? replacement,
+  }) {
+    final result = Correction._();
+    if (original != null) result.original = original;
+    if (replacement != null) result.replacement = replacement;
+    return result;
+  }
+
+  Correction._();
+
+  factory Correction.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      Correction()..mergeFromBuffer(data, registry);
+  factory Correction.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      Correction()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Correction',
+      createEmptyInstance: Correction.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'original')
+    ..aOS(2, _omitFieldNames ? '' : 'replacement')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Correction clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Correction copyWith(void Function(Correction) updates) =>
+      super.copyWith((message) => updates(message as Correction)) as Correction;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use Correction() / Correction.new instead')
+  static Correction create() => Correction._();
+  static $pb.GeneratedMessage $_createMessage() => Correction._();
+  @$core.override
+  Correction createEmptyInstance() => Correction._();
+  @$core.pragma('dart2js:noInline')
+  static Correction getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<Correction>(Correction.$_createMessage);
+  static Correction? _defaultInstance;
+
+  /// Palabra que escribió el usuario. De 1 a 64 caracteres.
+  @$pb.TagNumber(1)
+  $core.String get original => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set original($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasOriginal() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOriginal() => $_clearField(1);
+
+  /// Palabra que el corrector puso en su lugar, y que está en el texto.
+  /// De 1 a 64 caracteres.
+  @$pb.TagNumber(2)
+  $core.String get replacement => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set replacement($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasReplacement() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearReplacement() => $_clearField(2);
 }
 
 class GetMessagesRequest extends $pb.GeneratedMessage {
@@ -959,6 +1147,7 @@ class MessageStatusChanged extends $pb.GeneratedMessage {
     MessageStatus? status,
     $fixnum.Int64? updatedAt,
     $core.String? error,
+    $core.Iterable<$core.String>? suggestions,
   }) {
     final result = MessageStatusChanged._();
     if (messageId != null) result.messageId = messageId;
@@ -966,6 +1155,7 @@ class MessageStatusChanged extends $pb.GeneratedMessage {
     if (status != null) result.status = status;
     if (updatedAt != null) result.updatedAt = updatedAt;
     if (error != null) result.error = error;
+    if (suggestions != null) result.suggestions.addAll(suggestions);
     return result;
   }
 
@@ -987,6 +1177,7 @@ class MessageStatusChanged extends $pb.GeneratedMessage {
         enumValues: MessageStatus.values)
     ..aInt64(4, _omitFieldNames ? '' : 'updatedAt')
     ..aOS(5, _omitFieldNames ? '' : 'error')
+    ..pPS(6, _omitFieldNames ? '' : 'suggestions')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1061,6 +1252,12 @@ class MessageStatusChanged extends $pb.GeneratedMessage {
   $core.bool hasError() => $_has(4);
   @$pb.TagNumber(5)
   void clearError() => $_clearField(5);
+
+  /// Revisión 6 (ronda 10, propuesta #88).
+  /// Igual que Message.suggestions. Solo se envía si status es COMPLETED,
+  /// y tiene el mismo valor que Message.suggestions.
+  @$pb.TagNumber(6)
+  $pb.PbList<$core.String> get suggestions => $_getList(5);
 }
 
 /// Revisión 6.

@@ -201,6 +201,17 @@ const Message$json = {
       '17': true
     },
     {'1': 'error', '3': 14, '4': 1, '5': 9, '9': 3, '10': 'error', '17': true},
+    {'1': 'suggestions', '3': 15, '4': 3, '5': 9, '10': 'suggestions'},
+    {
+      '1': 'corrector',
+      '3': 16,
+      '4': 1,
+      '5': 11,
+      '6': '.CorrectorState',
+      '9': 4,
+      '10': 'corrector',
+      '17': true
+    },
   ],
   '3': [Message_MetadataEntry$json],
   '8': [
@@ -208,6 +219,7 @@ const Message$json = {
     {'1': '_reply_to_message_id'},
     {'1': '_idempotency_key'},
     {'1': '_error'},
+    {'1': '_corrector'},
   ],
 };
 
@@ -232,9 +244,11 @@ final $typed_data.Uint8List messageDescriptor = $convert.base64Decode(
     'MgoIbWV0YWRhdGEYCiADKAsyFi5NZXNzYWdlLk1ldGFkYXRhRW50cnlSCG1ldGFkYXRhEiEKDG'
     'Zyb21fc2VydmljZRgLIAEoCFILZnJvbVNlcnZpY2USHAoJcmVhc29uaW5nGAwgASgJUglyZWFz'
     'b25pbmcSLAoPaWRlbXBvdGVuY3lfa2V5GA0gASgJSAJSDmlkZW1wb3RlbmN5S2V5iAEBEhkKBW'
-    'Vycm9yGA4gASgJSANSBWVycm9yiAEBGjsKDU1ldGFkYXRhRW50cnkSEAoDa2V5GAEgASgJUgNr'
-    'ZXkSFAoFdmFsdWUYAiABKAlSBXZhbHVlOgI4AUISChBfY29udmVyc2F0aW9uX2lkQhYKFF9yZX'
-    'BseV90b19tZXNzYWdlX2lkQhIKEF9pZGVtcG90ZW5jeV9rZXlCCAoGX2Vycm9y');
+    'Vycm9yGA4gASgJSANSBWVycm9yiAEBEiAKC3N1Z2dlc3Rpb25zGA8gAygJUgtzdWdnZXN0aW9u'
+    'cxIyCgljb3JyZWN0b3IYECABKAsyDy5Db3JyZWN0b3JTdGF0ZUgEUgljb3JyZWN0b3KIAQEaOw'
+    'oNTWV0YWRhdGFFbnRyeRIQCgNrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgCIAEoCVIFdmFsdWU6'
+    'AjgBQhIKEF9jb252ZXJzYXRpb25faWRCFgoUX3JlcGx5X3RvX21lc3NhZ2VfaWRCEgoQX2lkZW'
+    '1wb3RlbmN5X2tleUIICgZfZXJyb3JCDAoKX2NvcnJlY3Rvcg==');
 
 @$core.Deprecated('Use sendMessageRequestDescriptor instead')
 const SendMessageRequest$json = {
@@ -275,11 +289,22 @@ const SendMessageRequest$json = {
       '10': 'idempotencyKey',
       '17': true
     },
+    {
+      '1': 'corrector',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.CorrectorState',
+      '9': 3,
+      '10': 'corrector',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_conversation_id'},
     {'1': '_reply_to_message_id'},
     {'1': '_idempotency_key'},
+    {'1': '_corrector'},
   ],
 };
 
@@ -288,8 +313,45 @@ final $typed_data.Uint8List sendMessageRequestDescriptor = $convert.base64Decode
     'ChJTZW5kTWVzc2FnZVJlcXVlc3QSLAoPY29udmVyc2F0aW9uX2lkGAEgASgJSABSDmNvbnZlcn'
     'NhdGlvbklkiAEBEiYKB2NvbnRlbnQYAiADKAsyDC5Db250ZW50UGFydFIHY29udGVudBIyChNy'
     'ZXBseV90b19tZXNzYWdlX2lkGAMgASgJSAFSEHJlcGx5VG9NZXNzYWdlSWSIAQESLAoPaWRlbX'
-    'BvdGVuY3lfa2V5GAQgASgJSAJSDmlkZW1wb3RlbmN5S2V5iAEBQhIKEF9jb252ZXJzYXRpb25f'
-    'aWRCFgoUX3JlcGx5X3RvX21lc3NhZ2VfaWRCEgoQX2lkZW1wb3RlbmN5X2tleQ==');
+    'BvdGVuY3lfa2V5GAQgASgJSAJSDmlkZW1wb3RlbmN5S2V5iAEBEjIKCWNvcnJlY3RvchgFIAEo'
+    'CzIPLkNvcnJlY3RvclN0YXRlSANSCWNvcnJlY3RvcogBAUISChBfY29udmVyc2F0aW9uX2lkQh'
+    'YKFF9yZXBseV90b19tZXNzYWdlX2lkQhIKEF9pZGVtcG90ZW5jeV9rZXlCDAoKX2NvcnJlY3Rv'
+    'cg==');
+
+@$core.Deprecated('Use correctorStateDescriptor instead')
+const CorrectorState$json = {
+  '1': 'CorrectorState',
+  '2': [
+    {'1': 'enabled', '3': 1, '4': 1, '5': 8, '10': 'enabled'},
+    {
+      '1': 'corrections',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.Correction',
+      '10': 'corrections'
+    },
+  ],
+};
+
+/// Descriptor for `CorrectorState`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List correctorStateDescriptor = $convert.base64Decode(
+    'Cg5Db3JyZWN0b3JTdGF0ZRIYCgdlbmFibGVkGAEgASgIUgdlbmFibGVkEi0KC2NvcnJlY3Rpb2'
+    '5zGAIgAygLMgsuQ29ycmVjdGlvblILY29ycmVjdGlvbnM=');
+
+@$core.Deprecated('Use correctionDescriptor instead')
+const Correction$json = {
+  '1': 'Correction',
+  '2': [
+    {'1': 'original', '3': 1, '4': 1, '5': 9, '10': 'original'},
+    {'1': 'replacement', '3': 2, '4': 1, '5': 9, '10': 'replacement'},
+  ],
+};
+
+/// Descriptor for `Correction`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List correctionDescriptor = $convert.base64Decode(
+    'CgpDb3JyZWN0aW9uEhoKCG9yaWdpbmFsGAEgASgJUghvcmlnaW5hbBIgCgtyZXBsYWNlbWVudB'
+    'gCIAEoCVILcmVwbGFjZW1lbnQ=');
 
 @$core.Deprecated('Use getMessagesRequestDescriptor instead')
 const GetMessagesRequest$json = {
@@ -410,6 +472,7 @@ const MessageStatusChanged$json = {
     },
     {'1': 'updated_at', '3': 4, '4': 1, '5': 3, '10': 'updatedAt'},
     {'1': 'error', '3': 5, '4': 1, '5': 9, '9': 1, '10': 'error', '17': true},
+    {'1': 'suggestions', '3': 6, '4': 3, '5': 9, '10': 'suggestions'},
   ],
   '8': [
     {'1': '_conversation_id'},
@@ -422,8 +485,8 @@ final $typed_data.Uint8List messageStatusChangedDescriptor = $convert.base64Deco
     'ChRNZXNzYWdlU3RhdHVzQ2hhbmdlZBIdCgptZXNzYWdlX2lkGAEgASgJUgltZXNzYWdlSWQSLA'
     'oPY29udmVyc2F0aW9uX2lkGAIgASgJSABSDmNvbnZlcnNhdGlvbklkiAEBEiYKBnN0YXR1cxgD'
     'IAEoDjIOLk1lc3NhZ2VTdGF0dXNSBnN0YXR1cxIdCgp1cGRhdGVkX2F0GAQgASgDUgl1cGRhdG'
-    'VkQXQSGQoFZXJyb3IYBSABKAlIAVIFZXJyb3KIAQFCEgoQX2NvbnZlcnNhdGlvbl9pZEIICgZf'
-    'ZXJyb3I=');
+    'VkQXQSGQoFZXJyb3IYBSABKAlIAVIFZXJyb3KIAQESIAoLc3VnZ2VzdGlvbnMYBiADKAlSC3N1'
+    'Z2dlc3Rpb25zQhIKEF9jb252ZXJzYXRpb25faWRCCAoGX2Vycm9y');
 
 @$core.Deprecated('Use messageDeltaDescriptor instead')
 const MessageDelta$json = {

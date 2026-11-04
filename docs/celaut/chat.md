@@ -62,6 +62,8 @@ Text in a table or in a list that does not use these words is a fact or an examp
 | history | The list of all messages of a conversation, in order of `sequence` |
 | delta | A `MessageDelta` event (section 5.2) |
 | reason | A short name of an error, for example `busy`. The service sends it in the trailer `chat-reason` (section 9) |
+| suggestion | A short reply that the service proposes to the user after an answer. The user can put it in the input with one tap (section 5.7) |
+| corrector | The part of a client that proposes words while the user writes, and changes a word when the user taps one (section 5.7) |
 | absent | An optional field that is not set. For a string field of this document, an empty string has the same meaning as an absent field (section 5) |
 
 ## 2. Decisions
@@ -103,6 +105,7 @@ if the text of the row is not in conflict with a newer row.
 | Attachments | 2026-10-22 | A message can have image files and audio files. The client shows the attach button only for the kinds that the service accepts. The files stay in memory only |
 | Recorded audio | 2026-10-24 | A client can record sound and send it as `audio/wav`. A service that accepts `audio` must accept `audio/wav` |
 | Secret requests | 2026-11-01 | The service can ask the user for a secret by name, for example an API key. The app shows the selector of environment variables (`env-variables.md`, section 3), with a typed value and **Skip**. The user can save a typed value in the container. The service waits until the user answers. The value goes to the service in `AnswerSecretRequest`, and never in a message, an event or the history. The app warns before a sensitive value goes out (sections 5.6 and 6.9) |
+| Suggestions and corrector (proposal, issue #88) | 2026-11-04 | To review. An assistant message can have up to 3 `suggestions`: short replies that the client shows above its keyboard. They come with the final status `COMPLETED`, once for each message, and not while the user writes: the text that the user writes does not go to the service before Send. The corrector of the client is local. Each send can have `corrector`: if the corrector was on, and which words it changed (`original` and `replacement`). The text of the message is still the text that the user sends (section 5.7) |
 | Version | 2026-10-14 | The tag has no version. The interface only grows with new optional fields (section 11) |
 
 ## 3. Declaration in the service interface
@@ -203,6 +206,8 @@ not parse it.
 | `reasoning` | string | The reasoning of the model (section 5.2). Only an assistant message has it. It is empty if the service gives none |
 | `idempotency_key` | string, optional | The `idempotency_key` of the send. Only a user message has it, and only if the send had it (section 6.1) |
 | `error` | string, optional | The reason of a failure, for the user to read: UTF-8, 1 to 1 024 bytes. A service must not send more. A client that gets more can cut the text for display, to its own limit. Only an assistant message with `status` `FAILED` has it (section 5.2) |
+| `suggestions` | string, repeated | 0 to 3 short replies that the service proposes after this message. Only an assistant message with `status` `COMPLETED` has them (section 5.7) |
+| `corrector` | `CorrectorState`, optional | The state of the corrector of the client for this user message, as the send gave it. Only a user message has it (section 5.7) |
 
 Rules:
 
@@ -494,6 +499,8 @@ system is in use, a drag or a tap on the list also takes the focus from the inpu
 keyboard of the system closes.
 
 The keyboard of the app puts a capital at the start of a sentence (not in the fields of a form).
+A key acts when the finger touches it, not when the finger goes up, and it shows no splash.
+Above the keys, three chips show suggestions (section 5.7).
 Shift is for one letter, and two quick taps lock it. Backspace repeats while it is held, and each
 key gives a small vibration. On a computer, Enter sends and Shift+Enter makes a new line; on a
 phone Enter always makes a new line.
@@ -558,6 +565,73 @@ request (section 10). The state has the name and the word "sent" or "skipped", n
 
 **Open message (decided 2026-11-01).** A request is only in a `COMPLETED` message.
 
+### 5.7 Suggestions and corrector
+
+This section is revision 6, round 10. It is a proposal for issue #88, and Josemi must review
+it. A service that sends no suggestions, and that ignores `corrector`, keeps the wire of
+revision 6.
+
+**Suggestions.** A service can propose to the user up to 3 short replies after an answer,
+for example "Yes", "No" and "Tell me more". The client shows them above its keyboard. A tap
+on one puts it in the input of the user, as a key of a keyboard block without `data-send`
+(section 5.5): the user can change the text, and sends it with Send.
+
+| Rule | Value |
+|---|---|
+| Where | `Message.suggestions` (field 15) of an assistant message, and `MessageStatusChanged.suggestions` (field 6) |
+| When | With the status `COMPLETED`, one time. A whole answer has them in its `MessageCreated`. A streamed answer has them in the `MessageStatusChanged` that sets `COMPLETED`, and the message has them in each read after that. They do not change after that. A `PENDING`, `IN_PROGRESS`, `FAILED` or `CANCELLED` message has none, and a user message has none |
+| Number | 0 to 3. A client uses the first 3 and ignores the others |
+| Text | Each one is UTF-8, 1 to 64 characters, in one line: no character from U+0000 to U+001F and no U+007F. The client ignores a suggestion that does not obey this |
+| Meaning | Plain text. A service must write a suggestion that is a full and safe user message, as a `data-say` (section 5.5) |
+| Which are active | The suggestions of the last message, if the service made it and it is `COMPLETED`. A message of the user after it, or a new message of the service, makes them inactive. This is the rule of the keyboard block (section 5.5) |
+
+The suggestions are for each message. They do not change while the user writes: the text in
+the input of the user does not go to the service before Send. This keeps the text private
+until the user sends it, and costs no traffic for each key.
+
+**Corrector.** A client can have a corrector: while the user writes a word, it proposes words
+that complete or correct it, and a tap on one changes the word. The corrector is part of the
+client. This document does not fix how it works. The send tells the service the state of the
+corrector, so that the service knows that a word of the text can be a correction, and what
+the user wrote first. For example, a model can read the original word when the correction
+seems wrong.
+
+`CorrectorState` has these fields:
+
+| Field | Type | Rule |
+|---|---|---|
+| `enabled` | bool | `true` if the corrector of the client was on while the user wrote this message |
+| `corrections` | `Correction`, repeated | The words that the corrector changed in the text of this message, in the order in which the user made the changes. 0 to 32 items |
+| `Correction.original` | string | The word that the user wrote. 1 to 64 characters |
+| `Correction.replacement` | string | The word that the corrector put in its place. 1 to 64 characters. It is in the text of the message |
+
+The rules:
+
+- The client sends `corrector` in a send that the user wrote. It does not send it for the
+  text of a key with `data-send`, which the user did not write.
+- The client puts in `corrections` only the changes that are still in the text at Send. A
+  word that the user completes (the word that the user wrote is the start of the new word)
+  is not a correction.
+- The text of the message is the text that the user sends, with the corrections in it.
+  `corrections` does not change it, and the service must not change it (section 5).
+- The service can use `corrector`, or ignore it. A send must not fail because of it. The
+  service can drop the items that are above the limits.
+- A service that keeps `corrector` gives it back in `Message.corrector` of the user message,
+  in each read. A service that does not keep it sends no `corrector`.
+- `corrector` is not a secret, but it is text that the user wrote. A service must not send it
+  to a third party for another use.
+
+In chatui: three chips show above the keyboard of the app. While the input is empty, or the
+cursor is after a space, they show the active suggestions of the service. While the user
+writes a word, they show the words of the corrector: words that start with what the user
+wrote, then close words (one or two letters are different), from the words of the
+conversation and of the suggestions. A tap changes the word, and adds a space. The corrector
+never changes a word by itself, and it has no dictionary: a word that is not in the
+conversation can be correct. With the keyboard of the system, only the suggestions of the
+service show, and `enabled` is `false`. While a form of a keyboard block is under the input,
+the chips do not show. A setting of the chat (**Word suggestions**, on by default) turns the
+corrector off.
+
 ## 6. Calls
 
 ### 6.1 Send a message
@@ -572,6 +646,7 @@ rpc SendMessage(SendMessageRequest) returns (Message);
 | `content` | Required. The content of the message, as section 5.1 says. The text must not be empty, unless the request has an attachment |
 | `reply_to_message_id` | Optional. The `message_id` of a message of the conversation. An empty string is the same as absent |
 | `idempotency_key` | Optional. 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `-` and `_`. The client uses a new key for each message. An empty string is the same as absent |
+| `corrector` | Optional. The state of the corrector of the client for this message (section 5.7). The service does not check it, and a send never fails because of it |
 
 The service must check the request in this order and stop at the first failure:
 
@@ -1182,6 +1257,8 @@ storage of the app are not part of this document ([ui-chat-first.md](ui-chat-fir
   `SendMessage`. The key rules are the same for the two ways. If a stream breaks after a
   send over `Connect`, the client follows section 6.3.
 - The client reads with `Connect` and `GetMessages`.
+- The client must not send the text of the input to the service before the user sends it. A
+  suggestion of the service puts text in the input, and does not send it (section 5.7).
 - The client must not send a message that has no text and no attachment.
 - The client must send an attachment only if `GetCapabilities` has the media type in
   `accepted_mime_types`.
@@ -1382,6 +1459,10 @@ has it empty.
 | 80 | `AnswerSecretRequest` with an unknown `request_id`; with a valid `request_id` and no answer; with both answers; with an empty `value`; with a `value` that has a NUL byte | `NOT_FOUND` for the first. `bad_request` for each of the others. The service changes nothing |
 | 81 | `AnswerSecretRequest` with a `value` of 8 193 bytes | `INVALID_ARGUMENT`, reason `too_large` |
 | 82 | `AnswerSecretRequest` while the service makes an answer | `OK` at once |
+| 87 | Send a message to a service that suggests. Wait for the answer | The answer is `COMPLETED` and has 0 to 3 `suggestions`, each of 1 to 64 characters, in one line. A streamed answer has them in the `MessageStatusChanged` of `COMPLETED`, and not before |
+| 88 | Read the answer of test 87 again, with `GetMessages` and with a new `Connect` | The same `suggestions`, in the same order |
+| 89 | Send with `corrector` (`enabled` `true`, one `Correction` `teh` to `the`) and the text `the cat` | `OK`. The text of the user message is `the cat`. If the service keeps `corrector`, the user message has it as it was sent |
+| 90 | Send with `corrector` that has 40 corrections, and a `replacement` that is not in the text | `OK`. The send does not fail because of `corrector` |
 
 Tests 20, 21, 23 and 38 apply to a service that streams or takes time to answer. A service
 that does not do these things can skip them. For a service that sends the whole answer, test
@@ -1394,6 +1475,8 @@ a test mode. A service with a large history limit does not fill the history in a
 tests 48, 48a, 49, 49a, 50, 57, 66, 71 and 73.
 
 Tests 75 to 82 apply to a service that sends secret requests. A service that does not send them can skip them.
+
+Tests 87 and 88 apply to a service that sends suggestions. Each service runs tests 89 and 90.
 
 ## 12. Changes to the interface
 
@@ -1619,3 +1702,4 @@ more than 30 seconds. The service must follow these rules:
 | 6 (round 6) | 2026-10-29 | New section 5.5 and a line in the decisions table: the keyboard block (```` ```keyboard ````). It is a client feature, as the HTML block, and the wire does not change. Keys can send at once (`data-send`), and the block can have fields (`input` with `data-name`) that a `{name}` in a `data-say` uses |
 | 6 (round 7) | 2026-10-29 | Section 5.5: the fields of a keyboard block can be of the types `date`, `time`, `range`, `checkbox` and `select` (one option, or many with `multiple`), with new attributes (`type`, `min`, `max`, `step`, `value`, `checked`, `data-off`, `multiple`, `selected`, and the `option` element). New limits: 32 options in a `select`, 80 characters in the label of an option. Where chatui shows the form, the keyboard of the app, the setting of the keyboard of the system, and how to open a closed form. The options of a `select` show as chips side by side, in a wheel. The wire does not change |
 | 6 (round 8) | 2026-11-01 | Draft: secret requests. New part `secret_request` (sections 5.1 and 5.6), new call `AnswerSecretRequest` (section 6.9), new reasons in section 9, new rules for the client (section 10), and tests 75 to 82. Decided on the same day: typed values and saving in the container, a wait with no time limit, requests only in `COMPLETED` messages, and the warnings for sensitive values. A service that does not send secret requests keeps the wire of revision 6. `chat.proto` has the new messages, and chatui implements them from version 0.1.30 |
+| 6 (round 10) | 2026-11-04 | Proposal (issue #88): suggestions and the state of the corrector. New fields `Message.suggestions` (15), `MessageStatusChanged.suggestions` (6), `SendMessageRequest.corrector` (5) and `Message.corrector` (16), and the messages `CorrectorState` and `Correction` (section 5.7). The suggestions are for each message, not live. New tests 87 to 90. A service that does not know the new fields keeps the wire of revision 6 |
