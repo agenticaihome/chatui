@@ -286,6 +286,7 @@ void main() {
       startChargeMu: '1000',
       name: 'Echo',
       alias: '',
+      title: '',
       refundMu: '',
     );
     tester.view.physicalSize = const Size(390, 2400);

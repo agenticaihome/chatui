@@ -437,6 +437,55 @@ class ChatClient extends ChangeNotifier {
 
   List<ChatMessage> get messages => List.unmodifiable(_messages);
 
+  String? _title;
+  bool _titleKnown = false;
+
+  /// The title that the service gives the conversation (`docs/celaut/chat.md`, section
+  /// 6.10), cleaned for display ([cleanTitle]). Null if it has none, or before
+  /// [titleKnown].
+  String? get title => _title;
+
+  /// The client has read the title of the service: in `SubscriptionReady`, in an event, or
+  /// with `GetConversation`. Before that, [title] says nothing.
+  bool get titleKnown => _titleKnown;
+
+  /// The most characters of a title that the app keeps and shows.
+  static const titleMaxChars = 80;
+
+  /// [raw] as a title to show (section 6.10): plain text in one line, with no control
+  /// character and no character that changes the direction of the text, the white space
+  /// made one space, and at most [titleMaxChars] characters. Null if nothing is left.
+  static String? cleanTitle(String raw) {
+    final text = raw
+        .replaceAll(RegExp(r'[\x00-\x1f\x7f\u202a-\u202e\u2066-\u2069]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (text.isEmpty) return null;
+    final chars = text.characters;
+    return chars.length <= titleMaxChars ? text : chars.take(titleMaxChars).toString().trimRight();
+  }
+
+  void _setTitle(String? raw) {
+    final next = raw == null ? null : cleanTitle(raw);
+    if (_titleKnown && next == _title) return;
+    _titleKnown = true;
+    _title = next;
+    _notify();
+  }
+
+  /// Read the title with `GetConversation`, for a service that has no `Connect` stream. A
+  /// failure keeps the title that the client has: the title is not needed for the chat.
+  Future<void> _readTitle() async {
+    try {
+      final c = await _guard(
+        () => _chat.getConversation(pb.GetConversationRequest(), options: _unaryOptions),
+      );
+      _setTitle(c.hasTitle() ? c.title : null);
+    } on ChatException {
+      // No title this time.
+    }
+  }
+
   /// The kinds of attachment (`image`, `audio`) that the service said it accepts in
   /// `GetCapabilities`. Empty: the service accepts text only, or the client did not read
   /// the capabilities yet.
@@ -473,6 +522,8 @@ class ChatClient extends ChangeNotifier {
   Future<void> _sync() async {
     await _ensureCaps();
     await _catchUp();
+    // With a stream, the title comes in `SubscriptionReady` and in its events.
+    if (_streamUnsupported) await _readTitle();
     _startStream();
   }
 
@@ -1063,6 +1114,12 @@ class ChatClient extends ChangeNotifier {
       case pb.ServerEvent_Event.subscriptionReady:
         _streamReady = true;
         _readyInRun = true;
+        final ready = e.subscriptionReady;
+        _setTitle(ready.hasTitle() ? ready.title : null);
+      case pb.ServerEvent_Event.conversationTitleChanged:
+        final t = e.conversationTitleChanged;
+        if (_foreign(t.conversationId)) return;
+        _setTitle(t.hasTitle() ? t.title : null);
       case pb.ServerEvent_Event.error:
         final err = e.error;
         // An empty `event_id` is no `event_id`: the error is not for an event that the

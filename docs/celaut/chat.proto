@@ -92,6 +92,10 @@ message Conversation {
   optional string forked_from_message_id = 3;
 
   // Nombre opcional para identificar el hilo.
+  //
+  // Revisión 6 (ronda 9, propuesta #89): en la conversación principal es
+  // el título que el servicio le da (chat.md, 6.10). UTF-8, de 1 a 256
+  // bytes, en una línea. Ausente: no tiene título.
   optional string title = 4;
 
   // Fecha de creación, en milisegundos Unix.
@@ -366,6 +370,26 @@ message MessageProgress {
 message SubscriptionReady {
   // Última secuencia disponible al confirmar la suscripción.
   uint64 latest_sequence = 1;
+
+  // Revisión 6 (ronda 9, propuesta #89).
+  // Título de la conversación al final de la reproducción (chat.md, 6.10).
+  // Ausente: la conversación no tiene título.
+  optional string title = 2;
+}
+
+// Revisión 6 (ronda 9, propuesta #89).
+// El servicio cambia el título de la conversación (chat.md, 6.10). Solo
+// se envía después de SubscriptionReady. No cambia latest.
+message ConversationTitleChanged {
+  // Ausente para la conversación principal.
+  optional string conversation_id = 1;
+
+  // Título nuevo: UTF-8, de 1 a 256 bytes, en una línea. Ausente: el
+  // servicio quita su título.
+  optional string title = 2;
+
+  // Fecha del cambio, en milisegundos Unix.
+  int64 updated_at = 3;
 }
 
 message ProtocolError {
@@ -631,6 +655,8 @@ message ServerEvent {
     MessageDelta message_delta = 7;
     // Revisión 6.
     MessagePinnedChanged message_pinned_changed = 8;
+    // Revisión 6 (ronda 9, propuesta #89).
+    ConversationTitleChanged conversation_title_changed = 9;
   }
 }
 

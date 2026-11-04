@@ -64,11 +64,7 @@ class WalletPageScreen extends StatelessWidget {
     final scaffold = Scaffold(
       backgroundColor: immersive ? Colors.transparent : null,
       appBar: AppBar(
-        backgroundColor: immersive
-            ? WidgetStateColor.resolveWith(
-                (states) => states.contains(WidgetState.scrolledUnder) ? page.withValues(alpha: 0.94) : page.withValues(alpha: 0),
-              )
-            : null,
+        backgroundColor: immersive ? sceneBarColor(page) : null,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         toolbarHeight: toolbar,

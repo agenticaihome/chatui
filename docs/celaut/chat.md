@@ -62,6 +62,7 @@ Text in a table or in a list that does not use these words is a fact or an examp
 | history | The list of all messages of a conversation, in order of `sequence` |
 | delta | A `MessageDelta` event (section 5.2) |
 | reason | A short name of an error, for example `busy`. The service sends it in the trailer `chat-reason` (section 9) |
+| title | A short text that the service gives the conversation, to tell what it is about (section 6.10) |
 | suggestion | A short reply that the service proposes to the user after an answer. The user can put it in the input with one tap (section 5.7) |
 | corrector | The part of a client that proposes words while the user writes, and changes a word when the user taps one (section 5.7) |
 | absent | An optional field that is not set. For a string field of this document, an empty string has the same meaning as an absent field (section 5) |
@@ -105,6 +106,7 @@ if the text of the row is not in conflict with a newer row.
 | Attachments | 2026-10-22 | A message can have image files and audio files. The client shows the attach button only for the kinds that the service accepts. The files stay in memory only |
 | Recorded audio | 2026-10-24 | A client can record sound and send it as `audio/wav`. A service that accepts `audio` must accept `audio/wav` |
 | Secret requests | 2026-11-01 | The service can ask the user for a secret by name, for example an API key. The app shows the selector of environment variables (`env-variables.md`, section 3), with a typed value and **Skip**. The user can save a typed value in the container. The service waits until the user answers. The value goes to the service in `AnswerSecretRequest`, and never in a message, an event or the history. The app warns before a sensitive value goes out (sections 5.6 and 6.9) |
+| Title (proposal, issue #89) | 2026-11-04 | To review. The service can give the main conversation a title. The title is in `GetConversation`, in `SubscriptionReady` and in the new event `ConversationTitleChanged`. A name that the user gives the conversation in the app is stronger: the title of the service does not replace it, and the app does not send the name of the user to the service. The app keeps the last title, so the list of conversations shows it after a restart (section 6.10) |
 | Suggestions and corrector (proposal, issue #88) | 2026-11-04 | To review. An assistant message can have up to 3 `suggestions`: short replies that the client shows above its keyboard. They come with the final status `COMPLETED`, once for each message, and not while the user writes: the text that the user writes does not go to the service before Send. The corrector of the client is local. Each send can have `corrector`: if the corrector was on, and which words it changed (`original` and `replacement`). The text of the message is still the text that the user sends (section 5.7) |
 | Version | 2026-10-14 | The tag has no version. The interface only grows with new optional fields (section 11) |
 
@@ -919,7 +921,8 @@ the events of one conversation, the main conversation.
    time. This is the replay. If `after_sequence` is more than `latest`, the service ends the
    call with `INVALID_ARGUMENT`, reason `bad_request`.
 3. The service sends `SubscriptionReady`. `latest_sequence` is the `latest` at the end of the
-   replay. The events of the messages that the service made during the replay come before or
+   replay. `title` is the title of the conversation at that time, or absent if it has none
+   (section 6.10). The events of the messages that the service made during the replay come before or
    after `SubscriptionReady` in order of `sequence`, and none is lost or sent two times.
 4. The service sends the live events (see below).
 
@@ -959,6 +962,7 @@ Live events. For each change, the service sends the event to each open stream:
 | A new `status` | `MessageStatusChanged` |
 | A new `pinned` | `MessagePinnedChanged` |
 | Progress of a long action (optional) | `MessageProgress` |
+| A new title of the conversation (section 6.10) | `ConversationTitleChanged` |
 
 - The events of one message come in order. The `MessageCreated` of a message is before any
   other event of that message.
@@ -1091,7 +1095,7 @@ conversation. The messages of `chat.proto` have a `conversation_id` for other co
 | Item | Service | Client |
 |---|---|---|
 | Main conversation (`conversation_id` absent or empty) | must implement | must use |
-| `GetConversation` of the main conversation | must implement. It replies with `conversation_id` empty, `created_at` as the start of the instance, `archived` `false`, and no `parent_conversation_id` | can ignore |
+| `GetConversation` of the main conversation | must implement. It replies with `conversation_id` empty, `created_at` as the start of the instance, `archived` `false`, no `parent_conversation_id`, and `title` (section 6.10) | can ignore. A client that has no `Connect` stream can read the title here |
 | A `conversation_id` that is not empty, with `supports_fork` `false` | must end the call with `NOT_FOUND` | must not send it |
 | `ForkConversation`, with `supports_fork` `false` | must end the call with `UNIMPLEMENTED` | must not call it |
 | `ForkConversation` and branches, with `supports_fork` `true` | The service gives each branch its own history, its own `sequence` (starts at 1) and its own `Connect` stream. A branch has the messages of its parent up to `forked_from_message_id`, as copies with new `message_id` | can ignore |
@@ -1133,6 +1137,64 @@ work that waits for it.
 The service must answer this call at any time, also while it makes an answer. It must reply in
 30 seconds or less. It must not change `latest`. It must not reply with the value. The call is
 not an event of `Connect`, and it has no `event_id`.
+
+### 6.10 Title of the conversation
+
+This section is revision 6, round 9. It is a proposal for issue #89, and Josemi must review
+it. A service that never gives a title keeps the wire of revision 6.
+
+The service can give the main conversation a title: a short text that tells what the
+conversation is about, for example "Trip to Lisbon in May". The service chooses when it gives
+the title and when it changes it. For example, a service can give a title after its first
+answer. A client shows the title in place of the name of the service, in the list of
+conversations and at the top of the conversation.
+
+A title has these rules:
+
+| Rule | Value |
+|---|---|
+| Text | UTF-8, 1 to 256 bytes. One line: it has no character from U+0000 to U+001F and no U+007F. An empty string is the same as absent: the conversation has no title |
+| Meaning | Plain text. The client does not read Markdown or HTML in it |
+| Changes | At most one change for each answer. The service must not change the title in a loop, or to show progress |
+| No title | The service removes its title with a `ConversationTitleChanged` that has no `title` |
+
+Where the title is:
+
+| Place | Value |
+|---|---|
+| `Conversation.title` of `GetConversation` | The title at the time of the call, or absent |
+| `SubscriptionReady.title` (field 2) | The title at the end of the replay (section 6.5, step 3), or absent |
+| `ConversationTitleChanged` (event 9 of `ServerEvent`) | The new `title`, or absent if the service removed it, and `updated_at`. The service sends it to each open stream for each change after `SubscriptionReady`. It does not send it for a value that does not change the title |
+
+The rules for the service:
+
+- The service must give the same title in the three places at the same time.
+- The service must send `ConversationTitleChanged` only after `SubscriptionReady` on that
+  stream. A change during the replay is in `SubscriptionReady.title`.
+- `updated_at` is the time of the change, in milliseconds since 1970-01-01 UTC. It must not
+  become smaller.
+- A title is not a message. It does not change `latest`, and it is not in the history.
+- The title must not have a secret value (section 5.6), or private data that the user did
+  not write in the conversation.
+
+The rules for the client:
+
+- The client reads the title in `SubscriptionReady`, and then in each
+  `ConversationTitleChanged` of the stream. A client that has no stream can read it with
+  `GetConversation`.
+- The client must show the title as plain text. It removes the characters that control the
+  direction of text (U+202A to U+202E, U+2066 to U+2069), because they can make a title look
+  like another one. It can cut a long title for display.
+- A name that the user gives the conversation in the client is stronger than the title. The
+  client shows the name of the user, and keeps the title for the time when the user removes
+  the name. The client does not send the name of the user to the service.
+- A client that does not know the event ignores it (section 4): a `ServerEvent` that has no
+  event that the client knows is not an error.
+
+In chatui: the title shows in the list of conversations and at the top of the conversation,
+if the user did not rename the conversation. The app keeps the last title in its database, so
+the list shows it after a restart and after the instance stops. The info page of the instance
+still shows the name of the service.
 
 ## 7. Limits
 
@@ -1257,6 +1319,8 @@ storage of the app are not part of this document ([ui-chat-first.md](ui-chat-fir
   `SendMessage`. The key rules are the same for the two ways. If a stream breaks after a
   send over `Connect`, the client follows section 6.3.
 - The client reads with `Connect` and `GetMessages`.
+- The client must not let the title of the service replace a name that the user gave the
+  conversation (section 6.10).
 - The client must not send the text of the input to the service before the user sends it. A
   suggestion of the service puts text in the input, and does not send it (section 5.7).
 - The client must not send a message that has no text and no attachment.
@@ -1459,6 +1523,10 @@ has it empty.
 | 80 | `AnswerSecretRequest` with an unknown `request_id`; with a valid `request_id` and no answer; with both answers; with an empty `value`; with a `value` that has a NUL byte | `NOT_FOUND` for the first. `bad_request` for each of the others. The service changes nothing |
 | 81 | `AnswerSecretRequest` with a `value` of 8 193 bytes | `INVALID_ARGUMENT`, reason `too_large` |
 | 82 | `AnswerSecretRequest` while the service makes an answer | `OK` at once |
+| 83 | `GetConversation` on a new instance, then subscribe | No `title`, or the same `title` in the two. `SubscriptionReady` has `title` only if the conversation has one |
+| 84 | Stream. Make the service give a title (for example, send a message to a service that gives a title after its first answer) | `ConversationTitleChanged` with `title` of 1 to 256 bytes, with no control character, after `SubscriptionReady`. `GetConversation` gives the same `title` |
+| 85 | Subscribe again after test 84 | `SubscriptionReady` has the `title` of test 84. No `ConversationTitleChanged` before `SubscriptionReady` |
+| 86 | Two streams. The title changes | Each stream gets one `ConversationTitleChanged`, with the same `title` and `updated_at`. `latest` does not change |
 | 87 | Send a message to a service that suggests. Wait for the answer | The answer is `COMPLETED` and has 0 to 3 `suggestions`, each of 1 to 64 characters, in one line. A streamed answer has them in the `MessageStatusChanged` of `COMPLETED`, and not before |
 | 88 | Read the answer of test 87 again, with `GetMessages` and with a new `Connect` | The same `suggestions`, in the same order |
 | 89 | Send with `corrector` (`enabled` `true`, one `Correction` `teh` to `the`) and the text `the cat` | `OK`. The text of the user message is `the cat`. If the service keeps `corrector`, the user message has it as it was sent |
@@ -1476,6 +1544,7 @@ tests 48, 48a, 49, 49a, 50, 57, 66, 71 and 73.
 
 Tests 75 to 82 apply to a service that sends secret requests. A service that does not send them can skip them.
 
+Tests 84 to 86 apply to a service that gives a title. A service that does not give a title runs test 83 only.
 Tests 87 and 88 apply to a service that sends suggestions. Each service runs tests 89 and 90.
 
 ## 12. Changes to the interface
@@ -1702,4 +1771,5 @@ more than 30 seconds. The service must follow these rules:
 | 6 (round 6) | 2026-10-29 | New section 5.5 and a line in the decisions table: the keyboard block (```` ```keyboard ````). It is a client feature, as the HTML block, and the wire does not change. Keys can send at once (`data-send`), and the block can have fields (`input` with `data-name`) that a `{name}` in a `data-say` uses |
 | 6 (round 7) | 2026-10-29 | Section 5.5: the fields of a keyboard block can be of the types `date`, `time`, `range`, `checkbox` and `select` (one option, or many with `multiple`), with new attributes (`type`, `min`, `max`, `step`, `value`, `checked`, `data-off`, `multiple`, `selected`, and the `option` element). New limits: 32 options in a `select`, 80 characters in the label of an option. Where chatui shows the form, the keyboard of the app, the setting of the keyboard of the system, and how to open a closed form. The options of a `select` show as chips side by side, in a wheel. The wire does not change |
 | 6 (round 8) | 2026-11-01 | Draft: secret requests. New part `secret_request` (sections 5.1 and 5.6), new call `AnswerSecretRequest` (section 6.9), new reasons in section 9, new rules for the client (section 10), and tests 75 to 82. Decided on the same day: typed values and saving in the container, a wait with no time limit, requests only in `COMPLETED` messages, and the warnings for sensitive values. A service that does not send secret requests keeps the wire of revision 6. `chat.proto` has the new messages, and chatui implements them from version 0.1.30 |
+| 6 (round 9) | 2026-11-04 | Proposal (issue #89): the title of the conversation. New field `title` of `SubscriptionReady` (2), new event `ConversationTitleChanged` (9 of `ServerEvent`), and `Conversation.title` of `GetConversation` for the main conversation (section 6.10). The name that the user gives in the app is stronger than the title. New tests 83 to 86. A service that does not give a title keeps the wire of revision 6 |
 | 6 (round 10) | 2026-11-04 | Proposal (issue #88): suggestions and the state of the corrector. New fields `Message.suggestions` (15), `MessageStatusChanged.suggestions` (6), `SendMessageRequest.corrector` (5) and `Message.corrector` (16), and the messages `CorrectorState` and `Correction` (section 5.7). The suggestions are for each message, not live. New tests 87 to 90. A service that does not know the new fields keeps the wire of revision 6 |

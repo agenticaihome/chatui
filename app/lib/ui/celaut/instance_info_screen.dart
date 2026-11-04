@@ -12,6 +12,7 @@ import '../../celaut/payers.dart';
 import '../../format.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
+import '../home/home_scene.dart';
 import '../home/home_style.dart';
 import '../layout.dart';
 import 'instance_actions.dart';
@@ -256,7 +257,8 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
       else
         (l.chatsInfoCost, muOrUnknown(widget.costMu), const Key('info-cost')),
     ];
-    return Scaffold(
+    final scaffold = Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(l.chatsInfoTitle),
         actions: [
@@ -361,6 +363,7 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
         ),
       ),
     );
+    return SceneBackdrop(child: scaffold);
   }
 }
 

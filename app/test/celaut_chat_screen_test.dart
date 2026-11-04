@@ -51,6 +51,16 @@ class _FakeChat extends ChatClient {
   /// An event of the stream changed [messages].
   void push() => notifyListeners();
 
+  /// The title of the service (section 6.10), once [titleKnown].
+  String? fakeTitle;
+  bool fakeTitleKnown = false;
+
+  @override
+  String? get title => fakeTitle;
+
+  @override
+  bool get titleKnown => fakeTitleKnown;
+
   /// Holds [syncWhenStarted] until it completes.
   Completer<void>? starting;
 
@@ -278,6 +288,7 @@ final _echo = InstanceListView(
   refundMu: '',
   name: 'Echo chat',
   alias: '',
+  title: '',
 );
 
 const _streaming = ChatMessage(
@@ -333,6 +344,7 @@ void main() {
   late _FakeKeepAlive keepAlive;
   late ConversationNotes notes;
   late Future<List<OutgoingAttachment>> Function(Set<String>) pick;
+  late List<(String, String)> savedTitles;
   Set<String>? pickedKinds;
 
   Future<void> open(
@@ -344,8 +356,10 @@ void main() {
     AudioRecorderService? recorder,
     ChatNotifier? notifier,
     ChatDoneWatcher? watcher,
+    InstanceListView? instance,
   }) async {
     stops = [];
+    savedTitles = [];
     closed = false;
     keepAlive = _FakeKeepAlive();
     notes = ConversationNotes();
@@ -362,7 +376,8 @@ void main() {
                 await Navigator.of(context).push<void>(
                   MaterialPageRoute(
                     builder: (_) => ChatScreen(
-                      instance: _echo,
+                      instance: instance ?? _echo,
+                      saveTitle: (id, title) => savedTitles.add((id, title)),
                       port: 1,
                       chat: chat,
                       wallets: _Wallets(full: fullWallet),
@@ -2420,6 +2435,64 @@ void main() {
       await tester.pumpAndSettle();
       expect(chat.sent.single, 'Yes');
       expect(chat.correctors.single, isNull);
+    });
+  });
+
+  group('title of the service (chat.md, section 6.10)', () {
+    String header(WidgetTester tester) => tester
+        .widgetList<Text>(find.descendant(of: find.byKey(const Key('chat-title')), matching: find.byType(Text)))
+        .first
+        .data!;
+
+    testWidgets('the title shows at the top, and goes to the database and the list', (tester) async {
+      chat = _FakeChat();
+      await open(tester);
+      expect(header(tester), 'Echo chat');
+      final revision = notes.titleRevision;
+
+      chat
+        ..fakeTitle = 'Trip to Lisbon'
+        ..fakeTitleKnown = true
+        ..push();
+      await tester.pump();
+      expect(header(tester), 'Trip to Lisbon');
+      expect(savedTitles, [('i1', 'Trip to Lisbon')]);
+      expect(notes.titleRevision, revision + 1);
+
+      // The same title again: nothing to keep.
+      chat.push();
+      await tester.pump();
+      expect(savedTitles, hasLength(1));
+
+      // The service removes its title: the name of the start shows again.
+      chat
+        ..fakeTitle = null
+        ..push();
+      await tester.pump();
+      expect(header(tester), 'Echo chat');
+      expect(savedTitles.last, ('i1', ''));
+    });
+
+    testWidgets('a title known at the first read shows at once', (tester) async {
+      chat = _FakeChat()
+        ..fakeTitle = 'Notes'
+        ..fakeTitleKnown = true;
+      await open(tester);
+      expect(header(tester), 'Notes');
+      expect(savedTitles, [('i1', 'Notes')]);
+    });
+
+    testWidgets('the name of the user is stronger than the title of the service', (tester) async {
+      chat = _FakeChat();
+      await open(tester, instance: withAlias(_echo, 'Mine'));
+      chat
+        ..fakeTitle = 'Trip to Lisbon'
+        ..fakeTitleKnown = true
+        ..push();
+      await tester.pump();
+      expect(header(tester), 'Mine');
+      // The app keeps the title for the time when the user removes the name.
+      expect(savedTitles, [('i1', 'Trip to Lisbon')]);
     });
   });
 }

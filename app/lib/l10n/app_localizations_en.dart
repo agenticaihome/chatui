@@ -5942,7 +5942,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunTitle => 'Run a service';
 
   @override
-  String get celautRunSearchHint => 'Search skills';
+  String get celautRunSearchHint => 'Search skills and tags';
 
   @override
   String get celautRunLoading => 'Loading skills…';
@@ -6637,10 +6637,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunFewerOptions => 'Show fewer options';
 
   @override
-  String get celautRunModeSkills => 'Skills';
+  String get celautRunCategoryAll => 'All';
 
   @override
-  String get celautRunModeFiles => 'On this phone';
+  String get celautRunOnPhone => 'On this phone';
 
   @override
   String get celautEnvSensitive => 'Sensitive';

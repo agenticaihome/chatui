@@ -202,6 +202,11 @@ pub struct InstanceRecord {
     /// node never gets it. The list shows it before [`InstanceRecord::name`].
     #[serde(default)]
     pub alias: Option<String>,
+    /// The title that the service gave the conversation (`docs/celaut/chat.md`, section
+    /// 6.10), the last one that the app read. The list shows it after
+    /// [`InstanceRecord::alias`] and before [`InstanceRecord::name`]. An old record has none.
+    #[serde(default)]
+    pub title: Option<String>,
     /// What the app moved from the credit of the client to the instance after the start,
     /// in MU (the automatic top-up, `ModifyDeposit`). The cost so far counts it.
     #[serde(default)]
@@ -844,6 +849,7 @@ mod tests {
                 start_charge_mu: Some("100".into()),
                 name: Some("Echo".into()),
                 alias: Some("My echo".into()),
+                title: Some("Trip to Lisbon".into()),
                 topped_up_mu: Some("50".into()),
                 stopped_at: None,
                 refund_mu: None,

@@ -116,6 +116,10 @@ class Conversation extends $pb.GeneratedMessage {
   void clearForkedFromMessageId() => $_clearField(3);
 
   /// Nombre opcional para identificar el hilo.
+  ///
+  /// Revisión 6 (ronda 9, propuesta #89): en la conversación principal es
+  /// el título que el servicio le da (chat.md, 6.10). UTF-8, de 1 a 256
+  /// bytes, en una línea. Ausente: no tiene título.
   @$pb.TagNumber(4)
   $core.String get title => $_getSZ(3);
   @$pb.TagNumber(4)
@@ -1545,9 +1549,11 @@ class MessageProgress extends $pb.GeneratedMessage {
 class SubscriptionReady extends $pb.GeneratedMessage {
   factory SubscriptionReady({
     $fixnum.Int64? latestSequence,
+    $core.String? title,
   }) {
     final result = SubscriptionReady._();
     if (latestSequence != null) result.latestSequence = latestSequence;
+    if (title != null) result.title = title;
     return result;
   }
 
@@ -1566,6 +1572,7 @@ class SubscriptionReady extends $pb.GeneratedMessage {
     ..a<$fixnum.Int64>(
         1, _omitFieldNames ? '' : 'latestSequence', $pb.PbFieldType.OU6,
         defaultOrMaker: $fixnum.Int64.ZERO)
+    ..aOS(2, _omitFieldNames ? '' : 'title')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1599,6 +1606,108 @@ class SubscriptionReady extends $pb.GeneratedMessage {
   $core.bool hasLatestSequence() => $_has(0);
   @$pb.TagNumber(1)
   void clearLatestSequence() => $_clearField(1);
+
+  /// Revisión 6 (ronda 9, propuesta #89).
+  /// Título de la conversación al final de la reproducción (chat.md, 6.10).
+  /// Ausente: la conversación no tiene título.
+  @$pb.TagNumber(2)
+  $core.String get title => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set title($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTitle() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTitle() => $_clearField(2);
+}
+
+/// Revisión 6 (ronda 9, propuesta #89).
+/// El servicio cambia el título de la conversación (chat.md, 6.10). Solo
+/// se envía después de SubscriptionReady. No cambia latest.
+class ConversationTitleChanged extends $pb.GeneratedMessage {
+  factory ConversationTitleChanged({
+    $core.String? conversationId,
+    $core.String? title,
+    $fixnum.Int64? updatedAt,
+  }) {
+    final result = ConversationTitleChanged._();
+    if (conversationId != null) result.conversationId = conversationId;
+    if (title != null) result.title = title;
+    if (updatedAt != null) result.updatedAt = updatedAt;
+    return result;
+  }
+
+  ConversationTitleChanged._();
+
+  factory ConversationTitleChanged.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ConversationTitleChanged()..mergeFromBuffer(data, registry);
+  factory ConversationTitleChanged.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      ConversationTitleChanged()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ConversationTitleChanged',
+      createEmptyInstance: ConversationTitleChanged.$_createMessage)
+    ..aOS(1, _omitFieldNames ? '' : 'conversationId')
+    ..aOS(2, _omitFieldNames ? '' : 'title')
+    ..aInt64(3, _omitFieldNames ? '' : 'updatedAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ConversationTitleChanged clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ConversationTitleChanged copyWith(
+          void Function(ConversationTitleChanged) updates) =>
+      super.copyWith((message) => updates(message as ConversationTitleChanged))
+          as ConversationTitleChanged;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated(
+      'Use ConversationTitleChanged() / ConversationTitleChanged.new instead')
+  static ConversationTitleChanged create() => ConversationTitleChanged._();
+  static $pb.GeneratedMessage $_createMessage() => ConversationTitleChanged._();
+  @$core.override
+  ConversationTitleChanged createEmptyInstance() =>
+      ConversationTitleChanged._();
+  @$core.pragma('dart2js:noInline')
+  static ConversationTitleChanged getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ConversationTitleChanged>(
+          ConversationTitleChanged.$_createMessage);
+  static ConversationTitleChanged? _defaultInstance;
+
+  /// Ausente para la conversación principal.
+  @$pb.TagNumber(1)
+  $core.String get conversationId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set conversationId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConversationId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConversationId() => $_clearField(1);
+
+  /// Título nuevo: UTF-8, de 1 a 256 bytes, en una línea. Ausente: el
+  /// servicio quita su título.
+  @$pb.TagNumber(2)
+  $core.String get title => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set title($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTitle() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTitle() => $_clearField(2);
+
+  /// Fecha del cambio, en milisegundos Unix.
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get updatedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set updatedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasUpdatedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUpdatedAt() => $_clearField(3);
 }
 
 class ProtocolError extends $pb.GeneratedMessage {
@@ -3312,6 +3421,7 @@ enum ServerEvent_Event {
   messageStatusChanged,
   messageDelta,
   messagePinnedChanged,
+  conversationTitleChanged,
   notSet
 }
 
@@ -3325,6 +3435,7 @@ class ServerEvent extends $pb.GeneratedMessage {
     MessageStatusChanged? messageStatusChanged,
     MessageDelta? messageDelta,
     MessagePinnedChanged? messagePinnedChanged,
+    ConversationTitleChanged? conversationTitleChanged,
   }) {
     final result = ServerEvent._();
     if (messageCreated != null) result.messageCreated = messageCreated;
@@ -3337,6 +3448,8 @@ class ServerEvent extends $pb.GeneratedMessage {
     if (messageDelta != null) result.messageDelta = messageDelta;
     if (messagePinnedChanged != null)
       result.messagePinnedChanged = messagePinnedChanged;
+    if (conversationTitleChanged != null)
+      result.conversationTitleChanged = conversationTitleChanged;
     return result;
   }
 
@@ -3359,12 +3472,13 @@ class ServerEvent extends $pb.GeneratedMessage {
     6: ServerEvent_Event.messageStatusChanged,
     7: ServerEvent_Event.messageDelta,
     8: ServerEvent_Event.messagePinnedChanged,
+    9: ServerEvent_Event.conversationTitleChanged,
     0: ServerEvent_Event.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'ServerEvent',
       createEmptyInstance: ServerEvent.$_createMessage)
-    ..oo(0, [1, 2, 3, 4, 5, 6, 7, 8])
+    ..oo(0, [1, 2, 3, 4, 5, 6, 7, 8, 9])
     ..aOM<MessageCreated>(1, _omitFieldNames ? '' : 'messageCreated',
         subBuilder: MessageCreated.$_createMessage)
     ..aOM<MessageDeleted>(2, _omitFieldNames ? '' : 'messageDeleted',
@@ -3383,6 +3497,9 @@ class ServerEvent extends $pb.GeneratedMessage {
     ..aOM<MessagePinnedChanged>(
         8, _omitFieldNames ? '' : 'messagePinnedChanged',
         subBuilder: MessagePinnedChanged.$_createMessage)
+    ..aOM<ConversationTitleChanged>(
+        9, _omitFieldNames ? '' : 'conversationTitleChanged',
+        subBuilder: ConversationTitleChanged.$_createMessage)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3415,6 +3532,7 @@ class ServerEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   @$pb.TagNumber(7)
   @$pb.TagNumber(8)
+  @$pb.TagNumber(9)
   ServerEvent_Event whichEvent() => _ServerEvent_EventByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
@@ -3424,6 +3542,7 @@ class ServerEvent extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   @$pb.TagNumber(7)
   @$pb.TagNumber(8)
+  @$pb.TagNumber(9)
   void clearEvent() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
@@ -3515,6 +3634,19 @@ class ServerEvent extends $pb.GeneratedMessage {
   void clearMessagePinnedChanged() => $_clearField(8);
   @$pb.TagNumber(8)
   MessagePinnedChanged ensureMessagePinnedChanged() => $_ensure(7);
+
+  /// Revisión 6 (ronda 9, propuesta #89).
+  @$pb.TagNumber(9)
+  ConversationTitleChanged get conversationTitleChanged => $_getN(8);
+  @$pb.TagNumber(9)
+  set conversationTitleChanged(ConversationTitleChanged value) =>
+      $_setField(9, value);
+  @$pb.TagNumber(9)
+  $core.bool hasConversationTitleChanged() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearConversationTitleChanged() => $_clearField(9);
+  @$pb.TagNumber(9)
+  ConversationTitleChanged ensureConversationTitleChanged() => $_ensure(8);
 }
 
 class SubscribeRequest extends $pb.GeneratedMessage {

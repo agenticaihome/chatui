@@ -369,7 +369,7 @@ void main() {
     await pump(
       tester,
       loadSkills: () async => [
-        const SkillView(boxId: 'skill-1', name: 'A skill', prose: 'Does a thing.', tags: []),
+        const SkillView(boxId: 'skill-1', name: 'A skill', prose: 'Does a thing.', tags: [], domain: ''),
       ],
       loadSkillServices: (id) async => [
         SkillServiceView(serviceId: picked, score: 0.9, direct: true),
@@ -442,6 +442,7 @@ void main() {
         refundMu: '',
         name: '',
         alias: '',
+        title: '',
       ),
     ];
     await pump(tester, fullWallet: false);
@@ -481,6 +482,7 @@ void main() {
         refundMu: '',
         name: '',
         alias: '',
+        title: '',
       ),
     ];
     // The full wallet is locked and the user does not give the PIN: nothing stops.
@@ -515,6 +517,7 @@ void main() {
         refundMu: '',
         name: '',
         alias: '',
+        title: '',
       ),
     ];
     final wallets = await pump(tester, open: false);
@@ -541,6 +544,7 @@ void main() {
         refundMu: '',
         name: '',
         alias: '',
+        title: '',
       ),
     ];
     await pump(tester);

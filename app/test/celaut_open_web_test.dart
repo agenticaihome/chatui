@@ -20,6 +20,7 @@ InstanceListView _web() => InstanceListView(
       startChargeMu: '1000',
       name: 'Site',
       alias: '',
+      title: '',
       refundMu: '',
     );
 
