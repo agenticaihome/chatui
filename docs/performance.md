@@ -158,3 +158,49 @@ Unverified here: the real effect through Tor (no Tor or node in the build host).
 open a web instance on a node by an onion address and compare the time of the first
 paint, before and after. A node that closes a connection for PINGs every 30 s would show
 as `Unavailable` in `last_error`; then raise `KEEP_ALIVE_INTERVAL`.
+
+## 5. The keyboard of the chat (November 2026, issue #88)
+
+**How to measure.** Count the frames that the app shows while a script taps keys of the
+keyboard of the app in a conversation. SurfaceFlinger keeps the times of the last 128 frames of
+each surface:
+
+```sh
+L='SurfaceView[org.celaut.chatui/org.celaut.chatui.MainActivity](BLAST)#<id>'  # dumpsys SurfaceFlinger --list
+adb shell "dumpsys SurfaceFlinger --latency-clear '$L'"
+adb shell 'for i in $(seq 1 10); do input tap <x> <y>; sleep 1; done; sleep 2'
+adb shell "dumpsys SurfaceFlinger --latency '$L'"   # one line for each frame
+```
+
+Also count the frames with no key for the same time: the cursor blinks twice a second.
+
+**What it found.** The setup: AVD `chatui-x86-a` (Android 15, x86_64, SwiftShader, 1080 ×
+2400), debug builds, a conversation with echo-chat, the build host under load. With no key, the
+chat showed 2 frames a second (the cursor). Ten keys, one each second:
+
+| Build | Frames in 12 s | Frames for each key (without the cursor) | Time between frames |
+|---|---|---|---|
+| Before (master keyboard), run 1 | 104 | about 8 | 155 ms |
+| Before (master keyboard), run 2 | 100 | about 7.6 | 120 ms |
+| After (this fix) | 36 | about 1.2 | 336 ms (mostly the pauses of the cursor) |
+
+**The cause: each key made about 8 frames, and each frame of the chat is expensive.** Each key
+was an `InkWell` in its own `Material`. A tap starts a splash and a highlight, and the two
+animations ask for frames for more than one second. A frame of the chat page is not cheap: the
+bars at the top and at the bottom blur what is under them, and the list fades at its ends (a
+`ShaderMask`). Impeller draws each of them in its own render pass, so a frame of the chat had
+13 render passes, and on SwiftShader it took about 100 to 150 ms to raster. With 8 frames for
+each key, one key kept the raster thread busy for about one second. A key that came during that
+time waited for the frames before it. The build of a frame was small (about 2 ms), so the Dart
+code was not the problem. Also, the `InkWell` acted only when the finger went up.
+
+A profile build with an integration test gave the same cost for each frame (13 render passes,
+about 100 to 150 ms of raster, 2 ms of build), but not the lag: the binding of the test asks
+for a frame on each vsync, so the raster thread is always busy, also with no key. Measure the
+keyboard on the app, as above, and not with that binding.
+
+**The fix (`virtual_keyboard.dart`).** A key is a `Listener` with a `DecoratedBox`. It acts when
+the finger goes down, and it shows that it is down in one frame: no splash, no highlight. So a
+key makes 2 frames (down and up). Backspace repeats as before. The chips of the suggestions
+have no splash either. A blur that covers less of the bar was tried, and it did not change the
+time of a frame: Impeller pays a full render pass for each blur, whatever its size.
