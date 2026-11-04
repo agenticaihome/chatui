@@ -5522,11 +5522,13 @@ impl SseDecode for crate::api::celaut_catalog::SkillView {
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_prose = <String>::sse_decode(deserializer);
         let mut var_tags = <Vec<String>>::sse_decode(deserializer);
+        let mut var_domain = <String>::sse_decode(deserializer);
         return crate::api::celaut_catalog::SkillView {
             box_id: var_boxId,
             name: var_name,
             prose: var_prose,
             tags: var_tags,
+            domain: var_domain,
         };
     }
 }
@@ -7353,6 +7355,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_catalog::SkillView {
             self.name.into_into_dart().into_dart(),
             self.prose.into_into_dart().into_dart(),
             self.tags.into_into_dart().into_dart(),
+            self.domain.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -8700,6 +8703,7 @@ impl SseEncode for crate::api::celaut_catalog::SkillView {
         <String>::sse_encode(self.name, serializer);
         <String>::sse_encode(self.prose, serializer);
         <Vec<String>>::sse_encode(self.tags, serializer);
+        <String>::sse_encode(self.domain, serializer);
     }
 }
 

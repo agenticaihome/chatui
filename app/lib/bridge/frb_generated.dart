@@ -5255,13 +5255,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SkillView dco_decode_skill_view(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return SkillView(
       boxId: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
       prose: dco_decode_String(arr[2]),
       tags: dco_decode_list_String(arr[3]),
+      domain: dco_decode_String(arr[4]),
     );
   }
 
@@ -6904,11 +6905,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_name = sse_decode_String(deserializer);
     var var_prose = sse_decode_String(deserializer);
     var var_tags = sse_decode_list_String(deserializer);
+    var var_domain = sse_decode_String(deserializer);
     return SkillView(
       boxId: var_boxId,
       name: var_name,
       prose: var_prose,
       tags: var_tags,
+      domain: var_domain,
     );
   }
 
@@ -8269,6 +8272,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.name, serializer);
     sse_encode_String(self.prose, serializer);
     sse_encode_list_String(self.tags, serializer);
+    sse_encode_String(self.domain, serializer);
   }
 
   @protected
