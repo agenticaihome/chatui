@@ -50,6 +50,7 @@ InstanceListView instanceOfLaunch(LaunchOutcome outcome, String serviceId, Strin
     startChargeMu: '',
     name: name ?? '',
     alias: '',
+    title: '',
     refundMu: '',
   );
 }
@@ -196,8 +197,32 @@ class InstanceListState extends State<InstanceList> {
     _pane = pane;
   }
 
+  int _titleRevision = 0;
+
   void _onNotes() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    // A service gave a conversation a new title: read the names in the database again.
+    if (_notes.titleRevision != _titleRevision) {
+      _titleRevision = _notes.titleRevision;
+      final again = _read();
+      if (again != null) {
+        setState(() => _instances = [
+              for (final i in _instances)
+                again.firstWhere((n) => n.instanceId == i.instanceId, orElse: () => i),
+            ]);
+        return;
+      }
+    }
+    setState(() {});
+  }
+
+  /// The instances in the database, or null if there is no database yet.
+  List<InstanceListView>? _read() {
+    try {
+      return (widget.load ?? celautInstances)();
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Push [route] in the pane, in place of what it shows, or over the list if there is no

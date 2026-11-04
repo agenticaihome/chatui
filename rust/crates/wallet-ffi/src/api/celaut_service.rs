@@ -537,6 +537,7 @@ pub async fn celaut_start_service(
         },
         name: None,
         alias: None,
+        title: None,
         topped_up_mu: None,
         stopped_at: None,
         refund_mu: None,
@@ -642,6 +643,9 @@ pub struct InstanceListView {
     pub name: String,
     /// The name that the user gave the instance in the app (empty if none). Local only.
     pub alias: String,
+    /// The title that the service gave the conversation, the last one that the app read
+    /// (empty if none).
+    pub title: String,
     /// The time of the stop, in Unix seconds; none while the instance runs.
     pub stopped_at: Option<i64>,
     /// What the node gave back at the stop, in MU (empty if unknown or not stopped).
@@ -667,6 +671,7 @@ pub fn celaut_instances() -> Vec<InstanceListView> {
                 start_charge_mu: r.start_charge_mu.clone().unwrap_or_default(),
                 name: r.name.clone().unwrap_or_default(),
                 alias: r.alias.clone().unwrap_or_default(),
+                title: r.title.clone().unwrap_or_default(),
                 stopped_at: r.stopped_at,
                 refund_mu: r.refund_mu.clone().unwrap_or_default(),
             })
@@ -683,6 +688,36 @@ pub fn celaut_name_instance(instance_id: String, name: String) -> Result<(), Cel
         .update(|d| match d.instances.get_mut(&instance_id) {
             Some(r) => {
                 r.name = (!name.is_empty()).then_some(name);
+                true
+            }
+            None => false,
+        })
+        .map_err(storage_error)?;
+    if known {
+        Ok(())
+    } else {
+        Err(unknown_instance())
+    }
+}
+
+/// The longest title of a service that the app keeps, in characters. The chat client cuts
+/// a title to this length before it keeps it (`ChatClient.titleMaxChars`).
+pub(crate) const TITLE_MAX_CHARS: usize = 80;
+
+/// Keep the title that the service gave the conversation of an instance
+/// (`docs/celaut/chat.md`, section 6.10), so that the list shows it after a restart and
+/// after a stop. An empty title removes it. It does not touch the name that the user gave
+/// the instance: that name stays stronger.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_set_instance_title(instance_id: String, title: String) -> Result<(), CelautError> {
+    let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
+    if title.chars().count() > TITLE_MAX_CHARS {
+        return Err(invalid("The title is too long."));
+    }
+    let known = db()
+        .update(|d| match d.instances.get_mut(&instance_id) {
+            Some(r) => {
+                r.title = (!title.is_empty()).then_some(title);
                 true
             }
             None => false,
@@ -1328,6 +1363,51 @@ mod tests {
             .unwrap();
         celaut_rename_instance(id.clone(), "Old echo".into()).unwrap();
         assert_eq!(view(&id).alias, "Old echo");
+        drop(db().update(|d| d.instances.remove(&id)));
+    }
+
+    #[test]
+    fn the_title_of_the_service_is_kept_apart_from_the_name_of_the_user() {
+        let id = "title-test-instance".to_string();
+        db().update(|d| {
+            d.instances.insert(
+                id.clone(),
+                InstanceRecord {
+                    peer_id: "ab".repeat(32),
+                    token: "token".into(),
+                    name: Some("echo-chat".into()),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
+        let view = |id: &str| {
+            celaut_instances()
+                .into_iter()
+                .find(|i| i.instance_id == id)
+                .unwrap()
+        };
+        celaut_set_instance_title(id.clone(), " Trip  to\tLisbon ".into()).unwrap();
+        celaut_rename_instance(id.clone(), "Mine".into()).unwrap();
+        let v = view(&id);
+        assert_eq!(
+            (v.name.as_str(), v.alias.as_str(), v.title.as_str()),
+            ("echo-chat", "Mine", "Trip to Lisbon")
+        );
+        // A new title does not touch the name of the user, and the other way round.
+        celaut_set_instance_title(id.clone(), "Lisbon in May".into()).unwrap();
+        assert_eq!(view(&id).alias, "Mine");
+        celaut_rename_instance(id.clone(), "".into()).unwrap();
+        assert_eq!(view(&id).title, "Lisbon in May");
+        // Empty: the title goes.
+        celaut_set_instance_title(id.clone(), " ".into()).unwrap();
+        assert_eq!(view(&id).title, "");
+        let long = "x".repeat(TITLE_MAX_CHARS + 1);
+        let err = celaut_set_instance_title(id.clone(), long).unwrap_err();
+        assert_eq!(err.kind, CelautErrorKind::InvalidInput);
+        assert!(celaut_set_instance_title(id.clone(), "x".repeat(TITLE_MAX_CHARS)).is_ok());
+        let err = celaut_set_instance_title("nope".into(), "x".into()).unwrap_err();
+        assert_eq!(err.kind, CelautErrorKind::InvalidInput);
         drop(db().update(|d| d.instances.remove(&id)));
     }
 

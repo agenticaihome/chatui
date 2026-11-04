@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../theme/argus_theme.dart';
+import '../layout.dart';
 
 /// What lights the scene: an eclipse's rim (the overview) or the haze of a
 /// wallet's medallion (a wallet's page).
@@ -28,6 +29,7 @@ class HomeScene extends StatelessWidget {
     required this.lightAt,
     required this.height,
     this.lightRadius = 70,
+    this.rimStrength = 1,
   });
 
   /// How much of the top of the page the scene covers; it settles into the
@@ -43,6 +45,10 @@ class HomeScene extends StatelessWidget {
 
   /// The eclipse's radius.
   final double lightRadius;
+
+  /// How strongly the crests catch the light: 1 on the home pages, less where rows of
+  /// text lie over the range ([SceneBackdrop]).
+  final double rimStrength;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +71,7 @@ class HomeScene extends StatelessWidget {
                     light: light,
                     lightAt: lightAt,
                     lightRadius: lightRadius,
+                    rimStrength: rimStrength,
                     dark: Theme.of(context).brightness == Brightness.dark,
                   ),
                   devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
@@ -75,6 +82,62 @@ class HomeScene extends StatelessWidget {
         ),
         child,
       ],
+    );
+  }
+}
+
+/// The colour of the bar of a page on a scene: clear, so that the scene runs up under
+/// it, and the [page]'s own once the content scrolls under it.
+WidgetStateColor sceneBarColor(Color page) => WidgetStateColor.resolveWith(
+      (states) => states.contains(WidgetState.scrolledUnder) ? page.withValues(alpha: 0.94) : page.withValues(alpha: 0),
+    );
+
+/// The scene of the Compute tab behind the other pages of the app: the chats, the
+/// Wallet tab, the settings, the nodes, the services and the info of an instance. It is lower than on
+/// the home pages, with a smaller eclipse beside the top of the content, because these
+/// pages start with their content and not with a figure. Its crests catch less light,
+/// because rows of text lie over them.
+///
+/// [child] is a [Scaffold] with a clear background. The bar of an [AppBar] in it is
+/// clear over the scene and takes the page's colour once the content scrolls under it.
+///
+/// All the pages show the same scene, so [SceneImagePainter] makes one image for them.
+class SceneBackdrop extends StatelessWidget {
+  const SceneBackdrop({super.key, required this.child});
+
+  final Widget child;
+
+  /// How far the scene goes below the bar.
+  static const depth = 300.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final page = theme.scaffoldBackgroundColor;
+    final top = MediaQuery.paddingOf(context).top + kToolbarHeight;
+    return ColoredBox(
+      color: page,
+      // The light follows the content, which keeps to a column on a wide window.
+      child: LayoutBuilder(
+        builder: (context, box) => HomeScene(
+          light: SceneLight.eclipse,
+          lightAt: Offset(AppLayout.readableSide(box.maxWidth) + 76, top + 44),
+          lightRadius: 50,
+          // Rows of text lie over the range here: its crests catch less light.
+          rimStrength: 0.4,
+          height: top + depth,
+          child: Theme(
+            data: theme.copyWith(
+              appBarTheme: theme.appBarTheme.copyWith(
+                backgroundColor: sceneBarColor(page),
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 0,
+              ),
+            ),
+            child: child,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -92,9 +155,10 @@ class SceneImagePainter extends CustomPainter {
   final double devicePixelRatio;
 
   /// The images, the least recently painted first. A few looks are in use at a time:
-  /// the overview, the Compute tab and the page of the wallet.
+  /// the overview, the Compute tab, the page of the wallet and the other pages
+  /// ([SceneBackdrop]).
   static final _images = <Object, ui.Image>{};
-  static const _keep = 4;
+  static const _keep = 5;
 
   /// How many images are kept now.
   @visibleForTesting
@@ -112,7 +176,7 @@ class SceneImagePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     final s = scene;
-    final key = (s.spec, s.page, s.light, s.lightAt, s.lightRadius, s.dark, size, devicePixelRatio);
+    final key = (s.spec, s.page, s.light, s.lightAt, s.lightRadius, s.rimStrength, s.dark, size, devicePixelRatio);
     var image = _images.remove(key);
     if (image == null) {
       final recorder = ui.PictureRecorder();
@@ -150,6 +214,7 @@ class ScenePainter extends CustomPainter {
     required this.light,
     required this.lightAt,
     required this.lightRadius,
+    this.rimStrength = 1,
     required this.dark,
   });
 
@@ -158,6 +223,7 @@ class ScenePainter extends CustomPainter {
   final SceneLight light;
   final Offset lightAt;
   final double lightRadius;
+  final double rimStrength;
   final bool dark;
 
   @override
@@ -226,7 +292,7 @@ class ScenePainter extends CustomPainter {
             stops: const [0, 0.55, 1],
           ).createShader(bounds),
       );
-      final strength = range.rim;
+      final strength = range.rim * rimStrength;
       if (strength == 0) continue;
       // The slope nearest the light, washed with it.
       canvas.drawPath(
@@ -395,6 +461,7 @@ class ScenePainter extends CustomPainter {
       old.light != light ||
       old.lightAt != lightAt ||
       old.lightRadius != lightRadius ||
+      old.rimStrength != rimStrength ||
       old.dark != dark;
 }
 

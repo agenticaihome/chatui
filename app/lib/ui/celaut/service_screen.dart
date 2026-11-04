@@ -361,6 +361,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
       refundMu: '',
       name: '',
       alias: '',
+      title: '',
     );
   }
 

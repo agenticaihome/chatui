@@ -65,16 +65,25 @@ class SkillView {
   final String prose;
   final List<String> tags;
 
+  /// The field of the skill, as its publisher wrote it ("finance", "nlp"...); empty if
+  /// none. The app groups the skills by it.
+  final String domain;
+
   const SkillView({
     required this.boxId,
     required this.name,
     required this.prose,
     required this.tags,
+    required this.domain,
   });
 
   @override
   int get hashCode =>
-      boxId.hashCode ^ name.hashCode ^ prose.hashCode ^ tags.hashCode;
+      boxId.hashCode ^
+      name.hashCode ^
+      prose.hashCode ^
+      tags.hashCode ^
+      domain.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -84,5 +93,6 @@ class SkillView {
           boxId == other.boxId &&
           name == other.name &&
           prose == other.prose &&
-          tags == other.tags;
+          tags == other.tags &&
+          domain == other.domain;
 }

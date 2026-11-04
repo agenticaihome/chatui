@@ -1360,4 +1360,71 @@ void main() {
       expect(chat.count, 1);
     });
   });
+
+  group('title (section 6.10)', () {
+    test('SubscriptionReady gives the title, and the events change it', () async {
+      svc.title = 'Trip to Lisbon';
+      await boot();
+      var notices = 0;
+      chat.addListener(() => notices++);
+      expect(chat.titleKnown, isFalse);
+      await chat.sync();
+      await until(() => chat.titleKnown, what: 'title');
+      expect(chat.title, 'Trip to Lisbon');
+      // With a stream, the client does not call GetConversation.
+      expect(svc.conversationCalls, 0);
+
+      final before = notices;
+      svc.setTitle('Lisbon in May');
+      await until(() => chat.title == 'Lisbon in May');
+      expect(notices, greaterThan(before));
+      // The service removes its title.
+      svc.setTitle(null);
+      await until(() => chat.title == null);
+      expect(chat.titleKnown, isTrue);
+      // A title of another conversation is not the title of this one.
+      svc.emit(pb.ServerEvent(
+        conversationTitleChanged: pb.ConversationTitleChanged(conversationId: 'b1', title: 'Other'),
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(chat.title, isNull);
+      // A title is not a message.
+      expect(chat.count, 0);
+    });
+
+    test('a service that gives no title: none, and no error', () async {
+      await boot();
+      await chat.sync();
+      await until(() => chat.streaming);
+      expect(chat.titleKnown, isTrue);
+      expect(chat.title, isNull);
+      expect(chat.streamError, isNull);
+    });
+
+    test('a service with no Connect: the client reads the title with GetConversation', () async {
+      svc.connectError = GrpcError.unimplemented();
+      svc.title = 'Notes';
+      await boot();
+      await chat.sync();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(chat.streaming, isFalse);
+      // The first sync tried the stream; the next one knows that there is none.
+      await chat.sync();
+      expect(chat.title, 'Notes');
+      expect(svc.conversationCalls, greaterThan(0));
+    });
+
+    test('cleanTitle: one line of plain text, no direction controls, at most 80 characters', () {
+      expect(ChatClient.cleanTitle('  Trip\n\tto   Lisbon '), 'Trip to Lisbon');
+      expect(ChatClient.cleanTitle('\u202eevil\u202c name\u2066'), 'evil name');
+      expect(ChatClient.cleanTitle('a\u0000b\u007fc'), 'a b c');
+      expect(ChatClient.cleanTitle(' \n '), isNull);
+      expect(ChatClient.cleanTitle(''), isNull);
+      final long = 'é' * 100;
+      expect(ChatClient.cleanTitle(long), 'é' * ChatClient.titleMaxChars);
+      // A character of many code points is not cut in half.
+      final flags = '🇪🇸' * 90;
+      expect(ChatClient.cleanTitle(flags)!.length, '🇪🇸'.length * ChatClient.titleMaxChars);
+    });
+  });
 }

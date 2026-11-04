@@ -223,6 +223,7 @@ mod tests {
                     start_charge_mu: None,
                     name: None,
                     alias: None,
+                    title: None,
                     topped_up_mu: None,
                     stopped_at: None,
                     refund_mu: None,

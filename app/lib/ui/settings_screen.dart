@@ -20,6 +20,7 @@ import 'celaut/env_variables_screen.dart';
 import 'celaut/balancer_screen.dart';
 import 'celaut/known_nodes_screen.dart';
 import 'celaut/service_screen.dart';
+import 'home/home_scene.dart';
 import 'layout.dart';
 import 'settings/about_page.dart';
 import 'settings/address_book_page.dart';
@@ -84,7 +85,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final scaffold = Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: widget.embedded ? null : AppBar(title: Text(context.l10n.commonSettings)),
       body: ReadableWidth(
         child: ListenableBuilder(
@@ -126,6 +128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+    return SceneBackdrop(child: scaffold);
   }
 
   Widget _ergoGroup(WalletInfo? current) {

@@ -99,6 +99,9 @@ pub struct SkillView {
     /// The start of the text that explains the skill.
     pub prose: String,
     pub tags: Vec<String>,
+    /// The field of the skill, as its publisher wrote it ("finance", "nlp"...); empty if
+    /// none. The app groups the skills by it.
+    pub domain: String,
 }
 
 /// A service that covers a skill.
@@ -128,6 +131,7 @@ pub async fn celaut_skills() -> Result<Vec<SkillView>, CelautError> {
                 name: s.name,
                 prose: short(&s.prose),
                 tags: s.tags,
+                domain: s.domain,
             })
             .collect::<Vec<_>>()
     });
