@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1424371422;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 603812081;
 
 // Section: executor
 
@@ -82,6 +82,351 @@ fn wire__crate__api__storage_rent__box_rent_report_impl(
                     })()
                     .await,
                 )
+            }
+        },
+    )
+}
+fn wire__crate__api__btc__btc_cancel_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "btc_cancel",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_prepared_id = <u64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>({
+                    crate::api::btc::btc_cancel(api_prepared_id);
+                })?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__btc__btc_default_server_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "btc_default_server",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_network = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>(crate::api::btc::btc_default_server(api_network))?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__btc__btc_fee_rates_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "btc_fee_rates",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_handle_id = <u64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::btc::BtcError>(
+                    (move || async move {
+                        let output_ok = crate::api::btc::btc_fee_rates(api_handle_id).await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__btc__btc_is_address_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "btc_is_address",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_network = <String>::sse_decode(&mut deserializer);
+            let api_address = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok =
+                    Ok::<_, ()>(crate::api::btc::btc_is_address(api_network, api_address))?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__btc__btc_networks_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "btc_networks",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>(crate::api::btc::btc_networks())?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__btc__btc_open_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "btc_open",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_handle_id = <u64>::sse_decode(&mut deserializer);
+            let api_network = <String>::sse_decode(&mut deserializer);
+            let api_server = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::api::btc::BtcError>((move || {
+                    let output_ok =
+                        crate::api::btc::btc_open(api_handle_id, api_network, api_server)?;
+                    std::result::Result::Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__btc__btc_prepare_send_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "btc_prepare_send",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_handle_id = <u64>::sse_decode(&mut deserializer);
+            let api_to = <String>::sse_decode(&mut deserializer);
+            let api_amount_sat = <u64>::sse_decode(&mut deserializer);
+            let api_send_all = <bool>::sse_decode(&mut deserializer);
+            let api_fee_rate = <f64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::api::btc::BtcError>((move || {
+                    let output_ok = crate::api::btc::btc_prepare_send(
+                        api_handle_id,
+                        api_to,
+                        api_amount_sat,
+                        api_send_all,
+                        api_fee_rate,
+                    )?;
+                    std::result::Result::Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__btc__btc_send_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "btc_send",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_handle_id = <u64>::sse_decode(&mut deserializer);
+            let api_prepared_id = <u64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::btc::BtcError>(
+                    (move || async move {
+                        let output_ok =
+                            crate::api::btc::btc_send(api_handle_id, api_prepared_id).await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__btc__btc_sync_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "btc_sync",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_handle_id = <u64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::btc::BtcError>(
+                    (move || async move {
+                        let output_ok = crate::api::btc::btc_sync(api_handle_id).await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__btc__btc_transactions_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "btc_transactions",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_handle_id = <u64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::api::btc::BtcError>((move || {
+                    let output_ok = crate::api::btc::btc_transactions(api_handle_id)?;
+                    std::result::Result::Ok(output_ok)
+                })())
             }
         },
     )
@@ -207,6 +552,319 @@ fn wire__crate__api__celaut_home__celaut_balancer_weights_impl(
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
                 let output_ok = Ok::<_, ()>(crate::api::celaut_home::celaut_balancer_weights())?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_cancel_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_btc_deposit_cancel",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_deposit_id = <String>::sse_decode(&mut deserializer);
+            let api_prepared_id = <u64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::api::celaut::CelautError>((move || {
+                    let output_ok = crate::api::celaut_btc_deposit::celaut_btc_deposit_cancel(
+                        api_deposit_id,
+                        api_prepared_id,
+                    )?;
+                    std::result::Result::Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_forget_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_btc_deposit_forget",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_deposit_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::celaut::CelautError>(
+                    (move || async move {
+                        let output_ok = crate::api::celaut_btc_deposit::celaut_btc_deposit_forget(
+                            api_deposit_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_node_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_btc_deposit_node",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_node = <crate::api::celaut_service::NodeAddress>::sse_decode(&mut deserializer);
+            let api_network = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::celaut::CelautError>(
+                    (move || async move {
+                        let output_ok = crate::api::celaut_btc_deposit::celaut_btc_deposit_node(
+                            api_node,
+                            api_network,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_notify_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_btc_deposit_notify",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_deposit_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::celaut::CelautError>(
+                    (move || async move {
+                        let output_ok = crate::api::celaut_btc_deposit::celaut_btc_deposit_notify(
+                            api_deposit_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_prepare_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_btc_deposit_prepare",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_handle_id = <u64>::sse_decode(&mut deserializer);
+            let api_node = <crate::api::celaut_service::NodeAddress>::sse_decode(&mut deserializer);
+            let api_sat = <u64>::sse_decode(&mut deserializer);
+            let api_fee_rate = <f64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::celaut::CelautError>(
+                    (move || async move {
+                        let output_ok = crate::api::celaut_btc_deposit::celaut_btc_deposit_prepare(
+                            api_handle_id,
+                            api_node,
+                            api_sat,
+                            api_fee_rate,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_send_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_btc_deposit_send",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_handle_id = <u64>::sse_decode(&mut deserializer);
+            let api_deposit_id = <String>::sse_decode(&mut deserializer);
+            let api_prepared_id = <u64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::celaut::CelautError>(
+                    (move || async move {
+                        let output_ok = crate::api::celaut_btc_deposit::celaut_btc_deposit_send(
+                            api_handle_id,
+                            api_deposit_id,
+                            api_prepared_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_status_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_btc_deposit_status",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_deposit_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::celaut::CelautError>(
+                    (move || async move {
+                        let output_ok = crate::api::celaut_btc_deposit::celaut_btc_deposit_status(
+                            api_deposit_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__celaut_btc_deposit__celaut_btc_sent_deposits_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_btc_sent_deposits",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok =
+                    Ok::<_, ()>(crate::api::celaut_btc_deposit::celaut_btc_sent_deposits())?;
                 std::result::Result::Ok(output_ok)
             })())
         },
@@ -3994,6 +4652,219 @@ impl SseDecode for bool {
     }
 }
 
+impl SseDecode for crate::api::celaut_btc_deposit::BtcDepositDoneView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_depositId = <String>::sse_decode(deserializer);
+        let mut var_txId = <String>::sse_decode(deserializer);
+        let mut var_accepted = <bool>::sse_decode(deserializer);
+        let mut var_nodeMessage = <Option<String>>::sse_decode(deserializer);
+        let mut var_clientBalanceMu = <String>::sse_decode(deserializer);
+        return crate::api::celaut_btc_deposit::BtcDepositDoneView {
+            deposit_id: var_depositId,
+            tx_id: var_txId,
+            accepted: var_accepted,
+            node_message: var_nodeMessage,
+            client_balance_mu: var_clientBalanceMu,
+        };
+    }
+}
+
+impl SseDecode for crate::api::celaut_btc_deposit::BtcDepositNodeView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_peerId = <String>::sse_decode(deserializer);
+        let mut var_networks = <Vec<String>>::sse_decode(deserializer);
+        let mut var_accepts = <bool>::sse_decode(deserializer);
+        let mut var_reason = <String>::sse_decode(deserializer);
+        let mut var_payToAddress = <String>::sse_decode(deserializer);
+        let mut var_muPerSat = <String>::sse_decode(deserializer);
+        let mut var_confirmations = <u32>::sse_decode(deserializer);
+        let mut var_nodeSaysConfirmations = <bool>::sse_decode(deserializer);
+        let mut var_clientBalanceMu = <String>::sse_decode(deserializer);
+        return crate::api::celaut_btc_deposit::BtcDepositNodeView {
+            peer_id: var_peerId,
+            networks: var_networks,
+            accepts: var_accepts,
+            reason: var_reason,
+            pay_to_address: var_payToAddress,
+            mu_per_sat: var_muPerSat,
+            confirmations: var_confirmations,
+            node_says_confirmations: var_nodeSaysConfirmations,
+            client_balance_mu: var_clientBalanceMu,
+        };
+    }
+}
+
+impl SseDecode for crate::api::celaut_btc_deposit::BtcDepositPreparedView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_depositId = <String>::sse_decode(deserializer);
+        let mut var_peerId = <String>::sse_decode(deserializer);
+        let mut var_payToAddress = <String>::sse_decode(deserializer);
+        let mut var_mu = <String>::sse_decode(deserializer);
+        let mut var_confirmations = <u32>::sse_decode(deserializer);
+        let mut var_transaction = <crate::api::btc::BtcPreparedView>::sse_decode(deserializer);
+        return crate::api::celaut_btc_deposit::BtcDepositPreparedView {
+            deposit_id: var_depositId,
+            peer_id: var_peerId,
+            pay_to_address: var_payToAddress,
+            mu: var_mu,
+            confirmations: var_confirmations,
+            transaction: var_transaction,
+        };
+    }
+}
+
+impl SseDecode for crate::api::celaut_btc_deposit::BtcDepositSentView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_depositId = <String>::sse_decode(deserializer);
+        let mut var_peerId = <String>::sse_decode(deserializer);
+        let mut var_address = <String>::sse_decode(deserializer);
+        let mut var_network = <String>::sse_decode(deserializer);
+        let mut var_sat = <u64>::sse_decode(deserializer);
+        let mut var_mu = <String>::sse_decode(deserializer);
+        let mut var_txId = <String>::sse_decode(deserializer);
+        let mut var_confirmations = <u32>::sse_decode(deserializer);
+        let mut var_madeAt = <i64>::sse_decode(deserializer);
+        return crate::api::celaut_btc_deposit::BtcDepositSentView {
+            deposit_id: var_depositId,
+            peer_id: var_peerId,
+            address: var_address,
+            network: var_network,
+            sat: var_sat,
+            mu: var_mu,
+            tx_id: var_txId,
+            confirmations: var_confirmations,
+            made_at: var_madeAt,
+        };
+    }
+}
+
+impl SseDecode for crate::api::celaut_btc_deposit::BtcDepositStatusView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_confirmations = <u32>::sse_decode(deserializer);
+        let mut var_needed = <u32>::sse_decode(deserializer);
+        let mut var_known = <bool>::sse_decode(deserializer);
+        return crate::api::celaut_btc_deposit::BtcDepositStatusView {
+            confirmations: var_confirmations,
+            needed: var_needed,
+            known: var_known,
+        };
+    }
+}
+
+impl SseDecode for crate::api::btc::BtcError {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_kind = <crate::api::btc::BtcErrorKind>::sse_decode(deserializer);
+        let mut var_message = <String>::sse_decode(deserializer);
+        return crate::api::btc::BtcError {
+            kind: var_kind,
+            message: var_message,
+        };
+    }
+}
+
+impl SseDecode for crate::api::btc::BtcErrorKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::btc::BtcErrorKind::Locked,
+            1 => crate::api::btc::BtcErrorKind::InvalidInput,
+            2 => crate::api::btc::BtcErrorKind::Address,
+            3 => crate::api::btc::BtcErrorKind::Funds,
+            4 => crate::api::btc::BtcErrorKind::Unreachable,
+            5 => crate::api::btc::BtcErrorKind::Server,
+            6 => crate::api::btc::BtcErrorKind::Transaction,
+            _ => unreachable!("Invalid variant for BtcErrorKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::btc::BtcFeeRates {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_fast = <f64>::sse_decode(deserializer);
+        let mut var_normal = <f64>::sse_decode(deserializer);
+        let mut var_slow = <f64>::sse_decode(deserializer);
+        let mut var_estimated = <bool>::sse_decode(deserializer);
+        return crate::api::btc::BtcFeeRates {
+            fast: var_fast,
+            normal: var_normal,
+            slow: var_slow,
+            estimated: var_estimated,
+        };
+    }
+}
+
+impl SseDecode for crate::api::btc::BtcPreparedView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <u64>::sse_decode(deserializer);
+        let mut var_to = <String>::sse_decode(deserializer);
+        let mut var_amountSat = <u64>::sse_decode(deserializer);
+        let mut var_feeSat = <u64>::sse_decode(deserializer);
+        let mut var_feeRate = <f64>::sse_decode(deserializer);
+        let mut var_changeSat = <u64>::sse_decode(deserializer);
+        let mut var_txid = <String>::sse_decode(deserializer);
+        return crate::api::btc::BtcPreparedView {
+            id: var_id,
+            to: var_to,
+            amount_sat: var_amountSat,
+            fee_sat: var_feeSat,
+            fee_rate: var_feeRate,
+            change_sat: var_changeSat,
+            txid: var_txid,
+        };
+    }
+}
+
+impl SseDecode for crate::api::btc::BtcTxView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_txid = <String>::sse_decode(deserializer);
+        let mut var_netSat = <i64>::sse_decode(deserializer);
+        let mut var_feeSat = <u64>::sse_decode(deserializer);
+        let mut var_feeKnown = <bool>::sse_decode(deserializer);
+        let mut var_confirmations = <u32>::sse_decode(deserializer);
+        let mut var_time = <u64>::sse_decode(deserializer);
+        return crate::api::btc::BtcTxView {
+            txid: var_txid,
+            net_sat: var_netSat,
+            fee_sat: var_feeSat,
+            fee_known: var_feeKnown,
+            confirmations: var_confirmations,
+            time: var_time,
+        };
+    }
+}
+
+impl SseDecode for crate::api::btc::BtcWalletView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_network = <String>::sse_decode(deserializer);
+        let mut var_server = <String>::sse_decode(deserializer);
+        let mut var_receiveAddress = <String>::sse_decode(deserializer);
+        let mut var_confirmedSat = <u64>::sse_decode(deserializer);
+        let mut var_pendingSat = <u64>::sse_decode(deserializer);
+        let mut var_immatureSat = <u64>::sse_decode(deserializer);
+        let mut var_tipHeight = <u32>::sse_decode(deserializer);
+        return crate::api::btc::BtcWalletView {
+            network: var_network,
+            server: var_server,
+            receive_address: var_receiveAddress,
+            confirmed_sat: var_confirmedSat,
+            pending_sat: var_pendingSat,
+            immature_sat: var_immatureSat,
+            tip_height: var_tipHeight,
+        };
+    }
+}
+
 impl SseDecode for crate::api::celaut_home::BytesTotalView {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -4521,6 +5392,32 @@ impl SseDecode for Vec<crate::api::celaut_service_info::ApiSlotView> {
             ans_.push(<crate::api::celaut_service_info::ApiSlotView>::sse_decode(
                 deserializer,
             ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::celaut_btc_deposit::BtcDepositSentView> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::celaut_btc_deposit::BtcDepositSentView>::sse_decode(deserializer),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::btc::BtcTxView> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::btc::BtcTxView>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -5715,218 +6612,268 @@ fn pde_ffi_dispatcher_primary_impl(
         1 => {
             wire__crate__api__storage_rent__box_rent_report_impl(port, ptr, rust_vec_len, data_len)
         }
-        3 => wire__crate__api__celaut_home__celaut_add_node_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__celaut_health__celaut_check_nodes_impl(
+        4 => wire__crate__api__btc__btc_fee_rates_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__btc__btc_open_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__btc__btc_prepare_send_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__btc__btc_send_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__btc__btc_sync_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__btc__btc_transactions_impl(port, ptr, rust_vec_len, data_len),
+        13 => {
+            wire__crate__api__celaut_home__celaut_add_node_impl(port, ptr, rust_vec_len, data_len)
+        }
+        16 => wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_cancel_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        8 => wire__crate__api__celaut_home__celaut_compute_overview_impl(
+        17 => wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_forget_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        9 => wire__crate__api__celaut_invite__celaut_connect_invite_impl(
+        18 => wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_node_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        10 => wire__crate__api__celaut_deposit__celaut_deposit_cancel_impl(
+        19 => wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_notify_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        11 => wire__crate__api__celaut_deposit__celaut_deposit_node_impl(
+        20 => wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_prepare_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        12 => wire__crate__api__celaut_deposit__celaut_deposit_notify_impl(
+        21 => wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_send_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        13 => wire__crate__api__celaut_deposit__celaut_deposit_prepare_impl(
+        22 => wire__crate__api__celaut_btc_deposit__celaut_btc_deposit_status_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        14 => wire__crate__api__celaut_deposit__celaut_deposit_sending_impl(
+        25 => wire__crate__api__celaut_health__celaut_check_nodes_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        21 => wire__crate__api__celaut_package__celaut_fetch_service_impl(
+        26 => wire__crate__api__celaut_home__celaut_compute_overview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        23 => wire__crate__api__celaut_package__celaut_import_package_impl(
+        27 => wire__crate__api__celaut_invite__celaut_connect_invite_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        24 => wire__crate__api__celaut_package__celaut_inspect_package_impl(
+        28 => wire__crate__api__celaut_deposit__celaut_deposit_cancel_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        25 => wire__crate__api__celaut_service__celaut_instance_credit_impl(
+        29 => wire__crate__api__celaut_deposit__celaut_deposit_node_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        28 => wire__crate__api__celaut_service__celaut_instance_status_impl(
+        30 => wire__crate__api__celaut_deposit__celaut_deposit_notify_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__celaut_service__celaut_new_client_impl(
+        31 => wire__crate__api__celaut_deposit__celaut_deposit_prepare_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__celaut_db__celaut_open_database_impl(
+        32 => wire__crate__api__celaut_deposit__celaut_deposit_sending_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__celaut_service__celaut_open_tunnel_impl(
+        39 => wire__crate__api__celaut_package__celaut_fetch_service_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__celaut__celaut_peer_info_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__celaut_service__celaut_quote_service_impl(
+        41 => wire__crate__api__celaut_package__celaut_import_package_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__celaut_package__celaut_remove_package_impl(
+        42 => wire__crate__api__celaut_package__celaut_inspect_package_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__celaut_package__celaut_send_service_impl(
+        43 => wire__crate__api__celaut_service__celaut_instance_credit_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__celaut_service_info__celaut_service_info_impl(
+        46 => wire__crate__api__celaut_service__celaut_instance_status_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        49 => wire__crate__api__celaut_deposit__celaut_set_deposit_limit_impl(
+        52 => wire__crate__api__celaut_service__celaut_new_client_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => wire__crate__api__celaut_network__celaut_set_network_impl(
+        55 => wire__crate__api__celaut_db__celaut_open_database_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        56 => wire__crate__api__celaut_catalog__celaut_skill_services_impl(
+        56 => wire__crate__api__celaut_service__celaut_open_tunnel_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        57 => {
+        58 => wire__crate__api__celaut__celaut_peer_info_impl(port, ptr, rust_vec_len, data_len),
+        59 => wire__crate__api__celaut_service__celaut_quote_service_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        61 => wire__crate__api__celaut_package__celaut_remove_package_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        63 => wire__crate__api__celaut_package__celaut_send_service_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        65 => wire__crate__api__celaut_service_info__celaut_service_info_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        67 => wire__crate__api__celaut_deposit__celaut_set_deposit_limit_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        71 => wire__crate__api__celaut_network__celaut_set_network_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        74 => wire__crate__api__celaut_catalog__celaut_skill_services_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        75 => {
             wire__crate__api__celaut_catalog__celaut_skills_impl(port, ptr, rust_vec_len, data_len)
         }
-        58 => wire__crate__api__celaut_service__celaut_start_service_impl(
+        76 => wire__crate__api__celaut_service__celaut_start_service_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        59 => wire__crate__api__celaut_service__celaut_stop_service_impl(
+        77 => wire__crate__api__celaut_service__celaut_stop_service_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        60 => wire__crate__api__celaut_service__celaut_top_up_instance_impl(
+        78 => wire__crate__api__celaut_service__celaut_top_up_instance_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        62 => wire__crate__api__create_encrypted_seed_impl(port, ptr, rust_vec_len, data_len),
-        63 => wire__crate__api__db_compute_summary_impl(port, ptr, rust_vec_len, data_len),
-        64 => wire__crate__api__derive_address_impl(port, ptr, rust_vec_len, data_len),
-        65 => {
+        80 => wire__crate__api__create_encrypted_seed_impl(port, ptr, rust_vec_len, data_len),
+        81 => wire__crate__api__db_compute_summary_impl(port, ptr, rust_vec_len, data_len),
+        82 => wire__crate__api__derive_address_impl(port, ptr, rust_vec_len, data_len),
+        83 => {
             wire__crate__api__describe_reduced_transaction_impl(port, ptr, rust_vec_len, data_len)
         }
-        66 => wire__crate__api__discover_addresses_impl(port, ptr, rust_vec_len, data_len),
-        67 => wire__crate__api__generate_mnemonic_impl(port, ptr, rust_vec_len, data_len),
-        68 => wire__crate__api__get_balance_impl(port, ptr, rust_vec_len, data_len),
-        69 => wire__crate__api__get_pending_transactions_impl(port, ptr, rust_vec_len, data_len),
-        70 => wire__crate__api__mempool__get_public_sync_inputs_impl(
+        84 => wire__crate__api__discover_addresses_impl(port, ptr, rust_vec_len, data_len),
+        85 => wire__crate__api__generate_mnemonic_impl(port, ptr, rust_vec_len, data_len),
+        86 => wire__crate__api__get_balance_impl(port, ptr, rust_vec_len, data_len),
+        87 => wire__crate__api__get_pending_transactions_impl(port, ptr, rust_vec_len, data_len),
+        88 => wire__crate__api__mempool__get_public_sync_inputs_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        71 => wire__crate__api__get_sync_inputs_impl(port, ptr, rust_vec_len, data_len),
-        72 => wire__crate__api__get_token_info_impl(port, ptr, rust_vec_len, data_len),
-        73 => wire__crate__api__get_transaction_history_impl(port, ptr, rust_vec_len, data_len),
-        74 => wire__crate__api__inspect_token_metadata_impl(port, ptr, rust_vec_len, data_len),
-        75 => {
+        89 => wire__crate__api__get_sync_inputs_impl(port, ptr, rust_vec_len, data_len),
+        90 => wire__crate__api__get_token_info_impl(port, ptr, rust_vec_len, data_len),
+        91 => wire__crate__api__get_transaction_history_impl(port, ptr, rust_vec_len, data_len),
+        92 => wire__crate__api__inspect_token_metadata_impl(port, ptr, rust_vec_len, data_len),
+        93 => {
             wire__crate__api__mempool__list_spendable_boxes_impl(port, ptr, rust_vec_len, data_len)
         }
-        76 => wire__crate__api__list_unspent_boxes_impl(port, ptr, rust_vec_len, data_len),
-        78 => wire__crate__api__preparation_details_impl(port, ptr, rust_vec_len, data_len),
-        79 => wire__crate__api__prepare_burn_impl(port, ptr, rust_vec_len, data_len),
-        80 => wire__crate__api__prepare_consolidate_impl(port, ptr, rust_vec_len, data_len),
-        81 => wire__crate__api__prepare_mint_impl(port, ptr, rust_vec_len, data_len),
-        82 => wire__crate__api__prepare_restructure_impl(port, ptr, rust_vec_len, data_len),
-        83 => wire__crate__api__prepare_send_impl(port, ptr, rust_vec_len, data_len),
-        84 => wire__crate__api__prepare_send_multi_impl(port, ptr, rust_vec_len, data_len),
-        85 => wire__crate__api__prepare_split_erg_impl(port, ptr, rust_vec_len, data_len),
-        86 => wire__crate__api__prepare_split_token_impl(port, ptr, rust_vec_len, data_len),
-        87 => wire__crate__api__probe_network_impl(port, ptr, rust_vec_len, data_len),
-        88 => {
+        94 => wire__crate__api__list_unspent_boxes_impl(port, ptr, rust_vec_len, data_len),
+        96 => wire__crate__api__preparation_details_impl(port, ptr, rust_vec_len, data_len),
+        97 => wire__crate__api__prepare_burn_impl(port, ptr, rust_vec_len, data_len),
+        98 => wire__crate__api__prepare_consolidate_impl(port, ptr, rust_vec_len, data_len),
+        99 => wire__crate__api__prepare_mint_impl(port, ptr, rust_vec_len, data_len),
+        100 => wire__crate__api__prepare_restructure_impl(port, ptr, rust_vec_len, data_len),
+        101 => wire__crate__api__prepare_send_impl(port, ptr, rust_vec_len, data_len),
+        102 => wire__crate__api__prepare_send_multi_impl(port, ptr, rust_vec_len, data_len),
+        103 => wire__crate__api__prepare_split_erg_impl(port, ptr, rust_vec_len, data_len),
+        104 => wire__crate__api__prepare_split_token_impl(port, ptr, rust_vec_len, data_len),
+        105 => wire__crate__api__probe_network_impl(port, ptr, rust_vec_len, data_len),
+        106 => {
             wire__crate__api__storage_rent__rent_parameters_impl(port, ptr, rust_vec_len, data_len)
         }
-        89 => wire__crate__api__send_erg_impl(port, ptr, rust_vec_len, data_len),
-        90 => wire__crate__api__set_network_impl(port, ptr, rust_vec_len, data_len),
-        92 => wire__crate__api__sign_preparation_impl(port, ptr, rust_vec_len, data_len),
-        93 => wire__crate__api__sign_reduced_transaction_impl(port, ptr, rust_vec_len, data_len),
-        95 => wire__crate__api__submit_signed_transaction_impl(port, ptr, rust_vec_len, data_len),
-        96 => wire__crate__api__unwrap_key_with_pin_impl(port, ptr, rust_vec_len, data_len),
-        97 => wire__crate__api__validate_ergo_address_impl(port, ptr, rust_vec_len, data_len),
-        98 => wire__crate__api__walk_singleton_lineage_impl(port, ptr, rust_vec_len, data_len),
-        99 => wire__crate__api__wallet_create_impl(port, ptr, rust_vec_len, data_len),
-        100 => wire__crate__api__wallet_is_unlocked_impl(port, ptr, rust_vec_len, data_len),
-        101 => wire__crate__api__wallet_lock_impl(port, ptr, rust_vec_len, data_len),
-        102 => wire__crate__api__wallet_owns_address_impl(port, ptr, rust_vec_len, data_len),
-        103 => wire__crate__api__wallet_restore_impl(port, ptr, rust_vec_len, data_len),
-        104 => wire__crate__api__wrap_key_with_pin_impl(port, ptr, rust_vec_len, data_len),
+        107 => wire__crate__api__send_erg_impl(port, ptr, rust_vec_len, data_len),
+        108 => wire__crate__api__set_network_impl(port, ptr, rust_vec_len, data_len),
+        110 => wire__crate__api__sign_preparation_impl(port, ptr, rust_vec_len, data_len),
+        111 => wire__crate__api__sign_reduced_transaction_impl(port, ptr, rust_vec_len, data_len),
+        113 => wire__crate__api__submit_signed_transaction_impl(port, ptr, rust_vec_len, data_len),
+        114 => wire__crate__api__unwrap_key_with_pin_impl(port, ptr, rust_vec_len, data_len),
+        115 => wire__crate__api__validate_ergo_address_impl(port, ptr, rust_vec_len, data_len),
+        116 => wire__crate__api__walk_singleton_lineage_impl(port, ptr, rust_vec_len, data_len),
+        117 => wire__crate__api__wallet_create_impl(port, ptr, rust_vec_len, data_len),
+        118 => wire__crate__api__wallet_is_unlocked_impl(port, ptr, rust_vec_len, data_len),
+        119 => wire__crate__api__wallet_lock_impl(port, ptr, rust_vec_len, data_len),
+        120 => wire__crate__api__wallet_owns_address_impl(port, ptr, rust_vec_len, data_len),
+        121 => wire__crate__api__wallet_restore_impl(port, ptr, rust_vec_len, data_len),
+        122 => wire__crate__api__wrap_key_with_pin_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -5939,112 +6886,121 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        2 => wire__crate__api__cancel_token_metadata_impl(ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__celaut_home__celaut_balancer_default_weights_impl(
+        2 => wire__crate__api__btc__btc_cancel_impl(ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__btc__btc_default_server_impl(ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__btc__btc_is_address_impl(ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__btc__btc_networks_impl(ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__cancel_token_metadata_impl(ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__celaut_home__celaut_balancer_default_weights_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        5 => {
+        15 => {
             wire__crate__api__celaut_home__celaut_balancer_weights_impl(ptr, rust_vec_len, data_len)
         }
-        6 => wire__crate__api__celaut_package__celaut_cancel_transfer_impl(
+        23 => wire__crate__api__celaut_btc_deposit__celaut_btc_sent_deposits_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        15 => wire__crate__api__celaut_env__celaut_env_delete_impl(ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__celaut_env__celaut_env_get_impl(ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__celaut_env__celaut_env_names_impl(ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__celaut_env__celaut_env_set_impl(ptr, rust_vec_len, data_len),
-        19 => {
+        24 => wire__crate__api__celaut_package__celaut_cancel_transfer_impl(
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        33 => wire__crate__api__celaut_env__celaut_env_delete_impl(ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__celaut_env__celaut_env_get_impl(ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__celaut_env__celaut_env_names_impl(ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__celaut_env__celaut_env_set_impl(ptr, rust_vec_len, data_len),
+        37 => {
             wire__crate__api__celaut_env__celaut_env_set_sensitive_impl(ptr, rust_vec_len, data_len)
         }
-        20 => wire__crate__api__celaut_receipts__celaut_export_receipts_impl(
+        38 => wire__crate__api__celaut_receipts__celaut_export_receipts_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__celaut_service__celaut_forget_instance_impl(
+        40 => wire__crate__api__celaut_service__celaut_forget_instance_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => {
+        44 => {
             wire__crate__api__celaut_service__celaut_instance_plan_impl(ptr, rust_vec_len, data_len)
         }
-        27 => wire__crate__api__celaut_receipts__celaut_instance_receipts_impl(
+        45 => wire__crate__api__celaut_receipts__celaut_instance_receipts_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__celaut_service__celaut_instances_impl(ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__celaut_home__celaut_known_nodes_impl(ptr, rust_vec_len, data_len),
-        31 => {
+        47 => wire__crate__api__celaut_service__celaut_instances_impl(ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__celaut_home__celaut_known_nodes_impl(ptr, rust_vec_len, data_len),
+        49 => {
             wire__crate__api__celaut_service__celaut_name_instance_impl(ptr, rust_vec_len, data_len)
         }
-        32 => {
+        50 => {
             wire__crate__api__celaut_network__celaut_network_proxy_impl(ptr, rust_vec_len, data_len)
         }
-        33 => wire__crate__api__celaut_network__celaut_network_status_impl(
+        51 => wire__crate__api__celaut_network__celaut_network_status_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => {
+        53 => {
             wire__crate__api__celaut_db__celaut_new_database_key_impl(ptr, rust_vec_len, data_len)
         }
-        36 => {
+        54 => {
             wire__crate__api__celaut_health__celaut_nodes_health_impl(ptr, rust_vec_len, data_len)
         }
-        39 => wire__crate__api__celaut_package__celaut_packages_impl(ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__celaut_home__celaut_remove_node_impl(ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__celaut_service__celaut_rename_instance_impl(
+        57 => wire__crate__api__celaut_package__celaut_packages_impl(ptr, rust_vec_len, data_len),
+        60 => wire__crate__api__celaut_home__celaut_remove_node_impl(ptr, rust_vec_len, data_len),
+        62 => wire__crate__api__celaut_service__celaut_rename_instance_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => {
+        64 => {
             wire__crate__api__celaut_deposit__celaut_sent_deposits_impl(ptr, rust_vec_len, data_len)
         }
-        48 => wire__crate__api__celaut_home__celaut_set_balancer_weights_impl(
+        66 => wire__crate__api__celaut_home__celaut_set_balancer_weights_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => wire__crate__api__celaut_service__celaut_set_instance_pricing_impl(
+        68 => wire__crate__api__celaut_service__celaut_set_instance_pricing_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        51 => wire__crate__api__celaut_service__celaut_set_instance_title_impl(
+        69 => wire__crate__api__celaut_service__celaut_set_instance_title_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        52 => wire__crate__api__celaut_service__celaut_set_keep_alive_impl(
+        70 => wire__crate__api__celaut_service__celaut_set_keep_alive_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => wire__crate__api__celaut_home__celaut_set_node_priority_impl(
+        72 => wire__crate__api__celaut_home__celaut_set_node_priority_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        55 => {
+        73 => {
             wire__crate__api__celaut_home__celaut_set_node_trusted_impl(ptr, rust_vec_len, data_len)
         }
-        61 => wire__crate__api__celaut_package__celaut_transfer_progress_impl(
+        79 => wire__crate__api__celaut_package__celaut_transfer_progress_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        77 => {
+        95 => {
             wire__crate__api__storage_rent__output_rent_estimate_impl(ptr, rust_vec_len, data_len)
         }
-        91 => wire__crate__api__mempool__set_spend_unconfirmed_impl(ptr, rust_vec_len, data_len),
-        94 => wire__crate__api__mempool__spend_unconfirmed_impl(ptr, rust_vec_len, data_len),
+        109 => wire__crate__api__mempool__set_spend_unconfirmed_impl(ptr, rust_vec_len, data_len),
+        112 => wire__crate__api__mempool__spend_unconfirmed_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -6096,6 +7052,264 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut_home::BalancerWeightsV
     for crate::api::celaut_home::BalancerWeightsView
 {
     fn into_into_dart(self) -> crate::api::celaut_home::BalancerWeightsView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::celaut_btc_deposit::BtcDepositDoneView {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.deposit_id.into_into_dart().into_dart(),
+            self.tx_id.into_into_dart().into_dart(),
+            self.accepted.into_into_dart().into_dart(),
+            self.node_message.into_into_dart().into_dart(),
+            self.client_balance_mu.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::celaut_btc_deposit::BtcDepositDoneView
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut_btc_deposit::BtcDepositDoneView>
+    for crate::api::celaut_btc_deposit::BtcDepositDoneView
+{
+    fn into_into_dart(self) -> crate::api::celaut_btc_deposit::BtcDepositDoneView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::celaut_btc_deposit::BtcDepositNodeView {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.peer_id.into_into_dart().into_dart(),
+            self.networks.into_into_dart().into_dart(),
+            self.accepts.into_into_dart().into_dart(),
+            self.reason.into_into_dart().into_dart(),
+            self.pay_to_address.into_into_dart().into_dart(),
+            self.mu_per_sat.into_into_dart().into_dart(),
+            self.confirmations.into_into_dart().into_dart(),
+            self.node_says_confirmations.into_into_dart().into_dart(),
+            self.client_balance_mu.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::celaut_btc_deposit::BtcDepositNodeView
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut_btc_deposit::BtcDepositNodeView>
+    for crate::api::celaut_btc_deposit::BtcDepositNodeView
+{
+    fn into_into_dart(self) -> crate::api::celaut_btc_deposit::BtcDepositNodeView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::celaut_btc_deposit::BtcDepositPreparedView {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.deposit_id.into_into_dart().into_dart(),
+            self.peer_id.into_into_dart().into_dart(),
+            self.pay_to_address.into_into_dart().into_dart(),
+            self.mu.into_into_dart().into_dart(),
+            self.confirmations.into_into_dart().into_dart(),
+            self.transaction.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::celaut_btc_deposit::BtcDepositPreparedView
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut_btc_deposit::BtcDepositPreparedView>
+    for crate::api::celaut_btc_deposit::BtcDepositPreparedView
+{
+    fn into_into_dart(self) -> crate::api::celaut_btc_deposit::BtcDepositPreparedView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::celaut_btc_deposit::BtcDepositSentView {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.deposit_id.into_into_dart().into_dart(),
+            self.peer_id.into_into_dart().into_dart(),
+            self.address.into_into_dart().into_dart(),
+            self.network.into_into_dart().into_dart(),
+            self.sat.into_into_dart().into_dart(),
+            self.mu.into_into_dart().into_dart(),
+            self.tx_id.into_into_dart().into_dart(),
+            self.confirmations.into_into_dart().into_dart(),
+            self.made_at.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::celaut_btc_deposit::BtcDepositSentView
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut_btc_deposit::BtcDepositSentView>
+    for crate::api::celaut_btc_deposit::BtcDepositSentView
+{
+    fn into_into_dart(self) -> crate::api::celaut_btc_deposit::BtcDepositSentView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::celaut_btc_deposit::BtcDepositStatusView {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.confirmations.into_into_dart().into_dart(),
+            self.needed.into_into_dart().into_dart(),
+            self.known.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::celaut_btc_deposit::BtcDepositStatusView
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut_btc_deposit::BtcDepositStatusView>
+    for crate::api::celaut_btc_deposit::BtcDepositStatusView
+{
+    fn into_into_dart(self) -> crate::api::celaut_btc_deposit::BtcDepositStatusView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::btc::BtcError {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.kind.into_into_dart().into_dart(),
+            self.message.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::btc::BtcError {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::btc::BtcError> for crate::api::btc::BtcError {
+    fn into_into_dart(self) -> crate::api::btc::BtcError {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::btc::BtcErrorKind {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Locked => 0.into_dart(),
+            Self::InvalidInput => 1.into_dart(),
+            Self::Address => 2.into_dart(),
+            Self::Funds => 3.into_dart(),
+            Self::Unreachable => 4.into_dart(),
+            Self::Server => 5.into_dart(),
+            Self::Transaction => 6.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::btc::BtcErrorKind {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::btc::BtcErrorKind>
+    for crate::api::btc::BtcErrorKind
+{
+    fn into_into_dart(self) -> crate::api::btc::BtcErrorKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::btc::BtcFeeRates {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.fast.into_into_dart().into_dart(),
+            self.normal.into_into_dart().into_dart(),
+            self.slow.into_into_dart().into_dart(),
+            self.estimated.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::btc::BtcFeeRates {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::btc::BtcFeeRates>
+    for crate::api::btc::BtcFeeRates
+{
+    fn into_into_dart(self) -> crate::api::btc::BtcFeeRates {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::btc::BtcPreparedView {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.to.into_into_dart().into_dart(),
+            self.amount_sat.into_into_dart().into_dart(),
+            self.fee_sat.into_into_dart().into_dart(),
+            self.fee_rate.into_into_dart().into_dart(),
+            self.change_sat.into_into_dart().into_dart(),
+            self.txid.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::btc::BtcPreparedView
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::btc::BtcPreparedView>
+    for crate::api::btc::BtcPreparedView
+{
+    fn into_into_dart(self) -> crate::api::btc::BtcPreparedView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::btc::BtcTxView {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.txid.into_into_dart().into_dart(),
+            self.net_sat.into_into_dart().into_dart(),
+            self.fee_sat.into_into_dart().into_dart(),
+            self.fee_known.into_into_dart().into_dart(),
+            self.confirmations.into_into_dart().into_dart(),
+            self.time.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::btc::BtcTxView {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::btc::BtcTxView> for crate::api::btc::BtcTxView {
+    fn into_into_dart(self) -> crate::api::btc::BtcTxView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::btc::BtcWalletView {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.network.into_into_dart().into_dart(),
+            self.server.into_into_dart().into_dart(),
+            self.receive_address.into_into_dart().into_dart(),
+            self.confirmed_sat.into_into_dart().into_dart(),
+            self.pending_sat.into_into_dart().into_dart(),
+            self.immature_sat.into_into_dart().into_dart(),
+            self.tip_height.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::btc::BtcWalletView
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::btc::BtcWalletView>
+    for crate::api::btc::BtcWalletView
+{
+    fn into_into_dart(self) -> crate::api::btc::BtcWalletView {
         self
     }
 }
@@ -7612,6 +8826,145 @@ impl SseEncode for bool {
     }
 }
 
+impl SseEncode for crate::api::celaut_btc_deposit::BtcDepositDoneView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.deposit_id, serializer);
+        <String>::sse_encode(self.tx_id, serializer);
+        <bool>::sse_encode(self.accepted, serializer);
+        <Option<String>>::sse_encode(self.node_message, serializer);
+        <String>::sse_encode(self.client_balance_mu, serializer);
+    }
+}
+
+impl SseEncode for crate::api::celaut_btc_deposit::BtcDepositNodeView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.peer_id, serializer);
+        <Vec<String>>::sse_encode(self.networks, serializer);
+        <bool>::sse_encode(self.accepts, serializer);
+        <String>::sse_encode(self.reason, serializer);
+        <String>::sse_encode(self.pay_to_address, serializer);
+        <String>::sse_encode(self.mu_per_sat, serializer);
+        <u32>::sse_encode(self.confirmations, serializer);
+        <bool>::sse_encode(self.node_says_confirmations, serializer);
+        <String>::sse_encode(self.client_balance_mu, serializer);
+    }
+}
+
+impl SseEncode for crate::api::celaut_btc_deposit::BtcDepositPreparedView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.deposit_id, serializer);
+        <String>::sse_encode(self.peer_id, serializer);
+        <String>::sse_encode(self.pay_to_address, serializer);
+        <String>::sse_encode(self.mu, serializer);
+        <u32>::sse_encode(self.confirmations, serializer);
+        <crate::api::btc::BtcPreparedView>::sse_encode(self.transaction, serializer);
+    }
+}
+
+impl SseEncode for crate::api::celaut_btc_deposit::BtcDepositSentView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.deposit_id, serializer);
+        <String>::sse_encode(self.peer_id, serializer);
+        <String>::sse_encode(self.address, serializer);
+        <String>::sse_encode(self.network, serializer);
+        <u64>::sse_encode(self.sat, serializer);
+        <String>::sse_encode(self.mu, serializer);
+        <String>::sse_encode(self.tx_id, serializer);
+        <u32>::sse_encode(self.confirmations, serializer);
+        <i64>::sse_encode(self.made_at, serializer);
+    }
+}
+
+impl SseEncode for crate::api::celaut_btc_deposit::BtcDepositStatusView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u32>::sse_encode(self.confirmations, serializer);
+        <u32>::sse_encode(self.needed, serializer);
+        <bool>::sse_encode(self.known, serializer);
+    }
+}
+
+impl SseEncode for crate::api::btc::BtcError {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::btc::BtcErrorKind>::sse_encode(self.kind, serializer);
+        <String>::sse_encode(self.message, serializer);
+    }
+}
+
+impl SseEncode for crate::api::btc::BtcErrorKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::btc::BtcErrorKind::Locked => 0,
+                crate::api::btc::BtcErrorKind::InvalidInput => 1,
+                crate::api::btc::BtcErrorKind::Address => 2,
+                crate::api::btc::BtcErrorKind::Funds => 3,
+                crate::api::btc::BtcErrorKind::Unreachable => 4,
+                crate::api::btc::BtcErrorKind::Server => 5,
+                crate::api::btc::BtcErrorKind::Transaction => 6,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::btc::BtcFeeRates {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <f64>::sse_encode(self.fast, serializer);
+        <f64>::sse_encode(self.normal, serializer);
+        <f64>::sse_encode(self.slow, serializer);
+        <bool>::sse_encode(self.estimated, serializer);
+    }
+}
+
+impl SseEncode for crate::api::btc::BtcPreparedView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.id, serializer);
+        <String>::sse_encode(self.to, serializer);
+        <u64>::sse_encode(self.amount_sat, serializer);
+        <u64>::sse_encode(self.fee_sat, serializer);
+        <f64>::sse_encode(self.fee_rate, serializer);
+        <u64>::sse_encode(self.change_sat, serializer);
+        <String>::sse_encode(self.txid, serializer);
+    }
+}
+
+impl SseEncode for crate::api::btc::BtcTxView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.txid, serializer);
+        <i64>::sse_encode(self.net_sat, serializer);
+        <u64>::sse_encode(self.fee_sat, serializer);
+        <bool>::sse_encode(self.fee_known, serializer);
+        <u32>::sse_encode(self.confirmations, serializer);
+        <u64>::sse_encode(self.time, serializer);
+    }
+}
+
+impl SseEncode for crate::api::btc::BtcWalletView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.network, serializer);
+        <String>::sse_encode(self.server, serializer);
+        <String>::sse_encode(self.receive_address, serializer);
+        <u64>::sse_encode(self.confirmed_sat, serializer);
+        <u64>::sse_encode(self.pending_sat, serializer);
+        <u64>::sse_encode(self.immature_sat, serializer);
+        <u32>::sse_encode(self.tip_height, serializer);
+    }
+}
+
 impl SseEncode for crate::api::celaut_home::BytesTotalView {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -7976,6 +9329,26 @@ impl SseEncode for Vec<crate::api::celaut_service_info::ApiSlotView> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::api::celaut_service_info::ApiSlotView>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::celaut_btc_deposit::BtcDepositSentView> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::celaut_btc_deposit::BtcDepositSentView>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::btc::BtcTxView> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::btc::BtcTxView>::sse_encode(item, serializer);
         }
     }
 }

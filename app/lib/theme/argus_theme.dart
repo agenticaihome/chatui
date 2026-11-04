@@ -412,6 +412,17 @@ const ergoPalette = PaletteSpec(
   accent: Color(0xFFFF5E18), onAccent: Color(0xFF1A0A02), accentText: Color(0xFFFF8A55),
 );
 
+/// The Bitcoin wallet (issue #92): a blue-black page under Bitcoin orange (#F7931A), so it
+/// reads as Bitcoin and not as the Ergo part (black and Ergo's red-orange). Like
+/// [ergoPalette], it is not in [allPalettes]: the app shows it while the Bitcoin wallet
+/// is open.
+const bitcoinPalette = PaletteSpec(
+  id: 'bitcoin', name: 'Bitcoin', hint: 'Blue-black, Bitcoin orange', brightness: Brightness.dark,
+  background: Color(0xFF0D1117), surface: Color(0xFF161B24), surfaceHigh: Color(0xFF1F2632), ink: Color(0xFFF3F1EC), muted: Color(0xFFA2A8B3),
+  outline: Color(0xFF333B48), cardBorder: Color(0xFF262D39), chip: Color(0xFF1A202B),
+  accent: Color(0xFFF7931A), onAccent: Color(0xFF1C1003), accentText: Color(0xFFFFAD4D),
+);
+
 const allPalettes = [
   watchfulPalette,
   ledgerPalette,

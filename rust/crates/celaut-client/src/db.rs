@@ -285,6 +285,33 @@ pub struct DepositRecord {
     pub stage: DepositStage,
 }
 
+/// A deposit in BTC to a node (issue #92). The token goes in an `OP_RETURN` output, and
+/// `Payable` waits for [`BtcDepositRecord::confirmations`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BtcDepositRecord {
+    pub peer_id: String,
+    /// The address (`host:port`) of the node when the deposit was made.
+    pub address: String,
+    /// The deposit token in the `OP_RETURN` output.
+    pub deposit_token: String,
+    /// The Bitcoin network (`mainnet`, `testnet`, `signet`, `regtest`).
+    pub network: String,
+    /// The Esplora server that the app asks about the transaction.
+    pub server: String,
+    pub sat: u64,
+    /// The MU that the amount buys on the node.
+    pub mu: String,
+    /// The address that receives the deposit.
+    pub pay_to_address: String,
+    /// The id of the transaction: a segwit id is known before the signature.
+    pub tx_id: String,
+    /// The confirmations to wait for before `Payable`.
+    pub confirmations: u32,
+    /// The time of the preparation, in Unix seconds.
+    pub made_at: i64,
+    pub stage: DepositStage,
+}
+
 /// The last quote of a node for a service.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QuoteRecord {
@@ -337,6 +364,9 @@ pub struct CelautData {
     /// The deposits, by local deposit id.
     #[serde(default)]
     pub deposits: BTreeMap<String, DepositRecord>,
+    /// The deposits in BTC, by local deposit id (issue #92).
+    #[serde(default)]
+    pub btc_deposits: BTreeMap<String, BtcDepositRecord>,
     /// The last quotes, the oldest first.
     #[serde(default)]
     pub quotes: Vec<QuoteRecord>,

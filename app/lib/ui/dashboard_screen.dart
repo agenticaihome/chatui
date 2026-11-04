@@ -26,6 +26,7 @@ import '../theme/argus_theme.dart';
 import '../theme/theme_controller.dart';
 import 'assets_screen.dart';
 import '../celaut/wallet_money.dart';
+import 'bitcoin/bitcoin_wallet_screen.dart';
 import 'celaut/deposit_screen.dart';
 import 'celaut/home_tabs.dart';
 import 'create_wallet_screen.dart';
@@ -957,6 +958,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               : WalletSummaryScreen(
                   model: _overview,
                   onDetails: () => _openWallet(WalletRef.seed(_overview.wallets.first.walletId)),
+                  onBitcoin: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(builder: (_) => const BitcoinWalletScreen()),
+                  ),
                 ),
         );
       },

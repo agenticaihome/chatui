@@ -81,6 +81,15 @@ state contexts built from recorded `/blocks/lastHeaders/10` responses in
 
 The route code has no other dependency: the SOCKS5 client and server are in `crates/celaut-net`.
 
+## Bitcoin (issue #92)
+
+| Crate | Version | Rationale |
+|-------|---------|-----------|
+| `bdk_wallet` | `=3.2.0`, no default features, with `std` | The Bitcoin wallet in `crates/wallet-btc`: descriptors, the chain graph, coin selection, PSBT and finalizing. MIT OR Apache-2.0. It brings `bitcoin` 0.32, `miniscript` 12, `secp256k1` 0.29 (libsecp256k1 in C, built by `cc`; it builds with the NDK) and `bdk_chain`/`bdk_core`. No `bdk_esplora` and no `esplora-client`: they bring reqwest 0.12, a second HTTP and TLS stack that does not follow the network route of the app. `wallet-btc::esplora` makes the few Esplora calls with `wallet_net::http`, and `wallet-btc::scan` is the full scan of `bdk_esplora` 0.22.3 on top of it |
+
+`miniscript` is held at 12.3.7 (2026-05-27) in `Cargo.lock`: 12.3.8 was eight days old
+when the wallet was added. `cargo update -p miniscript` moves it.
+
 ## Vendored Citadel crates (path deps)
 
 All vendored from `github.com/arkadianet/citadel` commit `f533f15`.

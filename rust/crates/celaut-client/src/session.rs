@@ -15,7 +15,7 @@ use celaut_wire::gateway::{
 };
 use celaut_wire::{Transport, WireError};
 
-use crate::deposit::{check_deposit_token, ErgPayment};
+use crate::deposit::{check_deposit_token, BtcPayment, ErgPayment};
 use crate::{fetch_node_info_as, obtain_client_id, ClientError, NodeInfo, PeerStore};
 
 /// A service instance that this client started.
@@ -318,6 +318,17 @@ impl<T: Transport> NodeSession<T> {
     /// The ERG payment contract of the node, from the checked advertisement.
     pub fn erg_payment(&self) -> Result<ErgPayment, ClientError> {
         Ok(ErgPayment::of(&self.info.peer)?)
+    }
+
+    /// The Bitcoin networks on which the node takes BTC, from the checked advertisement.
+    pub fn btc_networks(&self) -> Vec<String> {
+        BtcPayment::networks(&self.info.peer)
+    }
+
+    /// The BTC payment contract of the node on the Bitcoin network `network`, from the
+    /// checked advertisement.
+    pub fn btc_payment(&self, network: &str) -> Result<BtcPayment, ClientError> {
+        Ok(BtcPayment::of(&self.info.peer, network)?)
     }
 
     /// `GenerateDepositToken` for this client. The node only writes the token in its

@@ -1,0 +1,419 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+
+import '../../bitcoin/bitcoin_settings.dart';
+import '../../bitcoin/bitcoin_wallet_api.dart';
+import '../../bitcoin/btc_format.dart';
+import '../../bridge/api/btc.dart';
+import '../../l10n/l10n.dart';
+import '../../theme/argus_theme.dart';
+import '../../theme/theme_controller.dart';
+import '../widgets/soft_card.dart';
+import 'bitcoin_send_screen.dart';
+import 'bitcoin_settings_screen.dart';
+import 'btc_deposit_screen.dart';
+
+/// The text of a Bitcoin error for the user.
+String btcErrorText(BuildContext context, Object e) {
+  final l = context.l10n;
+  if (e is BtcError) {
+    return switch (e.kind) {
+      BtcErrorKind.locked => l.btcErrLocked,
+      BtcErrorKind.funds => l.btcErrFunds,
+      BtcErrorKind.unreachable => l.btcErrUnreachable,
+      _ => l.btcErrOther(e.message),
+    };
+  }
+  return l.btcErrOther(e.toString());
+}
+
+/// Shows the Bitcoin look ([bitcoinPalette]) while [child]'s route is open. The flag
+/// changes after a frame: the app rebuilds on it, and a build must not start another.
+class BitcoinLook extends StatefulWidget {
+  const BitcoinLook({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<BitcoinLook> createState() => _BitcoinLookState();
+}
+
+class _BitcoinLookState extends State<BitcoinLook> {
+  static int _open = 0;
+
+  static void _apply() {
+    SchedulerBinding.instance.addPostFrameCallback((_) => bitcoinThemeActive.value = _open > 0);
+    SchedulerBinding.instance.scheduleFrame();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _open++;
+    _apply();
+  }
+
+  @override
+  void dispose() {
+    _open--;
+    _apply();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// The Bitcoin wallet (issue #92): the balance, receive, send, a deposit to a node, and
+/// the history. It has its own look ([bitcoinPalette]), as the Ergo part has its own.
+class BitcoinWalletScreen extends StatefulWidget {
+  const BitcoinWalletScreen({super.key, this.wallet = const AppBitcoinWallet()});
+
+  final BitcoinWallet wallet;
+
+  @override
+  State<BitcoinWalletScreen> createState() => _BitcoinWalletScreenState();
+}
+
+class _BitcoinWalletScreenState extends State<BitcoinWalletScreen> {
+  BtcWalletView? _view;
+  List<BtcTxView> _txs = const [];
+  Object? _error;
+  bool _locked = false;
+  bool _syncing = false;
+
+  BitcoinWallet get _w => widget.wallet;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _open());
+  }
+
+  Future<void> _open() async {
+    setState(() {
+      _error = null;
+      _locked = false;
+    });
+    if (!await _w.unlock(context)) {
+      if (mounted) setState(() => _locked = true);
+      return;
+    }
+    try {
+      final view = await _w.open();
+      if (!mounted) return;
+      setState(() => _view = view);
+      await _sync();
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+    }
+  }
+
+  Future<void> _sync() async {
+    if (_syncing) return;
+    setState(() {
+      _syncing = true;
+      _error = null;
+    });
+    try {
+      final view = await _w.sync();
+      final txs = await _w.transactions();
+      if (!mounted) return;
+      setState(() {
+        _view = view;
+        _txs = txs;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
+  }
+
+  Future<void> _settings() async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => BitcoinSettingsScreen(settings: _w.settings)),
+    );
+    if (changed == true && mounted) {
+      setState(() {
+        _view = null;
+        _txs = const [];
+      });
+      await _open();
+    }
+  }
+
+  Future<void> _send() async {
+    final txid = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => BitcoinSendScreen(wallet: _w)),
+    );
+    if (txid != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.btcSent(txid))));
+      await _sync();
+    }
+  }
+
+  Future<void> _deposit() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => BtcDepositScreen(wallet: _w)),
+    );
+    if (mounted) await _sync();
+  }
+
+  void _receive(String address, String network) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      builder: (ctx) => _ReceiveSheet(address: address, network: network),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final view = _view;
+    return BitcoinLook(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l.btcTitle),
+          actions: [
+            IconButton(
+              key: const Key('btc-refresh'),
+              tooltip: l.btcRefresh,
+              onPressed: view == null || _syncing ? null : _sync,
+              icon: const Icon(Icons.refresh),
+            ),
+            IconButton(
+              key: const Key('btc-settings'),
+              tooltip: l.btcSettingsTitle,
+              onPressed: _settings,
+              icon: const Icon(Icons.tune),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: view == null ? _open : _sync,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (_syncing) const LinearProgressIndicator(key: Key('btc-syncing')),
+                if (_locked) _lockedCard(context),
+                if (view != null) ...[
+                  _networkNote(context, view),
+                  const SizedBox(height: 12),
+                  _balanceCard(context, view),
+                  const SizedBox(height: 12),
+                  _actions(context, view),
+                ],
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  _errorCard(context, _error!),
+                ],
+                if (view != null) ...[
+                  const SizedBox(height: 20),
+                  SectionLabel(l.btcHistory),
+                  const SizedBox(height: 8),
+                  _history(context),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _lockedCard(BuildContext context) {
+    final l = context.l10n;
+    return SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l.btcLocked, key: const Key('btc-locked')),
+          const SizedBox(height: 12),
+          FilledButton(key: const Key('btc-unlock'), onPressed: _open, child: Text(l.btcUnlock)),
+        ],
+      ),
+    );
+  }
+
+  Widget _networkNote(BuildContext context, BtcWalletView view) {
+    final l = context.l10n;
+    final network = BtcNetworkName.parse(view.network);
+    final real = network?.real ?? false;
+    return Row(
+      key: const Key('btc-network'),
+      children: [
+        Icon(real ? Icons.warning_amber_rounded : Icons.science_outlined, size: 18, color: accentOf(context)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            real ? l.btcMainnetNote : l.btcTestNetwork(view.network),
+            style: TextStyle(color: ArgusColors.of(context).muted, fontSize: 13),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _balanceCard(BuildContext context, BtcWalletView view) {
+    final l = context.l10n;
+    final muted = ArgusColors.of(context).muted;
+    final confirmed = view.confirmedSat.toInt();
+    final pending = view.pendingSat.toInt();
+    final immature = view.immatureSat.toInt();
+    return SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l.btcConfirmed, style: TextStyle(color: muted, fontSize: 13)),
+          const SizedBox(height: 4),
+          Text(
+            '${formatBtc(confirmed)} BTC',
+            key: const Key('btc-balance'),
+            style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w600),
+          ),
+          Text(formatSat(confirmed), style: TextStyle(color: muted)),
+          if (pending > 0) ...[
+            const SizedBox(height: 6),
+            Text(l.btcPending(formatBtc(pending)), key: const Key('btc-pending')),
+          ],
+          if (immature > 0) ...[
+            const SizedBox(height: 6),
+            Text(l.btcImmature(formatBtc(immature)), key: const Key('btc-immature')),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _actions(BuildContext context, BtcWalletView view) {
+    final l = context.l10n;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        FilledButton.icon(
+          key: const Key('btc-receive'),
+          style: FilledButton.styleFrom(minimumSize: const Size(88, 48)),
+          onPressed: () => _receive(view.receiveAddress, view.network),
+          icon: const Icon(Icons.call_received),
+          label: Text(l.btcReceive),
+        ),
+        FilledButton.icon(
+          key: const Key('btc-send'),
+          style: FilledButton.styleFrom(minimumSize: const Size(88, 48)),
+          onPressed: _send,
+          icon: const Icon(Icons.call_made),
+          label: Text(l.btcSend),
+        ),
+        OutlinedButton.icon(
+          key: const Key('btc-deposit'),
+          style: OutlinedButton.styleFrom(minimumSize: const Size(88, 48)),
+          onPressed: _deposit,
+          icon: const Icon(Icons.savings_outlined),
+          label: Text(l.btcDepositAction),
+        ),
+      ],
+    );
+  }
+
+  Widget _history(BuildContext context) {
+    final l = context.l10n;
+    final muted = ArgusColors.of(context).muted;
+    if (_txs.isEmpty) {
+      return Text(l.btcNoHistory, key: const Key('btc-no-history'), style: TextStyle(color: muted));
+    }
+    return SoftCard(
+      padding: EdgeInsets.zero,
+      child: DividedColumn(
+        indent: 16,
+        children: [
+          for (final t in _txs)
+            ListTile(
+              key: Key('btc-tx-${t.txid}'),
+              leading: Icon(t.netSat >= 0 ? Icons.call_received : Icons.call_made),
+              title: Text('${t.netSat >= 0 ? '+' : ''}${formatBtc(t.netSat)} BTC'),
+              subtitle: Text(
+                [
+                  t.confirmations == 0 ? l.btcUnconfirmed : l.btcConfirmations(t.confirmations.toString()),
+                  if (t.time > BigInt.zero)
+                    DateTime.fromMillisecondsSinceEpoch(t.time.toInt() * 1000).toLocal().toString().substring(0, 16),
+                ].join(' · '),
+              ),
+              trailing: Text('${t.txid.substring(0, 6)}…', style: TextStyle(color: muted, fontSize: 12)),
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: t.txid));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.btcTxCopied)));
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _errorCard(BuildContext context, Object e) {
+    return SoftCard(
+      child: Text(btcErrorText(context, e), key: const Key('btc-error'), style: TextStyle(color: rustFor(context))),
+    );
+  }
+}
+
+class _ReceiveSheet extends StatelessWidget {
+  const _ReceiveSheet({required this.address, required this.network});
+
+  final String address;
+  final String network;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l.btcReceiveTitle, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 16),
+            Container(
+              color: paper,
+              padding: const EdgeInsets.all(14),
+              child: QrImageView(
+                data: 'bitcoin:$address',
+                semanticsLabel: address,
+                size: 200,
+                backgroundColor: paper,
+                padding: EdgeInsets.zero,
+                eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: ink),
+                dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: ink),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SelectableText(address, key: const Key('btc-address'), textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(
+              l.btcReceiveNote(network),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: ArgusColors.of(context).muted, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              key: const Key('btc-copy-address'),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: address));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.btcAddressCopied)));
+              },
+              icon: const Icon(Icons.copy),
+              label: Text(l.btcCopyAddress),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

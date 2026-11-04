@@ -60,7 +60,7 @@ use celaut_wire::gateway::{generate_client, get_peer_info, GenerateClientReply};
 use celaut_wire::{ConnectOptions, Connection, Transport, WireError};
 
 pub use db::{CelautData, CelautDb, DbError};
-pub use deposit::{DepositBox, DepositError, ErgPayment};
+pub use deposit::{BtcPayment, DepositBox, DepositError, ErgPayment};
 pub use health::{Availability, Health};
 pub use local_port::LocalPort;
 pub use peer::PeerError;

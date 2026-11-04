@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'bitcoin/bitcoin_settings.dart';
 import 'celaut/auto_top_up.dart';
 import 'celaut/background_work.dart';
 import 'celaut/chat_groups.dart';
@@ -59,6 +60,7 @@ Widget? appPage(String? name) => switch (name) {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   themeController.load().catchError((_) {});
+  bitcoinSettings.load().catchError((_) {});
   // Independent preference loads; run them together so the first frame
   // waits on the slowest one instead of the sum.
   await Future.wait<void>([
@@ -122,9 +124,14 @@ class _ArgusAppState extends State<ArgusApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([themeController, ergoThemeActive]),
+      listenable: Listenable.merge([themeController, ergoThemeActive, bitcoinThemeActive]),
       builder: (context, _) {
-        final ergo = ergoThemeActive.value;
+        // The Bitcoin wallet opens over the Ergo part, so its look comes first.
+        final fixed = bitcoinThemeActive.value
+            ? bitcoinPalette
+            : ergoThemeActive.value
+                ? ergoPalette
+                : null;
         return MaterialApp(
           onGenerateTitle: (context) => context.l10n.appTitle,
           navigatorKey: navigatorKey,
@@ -137,10 +144,11 @@ class _ArgusAppState extends State<ArgusApp> with WidgetsBindingObserver {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           debugShowCheckedModeBanner: false,
-          // The Ergo part always has its own look (`ergoThemeActive`).
-          theme: ergo ? argusThemeFor(ergoPalette) : themeController.lightTheme,
-          darkTheme: ergo ? argusThemeFor(ergoPalette) : themeController.darkTheme,
-          themeMode: ergo ? ThemeMode.dark : themeController.themeMode,
+          // The Ergo part and the Bitcoin wallet always have their own look
+          // (`ergoThemeActive`, `bitcoinThemeActive`).
+          theme: fixed != null ? argusThemeFor(fixed) : themeController.lightTheme,
+          darkTheme: fixed != null ? argusThemeFor(fixed) : themeController.darkTheme,
+          themeMode: fixed != null ? ThemeMode.dark : themeController.themeMode,
           // Densities in the wallet card assume at most ~1.6x text; larger
           // system font scales would overflow fixed rows.
           // Every route sees live wallet context through WalletArgsScope, so

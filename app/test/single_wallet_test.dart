@@ -101,6 +101,8 @@ void main() {
       expect(find.byKey(const Key('wallet-summary')), findsOneWidget);
       expect(find.byKey(const Key('summary-balance')), findsOneWidget);
       expect(find.byKey(const Key('wallet-summary-empty')), findsOneWidget);
+      // The Bitcoin wallet of the same words opens from here too (issue #92).
+      expect(find.byKey(const Key('wallet-bitcoin')), findsOneWidget);
       // Nothing else is on the tab: no actions, no deposit, no list of wallets.
       expect(find.byKey(const Key('place-deposit')), findsNothing);
       expect(find.byKey(const Key('overview-action-send')), findsNothing);

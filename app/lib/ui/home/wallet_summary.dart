@@ -21,13 +21,16 @@ import 'overview_model.dart';
 /// Nothing here needs an unlock: a locked wallet shows the figures of its public snapshot,
 /// and its latest transactions come from the same refresh.
 class WalletSummaryScreen extends StatelessWidget {
-  const WalletSummaryScreen({super.key, required this.model, required this.onDetails});
+  const WalletSummaryScreen({super.key, required this.model, required this.onDetails, this.onBitcoin});
 
   final WalletsOverviewModel model;
 
   /// Opens the page of the wallet, the details. A locked wallet asks the phone to unlock
   /// first, as it does from anywhere.
   final VoidCallback onDetails;
+
+  /// Opens the Bitcoin wallet of the same words (issue #92). Null: no button.
+  final VoidCallback? onBitcoin;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +84,15 @@ class WalletSummaryScreen extends StatelessWidget {
                           iconAlignment: IconAlignment.end,
                           label: Text(l.walletSummaryDetails),
                         ),
+                        if (onBitcoin != null) ...[
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            key: const Key('wallet-bitcoin'),
+                            onPressed: onBitcoin,
+                            icon: const Icon(Icons.currency_bitcoin),
+                            label: Text(l.btcWalletButton),
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         Text(l.walletSummaryLatest.toUpperCase(), style: t.label),
                       ],

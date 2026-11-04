@@ -13,6 +13,10 @@ enum ArgusThemeMode { system, light, dark }
 /// that opens from it): the app then shows [ergoPalette] whatever the user chose.
 final ValueNotifier<bool> ergoThemeActive = ValueNotifier<bool>(false);
 
+/// True while the Bitcoin wallet is open (issue #92): the app then shows [bitcoinPalette].
+/// It wins over [ergoThemeActive], because the Bitcoin pages open over the Ergo part.
+final ValueNotifier<bool> bitcoinThemeActive = ValueNotifier<bool>(false);
+
 class ThemeController extends ChangeNotifier {
   static const _key = 'argus_palette';
   static const _modeKey = 'argus_theme_mode';

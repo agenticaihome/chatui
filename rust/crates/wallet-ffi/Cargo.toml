@@ -12,6 +12,7 @@ crate-type = ["cdylib", "staticlib"]
 [dependencies]
 wallet-core = { path = "../wallet-core" }
 wallet-net = { path = "../wallet-net" }
+wallet-btc = { workspace = true }
 celaut-client = { path = "../celaut-client" }
 celaut-balancer = { workspace = true }
 celaut-catalog = { workspace = true }

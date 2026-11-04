@@ -5127,5 +5127,268 @@
         "type": "String"
       }
     }
-  }
+  },
+  "btcTitle": "Bitcoin",
+  "btcRefresh": "Read again",
+  "btcLocked": "Unlock the wallet to open the Bitcoin wallet.",
+  "btcUnlock": "Unlock",
+  "btcTestNetwork": "{network}: a test network. These coins have no value.",
+  "@btcTestNetwork": {
+    "placeholders": {
+      "network": {
+        "type": "String"
+      }
+    }
+  },
+  "btcMainnetNote": "Mainnet: real bitcoin. A send cannot be undone.",
+  "btcConfirmed": "Confirmed",
+  "btcPending": "{amount} BTC not confirmed yet",
+  "@btcPending": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "btcImmature": "{amount} BTC mined, not mature yet",
+  "@btcImmature": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "btcReceive": "Receive",
+  "btcSend": "Send",
+  "btcDepositAction": "Deposit to a node",
+  "btcHistory": "History",
+  "btcNoHistory": "No transactions yet.",
+  "btcUnconfirmed": "Not confirmed",
+  "btcConfirmations": "Confirmations: {count}",
+  "@btcConfirmations": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "btcTxCopied": "Transaction ID copied",
+  "btcReceiveTitle": "Receive bitcoin",
+  "btcReceiveNote": "Send only {network} bitcoin to this address. After it receives, the wallet shows a new address.",
+  "@btcReceiveNote": {
+    "placeholders": {
+      "network": {
+        "type": "String"
+      }
+    }
+  },
+  "btcCopyAddress": "Copy address",
+  "btcAddressCopied": "Address copied",
+  "btcSendTitle": "Send bitcoin",
+  "btcSendTo": "Bitcoin address",
+  "btcSendToInvalid": "This is not a Bitcoin address of {network}",
+  "@btcSendToInvalid": {
+    "placeholders": {
+      "network": {
+        "type": "String"
+      }
+    }
+  },
+  "btcSendAmount": "Amount (BTC)",
+  "btcSendAmountInvalid": "Type an amount in BTC, with 8 decimals or fewer",
+  "btcSendAll": "Send everything",
+  "btcSendAllHint": "The fee comes out of the amount",
+  "btcFeeTitle": "Fee rate",
+  "btcFeeFast": "Fast · {rate} sat/vB",
+  "@btcFeeFast": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "btcFeeNormal": "About 1 hour · {rate} sat/vB",
+  "@btcFeeNormal": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "btcFeeSlow": "About 1 day · {rate} sat/vB",
+  "@btcFeeSlow": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "btcFeeNoEstimate": "The server gives no estimate. The app uses the lowest rate.",
+  "btcReview": "Review",
+  "btcConfirmTitle": "Send bitcoin?",
+  "btcRowNetwork": "Network",
+  "btcRowAmount": "Amount",
+  "btcRowFee": "Fee",
+  "btcRowFeeRate": "Fee rate",
+  "btcRowChange": "Change",
+  "btcRowTotal": "Total",
+  "btcSendLabel": "Sign and send",
+  "btcSent": "Sent: {txid}",
+  "@btcSent": {
+    "placeholders": {
+      "txid": {
+        "type": "String"
+      }
+    }
+  },
+  "btcConsentNeeded": "The send needs the fingerprint or the screen lock. Nothing was sent.",
+  "btcErrLocked": "The wallet is locked. Unlock it first.",
+  "btcErrFunds": "There is not enough confirmed bitcoin.",
+  "btcErrUnreachable": "The Bitcoin server does not answer. Check the network or the server in the Bitcoin settings.",
+  "btcErrOther": "Bitcoin: {reason}",
+  "@btcErrOther": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "btcSettingsTitle": "Bitcoin settings",
+  "btcNetworkTitle": "Network",
+  "btcNetMainnet": "Mainnet (real bitcoin)",
+  "btcNetTestnet": "Testnet (test)",
+  "btcNetSignet": "Signet (test)",
+  "btcNetRegtest": "Regtest (local test)",
+  "btcMainnetWarnTitle": "Use real bitcoin?",
+  "btcMainnetWarnBody": "On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Chatui is new: use small amounts.",
+  "btcMainnetWarnOk": "Use mainnet",
+  "btcServerTitle": "Esplora server",
+  "btcServerHint": "Empty: {url}",
+  "@btcServerHint": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "btcServerNoDefault": "Regtest has no public server. Type one.",
+  "btcServerInvalid": "The address must start with https:// or http://",
+  "btcSave": "Save",
+  "btcSeedNote": "The Bitcoin wallet uses the words of your wallet, on the BIP-84 path (native SegWit). Any standard Bitcoin wallet opens the same funds with the same words.",
+  "btcDepTitle": "Deposit in BTC",
+  "btcDepNode": "Node address (host:port)",
+  "btcDepNodeInvalid": "Type the address as host:port",
+  "btcDepCheck": "Check",
+  "btcDepNoBtc": "This node does not take BTC on {network}.",
+  "@btcDepNoBtc": {
+    "placeholders": {
+      "network": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepNodeNetworks": "It takes BTC on: {networks}",
+  "@btcDepNodeNetworks": {
+    "placeholders": {
+      "networks": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepPayTo": "Pays to",
+  "btcDepRate": "{mu} MU per sat",
+  "@btcDepRate": {
+    "placeholders": {
+      "mu": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepCredit": "Your credit on the node: {mu} MU",
+  "@btcDepCredit": {
+    "placeholders": {
+      "mu": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepWaitsFor": "The node checks the deposit after {count} confirmations.",
+  "@btcDepWaitsFor": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepWaitsDefault": "The node does not say how many confirmations it wants. The app waits for {count} before it tells the node.",
+  "@btcDepWaitsDefault": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepAmount": "Amount (sat)",
+  "btcDepAmountInvalid": "Type {min} sat or more",
+  "@btcDepAmountInvalid": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepPrepare": "Prepare the deposit",
+  "btcDepConfirmTitle": "Deposit BTC to the node?",
+  "btcDepConfirmDetail": "The deposit token of the node goes in an OP_RETURN output. The app tells the node after {count} confirmations. The token expires 6 hours after it was made.",
+  "@btcDepConfirmDetail": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepRowNode": "Node",
+  "btcDepRowMu": "Credit",
+  "btcDepWaiting": "Confirmations: {have} of {need}",
+  "@btcDepWaiting": {
+    "placeholders": {
+      "have": {
+        "type": "String"
+      },
+      "need": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepUnknownTx": "The server does not know the transaction yet.",
+  "btcDepTelling": "Asking the server…",
+  "btcDepAccepted": "The node accepted the deposit. Credit now: {mu} MU",
+  "@btcDepAccepted": {
+    "placeholders": {
+      "mu": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepRefused": "The node refused the deposit: {reason}",
+  "@btcDepRefused": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "btcDepPendingTitle": "Deposits that wait",
+  "btcDepWait": "Wait",
+  "btcDepForget": "Forget",
+  "btcDepPayInBtc": "Pay in BTC",
+  "btcDepPayInBtcSubtitle": "This node takes BTC on {network}",
+  "@btcDepPayInBtcSubtitle": {
+    "placeholders": {
+      "network": {
+        "type": "String"
+      }
+    }
+  },
+  "btcWalletButton": "Bitcoin wallet"
 }

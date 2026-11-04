@@ -7152,4 +7152,339 @@ class AppLocalizationsEs extends AppLocalizations {
   String chatSecretMissing(String name) {
     return '$name ya no está en tus variables.';
   }
+
+  @override
+  String get btcTitle => 'Bitcoin';
+
+  @override
+  String get btcRefresh => 'Leer de nuevo';
+
+  @override
+  String get btcLocked =>
+      'Desbloquea la billetera para abrir la billetera Bitcoin.';
+
+  @override
+  String get btcUnlock => 'Desbloquear';
+
+  @override
+  String btcTestNetwork(String network) {
+    return '$network: una red de prueba. Estas monedas no tienen valor.';
+  }
+
+  @override
+  String get btcMainnetNote =>
+      'Mainnet: bitcoin real. Un envío no se puede deshacer.';
+
+  @override
+  String get btcConfirmed => 'Confirmado';
+
+  @override
+  String btcPending(String amount) {
+    return '$amount BTC sin confirmar todavía';
+  }
+
+  @override
+  String btcImmature(String amount) {
+    return '$amount BTC minados, todavía no maduros';
+  }
+
+  @override
+  String get btcReceive => 'Recibir';
+
+  @override
+  String get btcSend => 'Enviar';
+
+  @override
+  String get btcDepositAction => 'Depositar en un nodo';
+
+  @override
+  String get btcHistory => 'Historial';
+
+  @override
+  String get btcNoHistory => 'Todavía no hay transacciones.';
+
+  @override
+  String get btcUnconfirmed => 'Sin confirmar';
+
+  @override
+  String btcConfirmations(String count) {
+    return 'Confirmaciones: $count';
+  }
+
+  @override
+  String get btcTxCopied => 'ID de transacción copiado';
+
+  @override
+  String get btcReceiveTitle => 'Recibir bitcoin';
+
+  @override
+  String btcReceiveNote(String network) {
+    return 'Envía solo bitcoin de $network a esta dirección. Cuando reciba, la billetera muestra una dirección nueva.';
+  }
+
+  @override
+  String get btcCopyAddress => 'Copiar dirección';
+
+  @override
+  String get btcAddressCopied => 'Dirección copiada';
+
+  @override
+  String get btcSendTitle => 'Enviar bitcoin';
+
+  @override
+  String get btcSendTo => 'Dirección Bitcoin';
+
+  @override
+  String btcSendToInvalid(String network) {
+    return 'No es una dirección Bitcoin de $network';
+  }
+
+  @override
+  String get btcSendAmount => 'Cantidad (BTC)';
+
+  @override
+  String get btcSendAmountInvalid =>
+      'Escribe una cantidad en BTC, con 8 decimales o menos';
+
+  @override
+  String get btcSendAll => 'Enviar todo';
+
+  @override
+  String get btcSendAllHint => 'La comisión sale de la cantidad';
+
+  @override
+  String get btcFeeTitle => 'Tarifa de comisión';
+
+  @override
+  String btcFeeFast(String rate) {
+    return 'Rápida · $rate sat/vB';
+  }
+
+  @override
+  String btcFeeNormal(String rate) {
+    return 'Cerca de 1 hora · $rate sat/vB';
+  }
+
+  @override
+  String btcFeeSlow(String rate) {
+    return 'Cerca de 1 día · $rate sat/vB';
+  }
+
+  @override
+  String get btcFeeNoEstimate =>
+      'El servidor no da estimación. La app usa la tarifa más baja.';
+
+  @override
+  String get btcReview => 'Revisar';
+
+  @override
+  String get btcConfirmTitle => '¿Enviar bitcoin?';
+
+  @override
+  String get btcRowNetwork => 'Red';
+
+  @override
+  String get btcRowAmount => 'Cantidad';
+
+  @override
+  String get btcRowFee => 'Comisión';
+
+  @override
+  String get btcRowFeeRate => 'Tarifa';
+
+  @override
+  String get btcRowChange => 'Cambio';
+
+  @override
+  String get btcRowTotal => 'Total';
+
+  @override
+  String get btcSendLabel => 'Firmar y enviar';
+
+  @override
+  String btcSent(String txid) {
+    return 'Enviado: $txid';
+  }
+
+  @override
+  String get btcConsentNeeded =>
+      'El envío necesita la huella o el bloqueo de pantalla. No se envió nada.';
+
+  @override
+  String get btcErrLocked =>
+      'La billetera está bloqueada. Desbloquéala primero.';
+
+  @override
+  String get btcErrFunds => 'No hay suficiente bitcoin confirmado.';
+
+  @override
+  String get btcErrUnreachable =>
+      'El servidor de Bitcoin no responde. Revisa la red o el servidor en los ajustes de Bitcoin.';
+
+  @override
+  String btcErrOther(String reason) {
+    return 'Bitcoin: $reason';
+  }
+
+  @override
+  String get btcSettingsTitle => 'Ajustes de Bitcoin';
+
+  @override
+  String get btcNetworkTitle => 'Red';
+
+  @override
+  String get btcNetMainnet => 'Mainnet (bitcoin real)';
+
+  @override
+  String get btcNetTestnet => 'Testnet (prueba)';
+
+  @override
+  String get btcNetSignet => 'Signet (prueba)';
+
+  @override
+  String get btcNetRegtest => 'Regtest (prueba local)';
+
+  @override
+  String get btcMainnetWarnTitle => '¿Usar bitcoin real?';
+
+  @override
+  String get btcMainnetWarnBody =>
+      'En mainnet las monedas tienen valor y un envío no se puede deshacer. La billetera Bitcoin de Chatui es nueva: usa cantidades pequeñas.';
+
+  @override
+  String get btcMainnetWarnOk => 'Usar mainnet';
+
+  @override
+  String get btcServerTitle => 'Servidor Esplora';
+
+  @override
+  String btcServerHint(String url) {
+    return 'Vacío: $url';
+  }
+
+  @override
+  String get btcServerNoDefault =>
+      'Regtest no tiene servidor público. Escribe uno.';
+
+  @override
+  String get btcServerInvalid =>
+      'La dirección debe empezar por https:// o http://';
+
+  @override
+  String get btcSave => 'Guardar';
+
+  @override
+  String get btcSeedNote =>
+      'La billetera Bitcoin usa las palabras de tu billetera, en la ruta BIP-84 (SegWit nativo). Cualquier billetera Bitcoin estándar abre los mismos fondos con las mismas palabras.';
+
+  @override
+  String get btcDepTitle => 'Depósito en BTC';
+
+  @override
+  String get btcDepNode => 'Dirección del nodo (host:puerto)';
+
+  @override
+  String get btcDepNodeInvalid => 'Escribe la dirección como host:puerto';
+
+  @override
+  String get btcDepCheck => 'Comprobar';
+
+  @override
+  String btcDepNoBtc(String network) {
+    return 'Este nodo no acepta BTC en $network.';
+  }
+
+  @override
+  String btcDepNodeNetworks(String networks) {
+    return 'Acepta BTC en: $networks';
+  }
+
+  @override
+  String get btcDepPayTo => 'Paga a';
+
+  @override
+  String btcDepRate(String mu) {
+    return '$mu MU por sat';
+  }
+
+  @override
+  String btcDepCredit(String mu) {
+    return 'Tu crédito en el nodo: $mu MU';
+  }
+
+  @override
+  String btcDepWaitsFor(String count) {
+    return 'El nodo comprueba el depósito después de $count confirmaciones.';
+  }
+
+  @override
+  String btcDepWaitsDefault(String count) {
+    return 'El nodo no dice cuántas confirmaciones quiere. La app espera $count antes de avisar al nodo.';
+  }
+
+  @override
+  String get btcDepAmount => 'Cantidad (sat)';
+
+  @override
+  String btcDepAmountInvalid(String min) {
+    return 'Escribe $min sat o más';
+  }
+
+  @override
+  String get btcDepPrepare => 'Preparar el depósito';
+
+  @override
+  String get btcDepConfirmTitle => '¿Depositar BTC en el nodo?';
+
+  @override
+  String btcDepConfirmDetail(String count) {
+    return 'El token de depósito del nodo va en una salida OP_RETURN. La app avisa al nodo después de $count confirmaciones. El token caduca 6 horas después de crearse.';
+  }
+
+  @override
+  String get btcDepRowNode => 'Nodo';
+
+  @override
+  String get btcDepRowMu => 'Crédito';
+
+  @override
+  String btcDepWaiting(String have, String need) {
+    return 'Confirmaciones: $have de $need';
+  }
+
+  @override
+  String get btcDepUnknownTx => 'El servidor todavía no conoce la transacción.';
+
+  @override
+  String get btcDepTelling => 'Preguntando al servidor…';
+
+  @override
+  String btcDepAccepted(String mu) {
+    return 'El nodo aceptó el depósito. Crédito ahora: $mu MU';
+  }
+
+  @override
+  String btcDepRefused(String reason) {
+    return 'El nodo rechazó el depósito: $reason';
+  }
+
+  @override
+  String get btcDepPendingTitle => 'Depósitos en espera';
+
+  @override
+  String get btcDepWait => 'Esperar';
+
+  @override
+  String get btcDepForget => 'Olvidar';
+
+  @override
+  String get btcDepPayInBtc => 'Pagar en BTC';
+
+  @override
+  String btcDepPayInBtcSubtitle(String network) {
+    return 'Este nodo acepta BTC en $network';
+  }
+
+  @override
+  String get btcWalletButton => 'Billetera Bitcoin';
 }

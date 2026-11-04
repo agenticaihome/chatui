@@ -63,6 +63,12 @@ pub mod celaut_package;
 /// The execution receipts of the instances: what the app keeps, shows and exports.
 pub mod celaut_receipts;
 
+/// The Bitcoin wallet of the open wallet's seed (issue #92).
+pub mod btc;
+
+/// Deposits in BTC to a node (issue #92).
+pub mod celaut_btc_deposit;
+
 fn err_str<E: Into<ArgusError>>(e: E) -> String {
     e.into().to_json_string()
 }
@@ -301,14 +307,15 @@ fn session_json(
 
 fn open_wallet(mnemonic_phrase: String, passphrase: &str) -> Result<(u64, String, String), String> {
     let phrase = MnemonicPhrase::parse(mnemonic_phrase).map_err(err_str)?;
-    let encrypted =
-        wallet_core::EncryptedSeed::encrypt(&phrase.to_seed(passphrase).map_err(err_str)?)
-            .map_err(err_str)?;
+    let seed = zeroize::Zeroizing::new(phrase.to_seed(passphrase).map_err(err_str)?);
+    let encrypted = wallet_core::EncryptedSeed::encrypt(seed.as_slice()).map_err(err_str)?;
     let json = serde_json::to_string(&encrypted.to_json().map_err(err_str)?)
         .map_err(|e| ArgusError::SerializationError(e.to_string()).to_json_string())?;
     let wrap_key = encrypted.wrap_key_hex();
     let handle = WalletHandle::create(phrase, passphrase).map_err(err_str)?;
-    Ok((register_handle(handle), json, wrap_key))
+    let id = register_handle(handle);
+    btc::keep_seed(id, seed.as_slice());
+    Ok((id, json, wrap_key))
 }
 
 /// Create a wallet from a BIP-39 mnemonic. Returns `{handle_id, encrypted_seed_json, wrap_key}`.
@@ -331,9 +338,11 @@ pub fn wallet_restore(
         wallet_core::EncryptedSeed::from_json(&json, wrap_key.as_deref()).map_err(err_str)?;
     let mut seed_bytes = encrypted.decrypt().map_err(err_str)?;
     let handle = WalletHandle::restore_from_seed(&seed_bytes).map_err(err_str)?;
+    let id = register_handle(handle);
+    btc::keep_seed(id, &seed_bytes);
     use zeroize::Zeroize;
     seed_bytes.zeroize();
-    Ok(register_handle(handle))
+    Ok(id)
 }
 
 #[flutter_rust_bridge::frb]
@@ -344,6 +353,7 @@ pub fn wallet_lock(handle_id: u64) -> Result<(), String> {
         .ok_or_else(|| ArgusError::HandleNotFound("wallet_lock", handle_id).to_json_string())?;
     handle.lock();
     drop_preparations_for(handle_id);
+    btc::forget(handle_id);
     Ok(())
 }
 
