@@ -4,6 +4,7 @@ members = [
     "crates/wallet-core",
     "crates/wallet-net",
     "crates/wallet-ffi",
+    "crates/wallet-btc",
     "crates/celaut-proto",
     "crates/celaut-wire",
     "crates/celaut-client",
@@ -77,6 +78,13 @@ reqwest = { version = "0.13", default-features = false, features = ["rustls-no-p
 # builds the TLS config 0.12's "rustls-tls" gave: ring and webpki-roots.
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 webpki-roots = "1"
+
+# ─── Bitcoin ─────────────────────────────────────────────────────────────
+# The Bitcoin wallet (issue #92): descriptors, coin selection, PSBT, chain graph.
+# No chain client crate: wallet-btc asks an Esplora server through wallet-net::http,
+# so there is one reqwest and one TLS stack, and the network route (Tor) applies.
+bdk_wallet = { version = "=3.2.0", default-features = false, features = ["std"] }
+wallet-btc = { path = "crates/wallet-btc" }
 
 # ─── Celaut ──────────────────────────────────────────────────────────────
 # bee-rpc is GPL-3.0-only. It is a git dependency on a tag until a release exists.
