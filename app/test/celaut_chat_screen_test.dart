@@ -7,6 +7,7 @@ import 'package:argus_wallet/celaut/attachment_picker.dart';
 import 'package:argus_wallet/celaut/audio_recorder.dart';
 import 'package:argus_wallet/celaut/chat_backgrounds.dart';
 import 'package:argus_wallet/celaut/chat_client.dart';
+import 'package:argus_wallet/celaut/chat_corrector.dart';
 import 'package:argus_wallet/celaut/chat_done_watcher.dart';
 import 'package:argus_wallet/celaut/chat_notifier.dart';
 import 'package:argus_wallet/celaut/chat_prefs.dart';
@@ -165,8 +166,12 @@ class _FakeChat extends ChatClient {
     return fileBytes;
   }
 
+  /// The state of the corrector of each send (section 5.7).
+  final correctors = <CorrectorReport?>[];
+
   @override
-  Future<void> send(String text, {List<OutgoingAttachment> attachments = const []}) async {
+  Future<void> send(String text, {List<OutgoingAttachment> attachments = const [], CorrectorReport? corrector}) async {
+    correctors.add(corrector);
     await gate?.future;
     final failure = failWith;
     if (failure != null) throw failure;
@@ -1604,7 +1609,9 @@ void main() {
     testWidgets('a tap on the conversation hides the keyboard of the app', (tester) async {
       chat = _FakeChat(history: longChat());
       await open(tester);
-      await tester.tapAt(tester.getCenter(find.byKey(const Key('chat-messages'))));
+      // Above the bar of the input, which the chips of the suggestions make taller.
+      final list = tester.getRect(find.byKey(const Key('chat-messages')));
+      await tester.tapAt(Offset(list.center.dx, list.top + list.height * 0.3));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('chat-virtual-keyboard')), findsNothing);
     });
@@ -2287,6 +2294,147 @@ void main() {
       notes.remove('b');
       expect(notes.draft('a'), isEmpty);
       expect(notes.draft('b'), isEmpty);
+    });
+  });
+
+  group('suggestions and corrector (chat.md, section 5.7)', () {
+    const answer = ChatMessage(
+      seq: 2,
+      role: 'assistant',
+      text: 'Do you want the keyboard of Lisbon?',
+      replyTo: 1,
+      suggestions: ['Yes, please', 'No'],
+    );
+    final history = [const ChatMessage(seq: 1, role: 'user', text: 'hello'), answer];
+
+    setUp(() {
+      chatPrefs.systemKeyboard = false;
+      chatPrefs.wordSuggestions = true;
+    });
+    tearDown(() {
+      chatPrefs.systemKeyboard = true;
+      chatPrefs.wordSuggestions = true;
+    });
+
+    TextEditingController input(WidgetTester tester) =>
+        tester.widget<TextField>(find.byKey(const Key('chat-input'))).controller!;
+
+    Future<void> type(WidgetTester tester, String letters) async {
+      for (final c in letters.split('')) {
+        await tester.tap(find.byKey(Key(c == ' ' ? 'vk-space' : 'vk-char-$c')));
+      }
+      await tester.pump();
+    }
+
+    testWidgets('the suggestions of the service show above the keyboard; a tap puts one in the input', (tester) async {
+      chat = _FakeChat(history: history);
+      await open(tester);
+      final bar = find.byKey(const Key('chat-suggestions'));
+      expect(bar, findsOneWidget);
+      expect(tester.getBottomLeft(bar).dy,
+          lessThanOrEqualTo(tester.getTopLeft(find.byKey(const Key('chat-virtual-keyboard'))).dy));
+      expect(find.text('Yes, please'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('chat-suggestion-0')));
+      await tester.pump();
+      expect(input(tester).text, 'Yes, please');
+      // It does not send: the user sends.
+      expect(chat.sent, isEmpty);
+    });
+
+    testWidgets('while the user writes a word, the chips are the words of the corrector', (tester) async {
+      chat = _FakeChat(history: history);
+      await open(tester);
+      await type(tester, 'teh keyboa');
+      expect(find.byKey(const Key('chat-suggestion-0')), findsNothing);
+      // A completion: no correction.
+      expect(find.text('keyboard'), findsOneWidget);
+      await tester.tap(find.text('keyboard'));
+      await tester.pump();
+      expect(input(tester).text, 'Teh keyboard ');
+      // After a space, the suggestions of the service again.
+      expect(find.byKey(const Key('chat-suggestion-0')), findsOneWidget);
+
+      // The cursor in the first word: a correction.
+      input(tester).selection = const TextSelection.collapsed(offset: 3);
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('chat-word-0')));
+      await tester.pump();
+      expect(input(tester).text, 'The keyboard ');
+      await tester.tap(find.byKey(const Key('chat-send')));
+      await tester.pumpAndSettle();
+      expect(chat.sent.single, 'The keyboard');
+      final report = chat.correctors.single!;
+      expect(report.enabled, isTrue);
+      expect(report.corrections, const [Correction('Teh', 'The')]);
+    });
+
+    testWidgets('with the setting off: no words of the corrector, and the send says it is off', (tester) async {
+      chatPrefs.wordSuggestions = false;
+      chat = _FakeChat(history: history);
+      await open(tester);
+      // The suggestions of the service still show.
+      expect(find.byKey(const Key('chat-suggestion-0')), findsOneWidget);
+      await type(tester, 'keyb');
+      expect(find.byKey(const Key('chat-word-0')), findsNothing);
+      await tester.tap(find.byKey(const Key('chat-send')));
+      await tester.pumpAndSettle();
+      expect(chat.correctors.single!.enabled, isFalse);
+    });
+
+    testWidgets('no suggestions and the setting off: no bar', (tester) async {
+      chatPrefs.wordSuggestions = false;
+      chat = _FakeChat(history: [
+        const ChatMessage(seq: 1, role: 'user', text: 'hello'),
+        const ChatMessage(seq: 2, role: 'assistant', text: 'hello', replyTo: 1),
+      ]);
+      await open(tester);
+      expect(find.byKey(const Key('chat-suggestions')), findsNothing);
+    });
+
+    testWidgets('a message of the user after the answer makes its suggestions inactive', (tester) async {
+      // An answer of the service first, so the last message of the user waits for nothing.
+      chat = _FakeChat(history: [
+        const ChatMessage(seq: 1, role: 'assistant', text: 'Hi'),
+        const ChatMessage(seq: 2, role: 'user', text: 'hello'),
+        const ChatMessage(seq: 3, role: 'assistant', text: 'Do you?', replyTo: 2, suggestions: ['Yes']),
+        const ChatMessage(seq: 4, role: 'user', text: 'more'),
+      ]);
+      await open(tester);
+      expect(chat.awaitingAnswer, isFalse);
+      expect(find.byKey(const Key('chat-suggestion-0')), findsNothing);
+    });
+
+    testWidgets('with the keyboard of the system, only the suggestions of the service show', (tester) async {
+      chatPrefs.systemKeyboard = true;
+      chat = _FakeChat(history: history);
+      await open(tester);
+      expect(find.byKey(const Key('chat-suggestion-0')), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('chat-input')), 'keyb');
+      await tester.pump();
+      expect(find.byKey(const Key('chat-word-0')), findsNothing);
+      await tester.tap(find.byKey(const Key('chat-send')));
+      await tester.pumpAndSettle();
+      expect(chat.correctors.single!.enabled, isFalse);
+    });
+
+    testWidgets('a key with data-send sends no state of the corrector', (tester) async {
+      chat = _FakeChat(history: [
+        const ChatMessage(seq: 1, role: 'user', text: 'hello'),
+        const ChatMessage(
+          seq: 2,
+          role: 'assistant',
+          text: 'Go?\n```keyboard\n<button data-say="Yes" data-send>Yes</button>\n```',
+          replyTo: 1,
+          suggestions: ['No'],
+        ),
+      ]);
+      await open(tester);
+      // The form is under the input: no chips.
+      expect(find.byKey(const Key('chat-suggestions')), findsNothing);
+      await tester.tap(find.text('Yes').last);
+      await tester.pumpAndSettle();
+      expect(chat.sent.single, 'Yes');
+      expect(chat.correctors.single, isNull);
     });
   });
 
