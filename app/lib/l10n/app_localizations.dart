@@ -9464,7 +9464,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search skills'**
+  /// **'Search skills and tags'**
   String get celautRunSearchHint;
 
   /// No description provided for @celautRunLoading.
@@ -10595,17 +10595,17 @@ abstract class AppLocalizations {
   /// **'Show fewer options'**
   String get celautRunFewerOptions;
 
-  /// No description provided for @celautRunModeSkills.
+  /// No description provided for @celautRunCategoryAll.
   ///
   /// In en, this message translates to:
-  /// **'Skills'**
-  String get celautRunModeSkills;
+  /// **'All'**
+  String get celautRunCategoryAll;
 
-  /// No description provided for @celautRunModeFiles.
+  /// No description provided for @celautRunOnPhone.
   ///
   /// In en, this message translates to:
   /// **'On this phone'**
-  String get celautRunModeFiles;
+  String get celautRunOnPhone;
 
   /// No description provided for @celautEnvSensitive.
   ///

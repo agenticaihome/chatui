@@ -369,7 +369,7 @@ void main() {
     await pump(
       tester,
       loadSkills: () async => [
-        const SkillView(boxId: 'skill-1', name: 'A skill', prose: 'Does a thing.', tags: []),
+        const SkillView(boxId: 'skill-1', name: 'A skill', prose: 'Does a thing.', tags: [], domain: ''),
       ],
       loadSkillServices: (id) async => [
         SkillServiceView(serviceId: picked, score: 0.9, direct: true),

@@ -6003,7 +6003,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautRunTitle => 'Ejecutar un servicio';
 
   @override
-  String get celautRunSearchHint => 'Buscar habilidades';
+  String get celautRunSearchHint => 'Buscar habilidades y etiquetas';
 
   @override
   String get celautRunLoading => 'Cargando habilidades…';
@@ -6703,10 +6703,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautRunFewerOptions => 'Mostrar menos opciones';
 
   @override
-  String get celautRunModeSkills => 'Habilidades';
+  String get celautRunCategoryAll => 'Todas';
 
   @override
-  String get celautRunModeFiles => 'En el móvil';
+  String get celautRunOnPhone => 'En el móvil';
 
   @override
   String get celautEnvSensitive => 'Sensible';

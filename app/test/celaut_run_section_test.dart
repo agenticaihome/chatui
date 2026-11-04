@@ -12,7 +12,6 @@ import 'package:argus_wallet/celaut/env_store.dart';
 import 'package:argus_wallet/celaut/launcher.dart';
 import 'package:argus_wallet/celaut/package_channel.dart';
 import 'package:argus_wallet/celaut/package_library.dart';
-import 'package:argus_wallet/celaut/run_mode.dart';
 import 'package:argus_wallet/celaut/payers.dart';
 import 'package:argus_wallet/celaut/service_strings.dart';
 import 'package:argus_wallet/celaut/service_transfer.dart';
@@ -21,6 +20,7 @@ import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/ui/celaut/launch_failure_sheet.dart';
 import 'package:argus_wallet/ui/celaut/run_service_section.dart';
 import 'package:argus_wallet/ui/celaut/service_info_screen.dart';
+import 'package:argus_wallet/ui/celaut/skill_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,8 +58,9 @@ const _sat = SkillView(
   name: 'Boolean SAT Solver',
   prose: 'Decides if a formula can be satisfied.',
   tags: ['logic'],
+  domain: 'algorithms',
 );
-const _summary = SkillView(boxId: 'skill-md', name: 'Markdown Summarization', prose: '', tags: []);
+const _summary = SkillView(boxId: 'skill-md', name: 'Markdown Summarization', prose: '', tags: ['summary'], domain: 'nlp');
 
 List<SkillServiceView> _ranked() => [
   SkillServiceView(serviceId: _best, score: 0.8455, direct: true),
@@ -257,7 +258,6 @@ void main() {
   }
 
   setUp(() {
-    runMode.value = RunMode.skills;
     // The confirmation keeps the last least time in the preferences.
     SharedPreferences.setMockInitialValues({});
     launched = [];
@@ -272,9 +272,9 @@ void main() {
     outcome = () => LaunchOutcome(quote: _quote(), instance: _instance(), skipped: const []);
   });
 
-  /// The mode of the files: the section shows the catalog or the files, one at a time.
+  /// The files on this phone: a small section after the catalog.
   Future<void> showFiles(WidgetTester tester) async {
-    await tester.tap(find.descendant(of: find.byKey(const Key('run-mode')), matching: find.text('On this phone')));
+    await tester.ensureVisible(find.byKey(const Key('run-on-phone')));
     await tester.pumpAndSettle();
   }
 
@@ -296,24 +296,54 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('the section shows the skills or the files, one at a time, and keeps the choice', (
+  testWidgets('the catalog comes first, as cards; the files on this phone are a small section after it', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues({});
     await open(tester);
-    expect(find.byKey(const Key('run-skill-skill-sat')), findsOneWidget);
-    expect(find.byKey(const Key('pkg-import')), findsNothing);
-    await showFiles(tester);
+    expect(find.byKey(const Key('run-mode')), findsNothing);
+    expect(find.descendant(of: find.byKey(const Key('run-skill-skill-sat')), matching: find.byType(SkillMark)), findsOneWidget);
+    final lastSkill = tester.getBottomLeft(find.byKey(const Key('run-skill-skill-md'))).dy;
+    final phone = tester.getTopLeft(find.byKey(const Key('run-on-phone'))).dy;
+    expect(phone, greaterThan(lastSkill));
+    expect(find.text('ON THIS PHONE'), findsOneWidget);
+    // Import is a small text button, not a filled one.
+    expect(find.descendant(of: find.byKey(const Key('pkg-import')), matching: find.byType(Icon)), findsOneWidget);
+    expect(tester.widget(find.byKey(const Key('pkg-import'))), isA<TextButton>());
+    expect(find.byKey(const Key('pkg-empty')), findsOneWidget);
+  });
+
+  testWidgets('the fields of the skills are chips, and a chip shows the skills of its field', (tester) async {
+    await open(tester);
+    expect(find.byKey(const Key('run-category-all')), findsOneWidget);
+    expect(find.byKey(const Key('run-category-algorithms')), findsOneWidget);
+    expect(find.byKey(const Key('run-category-nlp')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('run-category-nlp')));
+    await tester.pump();
     expect(find.byKey(const Key('run-skill-skill-sat')), findsNothing);
-    expect(find.byKey(const Key('run-search')), findsNothing);
-    expect(find.byKey(const Key('pkg-import')), findsOneWidget);
-    expect(runMode.value, RunMode.files);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString(RunModeChoice.key), 'files');
-    await tester.tap(find.descendant(of: find.byKey(const Key('run-mode')), matching: find.text('Skills')));
-    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('run-skill-skill-md')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('run-category-all')));
+    await tester.pump();
     expect(find.byKey(const Key('run-skill-skill-sat')), findsOneWidget);
-    expect(find.byKey(const Key('pkg-import')), findsNothing);
+    expect(find.byKey(const Key('run-skill-skill-md')), findsOneWidget);
+  });
+
+  testWidgets('with no field in the catalog, there are no chips', (tester) async {
+    skills = [for (var i = 0; i < 3; i++) SkillView(boxId: 'skill-$i', name: 'Skill $i', prose: '', tags: const [], domain: '')];
+    await open(tester);
+    expect(find.byKey(const Key('run-categories')), findsNothing);
+    expect(find.byKey(const Key('run-skill-skill-2')), findsOneWidget);
+  });
+
+  testWidgets('the search finds a skill by a tag or by its field too', (tester) async {
+    await open(tester);
+    await tester.enterText(find.byKey(const Key('run-search')), 'summary');
+    await tester.pump();
+    expect(find.byKey(const Key('run-skill-skill-sat')), findsNothing);
+    expect(find.byKey(const Key('run-skill-skill-md')), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('run-search')), 'ALGORITHMS');
+    await tester.pump();
+    expect(find.byKey(const Key('run-skill-skill-sat')), findsOneWidget);
+    expect(find.byKey(const Key('run-skill-skill-md')), findsNothing);
   });
 
   testWidgets('On this phone: the saved services run from there, and import is a small action', (
@@ -347,7 +377,7 @@ void main() {
 
   testWidgets('every skill of the catalog is listed, not only the first ones', (tester) async {
     skills = [
-      for (var i = 0; i < 9; i++) SkillView(boxId: 'skill-$i', name: 'Skill $i', prose: '', tags: const []),
+      for (var i = 0; i < 9; i++) SkillView(boxId: 'skill-$i', name: 'Skill $i', prose: '', tags: const [], domain: ''),
     ];
     await open(tester);
     for (var i = 0; i < 9; i++) {

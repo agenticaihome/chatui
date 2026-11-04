@@ -7,6 +7,7 @@ import '../../celaut/service_strings.dart';
 import '../../theme/argus_theme.dart';
 import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
+import 'skill_store.dart';
 
 /// Pick a skill of the catalog (`docs/celaut/catalog.md`), then one of the services that
 /// cover it. The services come ranked, best first, and the best is chosen at first. The
@@ -148,28 +149,10 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
       else if (skills != null && skills.isEmpty)
         SoftCard(child: Text(ServiceStrings.skillsEmpty, style: TextStyle(color: muted))),
       for (final skill in skills ?? const <SkillView>[]) ...[
-        SoftCard(
-          child: InkWell(
-            key: Key('picker-skill-${skill.boxId}'),
-            onTap: () => _readServices(skill),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(skill.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  if (skill.prose.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(skill.prose, style: TextStyle(fontSize: 12.5, color: muted)),
-                  ],
-                  if (skill.tags.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(skill.tags.join(' · '), style: TextStyle(fontSize: 12, color: muted)),
-                  ],
-                ],
-              ),
-            ),
-          ),
+        SkillCard(
+          key: Key('picker-skill-${skill.boxId}'),
+          skill: skill,
+          onTap: () => _readServices(skill),
         ),
         const SizedBox(height: 10),
       ],

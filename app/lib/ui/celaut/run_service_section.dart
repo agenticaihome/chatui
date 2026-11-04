@@ -16,7 +16,6 @@ import '../../celaut/launcher.dart';
 import '../../bridge/api/celaut_package.dart';
 import '../../celaut/package_channel.dart';
 import '../../celaut/package_library.dart';
-import '../../celaut/run_mode.dart';
 import '../../celaut/payers.dart';
 import '../../celaut/service_strings.dart';
 import '../../celaut/service_transfer.dart';
@@ -35,6 +34,7 @@ import 'run_confirm_dialog.dart';
 import 'service_info_screen.dart';
 import 'service_transfer_dialog.dart';
 import 'skill_services_sheet.dart';
+import 'skill_store.dart';
 
 /// Start a service: the ids and the settings go to the launcher.
 typedef LaunchCall = Future<LaunchOutcome> Function({
@@ -55,7 +55,9 @@ typedef StartedCall = Future<void> Function(
 );
 
 /// "Run a service" on the home screen (`docs/celaut/ui.md`, section 2): the skills of the
-/// catalog with a search field. A skill opens a sheet with its ranked services. Run starts
+/// catalog as a store, with a search field and the fields of the skills as chips
+/// ([SkillCard]). The service files on this phone come last, a secondary way to run a
+/// service. A skill opens a sheet with its ranked services. Run starts
 /// the best node by the balancer (`launchService`) after the user confirms it, with the
 /// best node and its start cost. If the service has a chat slot, the
 /// conversation opens; if not, the instance shows in the list of the home screen.
@@ -157,6 +159,9 @@ class RunServiceSection extends StatefulWidget {
 class _RunServiceSectionState extends State<RunServiceSection> {
   final _search = TextEditingController();
   List<SkillView>? _skills;
+
+  /// The field that the chips show ([skillCategory]); null for all.
+  String? _category;
   bool _loading = true;
   bool _failed = false;
   bool _running = false;
@@ -178,13 +183,6 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     super.initState();
     _readPackages();
     _read();
-    // Open on the mode that the user used last.
-    runMode.addListener(_onMode);
-    runMode.load();
-  }
-
-  void _onMode() {
-    if (mounted) setState(() {});
   }
 
   void _readPackages() {
@@ -198,7 +196,6 @@ class _RunServiceSectionState extends State<RunServiceSection> {
 
   @override
   void dispose() {
-    runMode.removeListener(_onMode);
     _search.dispose();
     super.dispose();
   }
@@ -735,13 +732,13 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     await _run(serviceId);
   }
 
-  List<SkillView> _filtered() {
+  /// The skills of [category] (null for all) that match the search.
+  List<SkillView> _filtered(String? category) {
     final query = _search.text.trim().toLowerCase();
     final all = _skills ?? const <SkillView>[];
-    if (query.isEmpty) return all;
     return [
       for (final s in all)
-        if (s.name.toLowerCase().contains(query)) s,
+        if ((category == null || skillCategory(s) == category) && skillMatches(s, query)) s,
     ];
   }
 
@@ -749,7 +746,10 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final skills = _filtered();
+    final categories = skillCategories(_skills ?? const <SkillView>[]);
+    // A field that the catalog no longer has shows all the skills.
+    final category = categories.any((c) => c.key == _category) ? _category : null;
+    final skills = _filtered(category);
     return Padding(
       key: const Key('run-section'),
       padding: const EdgeInsets.symmetric(horizontal: homeGutter),
@@ -760,39 +760,27 @@ class _RunServiceSectionState extends State<RunServiceSection> {
             Text(l.celautRunTitle.toUpperCase(), style: t.label),
             const SizedBox(height: 10),
           ],
-          // One mode at a time: the catalog is long and would push the files off the
-          // screen. The mode that the user used last is the one that opens.
-          SegmentedButton<RunMode>(
-            key: const Key('run-mode'),
-            showSelectedIcon: false,
-            segments: [
-              ButtonSegment(
-                value: RunMode.skills,
-                icon: const Icon(Icons.auto_awesome_outlined, size: 18),
-                label: Text(l.celautRunModeSkills),
-              ),
-              ButtonSegment(
-                value: RunMode.files,
-                icon: const Icon(Icons.smartphone_outlined, size: 18),
-                label: Text(l.celautRunModeFiles),
-              ),
-            ],
-            selected: {runMode.value},
-            onSelectionChanged: (chosen) => runMode.set(chosen.first),
-          ),
-          const SizedBox(height: 12),
-          if (runMode.value == RunMode.skills) ...[
           TextField(
             key: const Key('run-search'),
             controller: _search,
             onChanged: (_) => setState(() {}),
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search, size: 20),
               hintText: l.celautRunSearchHint,
               isDense: true,
             ),
           ),
-          const SizedBox(height: 8),
+          if (categories.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            SkillCategoryBar(
+              categories: categories,
+              selected: category,
+              allLabel: l.celautRunCategoryAll,
+              onSelected: (key) => setState(() => _category = key),
+            ),
+          ],
+          const SizedBox(height: 12),
           if (_loading)
             Text(l.celautRunLoading, key: const Key('run-loading'), style: t.secondary)
           else if (_failed) ...[
@@ -810,55 +798,22 @@ class _RunServiceSectionState extends State<RunServiceSection> {
             Text(l.celautRunEmpty, key: const Key('run-empty'), style: t.secondary)
           else
             for (final skill in skills)
-              InkWell(
-                key: Key('run-skill-${skill.boxId}'),
-                onTap: _running ? null : () => _open(skill),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(skill.name, style: t.primary),
-                            if (skill.prose.isNotEmpty)
-                              Text(
-                                skill.prose,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: t.secondary,
-                              ),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right, size: 20, color: t.muted),
-                    ],
-                  ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: SkillCard(
+                  key: Key('run-skill-${skill.boxId}'),
+                  skill: skill,
+                  onTap: _running ? null : () => _open(skill),
                 ),
               ),
-          ] else if (_packages.isEmpty) ...[
-            // Nothing saved yet: the way to save a service is the one thing to do here.
+          // The service files on this phone: the rare way, after the catalog. The services
+          // saved in the app run from here, with no new import.
+          const SizedBox(height: 20),
+          Text(l.celautRunOnPhone.toUpperCase(), key: const Key('run-on-phone'), style: t.label),
+          if (_packages.isEmpty) ...[
+            const SizedBox(height: 6),
             Text(l.celautPkgEmpty, key: const Key('pkg-empty'), style: t.secondary),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              key: const Key('pkg-import'),
-              onPressed: _running ? null : _import,
-              icon: const Icon(Icons.upload_file_outlined, size: 18),
-              label: Text(l.celautPkgImport),
-            ),
-          ] else ...[
-            // The services saved in the app run from here, with no new import. Importing
-            // another is the rare action: a small button over the list.
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: TextButton.icon(
-                key: const Key('pkg-import'),
-                onPressed: _running ? null : _import,
-                icon: const Icon(Icons.upload_file_outlined, size: 18),
-                label: Text(l.celautPkgImport),
-              ),
-            ),
+          ] else
             for (final package in _packages)
               Padding(
                 key: Key('pkg-${package.serviceId}'),
@@ -896,7 +851,15 @@ class _RunServiceSectionState extends State<RunServiceSection> {
                   ],
                 ),
               ),
-          ],
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              key: const Key('pkg-import'),
+              onPressed: _running ? null : _import,
+              icon: const Icon(Icons.upload_file_outlined, size: 18),
+              label: Text(l.celautPkgImport),
+            ),
+          ),
           // While a launch runs, its rocket is over the screen ([LaunchRocket]).
         ],
       ),

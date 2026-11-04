@@ -16,8 +16,9 @@ const _sat = SkillView(
   name: 'Boolean SAT Solver',
   prose: 'Decides if a formula can be satisfied.',
   tags: ['logic', 'np-complete'],
+  domain: 'algorithms',
 );
-const _summary = SkillView(boxId: 'skill-md', name: 'Markdown Summarization', prose: '', tags: []);
+const _summary = SkillView(boxId: 'skill-md', name: 'Markdown Summarization', prose: '', tags: [], domain: 'nlp');
 
 List<SkillServiceView> _ranked() => [
   SkillServiceView(serviceId: _best, score: 0.8455, direct: true),
@@ -72,11 +73,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('lists the skills with their text and tags', (tester) async {
+  testWidgets('lists the skills with their field, text and tags', (tester) async {
     await open(tester);
     expect(find.text('Boolean SAT Solver'), findsOneWidget);
+    expect(find.text('algorithms'), findsOneWidget);
     expect(find.text('Decides if a formula can be satisfied.'), findsOneWidget);
-    expect(find.text('logic · np-complete'), findsOneWidget);
+    expect(find.text('logic'), findsOneWidget);
+    expect(find.text('np-complete'), findsOneWidget);
     expect(find.text('Markdown Summarization'), findsOneWidget);
     expect(find.byKey(const Key('picker-loading')), findsNothing);
   });
