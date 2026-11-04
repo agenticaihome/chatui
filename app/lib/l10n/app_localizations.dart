@@ -908,6 +908,24 @@ abstract class AppLocalizations {
   /// **'If off, the chat types with the keyboard of the app, under the input. If on, the system keyboard shows, except while a form is open.'**
   String get chatSettingsSystemKeyboardSubtitle;
 
+  /// No description provided for @chatSettingsWordSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Word suggestions'**
+  String get chatSettingsWordSuggestions;
+
+  /// No description provided for @chatSettingsWordSuggestionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The keyboard of the app shows words that complete or correct the word you write, from the words of the conversation. It never changes a word by itself. The replies that the service suggests show either way.'**
+  String get chatSettingsWordSuggestionsSubtitle;
+
+  /// No description provided for @chatSuggestionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get chatSuggestionsLabel;
+
   /// No description provided for @chatVkBackspace.
   ///
   /// In en, this message translates to:

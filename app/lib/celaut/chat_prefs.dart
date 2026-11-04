@@ -14,6 +14,7 @@ class ChatPrefs extends ChangeNotifier {
   static const _pinnedKey = 'chat_pinned_max_fraction';
   static const _htmlKey = 'chat_html_widgets';
   static const _systemKeyboardKey = 'chat_system_keyboard';
+  static const _suggestionsKey = 'chat_word_suggestions';
   static const _mutedKey = 'chat_muted_instances';
   static const _bgPrefix = 'chat_background_';
 
@@ -32,6 +33,10 @@ class ChatPrefs extends ChangeNotifier {
 
   /// The chat types with the keyboard of the system. Off: with the keyboard of the app.
   bool systemKeyboard = false;
+
+  /// The keyboard of the app proposes words while the user writes (the corrector,
+  /// `docs/celaut/chat.md`, section 5.7). The suggestions of the service show either way.
+  bool wordSuggestions = true;
   final Set<String> _muted = {};
   final Map<String, String> _backgrounds = {};
 
@@ -60,6 +65,7 @@ class ChatPrefs extends ChangeNotifier {
           .toDouble();
       htmlWidgets = p.getBool(_htmlKey) ?? true;
       systemKeyboard = p.getBool(_systemKeyboardKey) ?? false;
+      wordSuggestions = p.getBool(_suggestionsKey) ?? true;
       _muted
         ..clear()
         ..addAll(p.getStringList(_mutedKey) ?? const []);
@@ -112,6 +118,12 @@ class ChatPrefs extends ChangeNotifier {
     systemKeyboard = v;
     notifyListeners();
     await _save((p) => p.setBool(_systemKeyboardKey, v));
+  }
+
+  Future<void> setWordSuggestions(bool v) async {
+    wordSuggestions = v;
+    notifyListeners();
+    await _save((p) => p.setBool(_suggestionsKey, v));
   }
 
   bool isMuted(String instanceId) => _muted.contains(instanceId);

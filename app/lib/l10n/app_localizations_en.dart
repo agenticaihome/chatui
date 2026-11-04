@@ -486,6 +486,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'If off, the chat types with the keyboard of the app, under the input. If on, the system keyboard shows, except while a form is open.';
 
   @override
+  String get chatSettingsWordSuggestions => 'Word suggestions';
+
+  @override
+  String get chatSettingsWordSuggestionsSubtitle =>
+      'The keyboard of the app shows words that complete or correct the word you write, from the words of the conversation. It never changes a word by itself. The replies that the service suggests show either way.';
+
+  @override
+  String get chatSuggestionsLabel => 'Suggestions';
+
+  @override
   String get chatVkBackspace => 'Delete';
 
   @override

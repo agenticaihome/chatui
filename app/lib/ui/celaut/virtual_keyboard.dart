@@ -174,22 +174,6 @@ class _ChatVirtualKeyboardState extends State<ChatVirtualKeyboard> {
 
   Widget _key(String id, Widget child, VoidCallback onTap, {double flex = 1, String? label, bool on = false, bool repeat = false}) {
     final scheme = Theme.of(context).colorScheme;
-    final ink = InkWell(
-      key: Key('vk-$id'),
-      canRequestFocus: false,
-      borderRadius: BorderRadius.circular(8),
-      // A key that repeats acts when it goes down, so the tap has nothing left to do.
-      onTap: repeat
-          ? () {}
-          : () {
-              unawaited(HapticFeedback.selectionClick());
-              onTap();
-            },
-      child: SizedBox(
-        height: AppLayout.short(context) ? _shortKeyHeight : _keyHeight,
-        child: Center(child: child),
-      ),
-    );
     return Expanded(
       flex: (flex * 10).round(),
       child: Padding(
@@ -198,17 +182,20 @@ class _ChatVirtualKeyboardState extends State<ChatVirtualKeyboard> {
           button: true,
           label: label,
           excludeSemantics: label != null,
-          child: Material(
+          onTap: onTap,
+          child: _KeyCap(
+            key: Key('vk-$id'),
+            height: AppLayout.short(context) ? _shortKeyHeight : _keyHeight,
             color: on ? scheme.primaryContainer : scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-            child: repeat
-                ? Listener(
-                    onPointerDown: (_) => _startRepeat(onTap),
-                    onPointerUp: (_) => _stopRepeat(),
-                    onPointerCancel: (_) => _stopRepeat(),
-                    child: ink,
-                  )
-                : ink,
+            downColor: scheme.secondaryContainer,
+            onDown: repeat
+                ? () => _startRepeat(onTap)
+                : () {
+                    unawaited(HapticFeedback.selectionClick());
+                    onTap();
+                  },
+            onUp: repeat ? _stopRepeat : null,
+            child: child,
           ),
         ),
       ),
@@ -259,6 +246,61 @@ class _ChatVirtualKeyboardState extends State<ChatVirtualKeyboard> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// One key of [ChatVirtualKeyboard]. It acts when the finger goes down, as the keyboard of a
+/// phone shows the letter at once, and it shows that it is down in one frame, with no splash.
+/// A key of the old keyboard was an [InkWell]: its tap waited for the finger to go up, and its
+/// splash and highlight made about 20 frames for each key (`docs/performance.md`, section 5).
+class _KeyCap extends StatefulWidget {
+  const _KeyCap({
+    super.key,
+    required this.height,
+    required this.color,
+    required this.downColor,
+    required this.onDown,
+    this.onUp,
+    required this.child,
+  });
+
+  final double height;
+  final Color color;
+  final Color downColor;
+  final VoidCallback onDown;
+  final VoidCallback? onUp;
+  final Widget child;
+
+  @override
+  State<_KeyCap> createState() => _KeyCapState();
+}
+
+class _KeyCapState extends State<_KeyCap> {
+  bool _down = false;
+
+  void _up() {
+    if (_down) setState(() => _down = false);
+    widget.onUp?.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (_) {
+        setState(() => _down = true);
+        widget.onDown();
+      },
+      onPointerUp: (_) => _up(),
+      onPointerCancel: (_) => _up(),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: _down ? widget.downColor : widget.color,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SizedBox(height: widget.height, child: Center(child: widget.child)),
       ),
     );
   }

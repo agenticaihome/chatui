@@ -128,6 +128,7 @@ class FakeChatService {
     bool pinned = false,
     String? error,
     List<ContentPart> extra = const [],
+    List<String> suggestions = const [],
   }) {
     final m = Message(
       messageId: 'm${msgs.length + 1}',
@@ -141,6 +142,7 @@ class FakeChatService {
       pinned: pinned,
       replyToMessageId: replyTo,
       error: error,
+      suggestions: suggestions,
     );
     msgs.add(m);
     return m;
@@ -191,7 +193,7 @@ class FakeChatService {
   /// Change the status of an open message and send `MessageStatusChanged`. A final message
   /// does not change, and `PENDING` to `IN_PROGRESS` exists only for a message that was
   /// `PENDING` (section 5.2). `error` is for `FAILED`, and the service sets it one time.
-  void setStatus(String id, MessageStatus status, {String? error}) {
+  void setStatus(String id, MessageStatus status, {String? error, List<String> suggestions = const []}) {
     final m = byId(id);
     final open = m.status == MessageStatus.MESSAGE_STATUS_PENDING ||
         m.status == MessageStatus.MESSAGE_STATUS_IN_PROGRESS;
@@ -207,12 +209,15 @@ class FakeChatService {
       ..status = status
       ..updatedAt = Int64(_clock++);
     if (error != null && error.isNotEmpty) m.error = error;
+    // The suggestions come one time, with COMPLETED (section 5.7).
+    if (status == MessageStatus.MESSAGE_STATUS_COMPLETED) m.suggestions.addAll(suggestions);
     emit(ServerEvent(
       messageStatusChanged: MessageStatusChanged(
         messageId: id,
         status: status,
         updatedAt: m.updatedAt,
         error: error != null && error.isNotEmpty ? error : null,
+        suggestions: status == MessageStatus.MESSAGE_STATUS_COMPLETED ? suggestions : null,
       ),
     ));
   }
