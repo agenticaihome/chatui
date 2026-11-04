@@ -6,13 +6,33 @@ import '../l10n/l10n.dart';
 import 'chat_client.dart';
 
 /// The name of an instance for the user: the name that the user gave it in the app, or
-/// the name of its skill or service file, or a short service id when the app does not
-/// know a name.
+/// the title that its service gave the conversation (`docs/celaut/chat.md`, section 6.10),
+/// or the name of its skill or service file, or a short service id when the app does not
+/// know a name. The name of the user is the strongest: the service cannot replace it.
 String instanceTitle(InstanceListView i) {
   if (i.alias.trim().isNotEmpty) return i.alias.trim();
+  if (i.title.trim().isNotEmpty) return i.title.trim();
   if (i.name.trim().isNotEmpty) return i.name.trim();
   return shorten(i.serviceId, head: 8, tail: 6);
 }
+
+/// [i] with the title that its service gave the conversation ([title]; empty for none).
+InstanceListView withTitle(InstanceListView i, String title) => InstanceListView(
+      instanceId: i.instanceId,
+      peerId: i.peerId,
+      address: i.address,
+      serviceId: i.serviceId,
+      slots: i.slots,
+      chatSlots: i.chatSlots,
+      webSlots: i.webSlots,
+      startedAt: i.startedAt,
+      startChargeMu: i.startChargeMu,
+      name: i.name,
+      alias: i.alias,
+      title: title,
+      stoppedAt: i.stoppedAt,
+      refundMu: i.refundMu,
+    );
 
 /// [i] with the name that the user gave it ([alias]; empty for none).
 InstanceListView withAlias(InstanceListView i, String alias) => InstanceListView(
@@ -27,6 +47,7 @@ InstanceListView withAlias(InstanceListView i, String alias) => InstanceListView
       startChargeMu: i.startChargeMu,
       name: i.name,
       alias: alias,
+      title: i.title,
       stoppedAt: i.stoppedAt,
       refundMu: i.refundMu,
     );
@@ -96,6 +117,19 @@ class ConversationNotes extends ChangeNotifier {
       return;
     }
     _last[instanceId] = last;
+    notifyListeners();
+  }
+
+  int _titles = 0;
+
+  /// It grows each time a service gives a conversation a new title, and the title is in
+  /// the database: then the lists read the names again.
+  int get titleRevision => _titles;
+
+  /// The service of [instanceId] gave its conversation a new title, and the database has
+  /// it.
+  void titled(String instanceId) {
+    _titles++;
     notifyListeners();
   }
 

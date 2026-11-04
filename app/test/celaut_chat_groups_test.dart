@@ -24,6 +24,7 @@ InstanceListView _instance(String id, String name, {int startedAt = 100}) => Ins
       startChargeMu: '1000',
       name: name,
       alias: '',
+      title: '',
       refundMu: '',
     );
 

@@ -49,6 +49,7 @@ InstanceListView _instance(
       startChargeMu: '1000',
       name: name,
       alias: '',
+      title: '',
       stoppedAt: stoppedAt,
       refundMu: refundMu,
     );
@@ -65,6 +66,7 @@ InstanceListView _stopped(InstanceListView i, String refundMu) => InstanceListVi
       startChargeMu: i.startChargeMu,
       name: i.name,
       alias: i.alias,
+      title: i.title,
       stoppedAt: 500,
       refundMu: refundMu,
     );
@@ -395,6 +397,24 @@ void main() {
       expect(find.text('a b'), findsOneWidget);
     });
 
+    testWidgets('the title of the service shows in the row, after the name of the user', (tester) async {
+      node.db = [_instance('i1')];
+      await open(tester);
+      expect(find.text('Echo chat'), findsOneWidget);
+      // The chat kept a title of the service in the database (chat.md, section 6.10).
+      node.db = [withTitle(_instance('i1'), 'Trip to Lisbon')];
+      notes.titled('i1');
+      await tester.pump();
+      expect(find.text('Trip to Lisbon'), findsOneWidget);
+      expect(find.text('Echo chat'), findsNothing);
+      // A name of the user is stronger.
+      node.db = [withAlias(withTitle(_instance('i1'), 'Trip to Lisbon'), 'Mine')];
+      notes.titled('i1');
+      await tester.pump();
+      expect(find.text('Mine'), findsOneWidget);
+      expect(find.text('Trip to Lisbon'), findsNothing);
+    });
+
     testWidgets('without a name the row shows the short service id', (tester) async {
       node.db = [_instance('i1', name: '')];
       await open(tester);
@@ -673,6 +693,25 @@ void main() {
       await tester.pumpAndSettle();
       expect(node.renamed, ['i1 My echo', 'i1 ']);
       expect(tester.widget<Text>(find.byKey(const Key('chats-name-i1'))).data, 'Echo chat');
+    });
+
+    testWidgets('Rename with a title of the service: Save with no change keeps no name of the user', (
+      tester,
+    ) async {
+      node.db = [withTitle(_instance('i1'), 'Trip to Lisbon')];
+      node.answers['i1'] = _status('1');
+      await open(tester);
+      await tester.longPress(find.byKey(const Key('chats-row-i1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('chats-action-rename')));
+      await tester.pumpAndSettle();
+      // The field has the title, and empty shows the title again.
+      expect(tester.widget<TextField>(find.byKey(const Key('rename-field'))).controller!.text, 'Trip to Lisbon');
+      expect(find.text(appL10n.chatsRenameNoteOriginal('Trip to Lisbon')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('rename-ok')));
+      await tester.pumpAndSettle();
+      // No name of the user: a later title of the service can still show.
+      expect(node.renamed, isEmpty);
     });
 
     testWidgets('a stopped instance can be renamed from its info page', (tester) async {

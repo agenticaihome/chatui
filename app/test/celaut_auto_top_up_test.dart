@@ -28,6 +28,7 @@ InstanceListView _instance(String id, {int? stoppedAt}) => InstanceListView(
       startChargeMu: '1000',
       name: 'Echo chat',
       alias: '',
+      title: '',
       stoppedAt: stoppedAt,
       refundMu: '',
     );

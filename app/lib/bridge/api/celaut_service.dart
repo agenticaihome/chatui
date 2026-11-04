@@ -64,6 +64,18 @@ void celautNameInstance({required String instanceId, required String name}) =>
       name: name,
     );
 
+/// Keep the title that the service gave the conversation of an instance
+/// (`docs/celaut/chat.md`, section 6.10), so that the list shows it after a restart and
+/// after a stop. An empty title removes it. It does not touch the name that the user gave
+/// the instance: that name stays stronger.
+void celautSetInstanceTitle({
+  required String instanceId,
+  required String title,
+}) => RustLib.instance.api.crateApiCelautServiceCelautSetInstanceTitle(
+  instanceId: instanceId,
+  title: title,
+);
+
 /// Give an instance a name of the user's choice, for this app only (Josemi, 2026-10-23).
 /// The name stays in the Celaut database of the app and never goes to the node. An empty
 /// name removes it: the list shows the name of the skill or the service file again.
@@ -188,6 +200,10 @@ class InstanceListView {
   /// The name that the user gave the instance in the app (empty if none). Local only.
   final String alias;
 
+  /// The title that the service gave the conversation, the last one that the app read
+  /// (empty if none).
+  final String title;
+
   /// The time of the stop, in Unix seconds; none while the instance runs.
   final PlatformInt64? stoppedAt;
 
@@ -206,6 +222,7 @@ class InstanceListView {
     required this.startChargeMu,
     required this.name,
     required this.alias,
+    required this.title,
     this.stoppedAt,
     required this.refundMu,
   });
@@ -223,6 +240,7 @@ class InstanceListView {
       startChargeMu.hashCode ^
       name.hashCode ^
       alias.hashCode ^
+      title.hashCode ^
       stoppedAt.hashCode ^
       refundMu.hashCode;
 
@@ -242,6 +260,7 @@ class InstanceListView {
           startChargeMu == other.startChargeMu &&
           name == other.name &&
           alias == other.alias &&
+          title == other.title &&
           stoppedAt == other.stoppedAt &&
           refundMu == other.refundMu;
 }

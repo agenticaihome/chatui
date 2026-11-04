@@ -82,6 +82,7 @@ final _instance = InstanceListView(
   refundMu: '',
   name: 'Agent',
   alias: '',
+  title: '',
 );
 
 const _request = ChatSecretRequest(requestId: 'r1', name: 'API_KEY', prose: 'To call the model.');

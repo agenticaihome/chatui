@@ -182,12 +182,26 @@ class _RenameDialogState extends State<_RenameDialog> {
     super.dispose();
   }
 
-  void _save() => Navigator.pop(context, _field.text.trim().replaceAll(RegExp(r'\s+'), ' '));
+  void _save() {
+    final alias = _field.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    // The field starts with the name that shows. With no name of the user, that is the
+    // title of the service or the name of the start: keeping it is no new name, so a
+    // later title of the service can still show.
+    final i = widget.instance;
+    if (i.alias.trim().isEmpty && alias == instanceTitle(i)) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pop(context, alias);
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
-    final original = widget.instance.name.trim();
+    // What shows with no name of the user: the title of the service, else the name of the
+    // start.
+    final title = widget.instance.title.trim();
+    final original = title.isNotEmpty ? title : widget.instance.name.trim();
     return AlertDialog(
       key: const Key('rename-dialog'),
       title: Text(l.chatsRenameTitle),

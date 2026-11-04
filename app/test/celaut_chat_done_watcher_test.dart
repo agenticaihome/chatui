@@ -77,6 +77,7 @@ InstanceListView _instance(String id, {String alias = ''}) => InstanceListView(
       refundMu: '',
       name: 'Echo chat',
       alias: alias,
+      title: '',
     );
 
 void main() {
