@@ -9,6 +9,7 @@ import 'home_data.dart';
 import 'home_glass.dart';
 import 'home_hero.dart';
 import 'home_rows.dart';
+import 'home_scene.dart';
 import 'home_style.dart';
 import 'overview_model.dart';
 
@@ -32,7 +33,8 @@ class WalletSummaryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    return Scaffold(
+    final scaffold = Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(title: Text(l.chatsTabWallet)),
       body: ReadableWidth(
         child: ListenableBuilder(
@@ -109,5 +111,6 @@ class WalletSummaryScreen extends StatelessWidget {
         ),
       ),
     );
+    return SceneBackdrop(child: scaffold);
   }
 }

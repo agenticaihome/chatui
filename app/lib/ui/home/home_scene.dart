@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../theme/argus_theme.dart';
+import '../layout.dart';
 
 /// What lights the scene: an eclipse's rim (the overview) or the haze of a
 /// wallet's medallion (a wallet's page).
@@ -79,6 +80,59 @@ class HomeScene extends StatelessWidget {
   }
 }
 
+/// The colour of the bar of a page on a scene: clear, so that the scene runs up under
+/// it, and the [page]'s own once the content scrolls under it.
+WidgetStateColor sceneBarColor(Color page) => WidgetStateColor.resolveWith(
+      (states) => states.contains(WidgetState.scrolledUnder) ? page.withValues(alpha: 0.94) : page.withValues(alpha: 0),
+    );
+
+/// The scene of the Compute tab behind the other pages of the app: the chats, the
+/// Wallet tab, the settings, the nodes, the services and the info of an instance. It is lower than on
+/// the home pages, with a smaller eclipse beside the top of the content, because these
+/// pages start with their content and not with a figure.
+///
+/// [child] is a [Scaffold] with a clear background. The bar of an [AppBar] in it is
+/// clear over the scene and takes the page's colour once the content scrolls under it.
+///
+/// All the pages show the same scene, so [SceneImagePainter] makes one image for them.
+class SceneBackdrop extends StatelessWidget {
+  const SceneBackdrop({super.key, required this.child});
+
+  final Widget child;
+
+  /// How far the scene goes below the bar.
+  static const depth = 300.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final page = theme.scaffoldBackgroundColor;
+    final top = MediaQuery.paddingOf(context).top + kToolbarHeight;
+    return ColoredBox(
+      color: page,
+      // The light follows the content, which keeps to a column on a wide window.
+      child: LayoutBuilder(
+        builder: (context, box) => HomeScene(
+          light: SceneLight.eclipse,
+          lightAt: Offset(AppLayout.readableSide(box.maxWidth) + 76, top + 44),
+          lightRadius: 50,
+          height: top + depth,
+          child: Theme(
+            data: theme.copyWith(
+              appBarTheme: theme.appBarTheme.copyWith(
+                backgroundColor: sceneBarColor(page),
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 0,
+              ),
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Paints a [ScenePainter] from an image of it. The image is made the first time a
 /// scene of that size and look is painted, and kept for the next pages that show it.
 ///
@@ -92,9 +146,10 @@ class SceneImagePainter extends CustomPainter {
   final double devicePixelRatio;
 
   /// The images, the least recently painted first. A few looks are in use at a time:
-  /// the overview, the Compute tab and the page of the wallet.
+  /// the overview, the Compute tab, the page of the wallet and the other pages
+  /// ([SceneBackdrop]).
   static final _images = <Object, ui.Image>{};
-  static const _keep = 4;
+  static const _keep = 5;
 
   /// How many images are kept now.
   @visibleForTesting

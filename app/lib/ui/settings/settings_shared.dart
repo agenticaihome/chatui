@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/argus_theme.dart';
+import '../home/home_scene.dart';
 import '../layout.dart';
 import '../widgets/soft_card.dart';
 
@@ -97,7 +98,7 @@ class SettingsGroup extends StatelessWidget {
   }
 }
 
-/// Scaffold for a settings sub-page.
+/// Scaffold for a settings sub-page, on the scene ([SceneBackdrop]).
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key, required this.title, required this.children});
 
@@ -106,12 +107,15 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: ReadableWidth(
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + MediaQuery.paddingOf(context).bottom),
-          children: children,
+    return SceneBackdrop(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(title: Text(title)),
+        body: ReadableWidth(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + MediaQuery.paddingOf(context).bottom),
+            children: children,
+          ),
         ),
       ),
     );

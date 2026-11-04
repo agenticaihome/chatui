@@ -130,11 +130,7 @@ class ComputeHomeScreenState extends State<ComputeHomeScreen> {
     final scaffold = Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: WidgetStateColor.resolveWith(
-          (states) => states.contains(WidgetState.scrolledUnder)
-              ? page.withValues(alpha: 0.94)
-              : page.withValues(alpha: 0),
-        ),
+        backgroundColor: sceneBarColor(page),
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         toolbarHeight: 72,
