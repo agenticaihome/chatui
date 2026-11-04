@@ -524,13 +524,45 @@ const SubscriptionReady$json = {
   '1': 'SubscriptionReady',
   '2': [
     {'1': 'latest_sequence', '3': 1, '4': 1, '5': 4, '10': 'latestSequence'},
+    {'1': 'title', '3': 2, '4': 1, '5': 9, '9': 0, '10': 'title', '17': true},
+  ],
+  '8': [
+    {'1': '_title'},
   ],
 };
 
 /// Descriptor for `SubscriptionReady`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List subscriptionReadyDescriptor = $convert.base64Decode(
     'ChFTdWJzY3JpcHRpb25SZWFkeRInCg9sYXRlc3Rfc2VxdWVuY2UYASABKARSDmxhdGVzdFNlcX'
-    'VlbmNl');
+    'VlbmNlEhkKBXRpdGxlGAIgASgJSABSBXRpdGxliAEBQggKBl90aXRsZQ==');
+
+@$core.Deprecated('Use conversationTitleChangedDescriptor instead')
+const ConversationTitleChanged$json = {
+  '1': 'ConversationTitleChanged',
+  '2': [
+    {
+      '1': 'conversation_id',
+      '3': 1,
+      '4': 1,
+      '5': 9,
+      '9': 0,
+      '10': 'conversationId',
+      '17': true
+    },
+    {'1': 'title', '3': 2, '4': 1, '5': 9, '9': 1, '10': 'title', '17': true},
+    {'1': 'updated_at', '3': 3, '4': 1, '5': 3, '10': 'updatedAt'},
+  ],
+  '8': [
+    {'1': '_conversation_id'},
+    {'1': '_title'},
+  ],
+};
+
+/// Descriptor for `ConversationTitleChanged`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List conversationTitleChangedDescriptor = $convert.base64Decode(
+    'ChhDb252ZXJzYXRpb25UaXRsZUNoYW5nZWQSLAoPY29udmVyc2F0aW9uX2lkGAEgASgJSABSDm'
+    'NvbnZlcnNhdGlvbklkiAEBEhkKBXRpdGxlGAIgASgJSAFSBXRpdGxliAEBEh0KCnVwZGF0ZWRf'
+    'YXQYAyABKANSCXVwZGF0ZWRBdEISChBfY29udmVyc2F0aW9uX2lkQggKBl90aXRsZQ==');
 
 @$core.Deprecated('Use protocolErrorDescriptor instead')
 const ProtocolError$json = {
@@ -1099,6 +1131,15 @@ const ServerEvent$json = {
       '9': 0,
       '10': 'messagePinnedChanged'
     },
+    {
+      '1': 'conversation_title_changed',
+      '3': 9,
+      '4': 1,
+      '5': 11,
+      '6': '.ConversationTitleChanged',
+      '9': 0,
+      '10': 'conversationTitleChanged'
+    },
   ],
   '8': [
     {'1': 'event'},
@@ -1116,7 +1157,9 @@ final $typed_data.Uint8List serverEventDescriptor = $convert.base64Decode(
     'IAEoCzIVLk1lc3NhZ2VTdGF0dXNDaGFuZ2VkSABSFG1lc3NhZ2VTdGF0dXNDaGFuZ2VkEjQKDW'
     '1lc3NhZ2VfZGVsdGEYByABKAsyDS5NZXNzYWdlRGVsdGFIAFIMbWVzc2FnZURlbHRhEk0KFm1l'
     'c3NhZ2VfcGlubmVkX2NoYW5nZWQYCCABKAsyFS5NZXNzYWdlUGlubmVkQ2hhbmdlZEgAUhRtZX'
-    'NzYWdlUGlubmVkQ2hhbmdlZEIHCgVldmVudA==');
+    'NzYWdlUGlubmVkQ2hhbmdlZBJZChpjb252ZXJzYXRpb25fdGl0bGVfY2hhbmdlZBgJIAEoCzIZ'
+    'LkNvbnZlcnNhdGlvblRpdGxlQ2hhbmdlZEgAUhhjb252ZXJzYXRpb25UaXRsZUNoYW5nZWRCBw'
+    'oFZXZlbnQ=');
 
 @$core.Deprecated('Use subscribeRequestDescriptor instead')
 const SubscribeRequest$json = {
