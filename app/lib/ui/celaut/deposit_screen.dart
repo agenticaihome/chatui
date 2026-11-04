@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../bitcoin/bitcoin_wallet_api.dart';
 import '../../bridge/api/celaut.dart';
+import '../../bridge/api/celaut_btc_deposit.dart';
 import '../../bridge/api/celaut_deposit.dart';
 import '../../bridge/api/celaut_service.dart';
 import '../../celaut/celaut_format.dart';
@@ -16,6 +18,7 @@ import '../../services/wallet_sync_controller.dart';
 import '../../theme/argus_theme.dart';
 import '../confirm_transaction_sheet.dart';
 import '../settings/settings_shared.dart';
+import '../bitcoin/btc_deposit_screen.dart';
 import '../widgets/soft_card.dart';
 import 'client_unknown_dialog.dart';
 import 'deposit_confirm.dart';
@@ -75,9 +78,18 @@ class AppDepositWallets extends AppFullWallets implements DepositWallets {
 /// sheet of the wallet, wait until the explorer shows the box, then the node checks it
 /// once (`Payable`). With no wallet in the app, the screen says so and does not start.
 class DepositScreen extends StatefulWidget {
-  const DepositScreen({super.key, this.wallets = const AppDepositWallets(), this.newClient});
+  const DepositScreen({
+    super.key,
+    this.wallets = const AppDepositWallets(),
+    this.newClient,
+    this.bitcoin = const AppBitcoinWallet(),
+  });
 
   final DepositWallets wallets;
+
+  /// The Bitcoin wallet: the screen offers a deposit in BTC when the node takes BTC on
+  /// its network (issue #92).
+  final BitcoinWallet bitcoin;
 
   /// Make a new client on a node that forgot the client id. Tests give their own.
   final Future<NewClientView> Function(NodeAddress node)? newClient;
@@ -105,6 +117,9 @@ class _DepositScreenState extends State<DepositScreen> {
 
   NodeAddress? _node;
   DepositNodeView? _info;
+
+  /// The BTC contract of the node on the network of the Bitcoin wallet; null if it has none.
+  BtcDepositNodeView? _btc;
   DepositPreparedView? _sent;
   String? _txId;
   DepositDoneView? _done;
@@ -161,8 +176,10 @@ class _DepositScreenState extends State<DepositScreen> {
       setState(() {
         _node = node;
         _info = info;
+        _btc = null;
         _limitCtrl.text = formatErg(info.limitNanoErg.toInt(), unit: false);
       });
+      _checkBtc(node);
     } on CelautError catch (e) {
       if (mounted) setState(() => _error = e);
       if (mounted && e.kind == CelautErrorKind.clientUnknown) {
@@ -181,6 +198,41 @@ class _DepositScreenState extends State<DepositScreen> {
     } finally {
       if (mounted) setState(() => _checking = false);
     }
+  }
+
+  /// Offer BTC only when the node advertises a BTC payment contract on the network of the
+  /// Bitcoin wallet. Any failure means no offer: the ERG deposit does not change.
+  Future<void> _checkBtc(NodeAddress node) async {
+    try {
+      final btc = await widget.bitcoin.depositNode(node);
+      if (mounted && _node == node) setState(() => _btc = btc.accepts ? btc : null);
+    } catch (_) {
+      if (mounted) setState(() => _btc = null);
+    }
+  }
+
+  Future<void> _payInBtc() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => BtcDepositScreen(wallet: widget.bitcoin, node: _node)),
+    );
+  }
+
+  Widget _btcCard(BuildContext context) {
+    final l = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: SoftCard(
+        padding: EdgeInsets.zero,
+        child: ListTile(
+          key: const Key('deposit-pay-btc'),
+          leading: const Icon(Icons.currency_bitcoin),
+          title: Text(l.btcDepPayInBtc),
+          subtitle: Text(l.btcDepPayInBtcSubtitle(widget.bitcoin.settings.network.name)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _payInBtc,
+        ),
+      ),
+    );
   }
 
   Future<void> _setLimit() async {
@@ -376,6 +428,7 @@ class _DepositScreenState extends State<DepositScreen> {
         if (_error != null) _errorCard(context, _error!),
         if (_note != null) SoftCard(child: SelectableText(_note!, key: const Key('deposit-note'))),
         if (_txId != null) _statusCard(context),
+        if (_btc != null) _btcCard(context),
         if (info != null && _payer != null) ..._nodeCards(context, info),
         if (_sentBefore.isNotEmpty) ..._sentCards(context),
       ],

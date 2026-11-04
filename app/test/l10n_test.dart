@@ -68,6 +68,7 @@ void main() {
       'celautAgoDays', 'chatsTabChats', 'chatsPreviewAudio', 'chatsPreviewNamed',
       'chatSettingsTitle', 'chatFontLato', 'chatFontSerif', 'chatSettingsWidgetsGroup',
       'themeCyberpunkName', 'themeNordName', 'themeSolarizedName',
+      'btcTitle', 'btcRowTotal', 'btcErrOther',
     };
     final copied = [
       for (final k in _messageKeys(en))

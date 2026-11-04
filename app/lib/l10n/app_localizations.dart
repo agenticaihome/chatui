@@ -11332,6 +11332,558 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} is not in your variables any more.'**
   String chatSecretMissing(String name);
+
+  /// No description provided for @btcTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitcoin'**
+  String get btcTitle;
+
+  /// No description provided for @btcRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Read again'**
+  String get btcRefresh;
+
+  /// No description provided for @btcLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock the wallet to open the Bitcoin wallet.'**
+  String get btcLocked;
+
+  /// No description provided for @btcUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get btcUnlock;
+
+  /// No description provided for @btcTestNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'{network}: a test network. These coins have no value.'**
+  String btcTestNetwork(String network);
+
+  /// No description provided for @btcMainnetNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Mainnet: real bitcoin. A send cannot be undone.'**
+  String get btcMainnetNote;
+
+  /// No description provided for @btcConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get btcConfirmed;
+
+  /// No description provided for @btcPending.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} BTC not confirmed yet'**
+  String btcPending(String amount);
+
+  /// No description provided for @btcImmature.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} BTC mined, not mature yet'**
+  String btcImmature(String amount);
+
+  /// No description provided for @btcReceive.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive'**
+  String get btcReceive;
+
+  /// No description provided for @btcSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get btcSend;
+
+  /// No description provided for @btcDepositAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposit to a node'**
+  String get btcDepositAction;
+
+  /// No description provided for @btcHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get btcHistory;
+
+  /// No description provided for @btcNoHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions yet.'**
+  String get btcNoHistory;
+
+  /// No description provided for @btcUnconfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not confirmed'**
+  String get btcUnconfirmed;
+
+  /// No description provided for @btcConfirmations.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmations: {count}'**
+  String btcConfirmations(String count);
+
+  /// No description provided for @btcTxCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction ID copied'**
+  String get btcTxCopied;
+
+  /// No description provided for @btcReceiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive bitcoin'**
+  String get btcReceiveTitle;
+
+  /// No description provided for @btcReceiveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Send only {network} bitcoin to this address. After it receives, the wallet shows a new address.'**
+  String btcReceiveNote(String network);
+
+  /// No description provided for @btcCopyAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy address'**
+  String get btcCopyAddress;
+
+  /// No description provided for @btcAddressCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Address copied'**
+  String get btcAddressCopied;
+
+  /// No description provided for @btcSendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send bitcoin'**
+  String get btcSendTitle;
+
+  /// No description provided for @btcSendTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitcoin address'**
+  String get btcSendTo;
+
+  /// No description provided for @btcSendToInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a Bitcoin address of {network}'**
+  String btcSendToInvalid(String network);
+
+  /// No description provided for @btcSendAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount (BTC)'**
+  String get btcSendAmount;
+
+  /// No description provided for @btcSendAmountInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Type an amount in BTC, with 8 decimals or fewer'**
+  String get btcSendAmountInvalid;
+
+  /// No description provided for @btcSendAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Send everything'**
+  String get btcSendAll;
+
+  /// No description provided for @btcSendAllHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The fee comes out of the amount'**
+  String get btcSendAllHint;
+
+  /// No description provided for @btcFeeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee rate'**
+  String get btcFeeTitle;
+
+  /// No description provided for @btcFeeFast.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast · {rate} sat/vB'**
+  String btcFeeFast(String rate);
+
+  /// No description provided for @btcFeeNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'About 1 hour · {rate} sat/vB'**
+  String btcFeeNormal(String rate);
+
+  /// No description provided for @btcFeeSlow.
+  ///
+  /// In en, this message translates to:
+  /// **'About 1 day · {rate} sat/vB'**
+  String btcFeeSlow(String rate);
+
+  /// No description provided for @btcFeeNoEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'The server gives no estimate. The app uses the lowest rate.'**
+  String get btcFeeNoEstimate;
+
+  /// No description provided for @btcReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get btcReview;
+
+  /// No description provided for @btcConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send bitcoin?'**
+  String get btcConfirmTitle;
+
+  /// No description provided for @btcRowNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network'**
+  String get btcRowNetwork;
+
+  /// No description provided for @btcRowAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get btcRowAmount;
+
+  /// No description provided for @btcRowFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee'**
+  String get btcRowFee;
+
+  /// No description provided for @btcRowFeeRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee rate'**
+  String get btcRowFeeRate;
+
+  /// No description provided for @btcRowChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get btcRowChange;
+
+  /// No description provided for @btcRowTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get btcRowTotal;
+
+  /// No description provided for @btcSendLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign and send'**
+  String get btcSendLabel;
+
+  /// No description provided for @btcSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent: {txid}'**
+  String btcSent(String txid);
+
+  /// No description provided for @btcConsentNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'The send needs the fingerprint or the screen lock. Nothing was sent.'**
+  String get btcConsentNeeded;
+
+  /// No description provided for @btcErrLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'The wallet is locked. Unlock it first.'**
+  String get btcErrLocked;
+
+  /// No description provided for @btcErrFunds.
+  ///
+  /// In en, this message translates to:
+  /// **'There is not enough confirmed bitcoin.'**
+  String get btcErrFunds;
+
+  /// No description provided for @btcErrUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'The Bitcoin server does not answer. Check the network or the server in the Bitcoin settings.'**
+  String get btcErrUnreachable;
+
+  /// No description provided for @btcErrOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitcoin: {reason}'**
+  String btcErrOther(String reason);
+
+  /// No description provided for @btcSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitcoin settings'**
+  String get btcSettingsTitle;
+
+  /// No description provided for @btcNetworkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Network'**
+  String get btcNetworkTitle;
+
+  /// No description provided for @btcNetMainnet.
+  ///
+  /// In en, this message translates to:
+  /// **'Mainnet (real bitcoin)'**
+  String get btcNetMainnet;
+
+  /// No description provided for @btcNetTestnet.
+  ///
+  /// In en, this message translates to:
+  /// **'Testnet (test)'**
+  String get btcNetTestnet;
+
+  /// No description provided for @btcNetSignet.
+  ///
+  /// In en, this message translates to:
+  /// **'Signet (test)'**
+  String get btcNetSignet;
+
+  /// No description provided for @btcNetRegtest.
+  ///
+  /// In en, this message translates to:
+  /// **'Regtest (local test)'**
+  String get btcNetRegtest;
+
+  /// No description provided for @btcMainnetWarnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use real bitcoin?'**
+  String get btcMainnetWarnTitle;
+
+  /// No description provided for @btcMainnetWarnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Chatui is new: use small amounts.'**
+  String get btcMainnetWarnBody;
+
+  /// No description provided for @btcMainnetWarnOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Use mainnet'**
+  String get btcMainnetWarnOk;
+
+  /// No description provided for @btcServerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Esplora server'**
+  String get btcServerTitle;
+
+  /// No description provided for @btcServerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty: {url}'**
+  String btcServerHint(String url);
+
+  /// No description provided for @btcServerNoDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Regtest has no public server. Type one.'**
+  String get btcServerNoDefault;
+
+  /// No description provided for @btcServerInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The address must start with https:// or http://'**
+  String get btcServerInvalid;
+
+  /// No description provided for @btcSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get btcSave;
+
+  /// No description provided for @btcSeedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The Bitcoin wallet uses the words of your wallet, on the BIP-84 path (native SegWit). Any standard Bitcoin wallet opens the same funds with the same words.'**
+  String get btcSeedNote;
+
+  /// No description provided for @btcDepTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposit in BTC'**
+  String get btcDepTitle;
+
+  /// No description provided for @btcDepNode.
+  ///
+  /// In en, this message translates to:
+  /// **'Node address (host:port)'**
+  String get btcDepNode;
+
+  /// No description provided for @btcDepNodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the address as host:port'**
+  String get btcDepNodeInvalid;
+
+  /// No description provided for @btcDepCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get btcDepCheck;
+
+  /// No description provided for @btcDepNoBtc.
+  ///
+  /// In en, this message translates to:
+  /// **'This node does not take BTC on {network}.'**
+  String btcDepNoBtc(String network);
+
+  /// No description provided for @btcDepNodeNetworks.
+  ///
+  /// In en, this message translates to:
+  /// **'It takes BTC on: {networks}'**
+  String btcDepNodeNetworks(String networks);
+
+  /// No description provided for @btcDepPayTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Pays to'**
+  String get btcDepPayTo;
+
+  /// No description provided for @btcDepRate.
+  ///
+  /// In en, this message translates to:
+  /// **'{mu} MU per sat'**
+  String btcDepRate(String mu);
+
+  /// No description provided for @btcDepCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Your credit on the node: {mu} MU'**
+  String btcDepCredit(String mu);
+
+  /// No description provided for @btcDepWaitsFor.
+  ///
+  /// In en, this message translates to:
+  /// **'The node checks the deposit after {count} confirmations.'**
+  String btcDepWaitsFor(String count);
+
+  /// No description provided for @btcDepWaitsDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'The node does not say how many confirmations it wants. The app waits for {count} before it tells the node.'**
+  String btcDepWaitsDefault(String count);
+
+  /// No description provided for @btcDepAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount (sat)'**
+  String get btcDepAmount;
+
+  /// No description provided for @btcDepAmountInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Type {min} sat or more'**
+  String btcDepAmountInvalid(String min);
+
+  /// No description provided for @btcDepPrepare.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepare the deposit'**
+  String get btcDepPrepare;
+
+  /// No description provided for @btcDepConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposit BTC to the node?'**
+  String get btcDepConfirmTitle;
+
+  /// No description provided for @btcDepConfirmDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'The deposit token of the node goes in an OP_RETURN output. The app tells the node after {count} confirmations. The token expires 6 hours after it was made.'**
+  String btcDepConfirmDetail(String count);
+
+  /// No description provided for @btcDepRowNode.
+  ///
+  /// In en, this message translates to:
+  /// **'Node'**
+  String get btcDepRowNode;
+
+  /// No description provided for @btcDepRowMu.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit'**
+  String get btcDepRowMu;
+
+  /// No description provided for @btcDepWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmations: {have} of {need}'**
+  String btcDepWaiting(String have, String need);
+
+  /// No description provided for @btcDepUnknownTx.
+  ///
+  /// In en, this message translates to:
+  /// **'The server does not know the transaction yet.'**
+  String get btcDepUnknownTx;
+
+  /// No description provided for @btcDepTelling.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking the server…'**
+  String get btcDepTelling;
+
+  /// No description provided for @btcDepAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'The node accepted the deposit. Credit now: {mu} MU'**
+  String btcDepAccepted(String mu);
+
+  /// No description provided for @btcDepRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The node refused the deposit: {reason}'**
+  String btcDepRefused(String reason);
+
+  /// No description provided for @btcDepPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposits that wait'**
+  String get btcDepPendingTitle;
+
+  /// No description provided for @btcDepWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait'**
+  String get btcDepWait;
+
+  /// No description provided for @btcDepForget.
+  ///
+  /// In en, this message translates to:
+  /// **'Forget'**
+  String get btcDepForget;
+
+  /// No description provided for @btcDepPayInBtc.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay in BTC'**
+  String get btcDepPayInBtc;
+
+  /// No description provided for @btcDepPayInBtcSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This node takes BTC on {network}'**
+  String btcDepPayInBtcSubtitle(String network);
+
+  /// No description provided for @btcWalletButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitcoin wallet'**
+  String get btcWalletButton;
 }
 
 class _AppLocalizationsDelegate

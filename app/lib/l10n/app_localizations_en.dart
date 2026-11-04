@@ -7067,4 +7067,336 @@ class AppLocalizationsEn extends AppLocalizations {
   String chatSecretMissing(String name) {
     return '$name is not in your variables any more.';
   }
+
+  @override
+  String get btcTitle => 'Bitcoin';
+
+  @override
+  String get btcRefresh => 'Read again';
+
+  @override
+  String get btcLocked => 'Unlock the wallet to open the Bitcoin wallet.';
+
+  @override
+  String get btcUnlock => 'Unlock';
+
+  @override
+  String btcTestNetwork(String network) {
+    return '$network: a test network. These coins have no value.';
+  }
+
+  @override
+  String get btcMainnetNote =>
+      'Mainnet: real bitcoin. A send cannot be undone.';
+
+  @override
+  String get btcConfirmed => 'Confirmed';
+
+  @override
+  String btcPending(String amount) {
+    return '$amount BTC not confirmed yet';
+  }
+
+  @override
+  String btcImmature(String amount) {
+    return '$amount BTC mined, not mature yet';
+  }
+
+  @override
+  String get btcReceive => 'Receive';
+
+  @override
+  String get btcSend => 'Send';
+
+  @override
+  String get btcDepositAction => 'Deposit to a node';
+
+  @override
+  String get btcHistory => 'History';
+
+  @override
+  String get btcNoHistory => 'No transactions yet.';
+
+  @override
+  String get btcUnconfirmed => 'Not confirmed';
+
+  @override
+  String btcConfirmations(String count) {
+    return 'Confirmations: $count';
+  }
+
+  @override
+  String get btcTxCopied => 'Transaction ID copied';
+
+  @override
+  String get btcReceiveTitle => 'Receive bitcoin';
+
+  @override
+  String btcReceiveNote(String network) {
+    return 'Send only $network bitcoin to this address. After it receives, the wallet shows a new address.';
+  }
+
+  @override
+  String get btcCopyAddress => 'Copy address';
+
+  @override
+  String get btcAddressCopied => 'Address copied';
+
+  @override
+  String get btcSendTitle => 'Send bitcoin';
+
+  @override
+  String get btcSendTo => 'Bitcoin address';
+
+  @override
+  String btcSendToInvalid(String network) {
+    return 'This is not a Bitcoin address of $network';
+  }
+
+  @override
+  String get btcSendAmount => 'Amount (BTC)';
+
+  @override
+  String get btcSendAmountInvalid =>
+      'Type an amount in BTC, with 8 decimals or fewer';
+
+  @override
+  String get btcSendAll => 'Send everything';
+
+  @override
+  String get btcSendAllHint => 'The fee comes out of the amount';
+
+  @override
+  String get btcFeeTitle => 'Fee rate';
+
+  @override
+  String btcFeeFast(String rate) {
+    return 'Fast · $rate sat/vB';
+  }
+
+  @override
+  String btcFeeNormal(String rate) {
+    return 'About 1 hour · $rate sat/vB';
+  }
+
+  @override
+  String btcFeeSlow(String rate) {
+    return 'About 1 day · $rate sat/vB';
+  }
+
+  @override
+  String get btcFeeNoEstimate =>
+      'The server gives no estimate. The app uses the lowest rate.';
+
+  @override
+  String get btcReview => 'Review';
+
+  @override
+  String get btcConfirmTitle => 'Send bitcoin?';
+
+  @override
+  String get btcRowNetwork => 'Network';
+
+  @override
+  String get btcRowAmount => 'Amount';
+
+  @override
+  String get btcRowFee => 'Fee';
+
+  @override
+  String get btcRowFeeRate => 'Fee rate';
+
+  @override
+  String get btcRowChange => 'Change';
+
+  @override
+  String get btcRowTotal => 'Total';
+
+  @override
+  String get btcSendLabel => 'Sign and send';
+
+  @override
+  String btcSent(String txid) {
+    return 'Sent: $txid';
+  }
+
+  @override
+  String get btcConsentNeeded =>
+      'The send needs the fingerprint or the screen lock. Nothing was sent.';
+
+  @override
+  String get btcErrLocked => 'The wallet is locked. Unlock it first.';
+
+  @override
+  String get btcErrFunds => 'There is not enough confirmed bitcoin.';
+
+  @override
+  String get btcErrUnreachable =>
+      'The Bitcoin server does not answer. Check the network or the server in the Bitcoin settings.';
+
+  @override
+  String btcErrOther(String reason) {
+    return 'Bitcoin: $reason';
+  }
+
+  @override
+  String get btcSettingsTitle => 'Bitcoin settings';
+
+  @override
+  String get btcNetworkTitle => 'Network';
+
+  @override
+  String get btcNetMainnet => 'Mainnet (real bitcoin)';
+
+  @override
+  String get btcNetTestnet => 'Testnet (test)';
+
+  @override
+  String get btcNetSignet => 'Signet (test)';
+
+  @override
+  String get btcNetRegtest => 'Regtest (local test)';
+
+  @override
+  String get btcMainnetWarnTitle => 'Use real bitcoin?';
+
+  @override
+  String get btcMainnetWarnBody =>
+      'On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Chatui is new: use small amounts.';
+
+  @override
+  String get btcMainnetWarnOk => 'Use mainnet';
+
+  @override
+  String get btcServerTitle => 'Esplora server';
+
+  @override
+  String btcServerHint(String url) {
+    return 'Empty: $url';
+  }
+
+  @override
+  String get btcServerNoDefault => 'Regtest has no public server. Type one.';
+
+  @override
+  String get btcServerInvalid =>
+      'The address must start with https:// or http://';
+
+  @override
+  String get btcSave => 'Save';
+
+  @override
+  String get btcSeedNote =>
+      'The Bitcoin wallet uses the words of your wallet, on the BIP-84 path (native SegWit). Any standard Bitcoin wallet opens the same funds with the same words.';
+
+  @override
+  String get btcDepTitle => 'Deposit in BTC';
+
+  @override
+  String get btcDepNode => 'Node address (host:port)';
+
+  @override
+  String get btcDepNodeInvalid => 'Type the address as host:port';
+
+  @override
+  String get btcDepCheck => 'Check';
+
+  @override
+  String btcDepNoBtc(String network) {
+    return 'This node does not take BTC on $network.';
+  }
+
+  @override
+  String btcDepNodeNetworks(String networks) {
+    return 'It takes BTC on: $networks';
+  }
+
+  @override
+  String get btcDepPayTo => 'Pays to';
+
+  @override
+  String btcDepRate(String mu) {
+    return '$mu MU per sat';
+  }
+
+  @override
+  String btcDepCredit(String mu) {
+    return 'Your credit on the node: $mu MU';
+  }
+
+  @override
+  String btcDepWaitsFor(String count) {
+    return 'The node checks the deposit after $count confirmations.';
+  }
+
+  @override
+  String btcDepWaitsDefault(String count) {
+    return 'The node does not say how many confirmations it wants. The app waits for $count before it tells the node.';
+  }
+
+  @override
+  String get btcDepAmount => 'Amount (sat)';
+
+  @override
+  String btcDepAmountInvalid(String min) {
+    return 'Type $min sat or more';
+  }
+
+  @override
+  String get btcDepPrepare => 'Prepare the deposit';
+
+  @override
+  String get btcDepConfirmTitle => 'Deposit BTC to the node?';
+
+  @override
+  String btcDepConfirmDetail(String count) {
+    return 'The deposit token of the node goes in an OP_RETURN output. The app tells the node after $count confirmations. The token expires 6 hours after it was made.';
+  }
+
+  @override
+  String get btcDepRowNode => 'Node';
+
+  @override
+  String get btcDepRowMu => 'Credit';
+
+  @override
+  String btcDepWaiting(String have, String need) {
+    return 'Confirmations: $have of $need';
+  }
+
+  @override
+  String get btcDepUnknownTx => 'The server does not know the transaction yet.';
+
+  @override
+  String get btcDepTelling => 'Asking the server…';
+
+  @override
+  String btcDepAccepted(String mu) {
+    return 'The node accepted the deposit. Credit now: $mu MU';
+  }
+
+  @override
+  String btcDepRefused(String reason) {
+    return 'The node refused the deposit: $reason';
+  }
+
+  @override
+  String get btcDepPendingTitle => 'Deposits that wait';
+
+  @override
+  String get btcDepWait => 'Wait';
+
+  @override
+  String get btcDepForget => 'Forget';
+
+  @override
+  String get btcDepPayInBtc => 'Pay in BTC';
+
+  @override
+  String btcDepPayInBtcSubtitle(String network) {
+    return 'This node takes BTC on $network';
+  }
+
+  @override
+  String get btcWalletButton => 'Bitcoin wallet';
 }

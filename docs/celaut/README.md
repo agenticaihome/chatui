@@ -25,3 +25,4 @@ Sources read for these notes:
 | [invite.md](invite.md) | The peer invitation of nodo in a QR code: what the app reads, the binary scanner, and how it chooses the address that can work on the route |
 | [service-info.md](service-info.md) | The details of a service, read from its Service as a stream that skips the filesystem, and the check of the chat interface before a launch |
 | [receipts.md](receipts.md) | The execution receipts of nodo#419: the start receipt, the checkpoints and the close of each tunnel, how the app checks them against what the phone sent and got, what it keeps, the Receipts part of the info page, and the export for `nodo receipt verify` |
+| [bitcoin.md](bitcoin.md) | The Bitcoin wallet (issue #92): the same words on BIP-84, `bdk_wallet` over Esplora, networks (signet by default), the Bitcoin look, deposits in BTC to a node with the token in `OP_RETURN`, and what nodo can add |

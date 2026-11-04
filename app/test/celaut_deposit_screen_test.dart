@@ -13,6 +13,8 @@ import 'package:argus_wallet/ui/confirm_transaction_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/fake_bitcoin.dart';
+
 final _peer = 'ab' * 32;
 const _address = '9fRAWhdxEsTcdb8PhGNrZfwqa65zfkuYHAMmkQLcic1gdLSV5vA';
 final _tx = '7c' * 32;
@@ -241,6 +243,22 @@ void main() {
       await tester.enterText(find.byKey(const Key('deposit-node')), '127.0.0.1:18460');
       await tester.tap(find.byKey(const Key('deposit-check')));
       await tester.pumpAndSettle();
+    }
+
+    for (final accepts in [true, false]) {
+      testWidgets('BTC is offered only when the node takes BTC on the wallet network ($accepts)', (tester) async {
+        tester.view.physicalSize = const Size(390, 4000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        wallet = FakeWallets();
+        final btc = FakeBitcoin(accepts: accepts);
+        await tester.pumpWidget(MaterialApp(home: DepositScreen(wallets: wallet, bitcoin: btc)));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('deposit-pay-btc')), findsNothing);
+        await check(tester);
+        expect(btc.calls, ['node 127.0.0.1:18460']);
+        expect(find.byKey(const Key('deposit-pay-btc')), accepts ? findsOneWidget : findsNothing);
+      });
     }
 
     testWidgets('checks the node, deposits, waits for the box and shows the balance', (
