@@ -12,8 +12,24 @@ double _contrast(Color a, Color b) {
   return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
 }
 
-SkillView _skill(String name, {String domain = '', List<String> tags = const [], String prose = ''}) =>
-    SkillView(boxId: 'box-$name', name: name, prose: prose, tags: tags, domain: domain);
+SkillView _skill(
+  String name, {
+  String domain = '',
+  List<String> tags = const [],
+  String prose = '',
+  int height = 0,
+  List<String> services = const [],
+  double reputation = 0,
+}) => SkillView(
+  boxId: 'box-$name',
+  name: name,
+  prose: prose,
+  tags: tags,
+  domain: domain,
+  height: height,
+  serviceIds: services,
+  publisherReputation: reputation,
+);
 
 void main() {
   test('the fields: the most used first, then by name, with no case and no empty field', () {
@@ -37,6 +53,73 @@ void main() {
       expect(skillMatches(s, q), isTrue, reason: q);
     }
     expect(skillMatches(s, 'chat'), isFalse);
+  });
+
+  group('the sections of the store', () {
+    final a = _skill('A', domain: 'finance', height: 10, services: ['s1', 's2'], reputation: 5);
+    final b = _skill('B', domain: 'Finance', height: 30, services: ['s3'], reputation: 5);
+    final c = _skill('C', domain: 'nlp', height: 20, services: ['s4', 's5', 's6'], reputation: 1);
+    final d = _skill('D', domain: 'nlp', height: 40, services: const [], reputation: 9);
+    final e = _skill('E', domain: 'chat', height: 0, services: ['s7'], reputation: 0);
+    final all = [a, b, c, d, e];
+    List<String> names(List<SkillView> skills) => [for (final s in skills) s.name];
+
+    test('featured: the most backed skill of each field, with a service', () {
+      // finance: A (5, 2 services) over B (5, 1); nlp: C, as D has no service; chat: E.
+      expect(names(featuredSkills(all)), ['A', 'C', 'E']);
+      expect(featuredSkills([d]), isEmpty);
+    });
+
+    test('featured: at most $featuredSize, and the skills with no field are one field', () {
+      final many = [
+        for (var i = 0; i < 9; i++) _skill('F$i', domain: 'f$i', services: ['x$i'], reputation: i.toDouble()),
+        _skill('N1', services: ['n1'], reputation: 100),
+        _skill('N2', services: ['n2'], reputation: 99),
+      ];
+      expect(names(featuredSkills(many)), ['N1', 'F8', 'F7', 'F6', 'F5']);
+    });
+
+    test('new: the highest block first; a skill with no height is not there', () {
+      expect(names(newSkills(all)), ['D', 'B', 'C', 'A']);
+    });
+
+    test('popular: the most services first, then the backing; no skill with no service', () {
+      expect(names(popularSkills(all)), ['C', 'A', 'B', 'E']);
+    });
+
+    test('the order of a tie is the name, on every phone', () {
+      final x = _skill('beta', domain: 'z', height: 5, services: ['1'], reputation: 1);
+      final y = _skill('Alpha', domain: 'y', height: 5, services: ['2'], reputation: 1);
+      expect(names(newSkills([x, y])), ['Alpha', 'beta']);
+      expect(names(popularSkills([x, y])), ['Alpha', 'beta']);
+      expect(names(featuredSkills([x, y])), ['Alpha', 'beta']);
+    });
+
+    test('the rows have at most $storeRowSize skills', () {
+      final many = [for (var i = 0; i < 20; i++) _skill('S$i', domain: 'd', height: i + 1, services: ['s$i'])];
+      expect(newSkills(many), hasLength(storeRowSize));
+      expect(popularSkills(many), hasLength(storeRowSize));
+      expect(suggestedSkills(many, [(serviceId: 's0', name: '')]), hasLength(storeRowSize));
+    });
+
+    test('a skill was run if an instance has one of its services or its name', () {
+      expect(skillWasRun(a, [(serviceId: 'S2', name: '')]), isTrue);
+      expect(skillWasRun(a, [(serviceId: 'zz', name: ' a ')]), isTrue);
+      expect(skillWasRun(a, [(serviceId: 's3', name: 'B')]), isFalse);
+      expect(skillWasRun(_skill(''), [(serviceId: 'zz', name: '')]), isFalse);
+    });
+
+    test('suggested: the other skills of the fields that the user ran, the most backed first', () {
+      expect(suggestedSkills(all, const []), isEmpty);
+      // Ran A (finance): B. Ran C (nlp): D, which has no service but is in the field.
+      expect(names(suggestedSkills(all, [(serviceId: 's1', name: '')])), ['B']);
+      expect(names(suggestedSkills(all, [(serviceId: 's1', name: ''), (serviceId: 's5', name: '')])), ['D', 'B']);
+      // A service that is no skill's: no suggestion.
+      expect(suggestedSkills(all, [(serviceId: 'other', name: 'echo')]), isEmpty);
+      // A skill with no field gives no suggestion.
+      final lone = _skill('L', services: ['l1']);
+      expect(suggestedSkills([lone, _skill('M')], [(serviceId: 'l1', name: '')]), isEmpty);
+    });
   });
 
   test('a field gives one hue to all its skills', () {

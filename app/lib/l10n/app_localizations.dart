@@ -10625,6 +10625,90 @@ abstract class AppLocalizations {
   /// **'On this phone'**
   String get celautRunOnPhone;
 
+  /// No description provided for @celautRunImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get celautRunImport;
+
+  /// No description provided for @celautRunPhoneServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Run the services on this phone'**
+  String get celautRunPhoneServices;
+
+  /// No description provided for @celautStoreFeatured.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured'**
+  String get celautStoreFeatured;
+
+  /// No description provided for @celautStoreFeaturedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'One skill of each field, from the publisher with the most reputation'**
+  String get celautStoreFeaturedHint;
+
+  /// No description provided for @celautStoreSuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested for you'**
+  String get celautStoreSuggested;
+
+  /// No description provided for @celautStoreSuggestedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'In the fields of the skills that you ran'**
+  String get celautStoreSuggestedHint;
+
+  /// No description provided for @celautStoreNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get celautStoreNew;
+
+  /// No description provided for @celautStoreNewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The last skills published on Ergo'**
+  String get celautStoreNewHint;
+
+  /// No description provided for @celautStorePopular.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular'**
+  String get celautStorePopular;
+
+  /// No description provided for @celautStorePopularHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The skills with the most services'**
+  String get celautStorePopularHint;
+
+  /// No description provided for @celautStoreCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get celautStoreCategories;
+
+  /// No description provided for @celautStoreAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All skills'**
+  String get celautStoreAll;
+
+  /// No description provided for @celautStoreServices.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 service} other{{count} services}}'**
+  String celautStoreServices(int count);
+
+  /// No description provided for @celautStoreSkills.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 skill} other{{count} skills}}'**
+  String celautStoreSkills(int count);
+
   /// No description provided for @celautEnvSensitive.
   ///
   /// In en, this message translates to:

@@ -251,7 +251,7 @@ void main() {
           onStarted: onStarted,
           nameInstance: (id, name) => named.add('$id $name'),
           loadSkills: () async => const [
-            SkillView(boxId: 'skill-echo', name: 'Echo chat', prose: 'Says it back.', tags: [], domain: ''),
+            SkillView(boxId: 'skill-echo', name: 'Echo chat', prose: 'Says it back.', tags: [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0),
           ],
           loadServices: (_) async =>
               [SkillServiceView(serviceId: _echoId, score: 0.9, direct: true)],

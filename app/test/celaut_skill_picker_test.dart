@@ -17,8 +17,11 @@ const _sat = SkillView(
   prose: 'Decides if a formula can be satisfied.',
   tags: ['logic', 'np-complete'],
   domain: 'algorithms',
+  height: 0,
+  serviceIds: [],
+  publisherReputation: 0,
 );
-const _summary = SkillView(boxId: 'skill-md', name: 'Markdown Summarization', prose: '', tags: [], domain: 'nlp');
+const _summary = SkillView(boxId: 'skill-md', name: 'Markdown Summarization', prose: '', tags: [], domain: 'nlp', height: 0, serviceIds: [], publisherReputation: 0);
 
 List<SkillServiceView> _ranked() => [
   SkillServiceView(serviceId: _best, score: 0.8455, direct: true),
