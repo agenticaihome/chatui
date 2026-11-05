@@ -1,5 +1,4 @@
 import 'package:argus_wallet/bridge/api/celaut_env.dart';
-import 'package:argus_wallet/bridge/api/celaut_service_info.dart';
 import 'package:argus_wallet/celaut/env_share.dart';
 import 'package:argus_wallet/celaut/env_store.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
