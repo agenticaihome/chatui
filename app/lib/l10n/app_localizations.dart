@@ -12118,6 +12118,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A hibernated instance pays only for its disk. Wake it to use it again. Stop it to get the refund; only a stopped instance can be deleted.'**
   String get chatsInfoHibernatedNote;
+
+  /// No description provided for @coinErgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Ergo'**
+  String get coinErgo;
+
+  /// No description provided for @coinBitcoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitcoin'**
+  String get coinBitcoin;
+
+  /// No description provided for @coinTestNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'{network} · test network'**
+  String coinTestNetwork(String network);
+
+  /// No description provided for @homeCoinPendingFigure.
+  ///
+  /// In en, this message translates to:
+  /// **'{figure} {unit} pending'**
+  String homeCoinPendingFigure(String figure, String unit);
+
+  /// No description provided for @btcOverviewUnlockOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock the wallet one time to read the Bitcoin wallet.'**
+  String get btcOverviewUnlockOnce;
+
+  /// No description provided for @btcOverviewUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'The Bitcoin server did not answer. The figures can be old.'**
+  String get btcOverviewUnreachable;
+
+  /// No description provided for @btcWalletRowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The same words as the Ergo wallet'**
+  String get btcWalletRowSubtitle;
+
+  /// No description provided for @btcSettingsRowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Network and server'**
+  String get btcSettingsRowSubtitle;
+
+  /// No description provided for @btcReceiveAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount to ask for (BTC), optional'**
+  String get btcReceiveAmount;
+
+  /// No description provided for @btcReceiveAmountHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'The QR code asks for this amount'**
+  String get btcReceiveAmountHelp;
+
+  /// No description provided for @btcScanNotBitcoin.
+  ///
+  /// In en, this message translates to:
+  /// **'This QR code is not a Bitcoin address of {network}'**
+  String btcScanNotBitcoin(String network);
+
+  /// No description provided for @btcFeeCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Other rate'**
+  String get btcFeeCustom;
+
+  /// No description provided for @btcFeeCustomLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee rate'**
+  String get btcFeeCustomLabel;
+
+  /// No description provided for @btcFeeCustomInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a rate from 1 to 1000 sat/vB'**
+  String get btcFeeCustomInvalid;
+
+  /// No description provided for @btcTxTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get btcTxTime;
+
+  /// No description provided for @btcTxSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get btcTxSize;
+
+  /// No description provided for @btcTxData.
+  ///
+  /// In en, this message translates to:
+  /// **'Data (OP_RETURN)'**
+  String get btcTxData;
+
+  /// No description provided for @btcTxUnknownScript.
+  ///
+  /// In en, this message translates to:
+  /// **'Not an address'**
+  String get btcTxUnknownScript;
+
+  /// No description provided for @btcTxYours.
+  ///
+  /// In en, this message translates to:
+  /// **'yours'**
+  String get btcTxYours;
+
+  /// No description provided for @btcBump.
+  ///
+  /// In en, this message translates to:
+  /// **'Raise the fee'**
+  String get btcBump;
+
+  /// No description provided for @btcBumpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The payment goes again with a higher fee and replaces the payment that waits (RBF). The fee comes out of the change.'**
+  String get btcBumpHint;
+
+  /// No description provided for @btcBumpNow.
+  ///
+  /// In en, this message translates to:
+  /// **'The fee rate is {rate} sat/vB now. The new rate must be {min} sat/vB or more.'**
+  String btcBumpNow(String rate, String min);
+
+  /// No description provided for @btcBumpTooLow.
+  ///
+  /// In en, this message translates to:
+  /// **'The rate must be {min} sat/vB or more'**
+  String btcBumpTooLow(String min);
+
+  /// No description provided for @btcBumpConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send again with a higher fee?'**
+  String get btcBumpConfirmTitle;
+
+  /// No description provided for @btcBumpOldFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee before'**
+  String get btcBumpOldFee;
+
+  /// No description provided for @btcBumped.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent again with a higher fee: {txid}'**
+  String btcBumped(String txid);
+
+  /// No description provided for @btcAddressReceive.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive #{index}'**
+  String btcAddressReceive(String index);
+
+  /// No description provided for @btcAddressChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change #{index}'**
+  String btcAddressChange(String index);
+
+  /// No description provided for @btcAddressUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Used'**
+  String get btcAddressUsed;
+
+  /// No description provided for @btcAddressUnused.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used'**
+  String get btcAddressUnused;
+
+  /// No description provided for @btcUtxosTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unspent outputs'**
+  String get btcUtxosTitle;
+
+  /// No description provided for @btcUtxosNone.
+  ///
+  /// In en, this message translates to:
+  /// **'The wallet has no unspent outputs.'**
+  String get btcUtxosNone;
+
+  /// No description provided for @btcOutpointCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Output copied'**
+  String get btcOutpointCopied;
+
+  /// No description provided for @btcBackupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery phrase'**
+  String get btcBackupTitle;
+
+  /// No description provided for @btcBackupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The Bitcoin wallet has no recovery phrase of its own. Its keys come from the words of the wallet (BIP-84). Keep those words: they restore the Ergo wallet and the Bitcoin wallet. Any standard Bitcoin wallet opens the same bitcoin with the same words.'**
+  String get btcBackupBody;
+
+  /// No description provided for @btcToolAddressesBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'Each address, what it holds and its label'**
+  String get btcToolAddressesBlurb;
+
+  /// No description provided for @btcToolUtxosBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'The coins of the wallet, one by one'**
+  String get btcToolUtxosBlurb;
+
+  /// No description provided for @btcToolNetworkBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'The network and the Esplora server'**
+  String get btcToolNetworkBlurb;
+
+  /// No description provided for @btcToolBackupBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'The same words as the wallet'**
+  String get btcToolBackupBlurb;
+
+  /// No description provided for @btcToolLockBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock the wallet: Ergo and Bitcoin'**
+  String get btcToolLockBlurb;
 }
 
 class _AppLocalizationsDelegate
