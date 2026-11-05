@@ -1104,6 +1104,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(lib.calls, ['import /cache/picked.bee echo.celaut.bee']);
       expect(find.text(appL10n.celautPkgLoaded('echo')), findsOneWidget);
+      await showFiles(tester);
       expect(find.byKey(Key('pkg-$_best')), findsOneWidget);
       expect(incoming.busy.value, isFalse);
     });
