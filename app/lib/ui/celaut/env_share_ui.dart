@@ -34,8 +34,12 @@ Future<void> showEnvShare(
               )
             else
               Center(
+                // A fixed size: QrImageView uses a LayoutBuilder, which an AlertDialog cannot
+                // measure without one.
                 child: Container(
                   key: const Key('env-share-qr'),
+                  width: 260,
+                  height: 260,
                   color: Colors.white,
                   padding: const EdgeInsets.all(10),
                   child: QrImageView(
