@@ -7,6 +7,11 @@
 //!
 //! The network and the Esplora server come from the app's settings ([`btc_open`]). A
 //! change of either makes a new wallet.
+//!
+//! While the wallet is locked, [`btc_watch`] reads the balance and the history with the
+//! public descriptors that [`btc_descriptors`] gave at the last unlock (issue #103), as the
+//! Ergo wallet reads its public addresses while it is locked. Those descriptors hold no
+//! key: they cannot sign.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -15,6 +20,7 @@ use once_cell::sync::Lazy;
 use rand::{rngs::SysRng, TryRng};
 use wallet_btc::esplora::{Esplora, EsploraError};
 use wallet_btc::scan::{full_scan, STOP_GAP};
+use wallet_btc::uri::{parse_payment_request, payment_uri};
 use wallet_btc::wallet::{parse_address, WalletError};
 use wallet_btc::{BtcNetwork, BtcWallet, PreparedSend};
 use zeroize::Zeroizing;
@@ -69,9 +75,11 @@ impl From<WalletError> for BtcError {
             WalletError::Amount(_) | WalletError::FeeRate(_) => BtcErrorKind::InvalidInput,
             WalletError::Funds(_) => BtcErrorKind::Funds,
             WalletError::Chain(_) => BtcErrorKind::Server,
-            WalletError::Keys(_) | WalletError::Build(_) | WalletError::Sign(_) => {
-                BtcErrorKind::Transaction
-            }
+            WalletError::Keys(_)
+            | WalletError::Build(_)
+            | WalletError::Sign(_)
+            | WalletError::Bump(_) => BtcErrorKind::Transaction,
+            WalletError::WatchOnly => BtcErrorKind::Locked,
         };
         error(kind, e.to_string())
     }
@@ -246,18 +254,18 @@ pub struct BtcTxView {
 pub fn btc_transactions(handle_id: u64) -> Result<Vec<BtcTxView>, BtcError> {
     let (wallet, _, _) = current(handle_id)?;
     let wallet = recover(wallet.lock());
-    Ok(wallet
-        .transactions()
-        .into_iter()
-        .map(|t| BtcTxView {
-            txid: t.txid,
-            net_sat: t.net_sat,
-            fee_sat: t.fee_sat.unwrap_or(0),
-            fee_known: t.fee_sat.is_some(),
-            confirmations: t.confirmations,
-            time: t.time.unwrap_or(0),
-        })
-        .collect())
+    Ok(wallet.transactions().into_iter().map(tx_view).collect())
+}
+
+fn tx_view(t: wallet_btc::TxView) -> BtcTxView {
+    BtcTxView {
+        txid: t.txid,
+        net_sat: t.net_sat,
+        fee_sat: t.fee_sat.unwrap_or(0),
+        fee_known: t.fee_sat.is_some(),
+        confirmations: t.confirmations,
+        time: t.time.unwrap_or(0),
+    }
 }
 
 /// Fee rates in sat/vB.
@@ -306,6 +314,8 @@ pub struct BtcPreparedView {
     pub fee_rate: f64,
     pub change_sat: u64,
     pub txid: String,
+    /// The transaction that this one replaces with a higher fee (empty if none).
+    pub replaces: String,
 }
 
 fn store(handle_id: u64, prepared: PreparedSend) -> BtcPreparedView {
@@ -326,6 +336,7 @@ fn store(handle_id: u64, prepared: PreparedSend) -> BtcPreparedView {
         fee_rate: prepared.fee_rate_sat_vb,
         change_sat: prepared.change_sat,
         txid: prepared.txid.to_string(),
+        replaces: prepared.replaces.map(|t| t.to_string()).unwrap_or_default(),
     };
     all.insert(id, (handle_id, prepared));
     shown
@@ -398,14 +409,216 @@ pub async fn btc_send(handle_id: u64, prepared_id: u64) -> Result<String, BtcErr
     Ok(txid.to_string())
 }
 
+/// The public descriptors of a Bitcoin wallet: every address, no key.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BtcDescriptors {
+    pub network: String,
+    /// The receive addresses (`/0/*`).
+    pub receive: String,
+    /// The change addresses (`/1/*`).
+    pub change: String,
+}
+
+/// The public descriptors of the open Bitcoin wallet, for [`btc_watch`] while the wallet
+/// is locked.
+pub fn btc_descriptors(handle_id: u64) -> Result<BtcDescriptors, BtcError> {
+    let (wallet, network, _) = current(handle_id)?;
+    let (receive, change) = recover(wallet.lock()).public_descriptors();
+    Ok(BtcDescriptors {
+        network: network.name().to_string(),
+        receive,
+        change,
+    })
+}
+
+/// What a watch-only read gives: the wallet's figures and its history.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BtcWatchView {
+    pub wallet: BtcWalletView,
+    /// The newest first.
+    pub transactions: Vec<BtcTxView>,
+}
+
+/// Read the balance and the history of `descriptors` on `server` (empty: the default of
+/// the network) with no key: for a locked wallet. Nothing is kept.
+pub async fn btc_watch(descriptors: BtcDescriptors, server: String) -> Result<BtcWatchView, BtcError> {
+    let network = network_of(&descriptors.network)?;
+    let server = match server.trim() {
+        "" => network.default_esplora().ok_or_else(|| {
+            error(BtcErrorKind::InvalidInput, "regtest needs an Esplora server address")
+        })?,
+        s => s,
+    };
+    let esplora = Esplora::new(server).map_err(|e| error(BtcErrorKind::InvalidInput, e.to_string()))?;
+    let mut wallet = BtcWallet::watch(&descriptors.receive, &descriptors.change, network)
+        .map_err(|e| error(BtcErrorKind::InvalidInput, e.to_string()))?;
+    let response = full_scan(&esplora, network.bitcoin(), wallet.scan_request(), STOP_GAP).await?;
+    wallet.apply_scan(response)?;
+    Ok(BtcWatchView {
+        wallet: view(&mut wallet, esplora.base()),
+        transactions: wallet.transactions().into_iter().map(tx_view).collect(),
+    })
+}
+
+/// An address of the wallet.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BtcAddressView {
+    pub address: String,
+    pub index: u32,
+    /// A change address (`/1/*`).
+    pub change: bool,
+    pub used: bool,
+    pub sat: u64,
+    pub utxos: u32,
+}
+
+/// The addresses that the wallet showed or used: receive addresses first.
+pub fn btc_addresses(handle_id: u64) -> Result<Vec<BtcAddressView>, BtcError> {
+    let (wallet, _, _) = current(handle_id)?;
+    let wallet = recover(wallet.lock());
+    Ok(wallet
+        .addresses()
+        .into_iter()
+        .map(|a| BtcAddressView {
+            address: a.address,
+            index: a.index,
+            change: a.change,
+            used: a.used,
+            sat: a.sat,
+            utxos: a.utxos,
+        })
+        .collect())
+}
+
+/// An unspent output of the wallet.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BtcUtxoView {
+    pub txid: String,
+    pub vout: u32,
+    pub sat: u64,
+    pub address: String,
+    pub change: bool,
+    pub confirmations: u32,
+}
+
+/// The unspent outputs, the largest first.
+pub fn btc_utxos(handle_id: u64) -> Result<Vec<BtcUtxoView>, BtcError> {
+    let (wallet, _, _) = current(handle_id)?;
+    let wallet = recover(wallet.lock());
+    Ok(wallet
+        .utxos()
+        .into_iter()
+        .map(|u| BtcUtxoView {
+            txid: u.txid,
+            vout: u.vout,
+            sat: u.sat,
+            address: u.address,
+            change: u.change,
+            confirmations: u.confirmations,
+        })
+        .collect())
+}
+
+/// An input or an output of a transaction.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BtcTxPartView {
+    /// Empty for `OP_RETURN` data or a script that is not an address.
+    pub address: String,
+    /// 0 when not known ([`Self::sat_known`]).
+    pub sat: u64,
+    pub sat_known: bool,
+    pub mine: bool,
+    pub data: bool,
+}
+
+/// A transaction with its inputs and outputs.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BtcTxDetailView {
+    pub tx: BtcTxView,
+    pub inputs: Vec<BtcTxPartView>,
+    pub outputs: Vec<BtcTxPartView>,
+    pub vsize: u64,
+    /// sat/vB; 0 when the fee is not known.
+    pub fee_rate: f64,
+    /// It can be sent again with a higher fee ([`btc_prepare_bump`]).
+    pub can_bump: bool,
+}
+
+fn part(p: wallet_btc::TxPart) -> BtcTxPartView {
+    BtcTxPartView {
+        address: p.address.unwrap_or_default(),
+        sat: p.sat.unwrap_or(0),
+        sat_known: p.sat.is_some(),
+        mine: p.mine,
+        data: p.data,
+    }
+}
+
+/// A transaction of the wallet's history.
+pub fn btc_tx_detail(handle_id: u64, txid: String) -> Result<BtcTxDetailView, BtcError> {
+    let (wallet, _, _) = current(handle_id)?;
+    let wallet = recover(wallet.lock());
+    let d = wallet
+        .tx_detail(&txid)
+        .ok_or_else(|| error(BtcErrorKind::InvalidInput, "the wallet does not know this transaction"))?;
+    Ok(BtcTxDetailView {
+        tx: tx_view(d.tx),
+        inputs: d.inputs.into_iter().map(part).collect(),
+        outputs: d.outputs.into_iter().map(part).collect(),
+        vsize: d.vsize,
+        fee_rate: d.fee_rate.unwrap_or(0.0),
+        can_bump: d.can_bump,
+    })
+}
+
+/// Make (not sign) a transaction that replaces the unconfirmed payment `txid` at the
+/// higher `fee_rate` (RBF). Send it with [`btc_send`].
+pub fn btc_prepare_bump(handle_id: u64, txid: String, fee_rate: f64) -> Result<BtcPreparedView, BtcError> {
+    let (wallet, _, _) = current(handle_id)?;
+    let prepared = recover(wallet.lock()).prepare_bump(&txid, fee_rate)?;
+    Ok(store(handle_id, prepared))
+}
+
+/// A payment request (`bitcoin:` URI or a plain address).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BtcPaymentRequest {
+    pub address: String,
+    /// 0 when the request gives no amount.
+    pub amount_sat: u64,
+    pub label: String,
+    pub message: String,
+}
+
+/// `text` (a scanned QR code) as a payment request on `network`, or `None`.
+#[flutter_rust_bridge::frb(sync)]
+pub fn btc_parse_payment_request(network: String, text: String) -> Option<BtcPaymentRequest> {
+    let network = BtcNetwork::from_name(&network)?;
+    parse_payment_request(&text, network).map(|r| BtcPaymentRequest {
+        address: r.address,
+        amount_sat: r.amount_sat.unwrap_or(0),
+        label: r.label.unwrap_or_default(),
+        message: r.message.unwrap_or_default(),
+    })
+}
+
+/// The `bitcoin:` URI of a request for `amount_sat` (0: any amount) to `address`.
+#[flutter_rust_bridge::frb(sync)]
+pub fn btc_payment_uri(address: String, amount_sat: u64) -> String {
+    payment_uri(&address, amount_sat)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const HANDLE: u64 = 0x05ee_db7c;
 
+    /// The open Bitcoin wallet is one for the process: the tests that open one take turns.
+    static OPENS: Mutex<()> = Mutex::new(());
+
     #[test]
     fn locked_until_a_seed_is_kept() {
+        let _turn = recover(OPENS.lock());
         forget(HANDLE);
         let e = btc_open(HANDLE, "signet".into(), String::new()).unwrap_err();
         assert_eq!(e.kind, BtcErrorKind::Locked);
@@ -456,5 +669,33 @@ mod tests {
         assert_eq!(rate_for(&estimates, 6), Some(5.5));
         assert_eq!(rate_for(&estimates, 1008), Some(1.2));
         assert_eq!(rate_for(&Default::default(), 6), None);
+    }
+
+    #[test]
+    fn descriptors_of_the_open_wallet_watch_the_same_addresses() {
+        let _turn = recover(OPENS.lock());
+        const H: u64 = HANDLE + 7;
+        keep_seed(H, &[9u8; 64]);
+        let shown = btc_open(H, "signet".into(), String::new()).unwrap();
+        let d = btc_descriptors(H).unwrap();
+        assert_eq!(d.network, "signet");
+        assert!(d.receive.starts_with("wpkh(") && !d.receive.contains("prv"));
+        let mut watch = BtcWallet::watch(&d.receive, &d.change, BtcNetwork::Signet).unwrap();
+        assert_eq!(watch.receive_address(), shown.receive_address);
+        assert!(btc_utxos(H).unwrap().is_empty());
+        assert!(btc_addresses(H).unwrap().iter().any(|a| a.address == shown.receive_address));
+        assert_eq!(btc_tx_detail(H, "00".repeat(32)).unwrap_err().kind, BtcErrorKind::InvalidInput);
+        assert_eq!(btc_prepare_bump(H, "00".repeat(32), 5.0).unwrap_err().kind, BtcErrorKind::Transaction);
+        forget(H);
+        assert_eq!(btc_descriptors(H).unwrap_err().kind, BtcErrorKind::Locked);
+    }
+
+    #[test]
+    fn payment_requests() {
+        let a = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx";
+        let r = btc_parse_payment_request("signet".into(), btc_payment_uri(a.into(), 2_500)).unwrap();
+        assert_eq!((r.address.as_str(), r.amount_sat), (a, 2_500));
+        assert!(btc_parse_payment_request("mainnet".into(), a.into()).is_none());
+        assert!(btc_parse_payment_request("dogecoin".into(), a.into()).is_none());
     }
 }
