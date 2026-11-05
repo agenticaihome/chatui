@@ -4825,6 +4825,34 @@
   "celautRunFewerOptions": "Show fewer options",
   "celautRunCategoryAll": "All",
   "celautRunOnPhone": "On this phone",
+  "celautRunImport": "Import",
+  "celautRunPhoneServices": "Run the services on this phone",
+  "celautStoreFeatured": "Featured",
+  "celautStoreFeaturedHint": "One skill of each field, from the publisher with the most reputation",
+  "celautStoreSuggested": "Suggested for you",
+  "celautStoreSuggestedHint": "In the fields of the skills that you ran",
+  "celautStoreNew": "New",
+  "celautStoreNewHint": "The last skills published on Ergo",
+  "celautStorePopular": "Popular",
+  "celautStorePopularHint": "The skills with the most services",
+  "celautStoreCategories": "Categories",
+  "celautStoreAll": "All skills",
+  "celautStoreServices": "{count, plural, =1{1 service} other{{count} services}}",
+  "@celautStoreServices": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautStoreSkills": "{count, plural, =1{1 skill} other{{count} skills}}",
+  "@celautStoreSkills": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "celautEnvSensitive": "Sensitive",
   "celautEnvNotSensitive": "Not sensitive",
   "celautEnvSensitiveHint": "A password, a key or a token. Before a sensitive value goes where others can read it, the app warns you.",

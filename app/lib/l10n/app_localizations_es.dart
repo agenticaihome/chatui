@@ -6719,6 +6719,66 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautRunOnPhone => 'En el móvil';
 
   @override
+  String get celautRunImport => 'Importar';
+
+  @override
+  String get celautRunPhoneServices => 'Ejecutar los servicios del móvil';
+
+  @override
+  String get celautStoreFeatured => 'Destacadas';
+
+  @override
+  String get celautStoreFeaturedHint =>
+      'Una habilidad de cada campo, del publicador con más reputación';
+
+  @override
+  String get celautStoreSuggested => 'Sugeridas para ti';
+
+  @override
+  String get celautStoreSuggestedHint =>
+      'En los campos de las habilidades que ejecutaste';
+
+  @override
+  String get celautStoreNew => 'Nuevas';
+
+  @override
+  String get celautStoreNewHint => 'Las últimas habilidades publicadas en Ergo';
+
+  @override
+  String get celautStorePopular => 'Populares';
+
+  @override
+  String get celautStorePopularHint => 'Las habilidades con más servicios';
+
+  @override
+  String get celautStoreCategories => 'Categorías';
+
+  @override
+  String get celautStoreAll => 'Todas las habilidades';
+
+  @override
+  String celautStoreServices(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count servicios',
+      one: '1 servicio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String celautStoreSkills(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count habilidades',
+      one: '1 habilidad',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get celautEnvSensitive => 'Sensible';
 
   @override

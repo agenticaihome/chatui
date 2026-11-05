@@ -7,11 +7,14 @@ import '../frb_generated.dart';
 import 'celaut.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `client`, `describe`, `error_of`, `fresh`, `items`, `lock`, `new`, `new`, `request`, `settle`, `short`
+// These functions are ignored because they are not marked as `pub`: `client`, `describe`, `error_of`, `fresh`, `items`, `lock`, `new`, `new`, `request`, `settle`, `short`, `skill_views`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `CatalogCache`, `HttpExplorer`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `boxes`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `token_value`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `boxes`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `token_value`
 
-/// The skills of the catalog, in the order of the explorer.
+/// The skills of the catalog, in the order of the explorer, with what the store sorts
+/// them by: the height of the box, the services that publishers declared, and the
+/// reputation of the publisher. These cost one more query and one request for each
+/// publisher, not one for each skill.
 Future<List<SkillView>> celautSkills() =>
     RustLib.instance.api.crateApiCelautCatalogCelautSkills();
 
@@ -69,12 +72,28 @@ class SkillView {
   /// none. The app groups the skills by it.
   final String domain;
 
+  /// The height of the block that has the skill box; 0 if unknown. The store shows the
+  /// newest skills by it.
+  final int height;
+
+  /// The services that publishers declared for the skill (its coverage boxes), each once,
+  /// in lower case. Empty if there is none, or if the explorer did not answer. A service
+  /// that is only in the results of a benchmark is not here.
+  final List<String> serviceIds;
+
+  /// The reputation of the publisher of the skill: the value in nanoERG of the boxes that
+  /// hold its profile token. 0 if unknown.
+  final double publisherReputation;
+
   const SkillView({
     required this.boxId,
     required this.name,
     required this.prose,
     required this.tags,
     required this.domain,
+    required this.height,
+    required this.serviceIds,
+    required this.publisherReputation,
   });
 
   @override
@@ -83,7 +102,10 @@ class SkillView {
       name.hashCode ^
       prose.hashCode ^
       tags.hashCode ^
-      domain.hashCode;
+      domain.hashCode ^
+      height.hashCode ^
+      serviceIds.hashCode ^
+      publisherReputation.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -94,5 +116,8 @@ class SkillView {
           name == other.name &&
           prose == other.prose &&
           tags == other.tags &&
-          domain == other.domain;
+          domain == other.domain &&
+          height == other.height &&
+          serviceIds == other.serviceIds &&
+          publisherReputation == other.publisherReputation;
 }

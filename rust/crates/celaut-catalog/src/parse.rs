@@ -27,6 +27,8 @@ pub struct Skill {
     pub domain: String,
     /// The skills that this one extends. Not used by the ranking yet.
     pub extended_skill_boxes: Vec<String>,
+    /// The height of the block that has the box ([`height`]); 0 if the explorer gave none.
+    pub height: u32,
 }
 
 /// A service that a publisher says covers a skill.
@@ -98,8 +100,19 @@ pub fn profile(b: &Value) -> Option<String> {
     (!token.is_empty()).then(|| token.to_string())
 }
 
-/// The R5 register as a lowercase id, if it has one.
-fn subject(b: &Value) -> Option<String> {
+/// The height of the block that has the box: `settlementHeight`, or `creationHeight` if the
+/// explorer gave no settlement height. 0 if it gave neither.
+pub fn height(b: &Value) -> u32 {
+    ["settlementHeight", "creationHeight"]
+        .iter()
+        .find_map(|key| b.get(*key)?.as_u64())
+        .and_then(|h| u32::try_from(h).ok())
+        .unwrap_or(0)
+}
+
+/// The R5 register as a lowercase id, if it has one: the skill or the benchmark that the
+/// box is about.
+pub fn subject(b: &Value) -> Option<String> {
     let id = register(b, "R5")?;
     (!id.is_empty()).then(|| id.to_ascii_lowercase())
 }
@@ -141,6 +154,7 @@ pub fn parse_skill(b: &Value) -> Option<Skill> {
         tags: texts(&content, "tags"),
         domain: text(&content, "domain"),
         extended_skill_boxes: texts(&content, "extended_skill_boxes"),
+        height: height(b),
     })
 }
 
@@ -281,6 +295,21 @@ mod tests {
         assert_eq!((s.name.as_str(), s.prose.as_str(), s.domain.as_str()), ("Sat", "p", "d"));
         assert_eq!(s.tags, ["a", "b"]);
         assert_eq!(s.extended_skill_boxes, ["x"]);
+    }
+
+    #[test]
+    fn the_height_of_a_box_is_its_settlement_then_its_creation() {
+        let mut b = explorer_box("aa", None, None, None);
+        assert_eq!(height(&b), 0);
+        b["creationHeight"] = json!(1816212);
+        assert_eq!(height(&b), 1816212);
+        assert_eq!(parse_skill(&b).unwrap().height, 1816212);
+        b["settlementHeight"] = json!(1816213);
+        assert_eq!(height(&b), 1816213);
+        b["settlementHeight"] = json!("x");
+        assert_eq!(height(&b), 1816212);
+        b["creationHeight"] = json!(u64::MAX);
+        assert_eq!(height(&b), 0);
     }
 
     #[test]

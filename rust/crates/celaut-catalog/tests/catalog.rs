@@ -8,8 +8,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
 use celaut_catalog::fetch::{
-    load_reputations, load_skill_data, load_skill_services, load_skills, CatalogError, Explorer,
-    MAX_REPUTATION_TOKENS,
+    load_declared_services, load_publisher_reputations, load_reputations, load_skill_data,
+    load_skill_services, load_skills, CatalogError, Explorer, MAX_REPUTATION_TOKENS,
 };
 use celaut_catalog::parse::{parse_benchmark, parse_coverage, parse_result, parse_skill};
 use celaut_catalog::rank::{rank_services, Reputations, SkillData};
@@ -110,6 +110,63 @@ fn the_skills_have_names_and_publishers() {
     let sat = skills.iter().find(|s| s.box_id == SAT_SOLVER).unwrap();
     assert_eq!(sat.profile.as_deref(), Some(TOKEN_A));
     assert!(!sat.prose.is_empty());
+}
+
+#[test]
+fn every_skill_has_the_height_of_its_box() {
+    let skills = block_on(load_skills(&Fixture::default())).unwrap();
+    let raw = items(SKILLS);
+    for s in &skills {
+        let b = raw.iter().find(|b| b["boxId"] == json!(s.box_id)).unwrap();
+        assert_eq!(u64::from(s.height), b["creationHeight"].as_u64().unwrap(), "{}", s.name);
+        assert!(s.height > 0);
+    }
+}
+
+#[test]
+fn the_declared_services_of_every_skill_come_from_one_query() {
+    let explorer = Fixture::default();
+    let services = block_on(load_declared_services(&explorer)).unwrap();
+    assert_eq!(explorer.box_calls.load(Ordering::SeqCst), 1);
+    // The same counts as the coverages of one skill (the_data_of_a_skill_is_its_own).
+    assert_eq!(services[MARKET_STRATEGY].len(), 4);
+    let per_skill: usize = services.values().map(Vec::len).sum();
+    assert_eq!(per_skill, 15);
+    for (skill, ids) in &services {
+        let data = block_on(load_skill_data(&Fixture::default(), skill)).unwrap();
+        let mut own: Vec<String> = data.coverages.iter().map(|c| c.service_id.to_ascii_lowercase()).collect();
+        own.dedup();
+        assert_eq!(ids, &own, "{skill}");
+        assert!(ids.iter().all(|id| id.len() == 64), "{skill}");
+    }
+}
+
+#[test]
+fn the_declared_services_fail_with_the_explorer() {
+    let explorer = Fixture {
+        failing_types: vec![COVERAGE_TYPE],
+        ..Default::default()
+    };
+    assert!(block_on(load_declared_services(&explorer)).is_err());
+}
+
+#[test]
+fn the_reputation_of_the_publishers_asks_once_for_each_token() {
+    let explorer = with_reputations();
+    let skills = block_on(load_skills(&explorer)).unwrap();
+    let reputations = block_on(load_publisher_reputations(&explorer, &skills));
+    assert_eq!(reputations.0.len(), 2);
+    assert!(close(reputations.0[TOKEN_A], 3e9));
+    assert!(close(reputations.0[TOKEN_B], 1e9));
+    assert_eq!(explorer.token_calls.lock().unwrap().len(), 2);
+
+    let failing = Fixture {
+        failing_tokens: vec![TOKEN_B.to_string()],
+        ..with_reputations()
+    };
+    let reputations = block_on(load_publisher_reputations(&failing, &skills));
+    assert_eq!(reputations.0.len(), 1);
+    assert!(!reputations.0.contains_key(TOKEN_B));
 }
 
 #[test]

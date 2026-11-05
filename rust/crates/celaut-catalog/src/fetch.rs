@@ -6,15 +6,15 @@
 //! benchmarks, one for the results of each benchmark, and at most
 //! [`MAX_REPUTATION_TOKENS`] for the reputation of the publishers.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
 
 use futures::stream::{self, StreamExt};
 use serde_json::Value;
 
 use crate::parse::{
-    parse_benchmark, parse_coverage, parse_result, parse_skill, BenchResult, Benchmark, Coverage,
-    Skill,
+    parse_benchmark, parse_coverage, parse_result, parse_skill, subject, BenchResult, Benchmark,
+    Coverage, Skill,
 };
 use crate::rank::{rank_services, Reputations, ServiceScore, SkillData};
 use crate::{BENCHMARK_TYPE, COVERAGE_TYPE, RESULT_TYPE, SKILL_TYPE};
@@ -61,6 +61,41 @@ pub async fn load_skills<E: Explorer>(explorer: &E) -> Result<Vec<Skill>, Catalo
         .filter_map(parse_skill)
         .filter(|s| seen.insert(s.box_id.clone()))
         .collect())
+}
+
+/// The services that publishers declared for each skill (the coverage boxes), by the id of
+/// the skill, each service once, in the order of the explorer. One query for the whole
+/// catalog, not one for each skill. A service that is only in the results of a benchmark
+/// is not here: [`load_skill_services`] reads those for one skill.
+pub async fn load_declared_services<E: Explorer>(
+    explorer: &E,
+) -> Result<HashMap<String, Vec<String>>, CatalogError> {
+    let mut services: HashMap<String, Vec<String>> = HashMap::new();
+    for b in explorer.boxes(COVERAGE_TYPE, None).await? {
+        let (Some(skill), Some(coverage)) = (subject(&b), parse_coverage(&b)) else {
+            continue;
+        };
+        let id = coverage.service_id.to_ascii_lowercase();
+        let list = services.entry(skill).or_default();
+        if !list.contains(&id) {
+            list.push(id);
+        }
+    }
+    Ok(services)
+}
+
+/// The reputation of the publishers of `skills` (their profile tokens). Bounded as
+/// [`load_reputations`]: a token over [`MAX_REPUTATION_TOKENS`], or one that the explorer
+/// does not answer for, is left out.
+pub async fn load_publisher_reputations<E: Explorer>(explorer: &E, skills: &[Skill]) -> Reputations {
+    let mut tokens: Vec<String> = Vec::new();
+    let mut seen = HashSet::new();
+    for token in skills.iter().filter_map(|s| s.profile.as_ref()) {
+        if tokens.len() < MAX_REPUTATION_TOKENS && seen.insert(token.clone()) {
+            tokens.push(token.clone());
+        }
+    }
+    token_values(explorer, tokens).await
 }
 
 /// The coverages, the benchmarks and the results of a skill.
@@ -118,6 +153,11 @@ pub async fn load_reputations<E: Explorer>(explorer: &E, data: &SkillData) -> Re
             tokens.push(token.clone());
         }
     }
+    token_values(explorer, tokens).await
+}
+
+/// The value of each token, [`MAX_PARALLEL`] at a time. A token that fails is left out.
+async fn token_values<E: Explorer>(explorer: &E, tokens: Vec<String>) -> Reputations {
     let values: Vec<(String, Result<f64, CatalogError>)> = stream::iter(tokens)
         .map(|token| async move {
             let value = explorer.token_value(&token).await;
