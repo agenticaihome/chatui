@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/api/celaut_service.dart';
+import '../../celaut/package_channel.dart';
 import '../../celaut/payers.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_scene.dart';
@@ -19,6 +20,7 @@ class RunServiceScreen extends StatelessWidget {
     this.section,
     this.title,
     this.onStarted,
+    this.importFile,
   });
 
   /// The title of the bar: "New conversation" from the pencil button, "Services" from
@@ -27,6 +29,9 @@ class RunServiceScreen extends StatelessWidget {
 
   /// What to do after a start (see [RunServiceSection.onStarted]).
   final StartedCall? onStarted;
+
+  /// A file that the user opened in a file manager: its import starts at once.
+  final ChosenFile? importFile;
 
   final FullWallets wallets;
 
@@ -54,6 +59,7 @@ class RunServiceScreen extends StatelessWidget {
                 newClient: newClient,
                 onChanged: onChanged,
                 onStarted: onStarted,
+                importFile: importFile,
                 showTitle: false,
               ),
         ),

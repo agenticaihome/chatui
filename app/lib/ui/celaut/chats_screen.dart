@@ -7,6 +7,7 @@ import '../../celaut/auto_top_up.dart';
 import '../../celaut/chat_groups.dart';
 import '../../celaut/conversations.dart';
 import '../../celaut/launcher.dart';
+import '../../celaut/package_channel.dart';
 import '../../celaut/payers.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
@@ -96,13 +97,16 @@ class ChatsScreenState extends State<ChatsScreen> {
 
   /// The picker of services, for "New conversation", "Services" and the Run button of
   /// the Compute tab.
-  Widget runPage(String title) =>
-      widget.runPage?.call(title, _started) ??
+  /// With [importFile] (a file that the user opened in a file manager), its import starts
+  /// at once.
+  Widget runPage(String title, {ChosenFile? importFile}) =>
+      (importFile == null ? widget.runPage?.call(title, _started) : null) ??
       RunServiceScreen(
         title: title,
         wallets: widget.wallets,
         newClient: widget.newClient,
         onStarted: _started,
+        importFile: importFile,
       );
 
   /// A service started from the picker: back to the list, and into the conversation,

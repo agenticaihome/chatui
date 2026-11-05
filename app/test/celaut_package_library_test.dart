@@ -139,6 +139,17 @@ void main() {
     });
   });
 
+  test('the name that the library gives to a file, as the core does', () {
+    expect(libraryNameOf('echo.celaut.bee'), 'echo');
+    expect(libraryNameOf('ECHO.CELAUT.BEE'), 'ECHO');
+    expect(libraryNameOf('my service.bee'), 'my service');
+    expect(libraryNameOf('/storage/emulated/0/Download/echo.celaut.bee'), 'echo');
+    expect(libraryNameOf('plain'), 'plain');
+    expect(libraryNameOf('a\u0007b.celaut.bee'), 'ab');
+    expect(libraryNameOf('${'x' * 100}.bee'), 'x' * 80);
+    expect(libraryNameOf('.celaut.bee'), isNull);
+  });
+
   test('the progress of an import: the read is the first half, the check the second', () {
     const reading = ImportProgress(phase: ImportPhase.reading, bytes: 25, total: 100);
     expect(reading.fraction, 0.25);

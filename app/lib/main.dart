@@ -8,6 +8,7 @@ import 'celaut/auto_top_up.dart';
 import 'celaut/background_work.dart';
 import 'celaut/chat_groups.dart';
 import 'celaut/chat_prefs.dart';
+import 'celaut/incoming_package.dart';
 import 'l10n/l10n.dart';
 import 'services/address_label_service.dart';
 import 'services/contacts_service.dart';
@@ -97,6 +98,8 @@ class _ArgusAppState extends State<ArgusApp> with WidgetsBindingObserver {
     walletService.onBroadcast = (txId, delta) =>
         walletSyncController.noteBroadcast(txId, valueNano: delta);
     DeepLinkChannel.start();
+    // A .celaut.bee file that the user opens in a file manager: the home screen imports it.
+    unawaited(IncomingPackageChannel.start());
     // The automatic top-up checks the instances once a minute, only if the user turned it
     // on (Settings, Compute).
     unawaited(autoTopUp.start());

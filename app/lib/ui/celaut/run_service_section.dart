@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import '../../celaut/background_work.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/conversation_keep_alive.dart';
 import '../../celaut/egress.dart';
+import '../../celaut/incoming_package.dart';
 import '../../celaut/env_store.dart';
 import '../../celaut/launcher.dart';
 import '../../bridge/api/celaut_package.dart';
@@ -82,6 +84,8 @@ class RunServiceSection extends StatefulWidget {
     this.transfer,
     this.packages,
     this.library,
+    this.importFile,
+    this.incoming,
     this.showTitle = true,
     this.onStarted,
     this.nameInstance,
@@ -161,6 +165,13 @@ class RunServiceSection extends StatefulWidget {
   /// The service files that the user loaded into the app. Tests give their own.
   final PackageLibrary? library;
 
+  /// A file that the user opened in a file manager: its import starts at once.
+  final ChosenFile? importFile;
+
+  /// The files that the user opens in a file manager; an import marks it busy, so that the
+  /// next file waits. Tests give their own.
+  final IncomingPackages? incoming;
+
   @override
   State<RunServiceSection> createState() => _RunServiceSectionState();
 }
@@ -197,6 +208,12 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     _readPackages();
     _readHistory();
     _read();
+    final file = widget.importFile;
+    if (file != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_importAndTell(() async => file));
+      });
+    }
   }
 
   void _readHistory() {
@@ -615,21 +632,76 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   /// Pick a `.celaut.bee` file and load it into the library of the app. Gives the loaded
   /// service, or null if the user did not pick a file or the file is refused (the user
   /// has been told).
-  Future<LibraryPackageView?> _loadPickedFile() =>
-      // The file picker of Android puts the app in the background: the import goes on, and
-      // the auto-lock does not close this page meanwhile (`BackgroundWork`).
-      (widget.work ?? backgroundWork).run(context, KeepAliveReason.import, _pickAndLoad);
+  Future<LibraryPackageView?> _loadPickedFile() => _loadFile(_pick);
 
-  Future<LibraryPackageView?> _pickAndLoad() async {
-    final packages = widget.packages ?? const AndroidPackageChannel();
-    final ChosenFile? chosen;
+  Future<ChosenFile?> _pick() async {
     try {
-      chosen = await packages.pick();
+      return await (widget.packages ?? const AndroidPackageChannel()).pick();
     } catch (_) {
       return null;
     }
-    if (chosen == null || !mounted) return null;
-    final file = chosen;
+  }
+
+  /// Load the file that [choose] gives (the picker, or a file that the user opened in a
+  /// file manager) into the library, as [_loadPickedFile] does.
+  Future<LibraryPackageView?> _loadFile(Future<ChosenFile?> Function() choose) async {
+    final incoming = widget.incoming ?? incomingPackages;
+    incoming.setBusy(true);
+    try {
+      // The file picker of Android puts the app in the background: the import goes on, and
+      // the auto-lock does not close this page meanwhile (`BackgroundWork`).
+      return await (widget.work ?? backgroundWork).run(
+        context,
+        KeepAliveReason.import,
+        () async {
+          final chosen = await choose();
+          if (chosen == null || !mounted) return null;
+          return _loadChosen(chosen);
+        },
+      );
+    } finally {
+      incoming.setBusy(false);
+    }
+  }
+
+  /// True if the library has a file of this name and size: the user is asked before the
+  /// app reads it again. The check of the file tells the service only after the read.
+  bool _seemsLoaded(ChosenFile file) {
+    final name = libraryNameOf(file.name);
+    final bytes = file.bytes;
+    if (name == null || bytes == null) return false;
+    return _library.list().any((p) => p.present && p.name == name && p.bytes.toInt() == bytes);
+  }
+
+  Future<bool> _confirmAgain(ChosenFile file) async {
+    final l = context.l10n;
+    final again = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const Key('pkg-again-dialog'),
+        title: Text(l.celautPkgAgainTitle),
+        content: Text(l.celautPkgAgainBody(libraryNameOf(file.name) ?? file.name)),
+        actions: [
+          TextButton(
+            key: const Key('pkg-again-cancel'),
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.celautSendCancel),
+          ),
+          FilledButton(
+            key: const Key('pkg-again-confirm'),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.celautPkgAgainImport),
+          ),
+        ],
+      ),
+    );
+    return again == true;
+  }
+
+  Future<LibraryPackageView?> _loadChosen(ChosenFile file) async {
+    final packages = widget.packages ?? const AndroidPackageChannel();
+    if (_seemsLoaded(file) && !await _confirmAgain(file)) return null;
+    if (!mounted) return null;
     try {
       // The card shows before the copy of the file: a large file takes a while to read.
       final loaded = await runWithImportRocket(
@@ -672,11 +744,22 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   }
 
   /// Load a service file into the app, from the "Import" button.
-  Future<void> _import() async {
-    final loaded = await _loadPickedFile();
+  Future<void> _import() => _importAndTell(_pick);
+
+  /// Load the file that [choose] gives, and say that it is loaded, or that it replaced the
+  /// file of the same service.
+  Future<void> _importAndTell(Future<ChosenFile?> Function() choose) async {
+    final before = {for (final p in _packages) p.serviceId};
+    final loaded = await _loadFile(choose);
     if (loaded == null || !mounted) return;
+    final l = context.l10n;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.l10n.celautPkgLoaded(loaded.name))),
+      SnackBar(
+        key: const Key('pkg-loaded'),
+        content: Text(before.contains(loaded.serviceId)
+            ? l.celautPkgReplaced(loaded.name)
+            : l.celautPkgLoaded(loaded.name)),
+      ),
     );
   }
 

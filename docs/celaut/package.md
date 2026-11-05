@@ -37,6 +37,34 @@ app then:
 4. records it in the Celaut database (`packages`: name, size, time, layout). The name is
    the name of the file without `.celaut.bee`. Loading the same service again replaces it.
 
+### Open a file from a file manager
+
+The user can also open a `.celaut.bee` file in a file manager, or share it with the app
+(Android only; the document types of iOS are a later step). `OpenPackageActivity` takes
+VIEW and SEND intents with the type `application/octet-stream` (what file managers give for
+a file that Android does not know) or `application/vnd.celaut.bee`, and VIEW intents of any
+type whose content uri ends with `.celaut.bee`. It shows nothing: it gives the file, with
+the permission to read it, to `MainActivity` in the task of the app. A file manager starts
+the activity of its intent in its own task, so without this step a second `MainActivity`,
+with a second Flutter engine, started there while the app ran. The file goes to Flutter on
+the channel
+`org.celaut.chatui/incoming` (`IncomingPackageHandler`): `takeIncoming` gives the file that
+launched the app, and `incoming` the files that come while the app runs, in front or in the
+background. Android forgets the file only when Flutter answered, and an intent that it gives
+again from the recent apps, or after it saved the state of the activity, is not imported a
+second time.
+
+The home screen then shows the list of chats, opens **Services** over it, and starts the
+import at once: the same card and the same steps as a file of the picker, with no picker.
+One import at a time: a file that comes while an import runs waits until it ends. Errors:
+
+- a file that is not a package of a service: refused after its check, with the reason;
+- a file that the app cannot read (no permission any more, a provider that fails): refused
+  before the check, with the reason of Android;
+- a file of the same name and size as a loaded file: the app asks first ("Already in the
+  app"), because the check names the service only after the whole file was read. A file
+  of a service that the library has under another name replaces it, and the app says so.
+
 "Your services" lists the loaded files with Run and Remove. Run launches the service by
 its id, like a service of the catalog. If no node has it, the failure sheet offers to send
 **the loaded file** to the first node that lacks it, with no file to pick; the file stays

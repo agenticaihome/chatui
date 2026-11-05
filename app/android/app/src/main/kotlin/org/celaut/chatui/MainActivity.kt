@@ -11,7 +11,12 @@ class MainActivity : FlutterFragmentActivity() {
         System.loadLibrary("wallet_ffi")
     }
 
+    /// True when Android creates the activity again with its saved state: its intent was
+    /// handled already (a file to import is not imported twice).
+    private var restored = false
+
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        restored = savedInstanceState != null
         super.onCreate(savedInstanceState)
         // Balances, addresses and tx history stay out of recents thumbnails
         // and screen recordings. The mnemonic screens arm the same flag with
@@ -29,6 +34,7 @@ class MainActivity : FlutterFragmentActivity() {
         UpdateHandler.registerWith(flutterEngine, this)
         ConversationHandler.registerWith(flutterEngine, this)
         PackageHandler.registerWith(flutterEngine, this)
+        IncomingPackageHandler.registerWith(flutterEngine, this, if (restored) null else intent)
         MotionHandler.registerWith(flutterEngine, this)
     }
 
@@ -53,6 +59,7 @@ class MainActivity : FlutterFragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         DeepLinkHandler.onNewIntent(intent)
+        IncomingPackageHandler.onNewIntent(this, intent)
     }
 
     override fun onDestroy() {
