@@ -54,6 +54,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AwakeResourcesView dco_decode_box_autoadd_awake_resources_view(dynamic raw);
 
   @protected
+  BtcDescriptors dco_decode_box_autoadd_btc_descriptors(dynamic raw);
+
+  @protected
+  BtcPaymentRequest dco_decode_box_autoadd_btc_payment_request(dynamic raw);
+
+  @protected
   CelautErrorKind dco_decode_box_autoadd_celaut_error_kind(dynamic raw);
 
   @protected
@@ -84,6 +90,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt dco_decode_box_autoadd_u_64(dynamic raw);
 
   @protected
+  BtcAddressView dco_decode_btc_address_view(dynamic raw);
+
+  @protected
   BtcDepositDoneView dco_decode_btc_deposit_done_view(dynamic raw);
 
   @protected
@@ -99,6 +108,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BtcDepositStatusView dco_decode_btc_deposit_status_view(dynamic raw);
 
   @protected
+  BtcDescriptors dco_decode_btc_descriptors(dynamic raw);
+
+  @protected
   BtcError dco_decode_btc_error(dynamic raw);
 
   @protected
@@ -108,13 +120,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BtcFeeRates dco_decode_btc_fee_rates(dynamic raw);
 
   @protected
+  BtcPaymentRequest dco_decode_btc_payment_request(dynamic raw);
+
+  @protected
   BtcPreparedView dco_decode_btc_prepared_view(dynamic raw);
+
+  @protected
+  BtcTxDetailView dco_decode_btc_tx_detail_view(dynamic raw);
+
+  @protected
+  BtcTxPartView dco_decode_btc_tx_part_view(dynamic raw);
 
   @protected
   BtcTxView dco_decode_btc_tx_view(dynamic raw);
 
   @protected
+  BtcUtxoView dco_decode_btc_utxo_view(dynamic raw);
+
+  @protected
   BtcWalletView dco_decode_btc_wallet_view(dynamic raw);
+
+  @protected
+  BtcWatchView dco_decode_btc_watch_view(dynamic raw);
 
   @protected
   BytesTotalView dco_decode_bytes_total_view(dynamic raw);
@@ -213,10 +240,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<ApiSlotView> dco_decode_list_api_slot_view(dynamic raw);
 
   @protected
+  List<BtcAddressView> dco_decode_list_btc_address_view(dynamic raw);
+
+  @protected
   List<BtcDepositSentView> dco_decode_list_btc_deposit_sent_view(dynamic raw);
 
   @protected
+  List<BtcTxPartView> dco_decode_list_btc_tx_part_view(dynamic raw);
+
+  @protected
   List<BtcTxView> dco_decode_list_btc_tx_view(dynamic raw);
+
+  @protected
+  List<BtcUtxoView> dco_decode_list_btc_utxo_view(dynamic raw);
 
   @protected
   List<DeclaredVariableView> dco_decode_list_declared_variable_view(
@@ -354,6 +390,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AwakeResourcesView? dco_decode_opt_box_autoadd_awake_resources_view(
+    dynamic raw,
+  );
+
+  @protected
+  BtcPaymentRequest? dco_decode_opt_box_autoadd_btc_payment_request(
     dynamic raw,
   );
 
@@ -501,6 +542,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BtcDescriptors sse_decode_box_autoadd_btc_descriptors(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BtcPaymentRequest sse_decode_box_autoadd_btc_payment_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   CelautErrorKind sse_decode_box_autoadd_celaut_error_kind(
     SseDeserializer deserializer,
   );
@@ -539,6 +590,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
+  BtcAddressView sse_decode_btc_address_view(SseDeserializer deserializer);
+
+  @protected
   BtcDepositDoneView sse_decode_btc_deposit_done_view(
     SseDeserializer deserializer,
   );
@@ -564,6 +618,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BtcDescriptors sse_decode_btc_descriptors(SseDeserializer deserializer);
+
+  @protected
   BtcError sse_decode_btc_error(SseDeserializer deserializer);
 
   @protected
@@ -573,13 +630,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BtcFeeRates sse_decode_btc_fee_rates(SseDeserializer deserializer);
 
   @protected
+  BtcPaymentRequest sse_decode_btc_payment_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BtcPreparedView sse_decode_btc_prepared_view(SseDeserializer deserializer);
+
+  @protected
+  BtcTxDetailView sse_decode_btc_tx_detail_view(SseDeserializer deserializer);
+
+  @protected
+  BtcTxPartView sse_decode_btc_tx_part_view(SseDeserializer deserializer);
 
   @protected
   BtcTxView sse_decode_btc_tx_view(SseDeserializer deserializer);
 
   @protected
+  BtcUtxoView sse_decode_btc_utxo_view(SseDeserializer deserializer);
+
+  @protected
   BtcWalletView sse_decode_btc_wallet_view(SseDeserializer deserializer);
+
+  @protected
+  BtcWatchView sse_decode_btc_watch_view(SseDeserializer deserializer);
 
   @protected
   BytesTotalView sse_decode_bytes_total_view(SseDeserializer deserializer);
@@ -698,12 +772,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<ApiSlotView> sse_decode_list_api_slot_view(SseDeserializer deserializer);
 
   @protected
+  List<BtcAddressView> sse_decode_list_btc_address_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BtcDepositSentView> sse_decode_list_btc_deposit_sent_view(
     SseDeserializer deserializer,
   );
 
   @protected
+  List<BtcTxPartView> sse_decode_list_btc_tx_part_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BtcTxView> sse_decode_list_btc_tx_view(SseDeserializer deserializer);
+
+  @protected
+  List<BtcUtxoView> sse_decode_list_btc_utxo_view(SseDeserializer deserializer);
 
   @protected
   List<DeclaredVariableView> sse_decode_list_declared_variable_view(
@@ -883,6 +970,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BtcPaymentRequest? sse_decode_opt_box_autoadd_btc_payment_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   CelautErrorKind? sse_decode_opt_box_autoadd_celaut_error_kind(
     SseDeserializer deserializer,
   );
@@ -1047,6 +1139,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_btc_descriptors(
+    BtcDescriptors self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_btc_payment_request(
+    BtcPaymentRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_celaut_error_kind(
     CelautErrorKind self,
     SseSerializer serializer,
@@ -1095,6 +1199,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
 
   @protected
+  void sse_encode_btc_address_view(
+    BtcAddressView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_btc_deposit_done_view(
     BtcDepositDoneView self,
     SseSerializer serializer,
@@ -1125,6 +1235,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_btc_descriptors(
+    BtcDescriptors self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_btc_error(BtcError self, SseSerializer serializer);
 
   @protected
@@ -1134,8 +1250,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_btc_fee_rates(BtcFeeRates self, SseSerializer serializer);
 
   @protected
+  void sse_encode_btc_payment_request(
+    BtcPaymentRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_btc_prepared_view(
     BtcPreparedView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_btc_tx_detail_view(
+    BtcTxDetailView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_btc_tx_part_view(
+    BtcTxPartView self,
     SseSerializer serializer,
   );
 
@@ -1143,7 +1277,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_btc_tx_view(BtcTxView self, SseSerializer serializer);
 
   @protected
+  void sse_encode_btc_utxo_view(BtcUtxoView self, SseSerializer serializer);
+
+  @protected
   void sse_encode_btc_wallet_view(BtcWalletView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_btc_watch_view(BtcWatchView self, SseSerializer serializer);
 
   @protected
   void sse_encode_bytes_total_view(
@@ -1305,14 +1445,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_btc_address_view(
+    List<BtcAddressView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_btc_deposit_sent_view(
     List<BtcDepositSentView> self,
     SseSerializer serializer,
   );
 
   @protected
+  void sse_encode_list_btc_tx_part_view(
+    List<BtcTxPartView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_btc_tx_view(
     List<BtcTxView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_btc_utxo_view(
+    List<BtcUtxoView> self,
     SseSerializer serializer,
   );
 
@@ -1559,6 +1717,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_awake_resources_view(
     AwakeResourcesView? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_btc_payment_request(
+    BtcPaymentRequest? self,
     SseSerializer serializer,
   );
 

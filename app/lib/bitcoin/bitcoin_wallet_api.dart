@@ -15,6 +15,9 @@ import 'bitcoin_settings.dart';
 abstract class BitcoinWallet {
   BitcoinSettings get settings;
 
+  /// The wallet is open (its seed is in memory): the Bitcoin wallet can open and sign.
+  bool get unlocked;
+
   /// Unlock the wallet if it is locked. False if the app has no wallet or the user did not
   /// open it.
   Future<bool> unlock(BuildContext context);
@@ -39,6 +42,32 @@ abstract class BitcoinWallet {
   Future<String> send(BtcPreparedView prepared);
 
   void cancel(BtcPreparedView prepared);
+
+  // Parity with the Ergo wallet (issue #103).
+
+  /// The public descriptors of the open wallet, kept to read it while it is locked.
+  Future<BtcDescriptors> descriptors();
+
+  /// Read the figures of [descriptors] with no key (the wallet is locked).
+  Future<BtcWatchView> watch(BtcDescriptors descriptors);
+
+  Future<List<BtcAddressView>> addresses();
+
+  Future<List<BtcUtxoView>> utxos();
+
+  Future<BtcTxDetailView> transaction(String txid);
+
+  /// The unconfirmed payment [txid] again, at the higher [feeRate] (RBF).
+  Future<BtcPreparedView> prepareBump(String txid, double feeRate);
+
+  /// A scanned QR code as a payment request on the network of [settings], or null.
+  BtcPaymentRequest? paymentRequest(String text);
+
+  /// The `bitcoin:` URI of a request for [sat] (0: any amount) to [address].
+  String paymentUri(String address, int sat);
+
+  /// Lock the wallet (the Ergo wallet and the Bitcoin wallet: they are the same words).
+  Future<void> lock();
 
   // Deposits to a node in BTC.
 
@@ -66,6 +95,9 @@ class AppBitcoinWallet implements BitcoinWallet {
 
   @override
   BitcoinSettings get settings => bitcoinSettings;
+
+  @override
+  bool get unlocked => walletService.handleId != null;
 
   BigInt get _handle {
     final id = walletService.handleId;
@@ -116,6 +148,39 @@ class AppBitcoinWallet implements BitcoinWallet {
 
   @override
   void cancel(BtcPreparedView prepared) => btcCancel(preparedId: prepared.id);
+
+  @override
+  Future<BtcDescriptors> descriptors() => btcDescriptors(handleId: _handle);
+
+  @override
+  Future<BtcWatchView> watch(BtcDescriptors descriptors) async {
+    if (!settings.loaded) await settings.load();
+    final network = BtcNetworkName.parse(descriptors.network) ?? settings.network;
+    return btcWatch(descriptors: descriptors, server: settings.serverOf(network));
+  }
+
+  @override
+  Future<List<BtcAddressView>> addresses() => btcAddresses(handleId: _handle);
+
+  @override
+  Future<List<BtcUtxoView>> utxos() => btcUtxos(handleId: _handle);
+
+  @override
+  Future<BtcTxDetailView> transaction(String txid) => btcTxDetail(handleId: _handle, txid: txid);
+
+  @override
+  Future<BtcPreparedView> prepareBump(String txid, double feeRate) =>
+      btcPrepareBump(handleId: _handle, txid: txid, feeRate: feeRate);
+
+  @override
+  BtcPaymentRequest? paymentRequest(String text) =>
+      btcParsePaymentRequest(network: settings.network.name, text: text);
+
+  @override
+  String paymentUri(String address, int sat) => btcPaymentUri(address: address, amountSat: BigInt.from(sat));
+
+  @override
+  Future<void> lock() => walletService.lock();
 
   @override
   Future<BtcDepositNodeView> depositNode(NodeAddress node) async {

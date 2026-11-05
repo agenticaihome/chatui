@@ -21,7 +21,7 @@ BtcWalletView _view({int confirmed = 150000, int pending = 0}) => BtcWalletView(
       tipHeight: 200,
     );
 
-BtcPreparedView _prepared(int sat) => BtcPreparedView(
+BtcPreparedView _prepared(int sat, {String replaces = ''}) => BtcPreparedView(
       id: BigInt.from(7),
       to: fakeBtcAddress,
       amountSat: BigInt.from(sat),
@@ -29,10 +29,30 @@ BtcPreparedView _prepared(int sat) => BtcPreparedView(
       feeRate: 2,
       changeSat: BigInt.from(1000),
       txid: fakeBtcTxid,
+      replaces: replaces,
     );
 
+/// A payment of the fake wallet that waits for a block: it can get a higher fee.
+const fakeBtcWaiting = 'cc00000000000000000000000000000000000000000000000000000000000002';
+const fakeBtcBumped = 'dd00000000000000000000000000000000000000000000000000000000000003';
+
+const fakeDescriptors = BtcDescriptors(
+  network: 'signet',
+  receive: 'wpkh([73c5da0a/84h/1h/0h]tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M/0/*)',
+  change: 'wpkh([73c5da0a/84h/1h/0h]tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M/1/*)',
+);
+
 class FakeBitcoin implements BitcoinWallet {
-  FakeBitcoin({this.unlocks = true, this.accepts = true, this.confirmations = 2});
+  FakeBitcoin({this.unlocks = true, this.accepts = true, this.confirmations = 2, this.unlocked = true});
+
+  @override
+  bool unlocked;
+
+  /// What [watch] reads (the wallet is locked).
+  int watchedSat = 90000;
+
+  /// [sync] and [watch] fail with this, when set.
+  Object? failWith;
 
   @override
   final settings = BitcoinSettings()..loaded = true;
@@ -68,6 +88,7 @@ class FakeBitcoin implements BitcoinWallet {
   @override
   Future<BtcWalletView> sync() async {
     calls.add('sync');
+    if (failWith != null) throw failWith!;
     return _view(pending: 5000);
   }
 
@@ -99,11 +120,113 @@ class FakeBitcoin implements BitcoinWallet {
   @override
   Future<String> send(BtcPreparedView prepared) async {
     sentIds.add(prepared.id);
-    return fakeBtcTxid;
+    return prepared.txid;
   }
 
   @override
   void cancel(BtcPreparedView prepared) => cancelled.add(prepared.id);
+
+  @override
+  Future<BtcDescriptors> descriptors() async {
+    calls.add('descriptors');
+    return fakeDescriptors;
+  }
+
+  @override
+  Future<BtcWatchView> watch(BtcDescriptors descriptors) async {
+    calls.add('watch ${descriptors.network}');
+    if (failWith != null) throw failWith!;
+    return BtcWatchView(wallet: _view(confirmed: watchedSat), transactions: await transactions());
+  }
+
+  @override
+  Future<List<BtcAddressView>> addresses() async => [
+        BtcAddressView(address: fakeBtcAddress, index: 0, change: false, used: true, sat: BigInt.from(150000), utxos: 1),
+        BtcAddressView(
+          address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+          index: 1,
+          change: false,
+          used: false,
+          sat: BigInt.zero,
+          utxos: 0,
+        ),
+      ];
+
+  @override
+  Future<List<BtcUtxoView>> utxos() async => [
+        BtcUtxoView(txid: fakeBtcTxid, vout: 0, sat: BigInt.from(150000), address: fakeBtcAddress, change: false, confirmations: 3),
+      ];
+
+  @override
+  Future<BtcTxDetailView> transaction(String txid) async {
+    calls.add('transaction $txid');
+    final waiting = txid == fakeBtcWaiting;
+    BtcTxPartView part(int sat, {bool mine = false, bool data = false, String? address}) => BtcTxPartView(
+          address: address ?? (data ? '' : fakeBtcAddress),
+          sat: BigInt.from(sat),
+          satKnown: true,
+          mine: mine,
+          data: data,
+        );
+    return BtcTxDetailView(
+      tx: BtcTxView(
+        txid: txid,
+        netSat: waiting ? -30282 : 150000,
+        feeSat: BigInt.from(282),
+        feeKnown: true,
+        confirmations: waiting ? 0 : 3,
+        time: BigInt.from(1700000000),
+      ),
+      inputs: [part(100000, mine: waiting)],
+      outputs: [
+        part(30000, address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'),
+        part(69718, mine: true),
+        if (!waiting) part(0, data: true),
+      ],
+      vsize: BigInt.from(141),
+      feeRate: 2,
+      canBump: waiting,
+    );
+  }
+
+  @override
+  Future<BtcPreparedView> prepareBump(String txid, double feeRate) async {
+    calls.add('bump $txid $feeRate');
+    return BtcPreparedView(
+      id: BigInt.from(9),
+      to: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+      amountSat: BigInt.from(30000),
+      feeSat: BigInt.from(846),
+      feeRate: feeRate,
+      changeSat: BigInt.from(69154),
+      txid: fakeBtcBumped,
+      replaces: txid,
+    );
+  }
+
+  @override
+  BtcPaymentRequest? paymentRequest(String text) {
+    final t = text.trim();
+    final address = t.startsWith('bitcoin:') ? t.substring(8).split('?').first : t;
+    if (!isAddress(address)) return null;
+    final amount = RegExp(r'amount=([0-9.]+)').firstMatch(t)?.group(1);
+    return BtcPaymentRequest(
+      address: address,
+      amountSat: BigInt.from(amount == null ? 0 : (double.parse(amount) * 100000000).round()),
+      label: '',
+      message: '',
+    );
+  }
+
+  @override
+  String paymentUri(String address, int sat) =>
+      sat == 0 ? 'bitcoin:$address' : 'bitcoin:$address?amount=${(sat / 100000000).toString()}';
+
+  @override
+  Future<void> lock() async {
+    calls.add('lock');
+    unlocked = false;
+  }
 
   @override
   Future<BtcDepositNodeView> depositNode(NodeAddress node) async {

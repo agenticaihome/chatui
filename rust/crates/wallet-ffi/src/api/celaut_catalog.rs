@@ -9,7 +9,12 @@ use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
-use celaut_catalog::fetch::{load_skill_services, load_skills, CatalogError, Explorer};
+use celaut_catalog::fetch::{
+    load_declared_services, load_publisher_reputations, load_skill_services, load_skills,
+    CatalogError, Explorer,
+};
+use celaut_catalog::parse::Skill;
+use celaut_catalog::rank::Reputations;
 use celaut_catalog::ERGO_TREE_TEMPLATE_HASH;
 use celaut_client::deposit::NODO_DEFAULT_EXPLORER;
 use serde_json::{json, Value};
@@ -91,7 +96,7 @@ static SKILLS: CatalogCache<(), Vec<SkillView>> = CatalogCache::new();
 static SERVICES: CatalogCache<String, Vec<SkillServiceView>> = CatalogCache::new();
 
 /// A skill that the user can pick.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SkillView {
     /// The id of the skill: its box id on Ergo.
     pub box_id: String,
@@ -102,6 +107,16 @@ pub struct SkillView {
     /// The field of the skill, as its publisher wrote it ("finance", "nlp"...); empty if
     /// none. The app groups the skills by it.
     pub domain: String,
+    /// The height of the block that has the skill box; 0 if unknown. The store shows the
+    /// newest skills by it.
+    pub height: u32,
+    /// The services that publishers declared for the skill (its coverage boxes), each once,
+    /// in lower case. Empty if there is none, or if the explorer did not answer. A service
+    /// that is only in the results of a benchmark is not here.
+    pub service_ids: Vec<String>,
+    /// The reputation of the publisher of the skill: the value in nanoERG of the boxes that
+    /// hold its profile token. 0 if unknown.
+    pub publisher_reputation: f64,
 }
 
 /// A service that covers a skill.
@@ -116,26 +131,61 @@ pub struct SkillServiceView {
     pub direct: bool,
 }
 
-/// The skills of the catalog, in the order of the explorer.
+/// The skills of the catalog, in the order of the explorer, with what the store sorts
+/// them by: the height of the box, the services that publishers declared, and the
+/// reputation of the publisher. These cost one more query and one request for each
+/// publisher, not one for each skill.
 #[flutter_rust_bridge::frb]
 pub async fn celaut_skills() -> Result<Vec<SkillView>, CelautError> {
     if let Some(fresh) = SKILLS.fresh(&()) {
         return Ok(fresh);
     }
     let explorer = HttpExplorer::new(NODO_DEFAULT_EXPLORER);
-    let loaded = load_skills(&explorer).await.map_err(error_of).map(|skills| {
-        skills
-            .into_iter()
-            .map(|s| SkillView {
-                box_id: s.box_id,
-                name: s.name,
-                prose: short(&s.prose),
-                tags: s.tags,
-                domain: s.domain,
-            })
-            .collect::<Vec<_>>()
-    });
-    SKILLS.settle((), loaded)
+    let skills = match load_skills(&explorer).await {
+        Ok(skills) => skills,
+        Err(e) => return SKILLS.settle((), Err(error_of(e))),
+    };
+    let declared = load_declared_services(&explorer).await;
+    let reputations = load_publisher_reputations(&explorer, &skills).await;
+    let views = skill_views(skills, declared.as_ref().ok(), &reputations);
+    match declared {
+        Ok(_) => SKILLS.settle((), Ok(views)),
+        // The skills are still listed, but with no services the store has no "featured"
+        // and no "popular". The list is not kept, so the next read asks again; a full list
+        // from before is better.
+        Err(e) => SKILLS.settle((), Err(error_of(e))).or(Ok(views)),
+    }
+}
+
+/// The skills for the app. With no `declared` (the explorer did not answer), every skill
+/// has no service.
+fn skill_views(
+    skills: Vec<Skill>,
+    declared: Option<&HashMap<String, Vec<String>>>,
+    reputations: &Reputations,
+) -> Vec<SkillView> {
+    skills
+        .into_iter()
+        .map(|s| SkillView {
+            service_ids: declared
+                .and_then(|d| d.get(&s.box_id.to_ascii_lowercase()))
+                .cloned()
+                .unwrap_or_default(),
+            publisher_reputation: s
+                .profile
+                .as_ref()
+                .and_then(|token| reputations.0.get(token))
+                .copied()
+                .filter(|r| r.is_finite())
+                .unwrap_or(0.0),
+            box_id: s.box_id,
+            name: s.name,
+            prose: short(&s.prose),
+            tags: s.tags,
+            domain: s.domain,
+            height: s.height,
+        })
+        .collect()
 }
 
 /// The services of a skill, best first. The score follows `docs/celaut/catalog.md`: the
@@ -530,6 +580,46 @@ mod tests {
         let (base, _) = serve(|_, _| (429, "{}".into())).await;
         assert!(HttpExplorer::new(&base).token_value(token).await.is_err());
         assert!(!REPUTATIONS.lock().unwrap().contains_key(token));
+    }
+
+    fn skill(id: &str, profile: Option<&str>) -> Skill {
+        Skill {
+            box_id: id.into(),
+            profile: profile.map(Into::into),
+            name: format!("skill {id}"),
+            prose: " text ".into(),
+            tags: vec!["t".into()],
+            domain: "d".into(),
+            extended_skill_boxes: vec![],
+            height: 7,
+        }
+    }
+
+    #[test]
+    fn a_skill_view_has_its_services_and_the_reputation_of_its_publisher() {
+        let declared = HashMap::from([("aa".to_string(), vec!["s1".to_string(), "s2".to_string()])]);
+        let reputations = Reputations(HashMap::from([
+            ("tok".to_string(), 3e9),
+            ("nan".to_string(), f64::NAN),
+        ]));
+        let skills = vec![
+            skill("AA", Some("tok")),
+            skill("bb", None),
+            skill("cc", Some("other")),
+            skill("dd", Some("nan")),
+        ];
+        let views = skill_views(skills.clone(), Some(&declared), &reputations);
+        assert_eq!(views[0].service_ids, ["s1", "s2"]);
+        assert_eq!(views[0].publisher_reputation, 3e9);
+        assert_eq!((views[0].height, views[0].prose.as_str()), (7, "text"));
+        assert!(views[1].service_ids.is_empty());
+        assert_eq!(views[1].publisher_reputation, 0.0);
+        assert_eq!(views[2].publisher_reputation, 0.0);
+        assert_eq!(views[3].publisher_reputation, 0.0);
+        // No answer for the services: the skills are there, with none.
+        let views = skill_views(skills, None, &reputations);
+        assert_eq!(views.len(), 4);
+        assert!(views.iter().all(|v| v.service_ids.is_empty()));
     }
 
     #[test]

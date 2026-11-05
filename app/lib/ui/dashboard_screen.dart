@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../bitcoin/bitcoin_coin_wallet.dart';
 import '../bridge/argus_error.dart';
 import '../celaut/compute_home_flag.dart';
 import '../celaut/incoming_package.dart';
@@ -25,9 +26,10 @@ import '../services/wallet_service.dart';
 import '../services/wallet_sync_controller.dart';
 import '../theme/argus_theme.dart';
 import '../theme/theme_controller.dart';
+import '../wallets/coin_wallet.dart';
+import '../wallets/ergo_coin_wallet.dart';
 import 'assets_screen.dart';
 import '../celaut/wallet_money.dart';
-import 'bitcoin/bitcoin_wallet_screen.dart';
 import 'celaut/deposit_screen.dart';
 import 'celaut/home_tabs.dart';
 import 'create_wallet_screen.dart';
@@ -82,9 +84,13 @@ class DashboardScreen extends StatefulWidget {
     this.initializeWalletService,
     this.computeHome,
     this.enforceSingleWallet,
+    this.bitcoin,
   });
 
   final Future<void> Function()? initializeWalletService;
+
+  /// The Bitcoin wallet of the Wallet tab. Null: the app's; tests give their own.
+  final BitcoinCoinWallet? bitcoin;
 
   /// Removes what an earlier version left beyond the one wallet. Null: the
   /// app's [enforceSingleWallet]; tests give their own.
@@ -104,6 +110,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   final _sync = walletSyncController;
   final _overview = WalletsOverviewModel();
   final _price = ErgPriceFeed();
+
+  /// The coins of the Wallet tab (issue #103): Ergo from the overview model, and Bitcoin
+  /// from the same words.
+  late final _ergo = ErgoCoinWallet(model: _overview, onAction: _ergoAction);
+  late final _bitcoin = widget.bitcoin ??
+      BitcoinCoinWallet(walletId: () => _overview.wallets.isEmpty ? null : _overview.wallets.first.walletId);
 
   /// The wallet whose page is showing; null shows the overview.
   WalletRef? _open;
@@ -213,6 +225,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     incomingPackages.removeListener(_openIncomingPackage);
     _overview.dispose();
     _price.dispose();
+    if (widget.bitcoin == null) _bitcoin.dispose();
     _pinCtrl.dispose();
     WidgetsBinding.instance.addPostFrameCallback((_) => ergoThemeActive.value = false);
     super.dispose();
@@ -240,6 +253,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     // A file that the user opened in a file manager launched the app: its import starts
     // when the home screen is there.
     WidgetsBinding.instance.addPostFrameCallback((_) => _openIncomingPackage());
+    if (_overview.wallets.isNotEmpty) unawaited(_bitcoin.refreshIfDue());
   }
 
   // ── Listeners ─────────────────────────────────────────────────────────
@@ -402,8 +416,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       }
     } else {
       // The locked wallet, on its five-minute floor. This needs no unlock:
-      // the overview shows it before one.
+      // the overview shows it before one. The Bitcoin wallet the same.
       unawaited(_overview.refreshIfDue());
+      if (_overview.wallets.isNotEmpty) unawaited(_bitcoin.refreshIfDue());
     }
     if (!_walletUnlocked || _sync.busy) return;
     final now = DateTime.now();
@@ -679,6 +694,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       return;
     }
     notificationService.requestPermission();
+    // The Bitcoin wallet of the same words reads with its key now, and keeps its public
+    // descriptors for the next time the wallet is locked.
+    unawaited(_bitcoin.refreshIfDue());
     // 2. Refresh known addresses; rescan only when discovery is due.
     await _sync.refresh(discover: true, forceDiscovery: false);
   }
@@ -980,13 +998,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   extra: deposit,
                   onSettings: () => _homeKey.currentState?.select(HomeTab.settings),
                 )
-              : WalletSummaryScreen(
-                  model: _overview,
-                  onDetails: () => _openWallet(WalletRef.seed(_overview.wallets.first.walletId)),
-                  onBitcoin: () => Navigator.of(context).push<void>(
-                    MaterialPageRoute(builder: (_) => const BitcoinWalletScreen()),
-                  ),
-                ),
+              : WalletSummaryScreen(coins: [_ergo, _bitcoin]),
         );
       },
     );
@@ -1008,6 +1020,20 @@ class _DashboardScreenState extends State<DashboardScreen>
       noticeIsError: _noticeIsError,
       onAction: _overviewAction,
     );
+  }
+
+  /// Send, Receive and More of the Ergo card of the Wallet tab: the same as the overview's
+  /// own row, and More opens the page of the wallet.
+  Future<void> _ergoAction(CoinAction action) async {
+    if (_overview.wallets.isEmpty) return;
+    switch (action) {
+      case CoinAction.details:
+        await _openWallet(WalletRef.seed(_overview.wallets.first.walletId));
+      case CoinAction.send:
+        await _overviewAction(WalletAction.send);
+      case CoinAction.receive:
+        await _overviewAction(WalletAction.receive);
+    }
   }
 
   /// The overview's own Send, Receive and More act on a wallet: the

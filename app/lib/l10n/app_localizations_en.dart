@@ -6671,6 +6671,66 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunOnPhone => 'On this phone';
 
   @override
+  String get celautRunImport => 'Import';
+
+  @override
+  String get celautRunPhoneServices => 'Run the services on this phone';
+
+  @override
+  String get celautStoreFeatured => 'Featured';
+
+  @override
+  String get celautStoreFeaturedHint =>
+      'One skill of each field, from the publisher with the most reputation';
+
+  @override
+  String get celautStoreSuggested => 'Suggested for you';
+
+  @override
+  String get celautStoreSuggestedHint =>
+      'In the fields of the skills that you ran';
+
+  @override
+  String get celautStoreNew => 'New';
+
+  @override
+  String get celautStoreNewHint => 'The last skills published on Ergo';
+
+  @override
+  String get celautStorePopular => 'Popular';
+
+  @override
+  String get celautStorePopularHint => 'The skills with the most services';
+
+  @override
+  String get celautStoreCategories => 'Categories';
+
+  @override
+  String get celautStoreAll => 'All skills';
+
+  @override
+  String celautStoreServices(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count services',
+      one: '1 service',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String celautStoreSkills(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skills',
+      one: '1 skill',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get celautEnvSensitive => 'Sensitive';
 
   @override
@@ -7576,4 +7636,145 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chatsInfoHibernatedNote =>
       'A hibernated instance pays only for its disk. Wake it to use it again. Stop it to get the refund; only a stopped instance can be deleted.';
+
+  @override
+  String get coinErgo => 'Ergo';
+
+  @override
+  String get coinBitcoin => 'Bitcoin';
+
+  @override
+  String coinTestNetwork(String network) {
+    return '$network · test network';
+  }
+
+  @override
+  String homeCoinPendingFigure(String figure, String unit) {
+    return '$figure $unit pending';
+  }
+
+  @override
+  String get btcOverviewUnlockOnce =>
+      'Unlock the wallet one time to read the Bitcoin wallet.';
+
+  @override
+  String get btcOverviewUnreachable =>
+      'The Bitcoin server did not answer. The figures can be old.';
+
+  @override
+  String get btcWalletRowSubtitle => 'The same words as the Ergo wallet';
+
+  @override
+  String get btcSettingsRowSubtitle => 'Network and server';
+
+  @override
+  String get btcReceiveAmount => 'Amount to ask for (BTC), optional';
+
+  @override
+  String get btcReceiveAmountHelp => 'The QR code asks for this amount';
+
+  @override
+  String btcScanNotBitcoin(String network) {
+    return 'This QR code is not a Bitcoin address of $network';
+  }
+
+  @override
+  String get btcFeeCustom => 'Other rate';
+
+  @override
+  String get btcFeeCustomLabel => 'Fee rate';
+
+  @override
+  String get btcFeeCustomInvalid => 'Type a rate from 1 to 1000 sat/vB';
+
+  @override
+  String get btcTxTime => 'Time';
+
+  @override
+  String get btcTxSize => 'Size';
+
+  @override
+  String get btcTxData => 'Data (OP_RETURN)';
+
+  @override
+  String get btcTxUnknownScript => 'Not an address';
+
+  @override
+  String get btcTxYours => 'yours';
+
+  @override
+  String get btcBump => 'Raise the fee';
+
+  @override
+  String get btcBumpHint =>
+      'The payment goes again with a higher fee and replaces the payment that waits (RBF). The fee comes out of the change.';
+
+  @override
+  String btcBumpNow(String rate, String min) {
+    return 'The fee rate is $rate sat/vB now. The new rate must be $min sat/vB or more.';
+  }
+
+  @override
+  String btcBumpTooLow(String min) {
+    return 'The rate must be $min sat/vB or more';
+  }
+
+  @override
+  String get btcBumpConfirmTitle => 'Send again with a higher fee?';
+
+  @override
+  String get btcBumpOldFee => 'Fee before';
+
+  @override
+  String btcBumped(String txid) {
+    return 'Sent again with a higher fee: $txid';
+  }
+
+  @override
+  String btcAddressReceive(String index) {
+    return 'Receive #$index';
+  }
+
+  @override
+  String btcAddressChange(String index) {
+    return 'Change #$index';
+  }
+
+  @override
+  String get btcAddressUsed => 'Used';
+
+  @override
+  String get btcAddressUnused => 'Not used';
+
+  @override
+  String get btcUtxosTitle => 'Unspent outputs';
+
+  @override
+  String get btcUtxosNone => 'The wallet has no unspent outputs.';
+
+  @override
+  String get btcOutpointCopied => 'Output copied';
+
+  @override
+  String get btcBackupTitle => 'Recovery phrase';
+
+  @override
+  String get btcBackupBody =>
+      'The Bitcoin wallet has no recovery phrase of its own. Its keys come from the words of the wallet (BIP-84). Keep those words: they restore the Ergo wallet and the Bitcoin wallet. Any standard Bitcoin wallet opens the same bitcoin with the same words.';
+
+  @override
+  String get btcToolAddressesBlurb =>
+      'Each address, what it holds and its label';
+
+  @override
+  String get btcToolUtxosBlurb => 'The coins of the wallet, one by one';
+
+  @override
+  String get btcToolNetworkBlurb => 'The network and the Esplora server';
+
+  @override
+  String get btcToolBackupBlurb => 'The same words as the wallet';
+
+  @override
+  String get btcToolLockBlurb => 'Lock the wallet: Ergo and Bitcoin';
 }

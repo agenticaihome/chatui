@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../bitcoin/btc_format.dart';
 import '../format.dart';
 import '../l10n/l10n.dart';
 import '../services/contacts_service.dart';
@@ -12,7 +13,11 @@ import '../theme/argus_theme.dart';
 import 'layout.dart';
 
 class ContactsScreen extends StatefulWidget {
-  const ContactsScreen({super.key});
+  const ContactsScreen({super.key, this.accepts});
+
+  /// In select mode, only the addresses that this accepts (the Bitcoin wallet gives its
+  /// network's check). Null: the Ergo addresses, as before there were Bitcoin contacts.
+  final bool Function(String address)? accepts;
 
   @override
   State<ContactsScreen> createState() => _ContactsScreenState();
@@ -118,8 +123,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _contactList() {
-    final contacts = contactsService.contacts;
-    if (contacts.isEmpty && _ownWallets.isEmpty) {
+    final accepts = widget.accepts ?? looksLikeRecipient;
+    final contacts = _selectMode
+        ? contactsService.contacts.where((c) => accepts(c.address)).toList()
+        : contactsService.contacts;
+    final ownWallets = _ownWallets.where((c) => accepts(c.address)).toList();
+    if (contacts.isEmpty && ownWallets.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(28),
@@ -135,9 +144,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }
     // In select mode the user's other wallets come first, then contacts.
     final rows = <Object>[
-      if (_ownWallets.isNotEmpty) context.l10n.contactsYourWallets,
-      ..._ownWallets,
-      if (_ownWallets.isNotEmpty && contacts.isNotEmpty) context.l10n.commonContacts,
+      if (ownWallets.isNotEmpty) context.l10n.contactsYourWallets,
+      ...ownWallets,
+      if (ownWallets.isNotEmpty && contacts.isNotEmpty) context.l10n.commonContacts,
       ...contacts,
     ];
     return ListView.separated(
@@ -236,7 +245,8 @@ class _ContactDialogState extends State<_ContactDialog> {
     final name = _name.text.trim();
     final addr = _address.text.trim();
     if (name.isEmpty || addr.isEmpty) return;
-    if (!looksLikeRecipient(addr)) {
+    // The address book has the addresses of both wallets, Ergo and Bitcoin (issue #103).
+    if (!looksLikeRecipient(addr) && !looksLikeBitcoinAddress(addr)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.contactsInvalidAddress)),
       );

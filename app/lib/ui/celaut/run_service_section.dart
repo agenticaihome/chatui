@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -57,10 +58,12 @@ typedef StartedCall = Future<void> Function(
   String? name,
 );
 
-/// "Run a service" on the home screen (`docs/celaut/ui.md`, section 2): the skills of the
-/// catalog as a store, with a search field and the fields of the skills as chips
-/// ([SkillCard]). The service files on this phone come last, a secondary way to run a
-/// service. A skill opens a sheet with its ranked services. Run starts
+/// "Run a service" (`docs/celaut/ui.md`, section 2): the skills of the catalog as a store.
+/// At the top, at all times: the search, two small actions for the service files on this
+/// phone (import one, run the saved ones), and the fields of the skills as chips. Under
+/// them the sections of the store (featured, suggested, new, popular, the fields, all the
+/// skills; see `skill_store.dart`), or the skills that match the search or the chip.
+/// Run on a skill opens a sheet with its ranked services. Run starts
 /// the best node by the balancer (`launchService`) after the user confirms it, with the
 /// best node and its start cost. If the service has a chat slot, the
 /// conversation opens; if not, the instance shows in the list of the home screen.
@@ -90,7 +93,12 @@ class RunServiceSection extends StatefulWidget {
     this.envStore,
     this.trustedNodes,
     this.work,
+    this.runHistory,
   });
+
+  /// The instances that the user started, for the suggestions of the store. Tests give
+  /// their own.
+  final List<RanService> Function()? runHistory;
 
   /// The launch, the transfer and the import run as background work. Tests give their own.
   final BackgroundWork? work;
@@ -170,7 +178,11 @@ class RunServiceSection extends StatefulWidget {
 
 class _RunServiceSectionState extends State<RunServiceSection> {
   final _search = TextEditingController();
+  final _scroll = ScrollController();
   List<SkillView>? _skills;
+
+  /// The instances that the user started ([RunServiceSection.runHistory]).
+  List<RanService> _ran = const [];
 
   /// The field that the chips show ([skillCategory]); null for all.
   String? _category;
@@ -194,6 +206,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   void initState() {
     super.initState();
     _readPackages();
+    _readHistory();
     _read();
     final file = widget.importFile;
     if (file != null) {
@@ -202,6 +215,19 @@ class _RunServiceSectionState extends State<RunServiceSection> {
       });
     }
   }
+
+  void _readHistory() {
+    try {
+      _ran = (widget.runHistory ?? _instancesRan)();
+    } catch (_) {
+      // No database yet: no history, so no suggestion.
+      _ran = const [];
+    }
+  }
+
+  static List<RanService> _instancesRan() => [
+        for (final i in celautInstances()) (serviceId: i.serviceId, name: i.name),
+      ];
 
   void _readPackages() {
     try {
@@ -215,6 +241,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   @override
   void dispose() {
     _search.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -522,6 +549,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     final instance = outcome.instance;
     final name = _lastName;
     _name(instance.instanceId, name);
+    if (mounted) setState(_readHistory);
     widget.onChanged?.call();
     final onStarted = widget.onStarted;
     if (onStarted != null) {
@@ -834,126 +862,397 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     ];
   }
 
+  /// A new search or field shows its skills from the start.
+  void _filter(VoidCallback change) {
+    setState(change);
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+  }
+
+  /// The saved service files, in a sheet: Run or Remove each one, or import another.
+  Future<void> _openPhone() async {
+    final package = await showModalBottomSheet<LibraryPackageView>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _PhoneServicesSheet(
+        list: () {
+          _readPackages();
+          return _packages;
+        },
+        import: _import,
+        remove: _removePackage,
+      ),
+    );
+    if (!mounted) return;
+    setState(_readPackages);
+    if (package != null) await _runPackage(package);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final categories = skillCategories(_skills ?? const <SkillView>[]);
+    final all = _skills ?? const <SkillView>[];
+    final categories = skillCategories(all);
     // A field that the catalog no longer has shows all the skills.
     final category = categories.any((c) => c.key == _category) ? _category : null;
+    final browsing = category == null && _search.text.trim().isEmpty;
     final skills = _filtered(category);
-    return Padding(
+    Widget gutter(Widget child) =>
+        Padding(padding: const EdgeInsets.symmetric(horizontal: homeGutter), child: child);
+    return Column(
       key: const Key('run-section'),
-      padding: const EdgeInsets.symmetric(horizontal: homeGutter),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (widget.showTitle) ...[
-            Text(l.celautRunTitle.toUpperCase(), style: t.label),
-            const SizedBox(height: 10),
-          ],
-          TextField(
-            key: const Key('run-search'),
-            controller: _search,
-            onChanged: (_) => setState(() {}),
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search, size: 20),
-              hintText: l.celautRunSearchHint,
-              isDense: true,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // At the top at all times: the search, the two actions of this phone, the fields.
+        Padding(
+          key: const Key('run-top'),
+          padding: const EdgeInsets.fromLTRB(homeGutter, 8, homeGutter, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (widget.showTitle) ...[
+                Text(l.celautRunTitle.toUpperCase(), style: t.label),
+                const SizedBox(height: 10),
+              ],
+              _topBar(context),
+              if (categories.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                SkillCategoryBar(
+                  categories: categories,
+                  selected: category,
+                  allLabel: l.celautRunCategoryAll,
+                  onSelected: (key) => _filter(() => _category = key),
+                ),
+              ],
+            ],
+          ),
+        ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, box) => ListView(
+              key: const Key('run-list'),
+              controller: _scroll,
+              padding: EdgeInsets.fromLTRB(0, 4, 0, 32 + MediaQuery.paddingOf(context).bottom),
+              children: [
+                if (_loading)
+                  gutter(Text(l.celautRunLoading, key: const Key('run-loading'), style: t.secondary))
+                else if (_failed)
+                  gutter(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l.celautRunCatalogError, key: const Key('run-error'), style: t.secondary),
+                        const SizedBox(height: 6),
+                        OutlinedButton(
+                          key: const Key('run-retry'),
+                          // The theme asks for the full width, which a column of text does not need.
+                          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                          onPressed: _read,
+                          child: Text(l.celautRunRetry),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (skills.isEmpty)
+                  gutter(Text(l.celautRunEmpty, key: const Key('run-empty'), style: t.secondary))
+                else if (browsing)
+                  ..._store(context, all, box.maxWidth)
+                else
+                  gutter(_cards(skills, box.maxWidth)),
+                // While a launch runs, its rocket is over the screen ([LaunchRocket]).
+              ],
             ),
           ),
-          if (categories.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            SkillCategoryBar(
-              categories: categories,
-              selected: category,
-              allLabel: l.celautRunCategoryAll,
-              onSelected: (key) => setState(() => _category = key),
-            ),
-          ],
-          const SizedBox(height: 12),
-          if (_loading)
-            Text(l.celautRunLoading, key: const Key('run-loading'), style: t.secondary)
-          else if (_failed) ...[
-            Text(l.celautRunCatalogError, key: const Key('run-error'), style: t.secondary),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton(
-                key: const Key('run-retry'),
-                onPressed: _read,
-                child: Text(l.celautRunRetry),
-              ),
-            ),
-          ] else if (skills.isEmpty)
-            Text(l.celautRunEmpty, key: const Key('run-empty'), style: t.secondary)
-          else
-            for (final skill in skills)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: SkillCard(
-                  key: Key('run-skill-${skill.boxId}'),
-                  skill: skill,
-                  onTap: _running ? null : () => _open(skill),
+        ),
+      ],
+    );
+  }
+
+  /// The search and the two actions of this phone. On a narrow screen the actions are
+  /// icons with a tooltip; on a wide one they have their text too.
+  Widget _topBar(BuildContext context) {
+    final l = context.l10n;
+    final count = _packages.length;
+    final phoneIcon = Badge.count(
+      count: count,
+      isLabelVisible: count > 0,
+      child: const Icon(Icons.phone_android_outlined, size: 20),
+    );
+    const importIcon = Icon(Icons.upload_file_outlined, size: 20);
+    final onImport = _running ? null : _import;
+    final onPhone = _running ? null : _openPhone;
+    return LayoutBuilder(
+      builder: (context, box) {
+        final labels = box.maxWidth >= 560;
+        // The theme asks for the full width, which a row cannot give.
+        final style = OutlinedButton.styleFrom(minimumSize: const Size(0, 48));
+        return Row(
+          children: [
+            Expanded(
+              child: TextField(
+                key: const Key('run-search'),
+                controller: _search,
+                onChanged: (_) => _filter(() {}),
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  hintText: l.celautRunSearchHint,
+                  isDense: true,
                 ),
               ),
-          // The service files on this phone: the rare way, after the catalog. The services
-          // saved in the app run from here, with no new import.
-          const SizedBox(height: 20),
-          Text(l.celautRunOnPhone.toUpperCase(), key: const Key('run-on-phone'), style: t.label),
-          if (_packages.isEmpty) ...[
+            ),
+            const SizedBox(width: 8),
+            Tooltip(
+              message: l.celautPkgImport,
+              child: labels
+                  ? OutlinedButton.icon(
+                      key: const Key('run-import'),
+                      style: style,
+                      onPressed: onImport,
+                      icon: importIcon,
+                      label: Text(l.celautRunImport),
+                    )
+                  : IconButton.outlined(
+                      key: const Key('run-import'),
+                      onPressed: onImport,
+                      icon: importIcon,
+                    ),
+            ),
+            const SizedBox(width: 8),
+            Tooltip(
+              message: l.celautRunPhoneServices,
+              child: labels
+                  ? OutlinedButton.icon(
+                      key: const Key('run-phone'),
+                      style: style,
+                      onPressed: onPhone,
+                      icon: phoneIcon,
+                      label: Text(l.celautRunOnPhone),
+                    )
+                  : IconButton.outlined(
+                      key: const Key('run-phone'),
+                      onPressed: onPhone,
+                      icon: phoneIcon,
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// The store with no search and no chip: the sections, the fields, then every skill.
+  List<Widget> _store(BuildContext context, List<SkillView> all, double width) {
+    final l = context.l10n;
+    final t = HomeText.of(context);
+    final inner = width - 2 * homeGutter;
+    // The next card shows at the edge, so the user sees that the row scrolls.
+    final featureWidth = math.min(340.0, inner - 28);
+    final tileWidth = math.min(320.0, inner - 36);
+    VoidCallback? open(SkillView s) => _running ? null : () => _open(s);
+    Widget row(String id, String title, String hint, List<SkillView> skills) => Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: StoreRow(
+            key: Key('store-$id'),
+            title: title,
+            hint: hint,
+            cardWidth: tileWidth,
+            children: [
+              for (final s in skills)
+                SkillTile(
+                  key: Key('store-$id-${s.boxId}'),
+                  runKey: Key('store-$id-run-${s.boxId}'),
+                  skill: s,
+                  onTap: open(s),
+                  onRun: open(s),
+                ),
+            ],
+          ),
+        );
+    final featured = featuredSkills(all);
+    final suggested = suggestedSkills(all, _ran);
+    final fresh = newSkills(all);
+    final popular = popularSkills(all);
+    final categories = skillCategories(all);
+    return [
+      if (featured.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: StoreRow(
+            key: const Key('store-featured'),
+            title: l.celautStoreFeatured,
+            hint: l.celautStoreFeaturedHint,
+            cardWidth: featureWidth,
+            children: [
+              for (final s in featured)
+                SkillFeatureCard(
+                  key: Key('store-featured-${s.boxId}'),
+                  runKey: Key('store-featured-run-${s.boxId}'),
+                  skill: s,
+                  onTap: open(s),
+                  onRun: open(s),
+                ),
+            ],
+          ),
+        ),
+      if (suggested.isNotEmpty) row('suggested', l.celautStoreSuggested, l.celautStoreSuggestedHint, suggested),
+      if (fresh.isNotEmpty) row('new', l.celautStoreNew, l.celautStoreNewHint, fresh),
+      if (popular.isNotEmpty) row('popular', l.celautStorePopular, l.celautStorePopularHint, popular),
+      if (categories.isNotEmpty)
+        Padding(
+          key: const Key('store-categories'),
+          padding: const EdgeInsets.fromLTRB(homeGutter, 0, homeGutter, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l.celautStoreCategories.toUpperCase(), style: t.label),
+              const SizedBox(height: 8),
+              SkillCategoryGrid(skills: all, onSelected: (key) => _filter(() => _category = key)),
+            ],
+          ),
+        ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: homeGutter),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l.celautStoreAll.toUpperCase(), key: const Key('store-all'), style: t.label),
+            const SizedBox(height: 8),
+            _cards(all, width),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  /// [skills] as cards: one column on a phone, two on a wide screen.
+  Widget _cards(List<SkillView> skills, double width) {
+    Widget card(SkillView s) => SkillCard(
+          key: Key('run-skill-${s.boxId}'),
+          runKey: Key('run-skill-run-${s.boxId}'),
+          skill: s,
+          onTap: _running ? null : () => _open(s),
+          onRun: _running ? null : () => _open(s),
+        );
+    final columns = width >= 600 ? 2 : 1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < skills.length; i += columns)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: columns == 1
+                ? card(skills[i])
+                : IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: card(skills[i])),
+                        const SizedBox(width: 10),
+                        Expanded(child: i + 1 < skills.length ? card(skills[i + 1]) : const SizedBox.shrink()),
+                      ],
+                    ),
+                  ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The service files saved in the app, as a bottom sheet: Run and Remove for each, and the
+/// import of another file, which then shows in the list. It returns the file to run; the
+/// section runs it.
+class _PhoneServicesSheet extends StatefulWidget {
+  const _PhoneServicesSheet({required this.list, required this.import, required this.remove});
+
+  final List<LibraryPackageView> Function() list;
+
+  /// Pick and load a file. The sheet reads the list again after it.
+  final Future<void> Function() import;
+
+  /// Ask, then remove a file. The sheet reads the list again after it.
+  final Future<void> Function(LibraryPackageView package) remove;
+
+  @override
+  State<_PhoneServicesSheet> createState() => _PhoneServicesSheetState();
+}
+
+class _PhoneServicesSheetState extends State<_PhoneServicesSheet> {
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final t = HomeText.of(context);
+    final packages = widget.list();
+    return SafeArea(
+      child: SingleChildScrollView(
+        key: const Key('phone-sheet'),
+        padding: const EdgeInsets.fromLTRB(homeGutter, 0, homeGutter, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l.celautRunOnPhone, key: const Key('run-on-phone'), style: t.title),
             const SizedBox(height: 6),
-            Text(l.celautPkgEmpty, key: const Key('pkg-empty'), style: t.secondary),
-          ] else
-            for (final package in _packages)
-              Padding(
-                key: Key('pkg-${package.serviceId}'),
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(package.name, style: t.primary),
-                          Text(
-                            package.present
-                                ? '${CelautStrings.bytes(package.bytes.toInt())} · '
-                                    '${package.serviceId.substring(0, 8)}'
-                                : l.celautPkgMissing,
-                            style: t.secondary,
-                          ),
-                        ],
+            if (packages.isEmpty)
+              Text(l.celautPkgEmpty, key: const Key('pkg-empty'), style: t.secondary)
+            else
+              for (final package in packages)
+                Padding(
+                  key: Key('pkg-${package.serviceId}'),
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(package.name, style: t.primary),
+                            Text(
+                              package.present
+                                  ? '${CelautStrings.bytes(package.bytes.toInt())} · '
+                                      '${package.serviceId.substring(0, 8)}'
+                                  : l.celautPkgMissing,
+                              style: t.secondary,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    OutlinedButton(
-                      key: Key('pkg-run-${package.serviceId}'),
-                      // The theme asks for the full width, which a row cannot give.
-                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
-                      onPressed: _running || !package.present ? null : () => _runPackage(package),
-                      child: Text(l.celautRunButton),
-                    ),
-                    IconButton(
-                      key: Key('pkg-remove-${package.serviceId}'),
-                      tooltip: l.celautPkgRemove,
-                      onPressed: _running ? null : () => _removePackage(package),
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                    ),
-                  ],
+                      OutlinedButton(
+                        key: Key('pkg-run-${package.serviceId}'),
+                        // The theme asks for the full width, which a row cannot give.
+                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                        onPressed: package.present
+                            ? () => Navigator.of(context).pop(package)
+                            : null,
+                        child: Text(l.celautRunButton),
+                      ),
+                      IconButton(
+                        key: Key('pkg-remove-${package.serviceId}'),
+                        tooltip: l.celautPkgRemove,
+                        onPressed: () async {
+                          await widget.remove(package);
+                          if (mounted) setState(() {});
+                        },
+                        icon: const Icon(Icons.delete_outline, size: 20),
+                      ),
+                    ],
+                  ),
                 ),
+            const SizedBox(height: 4),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                key: const Key('pkg-import'),
+                onPressed: () async {
+                  await widget.import();
+                  if (mounted) setState(() {});
+                },
+                icon: const Icon(Icons.upload_file_outlined, size: 18),
+                label: Text(l.celautPkgImport),
               ),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton.icon(
-              key: const Key('pkg-import'),
-              onPressed: _running ? null : _import,
-              icon: const Icon(Icons.upload_file_outlined, size: 18),
-              label: Text(l.celautPkgImport),
             ),
-          ),
-          // While a launch runs, its rocket is over the screen ([LaunchRocket]).
-        ],
+          ],
+        ),
       ),
     );
   }

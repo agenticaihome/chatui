@@ -153,3 +153,82 @@ with `ledgers.bitcoin` on regtest (`BACKEND: explorer`, `MU_PER_SATOSHI: 1000`):
   188 sat). After 6 confirmations the app called `Payable`; the node logged "Bitcoin
   payment for token … verified" and the credit went from 9,000,000 to 19,000,000 MU.
 
+
+## 10. The same level as the Ergo wallet (issue #103)
+
+### 10.1 The shared wallet interface
+
+`app/lib/wallets/coin_wallet.dart` has the interface that each coin implements:
+
+- `Coin`: the unit and the decimals (ERG 9, BTC 8). An amount is an integer of the
+  smallest unit.
+- `WalletFeature`: what a wallet can do. Each coin gives its set. `coinOnlyFeatures` gives
+  the features of only one coin, each with its reason. A test fails when a coin gets or
+  loses a feature that is not in that list.
+- `CoinFigures`: what the overview shows for each coin, with the same fields: the total,
+  the pending part, the age of the figures, the test network, the latest transactions
+  (`ActivityRowData`, the rows of the Ergo screens) and one note.
+- `CoinWallet`: `figures`, `refresh()`, and `act(context, CoinAction)` for Send, Receive
+  and the page of the coin.
+
+Two classes implement it:
+
+- `ErgoCoinWallet` (`app/lib/wallets/ergo_coin_wallet.dart`) reads the overview model of
+  the Ergo wallet. It does not change the Ergo wallet: Send, Receive and the page open as
+  they did from the overview.
+- `BitcoinCoinWallet` (`app/lib/bitcoin/bitcoin_coin_wallet.dart`) reads the Bitcoin wallet.
+  While the wallet is open, it reads with the key, and it keeps a snapshot and the public
+  descriptors (`btc_descriptors`) in the app's preferences. While the wallet is locked, it
+  shows the snapshot and reads the figures again with the descriptors and no key
+  (`btc_watch`), as the Ergo wallet reads its public addresses. It reads again at most every
+  5 minutes, and at once after an unlock.
+
+The Wallet tab (`WalletSummaryScreen`) shows one `CoinWalletCard` for each coin, in the
+order of `Coin`. Each card has the same parts at the same size: the balance (`HomeBalance`
+with the unit of the coin), the pending line, the round actions Send, Receive and More (the
+page of the coin), and the latest 3 transactions (`HomeActivityRow`). No coin is the main
+one. A new coin is a new `Coin` value, a new `CoinWallet` and the screens behind `act`.
+
+### 10.2 Parity table
+
+| Ergo wallet | Bitcoin wallet |
+|---|---|
+| Balance, pending part | Yes (confirmed, not confirmed, not mature) |
+| Figures while locked, refresh with no key | Yes: snapshot and watch-only read with the public descriptors |
+| Hide the balances (the eye) | Yes, the same setting |
+| Pull to refresh | Yes (a full scan, stop gap 20, is also the rescan) |
+| Receive: address, QR code, copy, share | Yes (`BitcoinReceiveScreen`) |
+| Receive: ask for an amount | Yes: `bitcoin:` URI with `amount` (BIP-21) |
+| Label on an address | Yes, the same label store |
+| Send, send everything | Yes |
+| Scan a QR code to send | Yes: an address or a BIP-21 request of the wallet's network |
+| Address book: pick, save | Yes, one address book for both; the picker shows only the addresses of the coin |
+| Fee choice | Yes: 3 server estimates or a typed rate (1 to 1000 sat/vB) |
+| Confirm sheet, then fingerprint or screen lock | Yes |
+| History, transaction details, copy ID, explorer | Yes (`BtcTxScreen`; mempool.space; regtest has no explorer) |
+| Addresses with what they hold | Yes (`BtcAddressesScreen`) |
+| UTXO list | Yes (`BtcUtxosScreen`) |
+| Deposit to a node | Yes (issue #92) |
+| Backup and restore | The same words: they restore both wallets. No second phrase. |
+| Lock | Yes: it locks the wallet, so both coins |
+| Network and server settings | Yes, also in Settings, group Bitcoin |
+| Tokens | No: Bitcoin has no tokens on its outputs |
+| ErgoPay | No: an Ergo protocol. BIP-21 does the same for a payment |
+| UTXO tools (consolidate, split, storage rent) | No: Bitcoin has no storage rent. The list is there |
+| Value in a fiat currency | Not yet: no BTC price source in the app, and test coins have no price |
+| A notice when a payment comes in | Not yet: it needs a background poll of the Esplora server |
+| (No Ergo equivalent) | Raise the fee of a payment that waits (RBF, BIP-125) |
+
+A payment with `OP_RETURN` data (a deposit to a node) does not get a higher fee: the
+node knows the deposit by its transaction ID.
+
+### 10.3 Tests
+
+- `rust/crates/wallet-btc`: watch-only wallet (it reads and does not sign; a private
+  descriptor is refused), addresses and UTXOs, transaction details, fee bump (a lower rate
+  is refused; the deposit is refused), BIP-21 requests.
+- `rust/crates/wallet-ffi/src/api/btc.rs`: the descriptors of the open wallet give the
+  same addresses; payment requests.
+- `app/test/coin_wallet_test.dart`: the parity of the features, the Ergo adapter, the
+  Bitcoin adapter (locked, unlocked, the 5-minute floor, the server down), the same card
+  for each coin, and the new Bitcoin screens.

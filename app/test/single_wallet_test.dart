@@ -99,15 +99,19 @@ void main() {
       await tester.tap(find.byKey(const Key('tab-wallet')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('wallet-summary')), findsOneWidget);
-      expect(find.byKey(const Key('summary-balance')), findsOneWidget);
-      expect(find.byKey(const Key('wallet-summary-empty')), findsOneWidget);
-      // The Bitcoin wallet of the same words opens from here too (issue #92).
-      expect(find.byKey(const Key('wallet-bitcoin')), findsOneWidget);
-      // Nothing else is on the tab: no actions, no deposit, no list of wallets.
+      // Ergo and Bitcoin, the same card each (issue #103).
+      for (final coin in ['ergo', 'bitcoin']) {
+        expect(find.byKey(Key('coin-$coin-balance')), findsOneWidget);
+        expect(find.byKey(Key('coin-$coin-send')), findsOneWidget);
+        expect(find.byKey(Key('coin-$coin-receive')), findsOneWidget);
+        expect(find.byKey(Key('coin-$coin-more')), findsOneWidget);
+      }
+      expect(find.byKey(const Key('coin-ergo-empty')), findsOneWidget);
+      // Nothing else is on the tab: no deposit, no list of wallets.
       expect(find.byKey(const Key('place-deposit')), findsNothing);
       expect(find.byKey(const Key('overview-action-send')), findsNothing);
       expect(find.byKey(const ValueKey('overview-row-seed-w-only')), findsNothing);
-      await tester.tap(find.byKey(const Key('wallet-details')));
+      await tester.tap(find.byKey(const Key('coin-ergo-more')));
       await tester.pumpAndSettle();
       // The page of the wallet, behind its gate, over the bar.
       expect(find.byKey(const Key('gate-unlock')), findsOneWidget);
@@ -140,13 +144,12 @@ void main() {
       await pumpHome(tester, computeHome: true);
       await tester.tap(find.byKey(const Key('tab-wallet')));
       await tester.pumpAndSettle();
-      // One button, into the page of the wallet, with no name and no header of a list.
-      expect(find.byKey(const Key('wallet-details')), findsOneWidget);
-      expect(find.text('Wallet details'), findsOneWidget);
+      // The coins by their names, never the name of the wallet, and no header of a list.
+      expect(find.byKey(const Key('coin-ergo-more')), findsOneWidget);
       expect(find.text('Savings'), findsNothing);
       expect(find.text('WALLET'), findsNothing);
       // The page of the wallet and its gate do not name it either.
-      await tester.tap(find.byKey(const Key('wallet-details')));
+      await tester.tap(find.byKey(const Key('coin-ergo-more')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('gate-unlock')), findsOneWidget);
       expect(find.text('Savings'), findsNothing);
