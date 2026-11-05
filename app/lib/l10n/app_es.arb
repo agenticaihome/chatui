@@ -1814,6 +1814,8 @@
   "celautSendFetching": "Obteniendo el servicio del nodo…",
   "celautSendSending": "Entregando el servicio al nodo…",
   "celautSendStarting": "Empezando la transferencia…",
+  "celautImportReading": "Leyendo el archivo del servicio…",
+  "celautImportReadingNote": "Primero la app copia el archivo en su propio almacenamiento. Un archivo grande tarda un poco.",
   "celautImportChecking": "Comprobando el archivo del servicio…",
   "celautImportNote": "La app calcula el hash de cada bloque, así un archivo dañado se detecta aquí y no después de enviarlo a un nodo.",
   "celautSendProgress": "{done} de {total} ({percent} %)",
@@ -1866,6 +1868,14 @@
   },
   "celautPkgBadFile": "Este fichero no es un paquete de servicio: {reason}",
   "@celautPkgBadFile": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautPkgUnreadable": "La app no puede leer este archivo: {reason}",
+  "@celautPkgUnreadable": {
     "placeholders": {
       "reason": {
         "type": "String"

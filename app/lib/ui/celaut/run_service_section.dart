@@ -622,25 +622,30 @@ class _RunServiceSectionState extends State<RunServiceSection> {
 
   Future<LibraryPackageView?> _pickAndLoad() async {
     final packages = widget.packages ?? const AndroidPackageChannel();
-    final PickedPackage? picked;
+    final ChosenFile? chosen;
     try {
-      picked = await packages.pick();
+      chosen = await packages.pick();
     } catch (_) {
       return null;
     }
-    if (picked == null || !mounted) return null;
-    final file = picked;
+    if (chosen == null || !mounted) return null;
+    final file = chosen;
     try {
+      // The card shows before the copy of the file: a large file takes a while to read.
       final loaded = await runWithImportRocket(
         context,
-        work: () => _library.importPicked(file),
-        progress: _library.progress,
-        cancel: _library.cancel,
+        work: () => _library.importChosen(file, packages),
+        progress: _library.importProgress,
+        cancel: _library.cancelImport,
       );
       if (mounted) setState(_readPackages);
       return loaded;
     } on ImportCancelled {
-      // The user stopped the check: the file stays where it was.
+      // The user stopped the import: the chosen file stays where it was.
+    } on CopyCancelled {
+      // The same, when the cancel came between the copy and the check.
+    } on CopyFailed catch (e) {
+      if (mounted) _showFileProblem(context.l10n.celautPkgUnreadable(e.message));
     } on CelautError catch (e) {
       if (mounted) await _showBadFile(e);
     } on PackageRefused {
@@ -651,15 +656,18 @@ class _RunServiceSectionState extends State<RunServiceSection> {
 
   Future<void> _showBadFile(CelautError e) async {
     final l = context.l10n;
-    final text = e.kind == CelautErrorKind.invalidInput
+    _showFileProblem(e.kind == CelautErrorKind.invalidInput
         ? l.celautPkgBadFile(e.message)
-        : CelautStrings.errorText(e.kind);
+        : CelautStrings.errorText(e.kind));
+  }
+
+  void _showFileProblem(String text) {
     // A browser sometimes saves a .celaut.bee file damaged, so any failure to load one says to
     // download it again.
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       key: const Key('pkg-bad-file'),
       duration: const Duration(seconds: 8),
-      content: Text('$text\n${l.celautPkgRedownload}'),
+      content: Text('$text\n${context.l10n.celautPkgRedownload}'),
     ));
   }
 

@@ -204,3 +204,49 @@ the finger goes down, and it shows that it is down in one frame: no splash, no h
 key makes 2 frames (down and up). Backspace repeats as before. The chips of the suggestions
 have no splash either. A blur that covers less of the bar was tried, and it did not change the
 time of a frame: Impeller pays a full render pass for each blur, whatever its size.
+
+## 6. The import of a service file (November 2026, issue #105)
+
+**How to measure.** Record the timeline of the VM service of a profile build while the app
+imports a `.celaut.bee` file, and read the times of the frames (`Animator::BeginFrame` on the
+UI thread, `Rasterizer::DoDraw` on the raster thread). The timeline keeps a ring of events,
+so read it every 3 seconds and join the parts. Note the time of the VM (`getVMTimelineMicros`)
+just before the tap on the file in the picker, and follow the copy of the app with
+`adb shell run-as org.celaut.chatui ls -l cache/packages` (now `no_backup/celaut/packages/incoming`;
+the copy grows, then the check moves
+it into the library). The VM service needs no tool of its own: `setVMTimelineFlags` with the
+streams `Dart`, `Embedder` and `GC`, `clearVMTimeline`, then `getVMTimeline`, over its web
+socket (`adb forward` to the port that `adb logcat -s flutter` gives).
+
+**What it found.** The setup: AVD `chatui-x86-a` (Android 15, x86_64, SwiftShader), profile
+builds, the files in Downloads, the build host under load (two other emulators and builds):
+
+| File | Build | Card shows after the tap | Frames until the card | Longest time with no frame during the import | Frames during the import |
+|---|---|---|---|---|---|
+| `bffa09.celaut.bee`, 1.45 GB | Before | 267 s | 5 | 200 s | 56 a second, only during the check |
+| | After | under 0.7 s | — | 79 ms | 59 a second (p99 30 ms) |
+| `8c6043.celaut.bee` (tiny), 27 MB | Before | 2.9 s | 7 | 2.4 s | 45 a second, only during the check |
+| | After | under 0.4 s | — | 39 ms | 59 a second (p99 27 ms) |
+
+The copy itself took 255 s before and 105 s after for the large file: that is the load of the
+build host, not the fix. The fix does not make the import shorter; it shows it from the start.
+
+A later run with a nearly full emulator found a second problem: when the storage is low,
+Android clears the cache of the apps (`DeviceStorageMonitorService`), and it deleted the copy of
+1.45 GB in the middle of the import. The copy is now in a private folder that is not a cache
+(`no_backup/celaut/packages/incoming`, next to the library).
+
+**The cause: the picker copied the file before the app knew that a file was chosen.** The
+Android side of the picker answered only after it had copied the whole file into the cache of
+the app (on a thread, with a stream). Until then, Flutter had nothing to show, so it drew no
+frame: the screen stayed on the list of services. The card with the rocket came after the copy,
+with the check. The UI thread was not blocked: during the check, the card had 56 frames a
+second, the build of a frame was under 4 ms (p99), and no Dart event took more than 16 ms. The
+read, the check and the hash of the blocks already run in Rust, off the UI thread.
+
+**The fix.** The picker answers as soon as the user chose a file, with its uri, name and size
+(`pickPackage`). The card shows, then the app asks for the copy (`copyPackage`), which tells
+its bytes (`copied`) and can be cancelled (`cancelCopy`). The card says "Reading the service
+file…" during the copy and "Checking the service file…" during the check; the rocket rises over
+both. The launch (its rocket shows before the first call to a node) and the transfer of a
+service to a node (its card shows before the transfer) did not have the problem.

@@ -1,11 +1,47 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../bridge/api/celaut_package.dart';
 import '../services/secure_storage.dart';
 import 'package_channel.dart';
 import 'service_transfer.dart';
+
+/// What an import does now.
+enum ImportPhase {
+  /// The app copies the chosen file into a private folder.
+  reading,
+
+  /// The app checks the blocks of its copy.
+  checking,
+}
+
+/// How far an import is: the bytes of its phase, of [total] (null while not known).
+@immutable
+class ImportProgress {
+  const ImportProgress({required this.phase, required this.bytes, this.total});
+
+  final ImportPhase phase;
+  final int bytes;
+  final int? total;
+
+  /// The share of the phase that is done, or null while the total is not known.
+  double? get fraction {
+    final t = total;
+    if (t == null || t <= 0) return null;
+    return (bytes / t).clamp(0.0, 1.0).toDouble();
+  }
+
+  /// The share of the whole import that is done: the read is the first half, and the
+  /// check is the second half (each reads the whole file once). Null while the read does
+  /// not know the size of the file.
+  double? get overall {
+    final f = fraction;
+    if (f == null) return phase == ImportPhase.checking ? 0.5 : null;
+    return phase == ImportPhase.reading ? f / 2 : 0.5 + f / 2;
+  }
+}
 
 /// The service files that the user loaded into the app (`docs/celaut/package.md`).
 ///
@@ -62,6 +98,65 @@ class PackageLibrary {
       if (p.serviceId == id && p.present) return p;
     }
     return null;
+  }
+
+  ImportPhase _phase = ImportPhase.reading;
+  int? _size;
+  PackageChannel? _channel;
+  bool _cancelled = false;
+
+  /// The import that runs now ([importChosen]).
+  ImportProgress importProgress() {
+    if (_phase == ImportPhase.reading) {
+      return ImportProgress(phase: _phase, bytes: _channel?.copied ?? 0, total: _size);
+    }
+    final view = progress();
+    return ImportProgress(
+      phase: _phase,
+      bytes: view.bytes.toInt(),
+      total: view.total?.toInt() ?? _size,
+    );
+  }
+
+  /// Stop the import that runs: the copy, or the check.
+  void cancelImport() {
+    _cancelled = true;
+    _channel?.cancelCopy();
+    cancel();
+  }
+
+  /// Copy the file that the user chose into a private folder of the app (through [channel]), then
+  /// load it ([importPicked]). A copy that the library does not take is deleted. Throws
+  /// [CopyCancelled] or [CopyFailed] for the copy, and as [importPicked] for the load.
+  Future<LibraryPackageView> importChosen(ChosenFile file, PackageChannel channel) async {
+    final dir = await _privateDir();
+    if (dir == null || dir.isEmpty) throw const PackageRefused(PackageRefusal.noDirectory);
+    _phase = ImportPhase.reading;
+    _size = file.bytes;
+    _channel = channel;
+    _cancelled = false;
+    final picked = await channel.copy(file);
+    try {
+      if (_cancelled) throw const CopyCancelled();
+      _phase = ImportPhase.checking;
+      _size = picked.bytes;
+      return await _import(picked.path, picked.name, dir);
+    } catch (_) {
+      // A refused file stays where it was: here, the copy of the app.
+      _deleteQuietly(picked.path);
+      rethrow;
+    } finally {
+      _channel = null;
+    }
+  }
+
+  static void _deleteQuietly(String path) {
+    try {
+      final file = File(path);
+      if (file.existsSync()) file.deleteSync();
+    } on FileSystemException {
+      // The next copy deletes what is left in the folder.
+    }
   }
 
   /// Load the file that the user picked. Throws [CelautError] (`invalidInput` for a file

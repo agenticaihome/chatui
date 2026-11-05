@@ -294,17 +294,60 @@ void main() {
     setUp(() => methods = []);
     tearDown(() => messenger.setMockMethodCallHandler(AndroidPackageChannel.channel, null));
 
-    test('a picked file and the metered network', () async {
+    test('a chosen file and the metered network', () async {
       answer((call) => call.method == 'isMetered'
           ? true
-          : {'path': '/cache/packages/picked-1.bee', 'bytes': 2048, 'name': 'echo.celaut.bee'});
+          : {'uri': 'content://downloads/1', 'bytes': 2048, 'name': 'echo.celaut.bee'});
       const channel = AndroidPackageChannel(android: true);
-      final picked = await channel.pick();
-      expect(picked!.path, '/cache/packages/picked-1.bee');
-      expect(picked.bytes, 2048);
-      expect(picked.name, 'echo.celaut.bee');
+      final chosen = await channel.pick();
+      expect(chosen!.uri, 'content://downloads/1');
+      expect(chosen.bytes, 2048);
+      expect(chosen.name, 'echo.celaut.bee');
       expect(await channel.isMetered(), isTrue);
       expect(methods, ['pickPackage', 'isMetered']);
+    });
+
+    test('a provider that does not say the size gives no size', () async {
+      answer((_) => {'uri': 'content://x/2', 'bytes': -1, 'name': 'echo.celaut.bee'});
+      final chosen = await const AndroidPackageChannel(android: true).pick();
+      expect(chosen!.bytes, isNull);
+    });
+
+    test('the copy gives the file in the cache, and counts its bytes', () async {
+      Object? args;
+      answer((call) {
+        args = call.arguments;
+        return {'path': '/cache/packages/picked-1.bee', 'bytes': 2048};
+      });
+      const channel = AndroidPackageChannel(android: true);
+      const chosen = ChosenFile(uri: 'content://downloads/1', name: 'echo.celaut.bee', bytes: 2048);
+      final copy = await channel.copy(chosen);
+      expect(copy.path, '/cache/packages/picked-1.bee');
+      expect(copy.bytes, 2048);
+      expect(copy.name, 'echo.celaut.bee');
+      expect(args, {'uri': 'content://downloads/1'});
+      // The Android side tells the bytes while it copies.
+      await messenger.handlePlatformMessage(
+        AndroidPackageChannel.channel.name,
+        AndroidPackageChannel.channel.codec.encodeMethodCall(const MethodCall('copied', 1024)),
+        (_) {},
+      );
+      expect(channel.copied, 1024);
+      channel.cancelCopy();
+      await Future<void>.delayed(Duration.zero);
+      expect(methods, ['copyPackage', 'cancelCopy']);
+    });
+
+    test('a cancelled copy and a copy that fails are told apart', () async {
+      const channel = AndroidPackageChannel(android: true);
+      const chosen = ChosenFile(uri: 'content://downloads/1', name: 'echo.celaut.bee');
+      answer((_) => throw PlatformException(code: 'cancelled'));
+      await expectLater(channel.copy(chosen), throwsA(isA<CopyCancelled>()));
+      answer((_) => throw PlatformException(code: 'copy_failed', message: 'Permission denied'));
+      await expectLater(
+        channel.copy(chosen),
+        throwsA(isA<CopyFailed>().having((e) => e.message, 'message', 'Permission denied')),
+      );
     });
 
     test('a cancelled pick, an error, or no channel give no file and never throw', () async {

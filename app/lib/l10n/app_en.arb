@@ -4552,6 +4552,8 @@
   "celautSendFetching": "Getting the service from the node…",
   "celautSendSending": "Giving the service to the node…",
   "celautSendStarting": "Starting the transfer…",
+  "celautImportReading": "Reading the service file…",
+  "celautImportReadingNote": "The app copies the file into its own storage first. A large file takes some time.",
   "celautImportChecking": "Checking the service file…",
   "celautImportNote": "The app hashes every block, so a damaged file is found here and not after it goes to a node.",
   "celautSendProgress": "{done} of {total} ({percent}%)",
@@ -4604,6 +4606,14 @@
   },
   "celautPkgBadFile": "This file is not a service package: {reason}",
   "@celautPkgBadFile": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautPkgUnreadable": "The app cannot read this file: {reason}",
+  "@celautPkgUnreadable": {
     "placeholders": {
       "reason": {
         "type": "String"

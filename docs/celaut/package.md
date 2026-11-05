@@ -10,21 +10,31 @@ does not contain it". The request can contain it: `StartService` and
 
 The user can load a `.celaut.bee` file into the app at any time, with **Import a service
 file** in the section "Run a service" of the home screen (the system file picker; any
-type, because the file has no MIME type of its own). The app then:
+type, because the file has no MIME type of its own). The picker gives the file at once,
+with its name and size, and the card of the import shows before the app reads a byte. The
+app then:
 
-1. checks it: the file must be a package of a service, with a Service part, and it must say
+1. **reads** it: Android copies the file with a stream into `<private dir>/packages/incoming`
+   (not the cache: Android clears the cache when the storage is low, also in the middle of
+   a copy of 1.45 GB), and tells the bytes copied (`copied` on the channel `org.celaut.chatui/package`). The card says
+   "Reading the service file…" with these bytes; Cancel stops the copy and deletes it. A
+   file that the app cannot read is refused with the reason;
+2. checks it: the file must be a package of a service, with a Service part, and it must say
    which service it is, in its Metadata or in a hash part. The app does not hash a whole
    service on the phone, so a file with no id is refused, with that reason. It hashes each
    block (SHA3-256, with the blocks inside it) and refuses a file with a block that does
    not hash to its id, or that is cut inside a block: a node refuses that block, but only
    after the whole file was sent to it. While it checks, a card with the rocket (the one of
    a launch, lying on its pad) shows the bytes read of the size of the file, and the pad
-   raises the rocket from horizontal to vertical as they grow (`RaiseStage`); and Cancel stops the check and
-   leaves the file where it was. The count is `celaut_transfer_progress` (stage `checking`);
-2. **moves** it (the picker's copy is in the cache of the app) to
+   raises the rocket from horizontal to vertical as they grow (`RaiseStage`): the read is the
+   first half of the rise, and the check is the second half. Cancel stops the check and
+   leaves the chosen file where it was; the copy of the app is deleted, as is the copy of
+   a file that the check refuses. The count is `celaut_transfer_progress` (stage
+   `checking`);
+3. **moves** it (the copy is on the same disk) to
    `<private dir>/packages/library/<service id>.bee`, through a partial file that is
    renamed when it is complete, so the library never holds a cut file;
-3. records it in the Celaut database (`packages`: name, size, time, layout). The name is
+4. records it in the Celaut database (`packages`: name, size, time, layout). The name is
    the name of the file without `.celaut.bee`. Loading the same service again replaces it.
 
 "Your services" lists the loaded files with Run and Remove. Run launches the service by
@@ -163,7 +173,7 @@ button (`app/lib/celaut/service_transfer.dart` decides which):
   has (closed, no room, no credit, rate limit, launch failed, network policy,
   architecture). A node that did not answer says nothing.
 - **Choose a .celaut.bee file and send it to B**, when no node of the list has it. The
-  Android file picker copies the file into the cache of the app with a stream
+  Android file picker copies the file into a private folder of the app with a stream
   (`PackageHandler.kt`). A file of another service, or with no Service part, is refused
   before anything is sent.
 
