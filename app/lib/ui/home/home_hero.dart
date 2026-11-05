@@ -23,6 +23,8 @@ class HomeBalance extends StatelessWidget {
     super.key,
     required this.label,
     required this.nanoErg,
+    this.unit = 'ERG',
+    this.decimals = 9,
     this.currency,
     this.labelExtra,
     this.loading = false,
@@ -58,8 +60,13 @@ class HomeBalance extends StatelessWidget {
   final String? labelExtra;
 
   /// Null while unknown: drawn as a placeholder while [loading], else as a
-  /// dash, never as zero.
+  /// dash, never as zero. In the smallest unit of [unit] (nanoERG for ERG,
+  /// satoshi for BTC).
   final int? nanoErg;
+
+  /// The unit of the figure, and its decimals (ERG has 9, BTC has 8).
+  final String unit;
+  final int decimals;
   final bool loading;
 
   /// What [fiatValue] is in; without one no value is shown.
@@ -116,13 +123,13 @@ class HomeBalance extends StatelessWidget {
     final nano = nanoErg;
     final l = appL10n;
     if (nano == null) return loading ? l.homeSpokenLoading(label) : l.homeSpokenUnavailable(label);
-    final pendingLine = pendingText(pending, hidden: hidden);
+    final pendingLine = pendingText(pending, hidden: hidden, unit: unit, decimals: decimals);
     // Hidden, the screen's dots would be read out one by one; the word is
     // what they stand for.
     if (hidden) return spoken([l.homeSpokenHidden(label), ..._notes(), if (pendingLine != null) l.homeSpokenSomethingPending].join(', '));
     final fiat = _fiat;
     return spoken([
-      '$label ${summaryErg(nano)} ERG',
+      '$label ${summaryAmount(BigInt.from(nano), decimals)} $unit',
       if (fiat != null) l.homeSpokenAbout(fiatFigure(fiat.value, fiat.currency, approximate: false), fiat.currency.code),
       if (_showUnpriced) l.homeSpokenUnpriced(unpricedCount),
       ..._notes(),
@@ -257,7 +264,7 @@ class HomeBalance extends StatelessWidget {
         ? ('—', '')
         : hidden
             ? ('••••••', '')
-            : splitFraction(summaryErg(nano));
+            : splitFraction(summaryAmount(BigInt.from(nano), decimals));
     // One line at any text size: a balance broken over two lines reads as
     // two numbers, so it shrinks to fit instead.
     return FittedBox(
@@ -277,7 +284,7 @@ class HomeBalance extends StatelessWidget {
             // reads first.
             if (fraction.isNotEmpty) TextSpan(text: fraction, style: const TextStyle(fontSize: 32, letterSpacing: -0.5)),
             TextSpan(
-              text: '${nbsp}ERG',
+              text: '$nbsp$unit',
               style: TextStyle(
                 fontFamily: bodyFont,
                 fontSize: 17,
@@ -325,10 +332,10 @@ class HomeBalance extends StatelessWidget {
         child: Text(notes.join('   ·   '), style: t.secondary.copyWith(fontSize: 14.5)),
       ));
     }
-    if (pendingText(pending, hidden: hidden) != null) {
+    if (pendingText(pending, hidden: hidden, unit: unit, decimals: decimals) != null) {
       lines.add(Padding(
         padding: const EdgeInsets.only(top: 6),
-        child: HomePendingLine(key: pendingKey, pending: pending, hidden: hidden),
+        child: HomePendingLine(key: pendingKey, pending: pending, hidden: hidden, unit: unit, decimals: decimals),
       ));
     }
     return lines;
@@ -340,15 +347,25 @@ class HomeBalance extends StatelessWidget {
 /// Emphasised by weight, not colour: the accent is kept for the one thing
 /// on a screen to act on.
 class HomePendingLine extends StatelessWidget {
-  const HomePendingLine({super.key, required this.pending, required this.hidden});
+  const HomePendingLine({
+    super.key,
+    required this.pending,
+    required this.hidden,
+    this.unit = 'ERG',
+    this.decimals = 9,
+  });
 
   final PendingBalance? pending;
   final bool hidden;
 
+  /// The unit of [pending]'s amounts, and its decimals.
+  final String unit;
+  final int decimals;
+
   @override
   Widget build(BuildContext context) {
     final t = HomeText.of(context);
-    final text = pendingText(pending, hidden: hidden);
+    final text = pendingText(pending, hidden: hidden, unit: unit, decimals: decimals);
     if (text == null) return const SizedBox.shrink();
     return Row(
       mainAxisSize: MainAxisSize.min,

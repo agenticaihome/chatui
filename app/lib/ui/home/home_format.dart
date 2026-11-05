@@ -131,13 +131,17 @@ String otherAddressLine(FundsElsewhere funds, {required bool hidden, bool compac
 /// words, so the confirmed side is the figure above less what is pending,
 /// and other wallets' funds count as confirmed. Only the
 /// figures are set as every summary figure here is.
-String? pendingText(PendingBalance? pending, {required bool hidden}) {
+///
+/// The amounts are in the smallest unit of [unit], which has [decimals]
+/// (ERG by default; satoshi of BTC for the Bitcoin wallet).
+String? pendingText(PendingBalance? pending, {required bool hidden, String unit = 'ERG', int decimals = 9}) {
   if (pending == null || !pending.hasPending) return null;
   final t = appL10n;
-  if (hidden) return t.homeErgPendingFigure(maskedFigure);
+  String figure(String f) => unit == 'ERG' ? t.homeErgPendingFigure(f) : t.homeCoinPendingFigure(f, unit);
+  if (hidden) return figure(maskedFigure);
   final delta = pending.pendingDeltaNano;
-  final lead = delta == 0 ? t.commonPending : t.homeErgPendingFigure(signedSummaryAmount(BigInt.from(delta), 9));
-  return t.homePendingConfirmed(lead, summaryErg(pending.confirmedNano));
+  final lead = delta == 0 ? t.commonPending : figure(signedSummaryAmount(BigInt.from(delta), decimals));
+  return t.homePendingConfirmed(lead, summaryAmount(BigInt.from(pending.confirmedNano), decimals));
 }
 
 /// One leg of a transaction as a row shows it: "+2.5 ERG", "−69 COMET",
