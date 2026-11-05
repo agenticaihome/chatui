@@ -753,7 +753,9 @@ pub struct Metrics {
     /// True if the instance is suspended: its virtual machine is stopped and the node
     /// keeps its disk, its address and its balance. The node does not charge an instance
     /// while it is suspended. A deposit that pays one maintenance period starts it again.
-    /// False for a client_id, and for an instance that runs.
+    /// False for a client_id, and for an instance that runs. Also false for a hibernated
+    /// instance: the node charges it for its disk and a deposit does not start it, so
+    /// whoever delegated it goes on charging for it.
     #[prost(bool, tag = "2")]
     pub suspended: bool,
 }
@@ -1290,9 +1292,22 @@ pub struct ModifyServiceSystemResourcesInput {
     /// The minimum resources. Not used now.
     #[prost(message, optional, tag = "1")]
     pub min_sysreq: ::core::option::Option<Sysresources>,
-    /// The resources that the instance asks for.
+    /// The resources that the instance asks for. A field that is not set keeps the value
+    /// of the instance. If the CPU (cpu_quota) or the memory (mem_limit) ends at 0, the
+    /// node hibernates the instance: it stops the virtual machine and keeps the disk, and
+    /// charges only for the disk. If the instance is hibernated and the CPU and the memory
+    /// both end above 0, the node starts it again from its entrypoint, on the same disk,
+    /// address and ports. A request that sets only one of them does not wake it. The node
+    /// refuses to hibernate an instance with a shared filesystem.
     #[prost(message, optional, tag = "2")]
     pub max_sysreq: ::core::option::Option<Sysresources>,
+    /// The instance token. Optional. If it is set, the node changes that instance, whoever
+    /// sends the request, and the instance that the token names pays for the call. If the
+    /// parent of the instance is a client, the request must also have that Client. If it
+    /// is not set, the node changes the local instance that sends the request, which it
+    /// finds by the address of the caller.
+    #[prost(string, tag = "3")]
+    pub service_token: ::prost::alloc::string::String,
 }
 /// The request of ModifyDeposit.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

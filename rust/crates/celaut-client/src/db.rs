@@ -227,6 +227,93 @@ pub struct InstanceRecord {
     /// low (`docs/celaut/ui.md`, section 4b). Off for an old record.
     #[serde(default)]
     pub keep_alive: Option<KeepAlive>,
+    /// The CPU and the RAM that [`crate::hibernation::wake`] sends to wake the instance.
+    /// While the instance runs, they are the last values that the app got from the node
+    /// (every answer of `ModifyServiceSystemResources`; the answer of the start has none).
+    /// At a hibernation, they are the values that the instance had at that moment
+    /// (`docs/celaut/decisions.md`), which can differ from the values of the start.
+    /// An old record has none.
+    #[serde(default)]
+    pub awake_resources: Option<Resources>,
+    /// Where [`InstanceRecord::awake_resources`] came from. None if it has no value.
+    #[serde(default)]
+    pub awake_source: Option<ResourcesSource>,
+    /// The time of the hibernation, in Unix seconds, when the node confirmed it. It is
+    /// not `stopped_at`: a hibernated instance is not stopped, it keeps its disk and
+    /// can wake. The node has no RPC that says "hibernated", so only this record knows.
+    /// An old record has none: it is awake.
+    #[serde(default)]
+    pub hibernated_at: Option<i64>,
+    /// What the node charges while the instance is hibernated: its disk only. The app
+    /// works it out at the hibernation from the rates that the node advertised
+    /// ([`HibernatedPrice`]). Cleared at a wake. None: the app does not know it, and the
+    /// keep-alive uses the price of the awake instance, which is more than needed.
+    #[serde(default)]
+    pub hibernated_price: Option<HibernatedPrice>,
+}
+
+/// The price of a hibernated instance and the fee of the wake call, in MU
+/// (`docs/celaut/decisions.md`). The node charges a hibernated instance for its disk only
+/// (nodo `docs/PRICING.md`, "Hibernating an instance"), and the instance pays the fee of
+/// the wake call (`modify_resources_mu`), so its balance must hold both.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HibernatedPrice {
+    /// The disk of one period, in MU. It is never more than the price of the awake
+    /// instance. The period is `InstanceRecord::pricing.maintenance_seconds`.
+    pub disk_maintenance_mu: String,
+    /// The fee of one call that changes the resources, in MU. Empty if the node did not
+    /// advertise it.
+    #[serde(default)]
+    pub wake_fee_mu: String,
+}
+
+/// The resources that an instance needs to wake: the three fields that the node asks for
+/// in a wake, all above 0 (`ModifyServiceSystemResources`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Resources {
+    /// The CPU quota in microseconds for each `cpu_period`.
+    pub cpu_quota: u64,
+    /// The CPU period in microseconds.
+    pub cpu_period: u64,
+    /// The RAM limit in bytes.
+    pub mem_limit: u64,
+}
+
+impl Resources {
+    /// The resources of `sysreq`, if `cpu_quota`, `cpu_period` and `mem_limit` are all
+    /// set and above 0. None otherwise: a 0 means hibernated, not a size.
+    pub fn from_sysresources(sysreq: &celaut_proto::celaut::Sysresources) -> Option<Self> {
+        let above_zero = |v: Option<u64>| v.filter(|v| *v > 0);
+        Some(Resources {
+            cpu_quota: above_zero(sysreq.cpu_quota)?,
+            cpu_period: above_zero(sysreq.cpu_period)?,
+            mem_limit: above_zero(sysreq.mem_limit)?,
+        })
+    }
+
+    /// The same resources as a `Sysresources` with the three fields set.
+    pub fn to_sysresources(self) -> celaut_proto::celaut::Sysresources {
+        celaut_proto::celaut::Sysresources {
+            cpu_quota: Some(self.cpu_quota),
+            cpu_period: Some(self.cpu_period),
+            mem_limit: Some(self.mem_limit),
+            ..Default::default()
+        }
+    }
+}
+
+/// Where the awake resources of an instance came from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResourcesSource {
+    /// The app read them from the node just before the hibernation. They are exact, as
+    /// far as the wire allows (a resize in the small gap between the read and the
+    /// hibernation is not seen).
+    ReadFromNode,
+    /// The last values that the app got from the node: the answers of the changes of
+    /// resources. They can be old, because the parent or the
+    /// instance may have resized it without the app. The UI must warn about them.
+    LastKnown,
 }
 
 /// The price of keeping an instance on its node, as the quote gave it.
@@ -885,6 +972,10 @@ mod tests {
                 refund_mu: None,
                 pricing: None,
                 keep_alive: None,
+                awake_resources: None,
+                awake_source: None,
+                hibernated_at: None,
+                hibernated_price: None,
             },
         );
         data.deposits.insert(
@@ -1073,6 +1164,62 @@ mod tests {
             serde_json::from_str(&serde_json::to_string(&data).unwrap()).unwrap();
         assert_eq!(back.instances["i1"].stopped_at, Some(7));
         assert_eq!(back.instances["i1"].refund_mu.as_deref(), Some("700"));
+    }
+
+    #[test]
+    fn an_old_instance_is_awake_and_a_hibernation_is_kept() {
+        let old: InstanceRecord =
+            serde_json::from_str(r#"{"peer_id": "p", "address": "a:1", "token": "t", "service_id": "s", "started_at": 1}"#)
+                .unwrap();
+        assert_eq!(
+            (old.awake_resources, old.awake_source, old.hibernated_at),
+            (None, None, None)
+        );
+        let mut data = CelautData::default();
+        sample(&mut data);
+        let record = data.instances.get_mut("i1").unwrap();
+        record.awake_resources = Some(Resources {
+            cpu_quota: 50_000,
+            cpu_period: 100_000,
+            mem_limit: 1 << 30,
+        });
+        record.awake_source = Some(ResourcesSource::LastKnown);
+        record.hibernated_at = Some(9);
+        let back: CelautData =
+            serde_json::from_str(&serde_json::to_string(&data).unwrap()).unwrap();
+        assert_eq!(back.instances["i1"], data.instances["i1"]);
+        assert_eq!(back.instances["i1"].stopped_at, None);
+    }
+
+    #[test]
+    fn resources_need_all_three_fields_above_zero() {
+        use celaut_proto::celaut::Sysresources;
+        let full = Sysresources {
+            cpu_quota: Some(1),
+            cpu_period: Some(2),
+            mem_limit: Some(3),
+            disk_space: Some(4),
+            ..Default::default()
+        };
+        let r = Resources::from_sysresources(&full).unwrap();
+        assert_eq!((r.cpu_quota, r.cpu_period, r.mem_limit), (1, 2, 3));
+        assert_eq!(r.to_sysresources().disk_space, None);
+        for broken in [
+            Sysresources {
+                cpu_quota: Some(0),
+                ..full.clone()
+            },
+            Sysresources {
+                cpu_period: None,
+                ..full.clone()
+            },
+            Sysresources {
+                mem_limit: Some(0),
+                ..full.clone()
+            },
+        ] {
+            assert_eq!(Resources::from_sysresources(&broken), None);
+        }
     }
 
     #[test]

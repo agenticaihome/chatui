@@ -42,6 +42,7 @@ pub mod db;
 pub mod deposit;
 pub mod env;
 pub mod health;
+pub mod hibernation;
 pub mod invite;
 pub mod local_port;
 pub mod overview;
@@ -67,7 +68,7 @@ pub use peer::PeerError;
 pub use quotes::{
     quotes, quotes_for, quotes_weighted, quotes_with, QuoteFailure, QuoteSkip, Quotes,
 };
-pub use refusal::Refusal;
+pub use refusal::{Refusal, ResourceRefusal};
 pub use session::{NodeSession, StartedInstance};
 pub use store::{FilePeerStore, MemoryPeerStore, PeerStore, Seen, StoreError};
 
@@ -101,6 +102,25 @@ pub enum ClientError {
     /// A deposit cannot be made.
     #[error(transparent)]
     Deposit(#[from] DepositError),
+    /// The resources of a hibernation or a wake are not usable. No call was made, or the
+    /// answer of the node cannot be used to wake the instance later.
+    #[error(transparent)]
+    Resources(#[from] ResourcesError),
+}
+
+/// The resources of an instance are not usable to hibernate or wake it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum ResourcesError {
+    /// A wake needs `cpu_quota`, `cpu_period` and `mem_limit`, all above 0. The node
+    /// keeps the old value of a field that is not set, and a hibernated instance holds 0.
+    /// The name is the first field that is not set or is 0. No call was made.
+    #[error("the resources to wake the instance have no value above 0 for {0}")]
+    WakeIncomplete(&'static str),
+    /// The node answered the read of the current resources with 0 or no value for
+    /// `cpu_quota`, `cpu_period` or `mem_limit`. The instance is hibernated, or the node
+    /// has no value for it, so there are no resources to store for a wake.
+    #[error("the node gave no resources above 0 for {0}: the instance has none to store")]
+    NotReadable(&'static str),
 }
 
 /// The texts of a node that does not know the client id. nodo `dev` refuses the call in
@@ -112,6 +132,25 @@ const UNKNOWN_CLIENT_TEXTS: [&str; 2] = [
 ];
 
 impl ClientError {
+    /// The reason in the refusal of `ModifyServiceSystemResources` (hibernate, wake and
+    /// the read of the resources), if the node refused it and the text is one that
+    /// [`refusal::classify_resources`] knows.
+    pub fn resource_refusal(&self) -> Option<ResourceRefusal> {
+        match self {
+            ClientError::Wire(WireError::Call(text)) => refusal::classify_resources(text),
+            _ => None,
+        }
+    }
+
+    /// True if the node says that the token of the instance is not one of its instances
+    /// (see [`refusal::is_unknown_token`]).
+    pub fn is_unknown_token(&self) -> bool {
+        match self {
+            ClientError::Wire(WireError::Call(text)) => refusal::is_unknown_token(text),
+            _ => false,
+        }
+    }
+
     /// True if the node refused the call because it does not know the client id: the
     /// node forgot it, or never made it. The app must then ask the user what to do
     /// (`docs/celaut/ui.md`, section 3); it never makes a new client by itself.

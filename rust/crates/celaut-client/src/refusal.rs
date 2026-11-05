@@ -52,10 +52,7 @@ const PHRASES: [(Refusal, &[&str]); 9] = [
     (Refusal::RateLimited, &["temporarily quarantined"]),
     (
         Refusal::NodeClosed,
-        &[
-            "outside its activity window",
-            "is not accepting new work",
-        ],
+        &["outside its activity window", "is not accepting new work"],
     ),
     (
         Refusal::NoRoom,
@@ -82,11 +79,7 @@ const PHRASES: [(Refusal, &[&str]); 9] = [
     ),
     (
         Refusal::RecursionLimit,
-        &[
-            "recursion loop",
-            "recursion depth",
-            "recursion token",
-        ],
+        &["recursion loop", "recursion depth", "recursion token"],
     ),
     (
         Refusal::LaunchFailed,
@@ -106,6 +99,91 @@ pub fn classify(text: &str) -> Option<Refusal> {
         .iter()
         .find(|(_, phrases)| phrases.iter().any(|p| lower.contains(p)))
         .map(|(reason, _)| *reason)
+}
+
+/// The reason that a node refuses to hibernate or wake an instance
+/// (`ModifyServiceSystemResources`). It is apart from [`Refusal`]: a start and a change
+/// of resources have different reasons. The texts are from nodo `src/gateway/gateway.py`
+/// and `src/manager/hibernation.py`. A refused call is refunded, except where the text
+/// says that the charge failed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ResourceRefusal {
+    /// The instance exports or mounts a shared filesystem. The node does not hibernate it.
+    SharedFilesystem,
+    /// The instance cannot be started again from its own disk. The node does not
+    /// hibernate it.
+    NotRevivable,
+    /// The instance has not enough balance to pay the fee of the call. A top-up of the
+    /// instance is the way to continue.
+    InstanceBalance,
+    /// The node has no room for the resources of the wake. The instance stays hibernated.
+    DoesNotFit,
+    /// The node has no local instance with that token. The instance runs on a peer of
+    /// the node, or it does not exist any more. This call costs nothing.
+    NoLocalInstance,
+    /// The call did not come from the father of the instance.
+    NotTheFather,
+    /// The node does not support hibernation: it is older than the `service_token` field
+    /// of `ModifyServiceSystemResources`. It has no such RPC, or it ignores the token and
+    /// looks for a local instance at the address of the caller. This call costs nothing.
+    Unsupported,
+}
+
+/// The phrases of each reason, in lowercase.
+const RESOURCE_PHRASES: [(ResourceRefusal, &[&str]); 7] = [
+    (ResourceRefusal::SharedFilesystem, &["shared filesystem"]),
+    (
+        ResourceRefusal::NotRevivable,
+        &["cannot be started again from its own disk"],
+    ),
+    (
+        ResourceRefusal::InstanceBalance,
+        &["error charging for the resource change"],
+    ),
+    (ResourceRefusal::DoesNotFit, &["could not be woken"]),
+    (
+        ResourceRefusal::NoLocalInstance,
+        &["no local instance with that token"],
+    ),
+    (
+        ResourceRefusal::NotTheFather,
+        &["the father of this instance is a client"],
+    ),
+    // An older node does not read `service_token`. It looks for an instance at the
+    // address of the caller (nodo `src/gateway/gateway.py`), or it has no such RPC (a
+    // gRPC `Unimplemented` status). The first phrase is the text of nodo. The two other
+    // phrases are standard gRPC transport texts: they are not verified against a real
+    // old node. This list is only used for the answer to `ModifyServiceSystemResources`.
+    (
+        ResourceRefusal::Unsupported,
+        &[
+            "no local instance is registered at",
+            "status: unimplemented",
+            "method not found",
+        ],
+    ),
+];
+
+/// The reason in the text of a refusal of `ModifyServiceSystemResources`, or `None` if
+/// the text says none that this module knows.
+pub fn classify_resources(text: &str) -> Option<ResourceRefusal> {
+    let lower = text.to_ascii_lowercase();
+    RESOURCE_PHRASES
+        .iter()
+        .find(|(_, phrases)| phrases.iter().any(|p| lower.contains(p)))
+        .map(|(reason, _)| *reason)
+}
+
+/// True if the text of a refusal says that the node has no instance with the token that
+/// the call asked about (`GetMetrics`, nodo `src/manager/metrics.py`): the instance is gone.
+/// For an instance that the app hibernated, this means that the node stopped it after the
+/// grace for lack of balance.
+pub fn is_unknown_token(text: &str) -> bool {
+    let lower = text.to_ascii_lowercase();
+    // The only text that nodo raises for a token that is not an instance token
+    // (`src/manager/metrics.py`, `get_metrics`). A looser phrase could mark a record as
+    // stopped because of an unrelated error.
+    lower.contains("invalid token, it should be an instance token")
 }
 
 /// The message of a gRPC error as nodo wrote it, with the wrapper of the transport
@@ -206,6 +284,67 @@ mod tests {
     }
 
     #[test]
+    fn each_text_of_a_resource_change_gives_its_reason() {
+        let cases = [
+            (
+                "This instance exports or mounts a shared filesystem, and hibernating it would take that share away from the guests that use it.",
+                ResourceRefusal::SharedFilesystem,
+            ),
+            (
+                "This instance cannot be started again from its own disk, so it cannot be hibernated.",
+                ResourceRefusal::NotRevivable,
+            ),
+            (
+                "Error charging for the resource change of abc",
+                ResourceRefusal::InstanceBalance,
+            ),
+            (
+                "The instance could not be woken: it stays hibernated.",
+                ResourceRefusal::DoesNotFit,
+            ),
+            (
+                "This node has no local instance with that token.",
+                ResourceRefusal::NoLocalInstance,
+            ),
+            (
+                "The father of this instance is a client, and this call must come from it.",
+                ResourceRefusal::NotTheFather,
+            ),
+            (
+                "No local instance is registered at 10.0.0.2: only a local instance can call this.",
+                ResourceRefusal::Unsupported,
+            ),
+            (
+                "status: Unimplemented, message: \"Method not found!\"",
+                ResourceRefusal::Unsupported,
+            ),
+        ];
+        for (text, expected) in cases {
+            assert_eq!(classify_resources(text), Some(expected), "{text}");
+            assert_eq!(
+                classify_resources(&grpc(text)),
+                Some(expected),
+                "wrapped: {text}"
+            );
+        }
+        assert_eq!(classify_resources("something broke"), None);
+    }
+
+    #[test]
+    fn the_text_of_an_unknown_token_is_found() {
+        assert!(is_unknown_token(&grpc(
+            "Invalid token, it should be an instance token.  token: abc"
+        )));
+        assert!(!is_unknown_token("Internal service abc"));
+        assert!(!is_unknown_token(
+            "This node has no local instance with that token."
+        ));
+        assert!(!is_unknown_token(
+            "status: Unavailable, message: \"connection reset\""
+        ));
+    }
+
+    #[test]
     fn a_launch_that_failed_for_a_known_reason_gives_that_reason() {
         let text = "Unable to launch service ab12. Attempt details: local preflight: This node cannot run the service right now: not enough memory.";
         assert_eq!(classify(text), Some(Refusal::NoRoom));
@@ -213,7 +352,11 @@ mod tests {
 
     #[test]
     fn a_text_that_nodo_did_not_write_before_gives_no_reason() {
-        for text in ["", "something broke", "status: Unavailable, message: \"connection reset\""] {
+        for text in [
+            "",
+            "something broke",
+            "status: Unavailable, message: \"connection reset\"",
+        ] {
             assert_eq!(classify(text), None, "{text}");
         }
     }
@@ -239,10 +382,7 @@ mod tests {
         );
         // A text with no wrapper stays as it is.
         assert_eq!(message_of("plain text"), "plain text");
-        assert_eq!(
-            message_of("Exception calling application: plain"),
-            "plain"
-        );
+        assert_eq!(message_of("Exception calling application: plain"), "plain");
         assert_eq!(message_of(""), "");
     }
 }

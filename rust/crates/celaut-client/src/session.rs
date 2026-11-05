@@ -7,16 +7,20 @@
 
 use celaut_balancer::{amount, erg_rate};
 use celaut_proto::celaut::service::Api;
-use celaut_proto::celaut::{Configuration, EstimatedCost, ExecutionReceipt, Instance, Payment};
+use celaut_proto::celaut::{
+    Configuration, EstimatedCost, ExecutionReceipt, Instance, Payment, Sysresources,
+};
 use celaut_wire::gateway::{
     generate_deposit_token, get_client_metrics, get_metrics, get_service_estimated_cost,
     get_service_estimated_cost_with_service, get_service_raw, get_service_skippable,
-    modify_deposit, payable, start_service, stop_service, ServiceRequest,
+    modify_deposit, modify_system_resources, payable, start_service, stop_service, ServiceRequest,
 };
 use celaut_wire::{Transport, WireError};
 
 use crate::deposit::{check_deposit_token, BtcPayment, ErgPayment};
-use crate::{fetch_node_info_as, obtain_client_id, ClientError, NodeInfo, PeerStore};
+use crate::{
+    fetch_node_info_as, obtain_client_id, ClientError, NodeInfo, PeerStore, ResourcesError,
+};
 
 /// A service instance that this client started.
 #[derive(Debug, Clone, PartialEq)]
@@ -52,6 +56,30 @@ impl StartedInstance {
     pub fn web_slots(&self) -> Vec<u16> {
         web_slots(&self.instance)
     }
+}
+
+/// The resources of an instance that the node answered after a change or a read of
+/// `ModifyServiceSystemResources`, and the balance of the instance.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResourceChange {
+    /// The resources in the answer. After a hibernation, the node sends 0 for the CPU and
+    /// the RAM: they are not the resources that the instance had. After a wake, they
+    /// are the resources that the instance has now.
+    pub sysreq: Sysresources,
+    /// The balance of the instance in MU, after the fee of the call.
+    pub balance_mu: u128,
+}
+
+/// The first of `cpu_quota`, `cpu_period` and `mem_limit` that is not set or is 0.
+fn first_unset(sysreq: &Sysresources) -> Option<&'static str> {
+    [
+        ("cpu_quota", sysreq.cpu_quota),
+        ("cpu_period", sysreq.cpu_period),
+        ("mem_limit", sysreq.mem_limit),
+    ]
+    .into_iter()
+    .find(|(_, value)| value.is_none_or(|v| v == 0))
+    .map(|(name, _)| name)
 }
 
 /// The tags of the chat slot, from bottom to top: `http2`, `grpc`, `chat`.
@@ -113,7 +141,9 @@ pub fn api_web_ports(api: &Api) -> Vec<u16> {
         let tcp = slot.transport.as_ref().is_some_and(|t| has(&t.tags, "tcp"));
         let stack = &slot.protocol_stack;
         let web = stack.iter().any(|p| has(&p.tags, "http"))
-            && !stack.iter().any(|p| has(&p.tags, "chat") || has(&p.tags, "grpc"));
+            && !stack
+                .iter()
+                .any(|p| has(&p.tags, "chat") || has(&p.tags, "grpc"));
         let Ok(port) = u16::try_from(slot.port) else {
             continue;
         };
@@ -284,6 +314,77 @@ impl<T: Transport> NodeSession<T> {
     pub async fn stop(&self, token: &str) -> Result<u128, ClientError> {
         let refund = stop_service(&self.transport, token, &self.client_id).await?;
         Ok(amount(refund.amount.as_ref())?)
+    }
+
+    /// `ModifyServiceSystemResources` with no change: read the resources that the instance
+    /// has now (`cpu_quota`, `cpu_period`, `mem_limit`, `disk_space`) and its balance.
+    /// The node has no free read. This call costs the instance one fee for a change of
+    /// resources, and it changes nothing. Call it just before [`Self::hibernate`], and
+    /// store the result: these are the resources that [`Self::wake`] must send.
+    ///
+    /// An error if `cpu_quota`, `cpu_period` or `mem_limit` is 0 or not set: the
+    /// instance is hibernated (by this client or by itself), and there is nothing to store
+    /// ([`ResourcesError::NotReadable`]). Do not use the launch resources of
+    /// `StartService` in place of this read: the instance may have a different size now.
+    pub async fn current_resources(&self, token: &str) -> Result<ResourceChange, ClientError> {
+        let change = self.change_resources(token, None).await?;
+        if let Some(field) = first_unset(&change.sysreq) {
+            return Err(ResourcesError::NotReadable(field).into());
+        }
+        Ok(change)
+    }
+
+    /// Hibernate the instance: `ModifyServiceSystemResources` with `cpu_quota` and
+    /// `mem_limit` at 0. After it the instance costs its disk only. The node sends the
+    /// answer before it stops the VM, and the answer has no resources of before: read
+    /// them with [`Self::current_resources`] and store them first. The instance pays the
+    /// fee. The node refuses an instance with a shared filesystem or one that it cannot
+    /// start again from its own disk ([`crate::ResourceRefusal`]).
+    pub async fn hibernate(&self, token: &str) -> Result<ResourceChange, ClientError> {
+        let zero = Sysresources {
+            cpu_quota: Some(0),
+            mem_limit: Some(0),
+            ..Default::default()
+        };
+        self.change_resources(token, Some(zero)).await
+    }
+
+    /// Wake a hibernated instance with `resources`. `cpu_quota`, `cpu_period` and
+    /// `mem_limit` must be set and above 0: the node keeps 0 for a field that is not set,
+    /// and a wake with one field cannot work. If one is missing, this gives
+    /// [`ResourcesError::WakeIncomplete`] and makes no call. Only these three fields go
+    /// to the node, whatever else `resources` has. The wake runs the entrypoint again:
+    /// the state of the process is lost, and the address and the ports stay. The answer
+    /// has the resources that the instance has now. If the node has no room, the instance
+    /// stays hibernated and the call is refunded ([`crate::ResourceRefusal::DoesNotFit`]).
+    pub async fn wake(
+        &self,
+        token: &str,
+        resources: &Sysresources,
+    ) -> Result<ResourceChange, ClientError> {
+        if let Some(field) = first_unset(resources) {
+            return Err(ResourcesError::WakeIncomplete(field).into());
+        }
+        let request = Sysresources {
+            cpu_quota: resources.cpu_quota,
+            cpu_period: resources.cpu_period,
+            mem_limit: resources.mem_limit,
+            ..Default::default()
+        };
+        self.change_resources(token, Some(request)).await
+    }
+
+    async fn change_resources(
+        &self,
+        token: &str,
+        max_sysreq: Option<Sysresources>,
+    ) -> Result<ResourceChange, ClientError> {
+        let answer =
+            modify_system_resources(&self.transport, token, &self.client_id, max_sysreq).await?;
+        Ok(ResourceChange {
+            sysreq: answer.sysreq.unwrap_or_default(),
+            balance_mu: amount(answer.balance.as_ref())?,
+        })
     }
 
     /// `ModifyDeposit`: move `mu` MU of the credit of this client on the node to the
