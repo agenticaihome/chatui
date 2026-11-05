@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../bitcoin/bitcoin_settings.dart';
 import '../celaut/auto_top_up.dart';
 import '../celaut/celaut_strings.dart';
 import '../celaut/compute_home_flag.dart';
@@ -12,6 +13,8 @@ import '../services/network_controller.dart';
 import '../services/wallet_service.dart';
 import '../theme/argus_theme.dart';
 import '../theme/theme_controller.dart';
+import 'bitcoin/bitcoin_settings_screen.dart';
+import 'bitcoin/bitcoin_wallet_screen.dart';
 import 'celaut/auto_top_up_screen.dart';
 import 'celaut/network_screen.dart';
 import 'celaut/node_connect_screen.dart';
@@ -118,6 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 24),
                     ],
                     _ergoGroup(current),
+                    _bitcoinGroup(),
                     _computeGroup(),
                     _generalGroup(current),
                   ],
@@ -169,6 +173,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: t.settingsRemotePreviewsTitle,
           subtitle: t.settingsRemotePreviewsSubtitle,
           onTap: () => _open(const PreviewSettingsPage()),
+        ),
+      ],
+    );
+  }
+
+  /// The Bitcoin wallet of the same words (issue #103), with the same rows as Ergo: the
+  /// wallet, and its network and server. The address book is one for both.
+  Widget _bitcoinGroup() {
+    final t = context.l10n;
+    return SettingsGroup(
+      key: const Key('settings-section-bitcoin'),
+      title: t.coinBitcoin,
+      children: [
+        SettingsRow(
+          key: const Key('settings-bitcoin-wallet'),
+          icon: Icons.currency_bitcoin,
+          title: t.btcWalletButton,
+          subtitle: t.btcWalletRowSubtitle,
+          onTap: () => _open(const BitcoinWalletScreen()),
+        ),
+        SettingsRow(
+          key: const Key('settings-bitcoin-network'),
+          icon: Icons.language_outlined,
+          title: t.btcSettingsTitle,
+          subtitle: bitcoinSettings.loaded ? bitcoinSettings.network.name : t.btcSettingsRowSubtitle,
+          onTap: () => _open(BitcoinSettingsScreen(settings: bitcoinSettings)),
         ),
       ],
     );

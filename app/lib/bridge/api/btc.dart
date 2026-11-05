@@ -6,9 +6,9 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `current`, `error`, `forget`, `keep_seed`, `network_of`, `open_network`, `open_server`, `prepare_with_data`, `rate_for`, `recover`, `store`, `view`
+// These functions are ignored because they are not marked as `pub`: `current`, `error`, `forget`, `keep_seed`, `network_of`, `open_network`, `open_server`, `part`, `prepare_with_data`, `rate_for`, `recover`, `store`, `tx_view`, `view`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Open`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`
 
 /// The networks that the app knows, by the names of nodo's ledger declaration.
 List<String> btcNetworks() => RustLib.instance.api.crateApiBtcBtcNetworks();
@@ -77,6 +77,135 @@ Future<String> btcSend({
   handleId: handleId,
   preparedId: preparedId,
 );
+
+/// The public descriptors of the open Bitcoin wallet, for [`btc_watch`] while the wallet
+/// is locked.
+Future<BtcDescriptors> btcDescriptors({required BigInt handleId}) =>
+    RustLib.instance.api.crateApiBtcBtcDescriptors(handleId: handleId);
+
+/// Read the balance and the history of `descriptors` on `server` (empty: the default of
+/// the network) with no key: for a locked wallet. Nothing is kept.
+Future<BtcWatchView> btcWatch({
+  required BtcDescriptors descriptors,
+  required String server,
+}) => RustLib.instance.api.crateApiBtcBtcWatch(
+  descriptors: descriptors,
+  server: server,
+);
+
+/// The addresses that the wallet showed or used: receive addresses first.
+Future<List<BtcAddressView>> btcAddresses({required BigInt handleId}) =>
+    RustLib.instance.api.crateApiBtcBtcAddresses(handleId: handleId);
+
+/// The unspent outputs, the largest first.
+Future<List<BtcUtxoView>> btcUtxos({required BigInt handleId}) =>
+    RustLib.instance.api.crateApiBtcBtcUtxos(handleId: handleId);
+
+/// A transaction of the wallet's history.
+Future<BtcTxDetailView> btcTxDetail({
+  required BigInt handleId,
+  required String txid,
+}) =>
+    RustLib.instance.api.crateApiBtcBtcTxDetail(handleId: handleId, txid: txid);
+
+/// Make (not sign) a transaction that replaces the unconfirmed payment `txid` at the
+/// higher `fee_rate` (RBF). Send it with [`btc_send`].
+Future<BtcPreparedView> btcPrepareBump({
+  required BigInt handleId,
+  required String txid,
+  required double feeRate,
+}) => RustLib.instance.api.crateApiBtcBtcPrepareBump(
+  handleId: handleId,
+  txid: txid,
+  feeRate: feeRate,
+);
+
+/// `text` (a scanned QR code) as a payment request on `network`, or `None`.
+BtcPaymentRequest? btcParsePaymentRequest({
+  required String network,
+  required String text,
+}) => RustLib.instance.api.crateApiBtcBtcParsePaymentRequest(
+  network: network,
+  text: text,
+);
+
+/// The `bitcoin:` URI of a request for `amount_sat` (0: any amount) to `address`.
+String btcPaymentUri({required String address, required BigInt amountSat}) =>
+    RustLib.instance.api.crateApiBtcBtcPaymentUri(
+      address: address,
+      amountSat: amountSat,
+    );
+
+/// An address of the wallet.
+class BtcAddressView {
+  final String address;
+  final int index;
+
+  /// A change address (`/1/*`).
+  final bool change;
+  final bool used;
+  final BigInt sat;
+  final int utxos;
+
+  const BtcAddressView({
+    required this.address,
+    required this.index,
+    required this.change,
+    required this.used,
+    required this.sat,
+    required this.utxos,
+  });
+
+  @override
+  int get hashCode =>
+      address.hashCode ^
+      index.hashCode ^
+      change.hashCode ^
+      used.hashCode ^
+      sat.hashCode ^
+      utxos.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BtcAddressView &&
+          runtimeType == other.runtimeType &&
+          address == other.address &&
+          index == other.index &&
+          change == other.change &&
+          used == other.used &&
+          sat == other.sat &&
+          utxos == other.utxos;
+}
+
+/// The public descriptors of a Bitcoin wallet: every address, no key.
+class BtcDescriptors {
+  final String network;
+
+  /// The receive addresses (`/0/*`).
+  final String receive;
+
+  /// The change addresses (`/1/*`).
+  final String change;
+
+  const BtcDescriptors({
+    required this.network,
+    required this.receive,
+    required this.change,
+  });
+
+  @override
+  int get hashCode => network.hashCode ^ receive.hashCode ^ change.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BtcDescriptors &&
+          runtimeType == other.runtimeType &&
+          network == other.network &&
+          receive == other.receive &&
+          change == other.change;
+}
 
 class BtcError implements FrbException {
   final BtcErrorKind kind;
@@ -158,6 +287,37 @@ class BtcFeeRates {
           estimated == other.estimated;
 }
 
+/// A payment request (`bitcoin:` URI or a plain address).
+class BtcPaymentRequest {
+  final String address;
+
+  /// 0 when the request gives no amount.
+  final BigInt amountSat;
+  final String label;
+  final String message;
+
+  const BtcPaymentRequest({
+    required this.address,
+    required this.amountSat,
+    required this.label,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      address.hashCode ^ amountSat.hashCode ^ label.hashCode ^ message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BtcPaymentRequest &&
+          runtimeType == other.runtimeType &&
+          address == other.address &&
+          amountSat == other.amountSat &&
+          label == other.label &&
+          message == other.message;
+}
+
 /// A transaction that is made and not sent.
 class BtcPreparedView {
   final BigInt id;
@@ -168,6 +328,9 @@ class BtcPreparedView {
   final BigInt changeSat;
   final String txid;
 
+  /// The transaction that this one replaces with a higher fee (empty if none).
+  final String replaces;
+
   const BtcPreparedView({
     required this.id,
     required this.to,
@@ -176,6 +339,7 @@ class BtcPreparedView {
     required this.feeRate,
     required this.changeSat,
     required this.txid,
+    required this.replaces,
   });
 
   @override
@@ -186,7 +350,8 @@ class BtcPreparedView {
       feeSat.hashCode ^
       feeRate.hashCode ^
       changeSat.hashCode ^
-      txid.hashCode;
+      txid.hashCode ^
+      replaces.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -199,7 +364,91 @@ class BtcPreparedView {
           feeSat == other.feeSat &&
           feeRate == other.feeRate &&
           changeSat == other.changeSat &&
-          txid == other.txid;
+          txid == other.txid &&
+          replaces == other.replaces;
+}
+
+/// A transaction with its inputs and outputs.
+class BtcTxDetailView {
+  final BtcTxView tx;
+  final List<BtcTxPartView> inputs;
+  final List<BtcTxPartView> outputs;
+  final BigInt vsize;
+
+  /// sat/vB; 0 when the fee is not known.
+  final double feeRate;
+
+  /// It can be sent again with a higher fee ([`btc_prepare_bump`]).
+  final bool canBump;
+
+  const BtcTxDetailView({
+    required this.tx,
+    required this.inputs,
+    required this.outputs,
+    required this.vsize,
+    required this.feeRate,
+    required this.canBump,
+  });
+
+  @override
+  int get hashCode =>
+      tx.hashCode ^
+      inputs.hashCode ^
+      outputs.hashCode ^
+      vsize.hashCode ^
+      feeRate.hashCode ^
+      canBump.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BtcTxDetailView &&
+          runtimeType == other.runtimeType &&
+          tx == other.tx &&
+          inputs == other.inputs &&
+          outputs == other.outputs &&
+          vsize == other.vsize &&
+          feeRate == other.feeRate &&
+          canBump == other.canBump;
+}
+
+/// An input or an output of a transaction.
+class BtcTxPartView {
+  /// Empty for `OP_RETURN` data or a script that is not an address.
+  final String address;
+
+  /// 0 when not known ([`Self::sat_known`]).
+  final BigInt sat;
+  final bool satKnown;
+  final bool mine;
+  final bool data;
+
+  const BtcTxPartView({
+    required this.address,
+    required this.sat,
+    required this.satKnown,
+    required this.mine,
+    required this.data,
+  });
+
+  @override
+  int get hashCode =>
+      address.hashCode ^
+      sat.hashCode ^
+      satKnown.hashCode ^
+      mine.hashCode ^
+      data.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BtcTxPartView &&
+          runtimeType == other.runtimeType &&
+          address == other.address &&
+          sat == other.sat &&
+          satKnown == other.satKnown &&
+          mine == other.mine &&
+          data == other.data;
 }
 
 /// A transaction of the history.
@@ -248,6 +497,46 @@ class BtcTxView {
           feeKnown == other.feeKnown &&
           confirmations == other.confirmations &&
           time == other.time;
+}
+
+/// An unspent output of the wallet.
+class BtcUtxoView {
+  final String txid;
+  final int vout;
+  final BigInt sat;
+  final String address;
+  final bool change;
+  final int confirmations;
+
+  const BtcUtxoView({
+    required this.txid,
+    required this.vout,
+    required this.sat,
+    required this.address,
+    required this.change,
+    required this.confirmations,
+  });
+
+  @override
+  int get hashCode =>
+      txid.hashCode ^
+      vout.hashCode ^
+      sat.hashCode ^
+      address.hashCode ^
+      change.hashCode ^
+      confirmations.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BtcUtxoView &&
+          runtimeType == other.runtimeType &&
+          txid == other.txid &&
+          vout == other.vout &&
+          sat == other.sat &&
+          address == other.address &&
+          change == other.change &&
+          confirmations == other.confirmations;
 }
 
 /// What the wallet shows.
@@ -302,4 +591,25 @@ class BtcWalletView {
           pendingSat == other.pendingSat &&
           immatureSat == other.immatureSat &&
           tipHeight == other.tipHeight;
+}
+
+/// What a watch-only read gives: the wallet's figures and its history.
+class BtcWatchView {
+  final BtcWalletView wallet;
+
+  /// The newest first.
+  final List<BtcTxView> transactions;
+
+  const BtcWatchView({required this.wallet, required this.transactions});
+
+  @override
+  int get hashCode => wallet.hashCode ^ transactions.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BtcWatchView &&
+          runtimeType == other.runtimeType &&
+          wallet == other.wallet &&
+          transactions == other.transactions;
 }

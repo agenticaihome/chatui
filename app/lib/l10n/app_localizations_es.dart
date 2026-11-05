@@ -7699,4 +7699,147 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get chatsInfoHibernatedNote =>
       'Una instancia hibernada paga solo su disco. Despiértala para usarla de nuevo. Detenla para recibir el reembolso; solo se puede eliminar una instancia detenida.';
+
+  @override
+  String get coinErgo => 'Ergo';
+
+  @override
+  String get coinBitcoin => 'Bitcoin';
+
+  @override
+  String coinTestNetwork(String network) {
+    return '$network · red de prueba';
+  }
+
+  @override
+  String homeCoinPendingFigure(String figure, String unit) {
+    return '$figure $unit pendientes';
+  }
+
+  @override
+  String get btcOverviewUnlockOnce =>
+      'Desbloquea la billetera una vez para leer la billetera Bitcoin.';
+
+  @override
+  String get btcOverviewUnreachable =>
+      'El servidor Bitcoin no respondió. Las cifras pueden ser antiguas.';
+
+  @override
+  String get btcWalletRowSubtitle =>
+      'Las mismas palabras que la billetera Ergo';
+
+  @override
+  String get btcSettingsRowSubtitle => 'Red y servidor';
+
+  @override
+  String get btcReceiveAmount => 'Cantidad a pedir (BTC), opcional';
+
+  @override
+  String get btcReceiveAmountHelp => 'El código QR pide esta cantidad';
+
+  @override
+  String btcScanNotBitcoin(String network) {
+    return 'Este código QR no es una dirección Bitcoin de $network';
+  }
+
+  @override
+  String get btcFeeCustom => 'Otra tarifa';
+
+  @override
+  String get btcFeeCustomLabel => 'Tarifa de comisión';
+
+  @override
+  String get btcFeeCustomInvalid => 'Escribe una tarifa de 1 a 1000 sat/vB';
+
+  @override
+  String get btcTxTime => 'Hora';
+
+  @override
+  String get btcTxSize => 'Tamaño';
+
+  @override
+  String get btcTxData => 'Datos (OP_RETURN)';
+
+  @override
+  String get btcTxUnknownScript => 'No es una dirección';
+
+  @override
+  String get btcTxYours => 'tuya';
+
+  @override
+  String get btcBump => 'Subir la comisión';
+
+  @override
+  String get btcBumpHint =>
+      'El pago se envía de nuevo con una comisión más alta y reemplaza al pago que espera (RBF). La comisión sale del cambio.';
+
+  @override
+  String btcBumpNow(String rate, String min) {
+    return 'La tarifa es $rate sat/vB ahora. La nueva tarifa debe ser $min sat/vB o más.';
+  }
+
+  @override
+  String btcBumpTooLow(String min) {
+    return 'La tarifa debe ser $min sat/vB o más';
+  }
+
+  @override
+  String get btcBumpConfirmTitle =>
+      '¿Enviar de nuevo con una comisión más alta?';
+
+  @override
+  String get btcBumpOldFee => 'Comisión anterior';
+
+  @override
+  String btcBumped(String txid) {
+    return 'Enviado de nuevo con una comisión más alta: $txid';
+  }
+
+  @override
+  String btcAddressReceive(String index) {
+    return 'Recibir n.º $index';
+  }
+
+  @override
+  String btcAddressChange(String index) {
+    return 'Cambio n.º $index';
+  }
+
+  @override
+  String get btcAddressUsed => 'Usada';
+
+  @override
+  String get btcAddressUnused => 'Sin usar';
+
+  @override
+  String get btcUtxosTitle => 'Salidas sin gastar';
+
+  @override
+  String get btcUtxosNone => 'La billetera no tiene salidas sin gastar.';
+
+  @override
+  String get btcOutpointCopied => 'Salida copiada';
+
+  @override
+  String get btcBackupTitle => 'Frase de recuperación';
+
+  @override
+  String get btcBackupBody =>
+      'La billetera Bitcoin no tiene frase de recuperación propia. Sus claves salen de las palabras de la billetera (BIP-84). Guarda esas palabras: restauran la billetera Ergo y la billetera Bitcoin. Cualquier billetera Bitcoin estándar abre los mismos bitcoin con las mismas palabras.';
+
+  @override
+  String get btcToolAddressesBlurb =>
+      'Cada dirección, lo que tiene y su etiqueta';
+
+  @override
+  String get btcToolUtxosBlurb => 'Las monedas de la billetera, una a una';
+
+  @override
+  String get btcToolNetworkBlurb => 'La red y el servidor Esplora';
+
+  @override
+  String get btcToolBackupBlurb => 'Las mismas palabras que la billetera';
+
+  @override
+  String get btcToolLockBlurb => 'Bloquear la billetera: Ergo y Bitcoin';
 }

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../bitcoin/bitcoin_settings.dart';
 import '../../bitcoin/bitcoin_wallet_api.dart';
@@ -10,10 +8,17 @@ import '../../bridge/api/btc.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../../theme/theme_controller.dart';
+import '../home/home_style.dart';
+import '../home/home_widgets.dart';
+import '../home/wallet_tools_sheet.dart' show HomeSheetHeader, showHomeSheet;
+import '../scan_screen.dart';
 import '../widgets/soft_card.dart';
+import 'bitcoin_receive_screen.dart';
 import 'bitcoin_send_screen.dart';
 import 'bitcoin_settings_screen.dart';
 import 'btc_deposit_screen.dart';
+import 'btc_lists_screen.dart';
+import 'btc_tx_screen.dart';
 
 /// The text of a Bitcoin error for the user.
 String btcErrorText(BuildContext context, Object e) {
@@ -66,12 +71,20 @@ class _BitcoinLookState extends State<BitcoinLook> {
   Widget build(BuildContext context) => widget.child;
 }
 
-/// The Bitcoin wallet (issue #92): the balance, receive, send, a deposit to a node, and
-/// the history. It has its own look ([bitcoinPalette]), as the Ergo part has its own.
+/// What the More sheet of the Bitcoin wallet offers, as the More sheet of the Ergo wallet.
+enum BtcTool { addresses, utxos, deposit, network, backup, lock }
+
+/// The Bitcoin wallet (issues #92 and #103): the balance, receive, send, scan, the history
+/// with each transaction, and in More the addresses, the unspent outputs, a deposit to a
+/// node, the network, the recovery phrase and lock. It has its own look
+/// ([bitcoinPalette]), as the Ergo part has its own.
 class BitcoinWalletScreen extends StatefulWidget {
-  const BitcoinWalletScreen({super.key, this.wallet = const AppBitcoinWallet()});
+  const BitcoinWalletScreen({super.key, this.wallet = const AppBitcoinWallet(), this.onRead});
 
   final BitcoinWallet wallet;
+
+  /// The figures and the history after each read, for the overview's snapshot.
+  final Future<void> Function(BtcWalletView view, List<BtcTxView> txs)? onRead;
 
   @override
   State<BitcoinWalletScreen> createState() => _BitcoinWalletScreenState();
@@ -120,6 +133,7 @@ class _BitcoinWalletScreenState extends State<BitcoinWalletScreen> {
     try {
       final view = await _w.sync();
       final txs = await _w.transactions();
+      await widget.onRead?.call(view, txs);
       if (!mounted) return;
       setState(() {
         _view = view;
@@ -162,13 +176,75 @@ class _BitcoinWalletScreenState extends State<BitcoinWalletScreen> {
     if (mounted) await _sync();
   }
 
-  void _receive(String address, String network) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      builder: (ctx) => _ReceiveSheet(address: address, network: network),
+  Future<void> _receive(String address) => Navigator.of(context).push<void>(
+        MaterialPageRoute(builder: (_) => BitcoinReceiveScreen(wallet: _w, address: address)),
+      );
+
+  /// A scanned QR code opens Send with its address and amount.
+  Future<void> _scan() async {
+    final raw = await Navigator.push<String>(context, fadeRoute(const ScanScreen()));
+    if (!mounted || raw == null) return;
+    final request = _w.paymentRequest(raw);
+    if (request == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.btcScanNotBitcoin(_w.settings.network.name))),
+      );
+      return;
+    }
+    final txid = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => BitcoinSendScreen(
+          wallet: _w,
+          initialTo: request.address,
+          initialSat: request.amountSat.toInt(),
+        ),
+      ),
     );
+    if (txid != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.btcSent(txid))));
+      await _sync();
+    }
+  }
+
+  Future<void> _openTx(String txid) async {
+    final bumped = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => BtcTxScreen(wallet: _w, txid: txid)),
+    );
+    if (bumped != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.btcBumped(bumped))));
+      await _sync();
+    }
+  }
+
+  Future<void> _more() async {
+    final tool = await showHomeSheet<BtcTool>(context, builder: (ctx) => const _BtcToolsSheet());
+    if (tool == null || !mounted) return;
+    final navigator = Navigator.of(context);
+    switch (tool) {
+      case BtcTool.addresses:
+        await navigator.push<void>(MaterialPageRoute(builder: (_) => BtcAddressesScreen(wallet: _w)));
+      case BtcTool.utxos:
+        await navigator.push<void>(MaterialPageRoute(builder: (_) => BtcUtxosScreen(wallet: _w)));
+      case BtcTool.deposit:
+        await _deposit();
+      case BtcTool.network:
+        await _settings();
+      case BtcTool.backup:
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(ctx.l10n.btcBackupTitle),
+            content: Text(ctx.l10n.btcBackupBody),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.l10n.commonClose))],
+          ),
+        );
+      case BtcTool.lock:
+        final route = ModalRoute.of(context);
+        await _w.lock();
+        // The app closes the pages of a locked wallet itself; close this one only if it
+        // is still open.
+        if (mounted && route != null && route.isCurrent) navigator.pop();
+    }
   }
 
   @override
@@ -180,6 +256,13 @@ class _BitcoinWalletScreenState extends State<BitcoinWalletScreen> {
         appBar: AppBar(
           title: Text(l.btcTitle),
           actions: [
+            if (view != null)
+              IconButton(
+                key: const Key('btc-scan'),
+                tooltip: l.dashboardScanQrTooltip,
+                onPressed: _scan,
+                icon: const Icon(Icons.qr_code_scanner),
+              ),
             IconButton(
               key: const Key('btc-refresh'),
               tooltip: l.btcRefresh,
@@ -300,7 +383,7 @@ class _BitcoinWalletScreenState extends State<BitcoinWalletScreen> {
         FilledButton.icon(
           key: const Key('btc-receive'),
           style: FilledButton.styleFrom(minimumSize: const Size(88, 48)),
-          onPressed: () => _receive(view.receiveAddress, view.network),
+          onPressed: () => _receive(view.receiveAddress),
           icon: const Icon(Icons.call_received),
           label: Text(l.btcReceive),
         ),
@@ -317,6 +400,13 @@ class _BitcoinWalletScreenState extends State<BitcoinWalletScreen> {
           onPressed: _deposit,
           icon: const Icon(Icons.savings_outlined),
           label: Text(l.btcDepositAction),
+        ),
+        OutlinedButton.icon(
+          key: const Key('btc-more'),
+          style: OutlinedButton.styleFrom(minimumSize: const Size(88, 48)),
+          onPressed: _more,
+          icon: const Icon(Icons.more_horiz),
+          label: Text(l.homeActionMore),
         ),
       ],
     );
@@ -346,10 +436,7 @@ class _BitcoinWalletScreenState extends State<BitcoinWalletScreen> {
                 ].join(' · '),
               ),
               trailing: Text('${t.txid.substring(0, 6)}…', style: TextStyle(color: muted, fontSize: 12)),
-              onTap: () {
-                Clipboard.setData(ClipboardData(text: t.txid));
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.btcTxCopied)));
-              },
+              onTap: () => _openTx(t.txid),
             ),
         ],
       ),
@@ -363,54 +450,49 @@ class _BitcoinWalletScreenState extends State<BitcoinWalletScreen> {
   }
 }
 
-class _ReceiveSheet extends StatelessWidget {
-  const _ReceiveSheet({required this.address, required this.network});
+/// The More sheet of the Bitcoin wallet: the same rows and look as the More sheet of the
+/// Ergo wallet, with Lock set apart under a rule.
+class _BtcToolsSheet extends StatelessWidget {
+  const _BtcToolsSheet();
 
-  final String address;
-  final String network;
+  static ({IconData icon, String title, String blurb}) _look(BtcTool tool) => switch (tool) {
+        BtcTool.addresses => (icon: Icons.account_tree_outlined, title: appL10n.commonAddresses, blurb: appL10n.btcToolAddressesBlurb),
+        BtcTool.utxos => (icon: Icons.grid_view_outlined, title: appL10n.btcUtxosTitle, blurb: appL10n.btcToolUtxosBlurb),
+        BtcTool.deposit => (icon: Icons.savings_outlined, title: appL10n.btcDepositAction, blurb: appL10n.chatsDepositRowSubtitle),
+        BtcTool.network => (icon: Icons.language_outlined, title: appL10n.btcSettingsTitle, blurb: appL10n.btcToolNetworkBlurb),
+        BtcTool.backup => (icon: Icons.key_outlined, title: appL10n.btcBackupTitle, blurb: appL10n.btcToolBackupBlurb),
+        BtcTool.lock => (icon: Icons.lock_outline, title: appL10n.homeToolLock, blurb: appL10n.btcToolLockBlurb),
+      };
 
   @override
   Widget build(BuildContext context) {
-    final l = context.l10n;
+    final t = HomeText.of(context);
+    Widget row(BtcTool tool, {bool chevron = true}) {
+      final look = _look(tool);
+      return HomeRow(
+        inkKey: Key('btc-tool-${tool.name}'),
+        onTap: () => Navigator.pop(context, tool),
+        semanticLabel: '${look.title}, ${look.blurb}',
+        leading: HomeDisc(child: Icon(look.icon, size: 18, color: t.ink)),
+        title: Text(look.title, style: t.primary),
+        subtitle: TextSpan(text: look.blurb),
+        trailing: chevron ? Icon(Icons.chevron_right, size: 18, color: t.muted) : null,
+      );
+    }
+
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l.btcReceiveTitle, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
-            Container(
-              color: paper,
-              padding: const EdgeInsets.all(14),
-              child: QrImageView(
-                data: 'bitcoin:$address',
-                semanticsLabel: address,
-                size: 200,
-                backgroundColor: paper,
-                padding: EdgeInsets.zero,
-                eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: ink),
-                dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: ink),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SelectableText(address, key: const Key('btc-address'), textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            Text(
-              l.btcReceiveNote(network),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: ArgusColors.of(context).muted, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              key: const Key('btc-copy-address'),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: address));
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.btcAddressCopied)));
-              },
-              icon: const Icon(Icons.copy),
-              label: Text(l.btcCopyAddress),
-            ),
+            HomeSheetHeader(title: context.l10n.homeActionMore, subject: context.l10n.coinBitcoin),
+            for (final tool in BtcTool.values)
+              if (tool != BtcTool.lock) row(tool),
+            const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: HomeRule()),
+            row(BtcTool.lock, chevron: false),
           ],
         ),
       ),

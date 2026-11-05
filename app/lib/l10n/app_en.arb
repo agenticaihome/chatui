@@ -5514,5 +5514,107 @@
   },
   "chatsInfoHibernatedSince": "Hibernated since",
   "chatsInfoHibernateNote": "Hibernate frees the CPU and RAM, and the node charges only for the disk. The process state is lost when the instance wakes.",
-  "chatsInfoHibernatedNote": "A hibernated instance pays only for its disk. Wake it to use it again. Stop it to get the refund; only a stopped instance can be deleted."
+  "chatsInfoHibernatedNote": "A hibernated instance pays only for its disk. Wake it to use it again. Stop it to get the refund; only a stopped instance can be deleted.",
+  "coinErgo": "Ergo",
+  "coinBitcoin": "Bitcoin",
+  "coinTestNetwork": "{network} · test network",
+  "@coinTestNetwork": {
+    "placeholders": {
+      "network": {
+        "type": "String"
+      }
+    }
+  },
+  "homeCoinPendingFigure": "{figure} {unit} pending",
+  "@homeCoinPendingFigure": {
+    "placeholders": {
+      "figure": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "btcOverviewUnlockOnce": "Unlock the wallet one time to read the Bitcoin wallet.",
+  "btcOverviewUnreachable": "The Bitcoin server did not answer. The figures can be old.",
+  "btcWalletRowSubtitle": "The same words as the Ergo wallet",
+  "btcSettingsRowSubtitle": "Network and server",
+  "btcReceiveAmount": "Amount to ask for (BTC), optional",
+  "btcReceiveAmountHelp": "The QR code asks for this amount",
+  "btcScanNotBitcoin": "This QR code is not a Bitcoin address of {network}",
+  "@btcScanNotBitcoin": {
+    "placeholders": {
+      "network": {
+        "type": "String"
+      }
+    }
+  },
+  "btcFeeCustom": "Other rate",
+  "btcFeeCustomLabel": "Fee rate",
+  "btcFeeCustomInvalid": "Type a rate from 1 to 1000 sat/vB",
+  "btcTxTime": "Time",
+  "btcTxSize": "Size",
+  "btcTxData": "Data (OP_RETURN)",
+  "btcTxUnknownScript": "Not an address",
+  "btcTxYours": "yours",
+  "btcBump": "Raise the fee",
+  "btcBumpHint": "The payment goes again with a higher fee and replaces the payment that waits (RBF). The fee comes out of the change.",
+  "btcBumpNow": "The fee rate is {rate} sat/vB now. The new rate must be {min} sat/vB or more.",
+  "@btcBumpNow": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      },
+      "min": {
+        "type": "String"
+      }
+    }
+  },
+  "btcBumpTooLow": "The rate must be {min} sat/vB or more",
+  "@btcBumpTooLow": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      }
+    }
+  },
+  "btcBumpConfirmTitle": "Send again with a higher fee?",
+  "btcBumpOldFee": "Fee before",
+  "btcBumped": "Sent again with a higher fee: {txid}",
+  "@btcBumped": {
+    "placeholders": {
+      "txid": {
+        "type": "String"
+      }
+    }
+  },
+  "btcAddressReceive": "Receive #{index}",
+  "@btcAddressReceive": {
+    "placeholders": {
+      "index": {
+        "type": "String"
+      }
+    }
+  },
+  "btcAddressChange": "Change #{index}",
+  "@btcAddressChange": {
+    "placeholders": {
+      "index": {
+        "type": "String"
+      }
+    }
+  },
+  "btcAddressUsed": "Used",
+  "btcAddressUnused": "Not used",
+  "btcUtxosTitle": "Unspent outputs",
+  "btcUtxosNone": "The wallet has no unspent outputs.",
+  "btcOutpointCopied": "Output copied",
+  "btcBackupTitle": "Recovery phrase",
+  "btcBackupBody": "The Bitcoin wallet has no recovery phrase of its own. Its keys come from the words of the wallet (BIP-84). Keep those words: they restore the Ergo wallet and the Bitcoin wallet. Any standard Bitcoin wallet opens the same bitcoin with the same words.",
+  "btcToolAddressesBlurb": "Each address, what it holds and its label",
+  "btcToolUtxosBlurb": "The coins of the wallet, one by one",
+  "btcToolNetworkBlurb": "The network and the Esplora server",
+  "btcToolBackupBlurb": "The same words as the wallet",
+  "btcToolLockBlurb": "Lock the wallet: Ergo and Bitcoin"
 }

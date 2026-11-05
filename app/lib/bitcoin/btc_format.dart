@@ -38,3 +38,25 @@ int? parseBtc(String text) {
   if (whole > 21000000) return null;
   return whole * satPerBtc + frac;
 }
+
+/// The page of transaction [txid] on mempool.space for [network]; null on regtest, which no
+/// public explorer has.
+String? btcExplorerTx(String network, String txid) => switch (network) {
+      'mainnet' => 'https://mempool.space/tx/$txid',
+      'testnet' => 'https://mempool.space/testnet/tx/$txid',
+      'signet' => 'https://mempool.space/signet/tx/$txid',
+      _ => null,
+    };
+
+/// A fee rate in sat/vB as the screens show it: `5`, `5.5`.
+String formatFeeRate(double r) => r == r.roundToDouble() ? r.toStringAsFixed(0) : r.toStringAsFixed(1);
+
+final _bech32 = RegExp(r'^(bc|tb|bcrt)1[02-9ac-hj-np-z]{8,87}$');
+final _base58 = RegExp(r'^[123mn][1-9A-HJ-NP-Za-km-z]{25,34}$');
+
+/// True if [value] has the form of a Bitcoin address of any network. A loose check for the
+/// address book; a send checks the address on the wallet's network.
+bool looksLikeBitcoinAddress(String value) {
+  final v = value.trim();
+  return _bech32.hasMatch(v.toLowerCase()) && (v == v.toLowerCase() || v == v.toUpperCase()) || _base58.hasMatch(v);
+}
