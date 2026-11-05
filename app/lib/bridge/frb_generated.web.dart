@@ -44,10 +44,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ApiSlotView dco_decode_api_slot_view(dynamic raw);
 
   @protected
+  AwakeResourcesView dco_decode_awake_resources_view(dynamic raw);
+
+  @protected
   BalancerWeightsView dco_decode_balancer_weights_view(dynamic raw);
 
   @protected
   bool dco_decode_bool(dynamic raw);
+
+  @protected
+  AwakeResourcesView dco_decode_box_autoadd_awake_resources_view(dynamic raw);
 
   @protected
   CelautErrorKind dco_decode_box_autoadd_celaut_error_kind(dynamic raw);
@@ -63,6 +69,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NodeAddress dco_decode_box_autoadd_node_address(dynamic raw);
+
+  @protected
+  ResourceRefusalView dco_decode_box_autoadd_resource_refusal_view(dynamic raw);
 
   @protected
   SysresourcesView dco_decode_box_autoadd_sysresources_view(dynamic raw);
@@ -158,6 +167,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double dco_decode_f_64(dynamic raw);
 
   @protected
+  HibernationView dco_decode_hibernation_view(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
@@ -168,6 +180,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   InstancePlanView dco_decode_instance_plan_view(dynamic raw);
+
+  @protected
+  InstanceStateView dco_decode_instance_state_view(dynamic raw);
 
   @protected
   InstanceStatusView dco_decode_instance_status_view(dynamic raw);
@@ -340,6 +355,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
+  AwakeResourcesView? dco_decode_opt_box_autoadd_awake_resources_view(
+    dynamic raw,
+  );
+
+  @protected
   CelautErrorKind? dco_decode_opt_box_autoadd_celaut_error_kind(dynamic raw);
 
   @protected
@@ -353,6 +373,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NodeAddress? dco_decode_opt_box_autoadd_node_address(dynamic raw);
+
+  @protected
+  ResourceRefusalView? dco_decode_opt_box_autoadd_resource_refusal_view(
+    dynamic raw,
+  );
 
   @protected
   SysresourcesView? dco_decode_opt_box_autoadd_sysresources_view(dynamic raw);
@@ -398,6 +423,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ReceiptsView dco_decode_receipts_view(dynamic raw);
+
+  @protected
+  ResourceRefusalView dco_decode_resource_refusal_view(dynamic raw);
+
+  @protected
+  ResourcesSourceView dco_decode_resources_source_view(dynamic raw);
 
   @protected
   RunningInstanceView dco_decode_running_instance_view(dynamic raw);
@@ -454,12 +485,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ApiSlotView sse_decode_api_slot_view(SseDeserializer deserializer);
 
   @protected
+  AwakeResourcesView sse_decode_awake_resources_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BalancerWeightsView sse_decode_balancer_weights_view(
     SseDeserializer deserializer,
   );
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  AwakeResourcesView sse_decode_box_autoadd_awake_resources_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   CelautErrorKind sse_decode_box_autoadd_celaut_error_kind(
@@ -479,6 +520,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NodeAddress sse_decode_box_autoadd_node_address(SseDeserializer deserializer);
+
+  @protected
+  ResourceRefusalView sse_decode_box_autoadd_resource_refusal_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   SysresourcesView sse_decode_box_autoadd_sysresources_view(
@@ -594,6 +640,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double sse_decode_f_64(SseDeserializer deserializer);
 
   @protected
+  HibernationView sse_decode_hibernation_view(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
@@ -604,6 +653,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   InstancePlanView sse_decode_instance_plan_view(SseDeserializer deserializer);
+
+  @protected
+  InstanceStateView sse_decode_instance_state_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   InstanceStatusView sse_decode_instance_status_view(
@@ -826,6 +880,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
+  AwakeResourcesView? sse_decode_opt_box_autoadd_awake_resources_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   CelautErrorKind? sse_decode_opt_box_autoadd_celaut_error_kind(
     SseDeserializer deserializer,
   );
@@ -843,6 +902,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NodeAddress? sse_decode_opt_box_autoadd_node_address(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ResourceRefusalView? sse_decode_opt_box_autoadd_resource_refusal_view(
     SseDeserializer deserializer,
   );
 
@@ -894,6 +958,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ReceiptsView sse_decode_receipts_view(SseDeserializer deserializer);
+
+  @protected
+  ResourceRefusalView sse_decode_resource_refusal_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ResourcesSourceView sse_decode_resources_source_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   RunningInstanceView sse_decode_running_instance_view(
@@ -954,6 +1028,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_api_slot_view(ApiSlotView self, SseSerializer serializer);
 
   @protected
+  void sse_encode_awake_resources_view(
+    AwakeResourcesView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_balancer_weights_view(
     BalancerWeightsView self,
     SseSerializer serializer,
@@ -961,6 +1041,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_awake_resources_view(
+    AwakeResourcesView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_celaut_error_kind(
@@ -986,6 +1072,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_node_address(
     NodeAddress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_resource_refusal_view(
+    ResourceRefusalView self,
     SseSerializer serializer,
   );
 
@@ -1137,6 +1229,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_f_64(double self, SseSerializer serializer);
 
   @protected
+  void sse_encode_hibernation_view(
+    HibernationView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
@@ -1151,6 +1249,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_instance_plan_view(
     InstancePlanView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_instance_state_view(
+    InstanceStateView self,
     SseSerializer serializer,
   );
 
@@ -1455,6 +1559,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_awake_resources_view(
+    AwakeResourcesView? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_celaut_error_kind(
     CelautErrorKind? self,
     SseSerializer serializer,
@@ -1478,6 +1588,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_node_address(
     NodeAddress? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_resource_refusal_view(
+    ResourceRefusalView? self,
     SseSerializer serializer,
   );
 
@@ -1540,6 +1656,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_receipts_view(ReceiptsView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_resource_refusal_view(
+    ResourceRefusalView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_resources_source_view(
+    ResourcesSourceView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_running_instance_view(
