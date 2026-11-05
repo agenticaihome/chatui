@@ -72,16 +72,28 @@ class MeasureHeight extends StatefulWidget {
 class _MeasureHeightState extends State<MeasureHeight> {
   double? _last;
 
+  void _measure() {
+    if (!mounted) return;
+    final h = context.size?.height;
+    if (h != null && h != _last) {
+      _last = h;
+      widget.onHeight(h);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final h = context.size?.height;
-      if (h != null && h != _last) {
-        _last = h;
-        widget.onHeight(h);
-      }
-    });
-    return widget.child;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+    // The child can change its height without this widget building again (an
+    // [AnimatedSize] that closes the keyboard of the app does it on each frame of its
+    // animation): the notifier tells of every change of the size, so the list below
+    // always has the real height and does not leave a blank where the keyboard was.
+    return NotificationListener<SizeChangedLayoutNotification>(
+      onNotification: (_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+        return false;
+      },
+      child: SizeChangedLayoutNotifier(child: widget.child),
+    );
   }
 }
