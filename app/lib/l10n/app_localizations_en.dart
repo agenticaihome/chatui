@@ -7438,4 +7438,114 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get celautEnvScanNotVariable =>
       'That QR code is not a shared variable.';
+
+  @override
+  String get chatsStateHibernated => 'Hibernated';
+
+  @override
+  String get chatsHibernate => 'Hibernate';
+
+  @override
+  String get chatsWake => 'Wake';
+
+  @override
+  String chatsHibernateTitle(String name) {
+    return 'Hibernate $name?';
+  }
+
+  @override
+  String get chatsHibernateBody =>
+      'The instance stops using CPU and RAM, and the node charges only for its disk. The process state is lost: when you wake the instance, the service starts again from its entrypoint. The address and the ports stay. The app keeps the CPU and RAM that the instance has now, and wakes it with them. Hibernating costs the instance two call fees.';
+
+  @override
+  String get chatsHibernated => 'The instance is hibernated.';
+
+  @override
+  String chatsWakeTitle(String name) {
+    return 'Wake $name?';
+  }
+
+  @override
+  String chatsWakeBody(String cpu, String ram) {
+    return 'The instance starts again with $cpu and $ram. The process state was lost: the service starts from its entrypoint. Waking costs the instance one call fee.';
+  }
+
+  @override
+  String get chatsWakeLastKnown =>
+      'The app does not know if these values are the ones that the instance had when it hibernated. They are the last that the app got from the node.';
+
+  @override
+  String get chatsWakeUnknown =>
+      'The app does not know the CPU and RAM of this instance, so it cannot wake it.';
+
+  @override
+  String get chatsWoken => 'The instance is awake.';
+
+  @override
+  String chatsResourcesCpu(String cores) {
+    return '$cores CPU cores';
+  }
+
+  @override
+  String get chatsRefusalSharedFilesystem =>
+      'The node does not hibernate this instance: it shares a filesystem with other instances.';
+
+  @override
+  String get chatsRefusalNotRevivable =>
+      'The node does not hibernate this instance: it cannot start again from its own disk.';
+
+  @override
+  String get chatsRefusalInstanceBalance =>
+      'The instance has not enough balance to pay the fee of this call. Add time to the instance, then try again.';
+
+  @override
+  String get chatsRefusalDoesNotFit =>
+      'The node has no room for the CPU and RAM of this instance now. The instance stays hibernated. Try again later.';
+
+  @override
+  String get chatsRefusalNoLocalInstance =>
+      'This instance runs on a peer of the node, or it is gone. The node cannot hibernate or wake it.';
+
+  @override
+  String get chatsRefusalNotTheFather =>
+      'The node says that this app is not the owner of the instance, so it does not accept the call.';
+
+  @override
+  String get chatsRefusalNoResources =>
+      'The app could not read the CPU and RAM of the instance, so it did not hibernate it. Nothing changed.';
+
+  @override
+  String get chatsRefusalUnsupported =>
+      'This node does not support hibernation. It is older than the feature, so the app hides the hibernate and wake actions for its instances. Nothing was charged.';
+
+  @override
+  String get chatsRefusalNotConfirmed =>
+      'The node did not confirm the hibernation. Nothing changed in the app.';
+
+  @override
+  String chatsRefusalOther(String message) {
+    return 'The node refused the call: $message';
+  }
+
+  @override
+  String get chatsInfoResources => 'CPU and RAM';
+
+  @override
+  String get chatsInfoResourcesNone => 'Not known yet';
+
+  @override
+  String chatsInfoResourcesLastKnown(String resources) {
+    return '$resources (last known values)';
+  }
+
+  @override
+  String get chatsInfoHibernatedSince => 'Hibernated since';
+
+  @override
+  String get chatsInfoHibernateNote =>
+      'Hibernate frees the CPU and RAM, and the node charges only for the disk. The process state is lost when the instance wakes.';
+
+  @override
+  String get chatsInfoHibernatedNote =>
+      'A hibernated instance pays only for its disk. Wake it to use it again. Stop it to get the refund; only a stopped instance can be deleted.';
 }

@@ -42,15 +42,20 @@ InstancePlanView _plan({
   String spent = '',
   String price = '1000',
   int seconds = 60,
-}) =>
-    InstancePlanView(
-      keepAlive: keep,
-      budgetMu: budget,
-      spentMu: spent,
-      maintenanceMu: price,
-      maintenanceSeconds: price.isEmpty ? 0 : seconds,
-      variance: 0,
-    );
+  bool hibernated = false,
+  bool diskOnly = false,
+  String wakeFee = '',
+}) => InstancePlanView(
+  keepAlive: keep,
+  budgetMu: budget,
+  spentMu: spent,
+  maintenanceMu: price,
+  maintenanceSeconds: price.isEmpty ? 0 : seconds,
+  variance: 0,
+  hibernated: hibernated,
+  diskOnly: diskOnly,
+  wakeFeeMu: wakeFee,
+);
 
 void main() {
   late List<String> topUps;
@@ -144,7 +149,16 @@ void main() {
       db = [_instance('i')];
       balances['i'] = '1';
       plans['i'] = const InstancePlanView(
-        keepAlive: true, budgetMu: '', spentMu: '', maintenanceMu: '1000', maintenanceSeconds: 60, variance: 0.5);
+        keepAlive: true,
+        budgetMu: '',
+        spentMu: '',
+        maintenanceMu: '1000',
+        maintenanceSeconds: 60,
+        variance: 0.5,
+        hibernated: false,
+        diskOnly: false,
+        wakeFeeMu: '',
+      );
       await e.check();
       // 10 periods of 1500 MU.
       expect(topUps, ['i 15000']);

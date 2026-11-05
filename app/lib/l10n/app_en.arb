@@ -5403,5 +5403,78 @@
   "celautEnvShareTooBig": "This value is too large for a QR code.",
   "celautEnvScan": "Receive by QR",
   "celautEnvAskScan": "Scan a QR code",
-  "celautEnvScanNotVariable": "That QR code is not a shared variable."
+  "celautEnvScanNotVariable": "That QR code is not a shared variable.",
+  "chatsStateHibernated": "Hibernated",
+  "chatsHibernate": "Hibernate",
+  "chatsWake": "Wake",
+  "chatsHibernateTitle": "Hibernate {name}?",
+  "@chatsHibernateTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatsHibernateBody": "The instance stops using CPU and RAM, and the node charges only for its disk. The process state is lost: when you wake the instance, the service starts again from its entrypoint. The address and the ports stay. The app keeps the CPU and RAM that the instance has now, and wakes it with them. Hibernating costs the instance two call fees.",
+  "chatsHibernated": "The instance is hibernated.",
+  "chatsWakeTitle": "Wake {name}?",
+  "@chatsWakeTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chatsWakeBody": "The instance starts again with {cpu} and {ram}. The process state was lost: the service starts from its entrypoint. Waking costs the instance one call fee.",
+  "@chatsWakeBody": {
+    "placeholders": {
+      "cpu": {
+        "type": "String"
+      },
+      "ram": {
+        "type": "String"
+      }
+    }
+  },
+  "chatsWakeLastKnown": "The app does not know if these values are the ones that the instance had when it hibernated. They are the last that the app got from the node.",
+  "chatsWakeUnknown": "The app does not know the CPU and RAM of this instance, so it cannot wake it.",
+  "chatsWoken": "The instance is awake.",
+  "chatsResourcesCpu": "{cores} CPU cores",
+  "@chatsResourcesCpu": {
+    "placeholders": {
+      "cores": {
+        "type": "String"
+      }
+    }
+  },
+  "chatsRefusalSharedFilesystem": "The node does not hibernate this instance: it shares a filesystem with other instances.",
+  "chatsRefusalNotRevivable": "The node does not hibernate this instance: it cannot start again from its own disk.",
+  "chatsRefusalInstanceBalance": "The instance has not enough balance to pay the fee of this call. Add time to the instance, then try again.",
+  "chatsRefusalDoesNotFit": "The node has no room for the CPU and RAM of this instance now. The instance stays hibernated. Try again later.",
+  "chatsRefusalNoLocalInstance": "This instance runs on a peer of the node, or it is gone. The node cannot hibernate or wake it.",
+  "chatsRefusalNotTheFather": "The node says that this app is not the owner of the instance, so it does not accept the call.",
+  "chatsRefusalNoResources": "The app could not read the CPU and RAM of the instance, so it did not hibernate it. Nothing changed.",
+  "chatsRefusalUnsupported": "This node does not support hibernation. It is older than the feature, so the app hides the hibernate and wake actions for its instances. Nothing was charged.",
+  "chatsRefusalNotConfirmed": "The node did not confirm the hibernation. Nothing changed in the app.",
+  "chatsRefusalOther": "The node refused the call: {message}",
+  "@chatsRefusalOther": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "chatsInfoResources": "CPU and RAM",
+  "chatsInfoResourcesNone": "Not known yet",
+  "chatsInfoResourcesLastKnown": "{resources} (last known values)",
+  "@chatsInfoResourcesLastKnown": {
+    "placeholders": {
+      "resources": {
+        "type": "String"
+      }
+    }
+  },
+  "chatsInfoHibernatedSince": "Hibernated since",
+  "chatsInfoHibernateNote": "Hibernate frees the CPU and RAM, and the node charges only for the disk. The process state is lost when the instance wakes.",
+  "chatsInfoHibernatedNote": "A hibernated instance pays only for its disk. Wake it to use it again. Stop it to get the refund; only a stopped instance can be deleted."
 }

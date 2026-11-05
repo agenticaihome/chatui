@@ -34,6 +34,8 @@ class InstanceInfoScreen extends StatefulWidget {
     this.reason,
     this.wallets = const AppFullWallets(),
     this.stop,
+    this.hibernate,
+    this.wake,
     this.forget,
     this.notes,
     this.loadInfo = readServiceInfo,
@@ -74,6 +76,12 @@ class InstanceInfoScreen extends StatefulWidget {
   /// Stop the instance. Tests give their own.
   final Future<StopView> Function(String instanceId)? stop;
 
+  /// Hibernate the instance. Tests give their own.
+  final Future<HibernationView> Function(String instanceId)? hibernate;
+
+  /// Wake the hibernated instance. Tests give their own.
+  final Future<HibernationView> Function(String instanceId)? wake;
+
   /// Delete the stopped instance. Tests give their own.
   final void Function(String instanceId)? forget;
 
@@ -85,6 +93,7 @@ class InstanceInfoScreen extends StatefulWidget {
 
 class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
   bool _stopping = false;
+  bool _changing = false;
   late InstanceListView _instance = widget.instance;
   late ReceiptsView? _receipts = widget.loadReceipts(widget.instance.instanceId);
 
@@ -203,6 +212,24 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
     if (done != null) Navigator.of(context).pop(true);
   }
 
+  /// Hibernate or wake the instance. When the state changed, the page closes with true and
+  /// the caller reads the list again.
+  Future<void> _hibernateOrWake({required bool wakeUp}) async {
+    setState(() => _changing = true);
+    final wallets = widget.wallets;
+    final done = wakeUp
+        ? await confirmAndWakeInstance(context, _instance, wallets: wallets, wake: widget.wake)
+        : await confirmAndHibernateInstance(
+            context,
+            _instance,
+            wallets: wallets,
+            hibernate: widget.hibernate,
+          );
+    if (!mounted) return;
+    setState(() => _changing = false);
+    if (done != null) Navigator.of(context).pop(true);
+  }
+
   /// The details of the service: from the library file, or from the node of the instance,
   /// which has the service.
   void _details() {
@@ -240,8 +267,27 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
     final title = instanceTitle(i);
     final slot = i.chatSlots.isNotEmpty ? i.chatSlots.first : null;
     final started = formatTxTime(i.startedAt.toInt() * 1000);
+    final hibernated = widget.state == InstanceState.hibernated;
+    final resources = i.awakeResources;
+    final hibernatedSince = i.hibernatedAt == null ? '' : formatTxTime(i.hibernatedAt!.toInt() * 1000);
     final rows = <(String, String, Key)>[
       (l.chatsInfoStatus, instanceStateText(context, widget.state), const Key('info-status')),
+      if (hibernated)
+        (
+          l.chatsInfoHibernatedSince,
+          hibernatedSince.isEmpty ? l.celautUnknown : hibernatedSince,
+          const Key('info-hibernated-since'),
+        ),
+      if (hibernated || resources != null)
+        (
+          l.chatsInfoResources,
+          resources == null
+              ? l.chatsInfoResourcesNone
+              : resources.source == ResourcesSourceView.lastKnown
+              ? l.chatsInfoResourcesLastKnown(resourcesText(context, resources))
+              : resourcesText(context, resources),
+          const Key('info-resources'),
+        ),
       (l.chatsInfoNode, i.address, const Key('info-node')),
       (l.chatsInfoPeer, i.peerId, const Key('info-peer')),
       (l.chatsInfoServiceId, i.serviceId, const Key('info-service')),
@@ -329,7 +375,7 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
                   style: t.secondary.copyWith(color: rustFor(context)),
                 ),
               ),
-            if (widget.state != InstanceState.stopped) ...[
+              if (widget.state != InstanceState.stopped && !hibernated) ...[
               const SizedBox(height: 16),
               InstanceTimeSection(instanceId: _instance.instanceId, wallets: widget.wallets),
             ],
@@ -339,6 +385,36 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
             ],
             if (widget.state != InstanceState.stopped) ...[
               const SizedBox(height: 24),
+                if (hibernationSupport.isUnsupported(i.address)) ...[
+                  Text(
+                    l.chatsRefusalUnsupported,
+                    key: const Key('info-hibernation-unsupported'),
+                    style: t.secondary,
+                  ),
+                ] else if (hibernated) ...[
+                  FilledButton.icon(
+                    key: const Key('info-wake'),
+                    onPressed: _changing || _stopping ? null : () => _hibernateOrWake(wakeUp: true),
+                    icon: const Icon(Icons.wb_sunny_outlined),
+                    label: Text(l.chatsWake),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l.chatsInfoHibernatedNote,
+                    key: const Key('info-hibernated-note'),
+                    style: t.secondary,
+                  ),
+                ] else ...[
+                  OutlinedButton.icon(
+                    key: const Key('info-hibernate'),
+                    onPressed: _changing || _stopping ? null : () => _hibernateOrWake(wakeUp: false),
+                    icon: const Icon(Icons.bedtime_outlined),
+                    label: Text(l.chatsHibernate),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(l.chatsInfoHibernateNote, style: t.secondary),
+                ],
+                const SizedBox(height: 16),
               FilledButton.icon(
                 key: const Key('info-stop'),
                 onPressed: _stopping ? null : _stop,

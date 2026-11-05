@@ -44,16 +44,18 @@ class ChatDoneWatcher {
     ForegroundHolds? holds,
     Future<WatchedChat> Function(InstanceListView instance)? connect,
     bool Function(String instanceId)? isMuted,
+    bool Function(String instanceId)? isParked,
     Timer Function(Duration delay, void Function() run)? timer,
     DateTime Function()? now,
     this.giveUpAfter = defaultGiveUpAfter,
     this.maxWatch = defaultMaxWatch,
-  })  : _notifier = notifier,
-        _holds = holds ?? foregroundHolds,
-        _connect = connect ?? _connectTunnel,
-        _isMuted = isMuted ?? chatPrefs.isMuted,
-        _timer = timer ?? Timer.new,
-        _now = now ?? DateTime.now;
+  }) : _notifier = notifier,
+       _holds = holds ?? foregroundHolds,
+       _connect = connect ?? _connectTunnel,
+       _isMuted = isMuted ?? chatPrefs.isMuted,
+       _isParked = isParked ?? _recordIsParked,
+       _timer = timer ?? Timer.new,
+       _now = now ?? DateTime.now;
 
   /// How long an instance can stay unreachable before the watch stops.
   static const defaultGiveUpAfter = Duration(minutes: 5);
@@ -69,6 +71,7 @@ class ChatDoneWatcher {
   final ForegroundHolds _holds;
   final Future<WatchedChat> Function(InstanceListView) _connect;
   final bool Function(String) _isMuted;
+  final bool Function(String) _isParked;
   final Timer Function(Duration, void Function()) _timer;
   final DateTime Function() _now;
 
@@ -86,10 +89,14 @@ class ChatDoneWatcher {
   /// The chat screen of [instance] closed while an answer was pending. [statuses] are the
   /// statuses of the messages (by `seq`) that the screen knew: the messages that are
   /// done in it are history and get no notice. A muted instance is not watched.
+  ///
+  /// An instance that is hibernated or stopped is not watched: its service does not run,
+  /// so there is no answer to wait for, and its silence is not a fault. The screen holds
+  /// the state from before the hibernation, so the record of the app is asked.
   void handOver(InstanceListView instance, Map<int, String> statuses) {
     final id = instance.instanceId;
     release(id);
-    if (_isMuted(id)) return;
+    if (_isMuted(id) || _isParked(id)) return;
     for (final e in statuses.entries) {
       if (e.value == ChatMessage.statusDone) claim(id, e.key);
     }
@@ -145,7 +152,9 @@ class ChatDoneWatcher {
     watch.timer = null;
     final id = watch.instance.instanceId;
     if (watch.ended) return;
-    if (_isMuted(id) || _now().difference(watch.started) >= maxWatch) return _drop(watch);
+    if (_isMuted(id) || _isParked(id) || _now().difference(watch.started) >= maxWatch) {
+      return _drop(watch);
+    }
     try {
       final chat = watch.chat ??= await _connect(watch.instance);
       if (watch.ended) {
@@ -177,6 +186,18 @@ class ChatDoneWatcher {
         title: instanceTitle(instance),
         body: appL10n.chatNotifyDoneBody,
       );
+
+  /// True if the record of the app says that the instance is hibernated or stopped. No
+  /// record, or no database, is false.
+  static bool _recordIsParked(String instanceId) {
+    try {
+      return celautInstances().any(
+        (i) => i.instanceId == instanceId && (i.hibernatedAt != null || i.stoppedAt != null),
+      );
+    } on Object {
+      return false;
+    }
+  }
 
   static Future<WatchedChat> _connectTunnel(InstanceListView instance) async {
     final port = await celautOpenTunnel(instanceId: instance.instanceId, slot: instance.chatSlots.first);

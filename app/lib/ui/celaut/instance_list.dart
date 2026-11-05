@@ -94,6 +94,8 @@ class InstanceList extends StatefulWidget {
     this.load,
     this.loadStatus,
     this.stop,
+    this.hibernate,
+    this.wake,
     this.forget,
     this.rename,
     this.openTunnel,
@@ -131,6 +133,12 @@ class InstanceList extends StatefulWidget {
 
   /// Stop an instance. Tests give their own.
   final Future<StopView> Function(String instanceId)? stop;
+
+  /// Hibernate an instance. Tests give their own.
+  final Future<HibernationView> Function(String instanceId)? hibernate;
+
+  /// Wake a hibernated instance. Tests give their own.
+  final Future<HibernationView> Function(String instanceId)? wake;
 
   /// Delete a stopped instance from the database. Tests give their own.
   final void Function(String instanceId)? forget;
@@ -191,7 +199,12 @@ class InstanceListState extends State<InstanceList> {
     if (_pane != null && pane == null && open != null) {
       _inPane = null;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && open.stoppedAt == null && open.chatSlots.isNotEmpty) unawaited(openChat(open));
+        if (mounted &&
+            open.stoppedAt == null &&
+            open.hibernatedAt == null &&
+            open.chatSlots.isNotEmpty) {
+          unawaited(openChat(open));
+        }
       });
     }
     _pane = pane;
@@ -281,14 +294,32 @@ class InstanceListState extends State<InstanceList> {
               _set(i.instanceId, _Check.ok(s));
               unawaited((widget.topUp ?? autoTopUp).observe(i, s));
             },
-            onError: (Object e) => _set(
-              i.instanceId,
-              _Check.failed(
-                e is CelautError ? e : CelautError(kind: CelautErrorKind.protocol, message: '$e'),
-              ),
-            ),
+            onError: (Object e) {
+              _set(
+                i.instanceId,
+                _Check.failed(
+                  e is CelautError ? e : CelautError(kind: CelautErrorKind.protocol, message: '$e'),
+                ),
+              );
+              if (i.hibernatedAt != null) _readIfStopped(i.instanceId);
+            },
           ),
     ]);
+  }
+
+  /// The node stops a hibernated instance that cannot pay its disk, after a grace period,
+  /// and forgets it. The core then marks the record stopped when the status read fails
+  /// with "unknown token". Read the list again if that happened, so that the row does not
+  /// stay hibernated for ever.
+  void _readIfStopped(String instanceId) {
+    try {
+      final all = (widget.load ?? celautInstances)();
+      if (all.any((i) => i.instanceId == instanceId && i.stoppedAt != null)) {
+        unawaited(refresh());
+      }
+    } on Object {
+      // No list: the row stays as it is.
+    }
   }
 
   void _set(String id, _Check check) {
@@ -297,6 +328,9 @@ class InstanceListState extends State<InstanceList> {
 
   InstanceState _stateOf(InstanceListView i) {
     if (i.stoppedAt != null) return InstanceState.stopped;
+    // The node does not say that an instance is hibernated: the record of the app does.
+    // The service of a hibernated instance does not answer, and that is not a fault.
+    if (i.hibernatedAt != null) return InstanceState.hibernated;
     if (_notes.isStarting(i.instanceId)) return InstanceState.starting;
     final check = _checks[i.instanceId];
     if (check == null) return InstanceState.checking;
@@ -321,7 +355,10 @@ class InstanceListState extends State<InstanceList> {
       return;
     }
     for (final i in all) {
-      if (i.instanceId == instanceId && i.stoppedAt == null && i.chatSlots.isNotEmpty) {
+      if (i.instanceId == instanceId &&
+          i.stoppedAt == null &&
+          i.hibernatedAt == null &&
+          i.chatSlots.isNotEmpty) {
         if (mounted) await openChat(i);
         return;
       }
@@ -383,6 +420,8 @@ class InstanceListState extends State<InstanceList> {
           reason: _reasonOf(i.instanceId),
           wallets: widget.wallets,
           stop: widget.stop,
+          hibernate: widget.hibernate,
+          wake: widget.wake,
           forget: widget.forget,
           rename: widget.rename,
           notes: _notes,
@@ -396,7 +435,9 @@ class InstanceListState extends State<InstanceList> {
   Future<void> _tap(InstanceListView i, InstanceState state) async {
     final noInterface = i.chatSlots.isEmpty && i.webSlots.isEmpty;
     // The list with [chats] false has the ones with no interface: a tap opens their info.
-    if (state == InstanceState.stopped || (noInterface && !widget.chats)) {
+    if (state == InstanceState.stopped ||
+        state == InstanceState.hibernated ||
+        (noInterface && !widget.chats)) {
       await _openInfo(i, state);
     } else if (i.chatSlots.isNotEmpty) {
       await openChat(i);
@@ -446,6 +487,22 @@ class InstanceListState extends State<InstanceList> {
                 title: Text(chatPrefs.isMuted(i.instanceId) ? l.chatUnmute : l.chatMute),
                 onTap: () => Navigator.pop(context, 'mute'),
               ),
+            if (state != InstanceState.stopped &&
+                state != InstanceState.hibernated &&
+                !hibernationSupport.isUnsupported(i.address))
+              ListTile(
+                key: const Key('chats-action-hibernate'),
+                leading: const Icon(Icons.bedtime_outlined),
+                title: Text(l.chatsHibernate),
+                onTap: () => Navigator.pop(context, 'hibernate'),
+              ),
+            if (state == InstanceState.hibernated && !hibernationSupport.isUnsupported(i.address))
+              ListTile(
+                key: const Key('chats-action-wake'),
+                leading: const Icon(Icons.wb_sunny_outlined),
+                title: Text(l.chatsWake),
+                onTap: () => Navigator.pop(context, 'wake'),
+              ),
             if (state != InstanceState.stopped)
               ListTile(
                 key: const Key('chats-action-stop'),
@@ -476,6 +533,22 @@ class InstanceListState extends State<InstanceList> {
       case 'mute':
         await chatPrefs.setMuted(i.instanceId, !chatPrefs.isMuted(i.instanceId));
         if (mounted) setState(() {});
+      case 'hibernate':
+        final done = await confirmAndHibernateInstance(
+          context,
+          i,
+          wallets: widget.wallets,
+          hibernate: widget.hibernate,
+        );
+        if (done != null && mounted) await refresh();
+      case 'wake':
+        final done = await confirmAndWakeInstance(
+          context,
+          i,
+          wallets: widget.wallets,
+          wake: widget.wake,
+        );
+        if (done != null && mounted) await refresh();
       case 'stop':
         final done = await confirmAndStopInstance(
           context,
@@ -730,7 +803,7 @@ class _InstanceRow extends StatelessWidget {
       InstanceState.running => tones.positive,
       InstanceState.starting => accentOf(context),
       InstanceState.unreachable => tones.negative,
-      InstanceState.checking || InstanceState.stopped => tones.muted,
+      InstanceState.checking || InstanceState.stopped || InstanceState.hibernated => tones.muted,
     };
     final preview = last == null
         ? (instance.chatSlots.isNotEmpty

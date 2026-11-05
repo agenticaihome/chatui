@@ -1176,6 +1176,8 @@ class _ChatScreenState extends State<ChatScreen>
         ),
       ),
     );
+    // The info page closes with true when the instance stopped, or when it hibernated: the
+    // conversation cannot go on in either case.
     if (stopped == true) _closeStopped();
   }
 

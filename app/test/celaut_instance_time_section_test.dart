@@ -29,15 +29,22 @@ class _Wallets implements FullWallets {
   }
 }
 
-InstancePlanView _plan({bool keep = false, String budget = '', String spent = '', String price = '100'}) =>
-    InstancePlanView(
-      keepAlive: keep,
-      budgetMu: budget,
-      spentMu: spent,
-      maintenanceMu: price,
-      maintenanceSeconds: price.isEmpty ? 0 : 60,
-      variance: 0,
-    );
+InstancePlanView _plan({
+  bool keep = false,
+  String budget = '',
+  String spent = '',
+  String price = '100',
+}) => InstancePlanView(
+  keepAlive: keep,
+  budgetMu: budget,
+  spentMu: spent,
+  maintenanceMu: price,
+  maintenanceSeconds: price.isEmpty ? 0 : 60,
+  variance: 0,
+  hibernated: false,
+  diskOnly: false,
+  wakeFeeMu: '',
+);
 
 void main() {
   late InstancePlanView plan;

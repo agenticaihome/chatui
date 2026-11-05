@@ -869,6 +869,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('chats-action-info')));
       await tester.pumpAndSettle();
+      // The page also has Hibernate, so Stop can be below the window: scroll to it.
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('info-stop')),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
       expect(find.byKey(const Key('info-stop')), findsOneWidget);
       expect(find.byKey(const Key('info-delete')), findsNothing);
     });
