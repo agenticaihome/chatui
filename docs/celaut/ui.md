@@ -129,6 +129,40 @@ balancer would use with its start cost. Run needs the wallet open.
   "Details". A node that forgot the client id gives the usual choice; the app never makes a
   new client by itself.
 
+#### 2.1 The store (#102, 2026-11-05)
+
+The screen is a store. These parts stay at the top at all times, above the part that
+scrolls:
+
+- the search field;
+- two small actions for the service files on this phone: "Import" (pick a `.celaut.bee`
+  file) and "On this phone" (a sheet with the saved files, each with Run and Remove, and
+  the import). On a narrow screen they are icons with a tooltip; from 560 dp they also
+  show their text. The phone icon shows the number of saved files;
+- the fields of the skills as chips.
+
+With no search and "All", the store shows these sections. Each card has one action: Run,
+which opens the services of the skill with the best one chosen.
+
+| Section | Data | Order |
+|---|---|---|
+| Featured | the publisher reputation (nanoERG of the boxes that hold the profile token of the skill box) and the coverage boxes | of each field, the skill whose publisher has the most reputation, then with the most declared services, then the newest; at most 5 |
+| Suggested for you | the instances in the app (`celaut_instances`: service id and name) | the skills that the user did not run, in the fields of the skills that the user ran; the most backed first |
+| New | the block height of the skill box (`settlementHeight`, else `creationHeight`) | the highest first |
+| Popular | the coverage boxes: the services that publishers declared for the skill | the most services first |
+| Categories | the `domain` of the skills | a tile for each field, with its number of skills; a tap chooses its chip |
+| All skills | every skill | the order of the explorer; two columns from 600 dp |
+
+- Only skills with a declared service are featured or popular: the others cannot run.
+- A section with no skill is not shown. There is no fake data: with no history there is no
+  "Suggested", and if the explorer does not give the coverage boxes there is no "Featured"
+  and no "Popular" (that list is not kept, so the next read asks again).
+- The catalog has no count of runs. "Popular" is the count of services that publishers
+  declared, not the count of runs.
+- The data costs one query for all the coverage boxes and one request for each publisher,
+  not one for each skill (`celaut_skills`).
+- A search or a chip shows the skills that match, as cards, with no section.
+
 ## 3. What this changes in the milestones
 
 | Milestone | Change |
