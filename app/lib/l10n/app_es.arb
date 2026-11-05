@@ -2358,5 +2358,13 @@
   "btcDepForget": "Olvidar",
   "btcDepPayInBtc": "Pagar en BTC",
   "btcDepPayInBtcSubtitle": "Este nodo acepta BTC en {network}",
-  "btcWalletButton": "Billetera Bitcoin"
+  "btcWalletButton": "Billetera Bitcoin",
+  "celautEnvShare": "Compartir por QR",
+  "celautEnvShareTitle": "Compartir {name}",
+  "celautEnvShareWarn": "Quien escanee este código obtiene el valor en texto plano. Muéstralo solo a personas de confianza.",
+  "celautEnvShareWarnSensitive": "Esta variable es sensible. Quien escanee este código obtiene el valor en texto plano. Muéstralo solo a personas de confianza y asegúrate de que nadie más ve o graba tu pantalla.",
+  "celautEnvShareTooBig": "Este valor es demasiado grande para un código QR.",
+  "celautEnvScan": "Recibir por QR",
+  "celautEnvAskScan": "Escanear un código QR",
+  "celautEnvScanNotVariable": "Ese código QR no es una variable compartida."
 }

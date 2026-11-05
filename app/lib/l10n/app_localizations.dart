@@ -11902,6 +11902,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bitcoin wallet'**
   String get btcWalletButton;
+
+  /// No description provided for @celautEnvShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share by QR'**
+  String get celautEnvShare;
+
+  /// No description provided for @celautEnvShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share {name}'**
+  String celautEnvShareTitle(String name);
+
+  /// No description provided for @celautEnvShareWarn.
+  ///
+  /// In en, this message translates to:
+  /// **'Whoever scans this code gets the value in plain text. Show it only to people you trust.'**
+  String get celautEnvShareWarn;
+
+  /// No description provided for @celautEnvShareWarnSensitive.
+  ///
+  /// In en, this message translates to:
+  /// **'This variable is sensitive. Whoever scans this code gets the value in plain text. Show it only to people you trust, and make sure nobody else sees or records your screen.'**
+  String get celautEnvShareWarnSensitive;
+
+  /// No description provided for @celautEnvShareTooBig.
+  ///
+  /// In en, this message translates to:
+  /// **'This value is too large for a QR code.'**
+  String get celautEnvShareTooBig;
+
+  /// No description provided for @celautEnvScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive by QR'**
+  String get celautEnvScan;
+
+  /// No description provided for @celautEnvAskScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR code'**
+  String get celautEnvAskScan;
+
+  /// No description provided for @celautEnvScanNotVariable.
+  ///
+  /// In en, this message translates to:
+  /// **'That QR code is not a shared variable.'**
+  String get celautEnvScanNotVariable;
 }
 
 class _AppLocalizationsDelegate

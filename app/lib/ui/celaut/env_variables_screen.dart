@@ -7,6 +7,8 @@ import '../../celaut/env_store.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../layout.dart';
+import '../../celaut/env_share.dart';
+import 'env_share_ui.dart';
 
 /// The text for a problem with a name or a value.
 String envProblemText(AppLocalizations l, EnvProblem problem) => switch (problem) {
@@ -23,9 +25,12 @@ String envProblemText(AppLocalizations l, EnvProblem problem) => switch (problem
 /// edit form, with the eye. Each variable is sensitive or not (section 3.2): the lock of
 /// the row and the switch of the form change it.
 class EnvVariablesScreen extends StatefulWidget {
-  const EnvVariablesScreen({super.key, EnvStore? store}) : _store = store;
+  const EnvVariablesScreen({super.key, EnvStore? store, this.scanner}) : _store = store;
 
   final EnvStore? _store;
+
+  /// Reads a shared variable from a QR code. The camera by default; the tests give their own.
+  final Future<EnvShare?> Function(BuildContext context)? scanner;
 
   @override
   State<EnvVariablesScreen> createState() => _EnvVariablesScreenState();
@@ -55,14 +60,35 @@ class _EnvVariablesScreenState extends State<EnvVariablesScreen> {
     _reload();
   }
 
-  Future<void> _edit(String? name) async {
+  /// Share the variable [name] by a QR code (`docs/celaut/env-share.md`).
+  Future<void> _share(EnvNameView n) async {
+    String? value;
+    try {
+      value = _store.value(n.name);
+    } catch (_) {
+      value = null;
+    }
+    if (value == null || !mounted) return;
+    await showEnvShare(context, name: n.name, value: value, sensitive: n.sensitive);
+  }
+
+  /// Receive a variable from a QR code: the form of a new variable opens with the name,
+  /// the value and the mark of the code, and the user can change any of them.
+  Future<void> _scan() async {
+    final share = await (widget.scanner ?? scanEnvShare)(context);
+    if (share == null || !mounted) return;
+    await _edit(null, prefill: share);
+  }
+
+  Future<void> _edit(String? name, {EnvShare? prefill}) async {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => _EnvEditDialog(
         store: _store,
         name: name,
         existing: {for (final n in _names) n.name},
-        sensitive: name == null ? true : _names.firstWhere((n) => n.name == name).sensitive,
+        sensitive: prefill?.sensitive ?? (name == null ? true : _names.firstWhere((n) => n.name == name).sensitive),
+        prefill: prefill,
       ),
     );
     if (saved == true && mounted) _reload();
@@ -102,7 +128,17 @@ class _EnvVariablesScreenState extends State<EnvVariablesScreen> {
     final l = context.l10n;
     final colors = ArgusColors.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l.celautEnvTitle)),
+      appBar: AppBar(
+        title: Text(l.celautEnvTitle),
+        actions: [
+          IconButton(
+            key: const Key('env-scan'),
+            tooltip: l.celautEnvScan,
+            icon: const Icon(Icons.qr_code_scanner),
+            onPressed: _scan,
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('env-add'),
         onPressed: () => _edit(null),
@@ -134,11 +170,22 @@ class _EnvVariablesScreenState extends State<EnvVariablesScreen> {
                 title: Text(n.name, style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 14)),
                 subtitle: Text('••••••••  ·  ${n.sensitive ? l.celautEnvSensitive : l.celautEnvNotSensitive}'),
                 onTap: () => _edit(n.name),
-                trailing: IconButton(
-                  key: Key('env-delete-${n.name}'),
-                  tooltip: l.celautEnvDelete,
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _delete(n.name),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      key: Key('env-share-${n.name}'),
+                      tooltip: l.celautEnvShare,
+                      icon: const Icon(Icons.qr_code_2),
+                      onPressed: () => _share(n),
+                    ),
+                    IconButton(
+                      key: Key('env-delete-${n.name}'),
+                      tooltip: l.celautEnvDelete,
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _delete(n.name),
+                    ),
+                  ],
                 ),
               ),
           ],
@@ -152,20 +199,31 @@ class _EnvVariablesScreenState extends State<EnvVariablesScreen> {
 /// new variable is sensitive unless the user turns the switch off: the container is the
 /// place for the secrets that the user keeps.
 class _EnvEditDialog extends StatefulWidget {
-  const _EnvEditDialog({required this.store, required this.name, required this.existing, required this.sensitive});
+  const _EnvEditDialog({
+    required this.store,
+    required this.name,
+    required this.existing,
+    required this.sensitive,
+    this.prefill,
+  });
 
   final EnvStore store;
   final String? name;
   final Set<String> existing;
   final bool sensitive;
 
+  /// A variable received by QR code: its name and value start the form.
+  final EnvShare? prefill;
+
   @override
   State<_EnvEditDialog> createState() => _EnvEditDialogState();
 }
 
 class _EnvEditDialogState extends State<_EnvEditDialog> {
-  late final _nameCtrl = TextEditingController(text: widget.name ?? '');
-  late final _valueCtrl = TextEditingController(text: widget.name == null ? '' : widget.store.value(widget.name!) ?? '');
+  late final _nameCtrl = TextEditingController(text: widget.name ?? widget.prefill?.name ?? '');
+  late final _valueCtrl = TextEditingController(
+    text: widget.name == null ? widget.prefill?.value ?? '' : widget.store.value(widget.name!) ?? '',
+  );
   bool _hidden = true;
   late bool _sensitive = widget.sensitive;
   String? _nameError;
