@@ -7487,4 +7487,30 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get btcWalletButton => 'Billetera Bitcoin';
+
+  @override
+  String get celautEnvShare => 'Compartir por QR';
+
+  @override
+  String celautEnvShareTitle(String name) {
+    return 'Compartir $name';
+  }
+
+  @override
+  String get celautEnvShareWarn => 'Quien escanee este código obtiene el valor en texto plano. Muéstralo solo a personas de confianza.';
+
+  @override
+  String get celautEnvShareWarnSensitive => 'Esta variable es sensible. Quien escanee este código obtiene el valor en texto plano. Muéstralo solo a personas de confianza y asegúrate de que nadie más ve o graba tu pantalla.';
+
+  @override
+  String get celautEnvShareTooBig => 'Este valor es demasiado grande para un código QR.';
+
+  @override
+  String get celautEnvScan => 'Recibir por QR';
+
+  @override
+  String get celautEnvAskScan => 'Escanear un código QR';
+
+  @override
+  String get celautEnvScanNotVariable => 'Ese código QR no es una variable compartida.';
 }

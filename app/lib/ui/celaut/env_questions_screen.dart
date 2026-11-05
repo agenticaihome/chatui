@@ -7,6 +7,8 @@ import '../../celaut/env_store.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../layout.dart';
+import '../../celaut/env_share.dart';
+import 'env_share_ui.dart';
 import 'env_variables_screen.dart' show envProblemText;
 
 /// What the user chose for one declared variable.
@@ -24,13 +26,18 @@ class EnvFromContainer extends EnvAnswer {
 /// value is not sensitive unless the user says so (`docs/celaut/env-variables.md`, section
 /// 3.2).
 class EnvTyped extends EnvAnswer {
-  const EnvTyped(this.text, {this.sensitive = false, this.save = false});
+  const EnvTyped(this.text, {this.sensitive = false, this.save = false, this.saveAs});
   final String text;
   final bool sensitive;
 
   /// Save the value in the container, under the name of the variable, when the user
   /// confirms (decided 2026-11-01, `docs/celaut/env-variables.md`, section 3).
   final bool save;
+
+  /// The name to save it under, if it is not the name of the variable (a value scanned
+  /// from a QR code keeps the name that the sender gave, or the one the user chose).
+  final String? saveAs;
+
 }
 
 /// What the questions are for: the variables of a launch, or one secret that a service asks
@@ -77,6 +84,7 @@ class EnvQuestionsScreen extends StatefulWidget {
     this.nodes = const [],
     this.purpose = EnvQuestionsPurpose.launch,
     EnvStore? store,
+    this.scanner,
   }) : _store = store;
 
   final List<DeclaredVariableView> declared;
@@ -88,6 +96,9 @@ class EnvQuestionsScreen extends StatefulWidget {
   final List<EnvTargetNode> nodes;
   final EnvQuestionsPurpose purpose;
   final EnvStore? _store;
+
+  /// Reads a shared variable from a QR code. The camera by default; the tests give their own.
+  final Future<EnvShare?> Function(BuildContext context)? scanner;
 
   @override
   State<EnvQuestionsScreen> createState() => _EnvQuestionsScreenState();
@@ -104,12 +115,15 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
   bool _typedSave = false;
   String? _typedError;
   final _typedCtrl = TextEditingController();
+  late final _saveNameCtrl = TextEditingController(text: widget.declared.isEmpty ? '' : widget.declared.first.name);
+  String? _saveNameError;
 
   bool get _review => _index >= widget.declared.length;
 
   @override
   void dispose() {
     _typedCtrl.dispose();
+    _saveNameCtrl.dispose();
     super.dispose();
   }
 
@@ -122,6 +136,8 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
       _typedSave = false;
       _typedError = null;
       _typedCtrl.clear();
+      _saveNameError = null;
+      _saveNameCtrl.text = index < widget.declared.length ? widget.declared[index].name : '';
     });
   }
 
@@ -185,6 +201,12 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
                 key: Key('env-pick-${n.name}'),
                 title: Text(n.name, style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 14)),
                 subtitle: Text('••••••••  ·  ${n.sensitive ? l.celautEnvSensitive : l.celautEnvNotSensitive}'),
+                trailing: IconButton(
+                  key: Key('env-pick-share-${n.name}'),
+                  tooltip: l.celautEnvShare,
+                  icon: const Icon(Icons.qr_code_2),
+                  onPressed: () => _shareFromContainer(n),
+                ),
                 onTap: () => Navigator.pop(context, n.name),
               ),
           ],
@@ -194,13 +216,53 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
     if (picked != null && mounted) _answer(EnvFromContainer(picked));
   }
 
+  /// Share a variable of the container by a QR code, from the list of the container.
+  Future<void> _shareFromContainer(EnvNameView n) async {
+    String? value;
+    try {
+      value = _store.value(n.name);
+    } catch (_) {
+      value = null;
+    }
+    if (value == null || !mounted) return;
+    await showEnvShare(context, name: n.name, value: value, sensitive: n.sensitive);
+  }
+
+  /// Receive a value from a QR code of a friend. It fills the form of a typed value: the
+  /// value and the mark of the code, and, as the name to save it under, the name of the
+  /// code. The user can change all of them, and chooses to keep it or to use it only here.
+  Future<void> _scan() async {
+    final share = await (widget.scanner ?? scanEnvShare)(context);
+    if (share == null || !mounted) return;
+    setState(() {
+      _typing = true;
+      _hidden = true;
+      _typedCtrl.text = share.value;
+      _typedSensitive = share.sensitive;
+      _saveNameCtrl.text = share.name;
+      _typedError = null;
+      _saveNameError = null;
+    });
+  }
+
   void _useTyped() {
     final problem = envValueProblem(_typedCtrl.text);
     if (problem != null) {
       setState(() => _typedError = envProblemText(context.l10n, problem));
       return;
     }
-    _answer(EnvTyped(_typedCtrl.text, sensitive: _typedSensitive, save: _typedSave));
+    String? saveAs;
+    if (_typedSave) {
+      final l = context.l10n;
+      final name = _saveNameCtrl.text.trim();
+      final nameProblem = envNameProblem(name);
+      if (nameProblem != null) {
+        setState(() => _saveNameError = nameProblem == EnvProblem.nameReserved ? l.celautEnvNameReserved : l.celautEnvNameBad);
+        return;
+      }
+      if (name != widget.declared[_index].name) saveAs = name;
+    }
+    _answer(EnvTyped(_typedCtrl.text, sensitive: _typedSensitive, save: _typedSave, saveAs: saveAs));
   }
 
   bool get _chat => widget.purpose == EnvQuestionsPurpose.chat;
@@ -213,7 +275,8 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
       final answer = _answers[i];
       if (answer is! EnvTyped || !answer.save) continue;
       try {
-        _store.set(widget.declared[i].name, answer.text, sensitive: answer.sensitive);
+        final name = answer.saveAs ?? widget.declared[i].name;
+        _store.set(name, answer.text, sensitive: answer.sensitive);
       } catch (_) {
         failed = true;
       }
@@ -306,6 +369,13 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
           label: Text(l.celautEnvAskPick),
         ),
         const SizedBox(height: 8),
+        OutlinedButton.icon(
+          key: const Key('env-ask-scan'),
+          onPressed: _scan,
+          icon: const Icon(Icons.qr_code_scanner),
+          label: Text(l.celautEnvAskScan),
+        ),
+        const SizedBox(height: 8),
         if (!_typing)
           OutlinedButton.icon(
             key: const Key('env-ask-type'),
@@ -351,12 +421,22 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
             onChanged: (v) => setState(() => _typedSave = v),
             title: Text(l.celautEnvAskSave),
             subtitle: Text(
-              _containerViews().any((n) => n.name == v.name)
-                  ? l.celautEnvAskSaveReplaces(v.name)
-                  : l.celautEnvAskSaveHint(v.name),
+              _containerViews().any((n) => n.name == _saveNameCtrl.text.trim())
+                  ? l.celautEnvAskSaveReplaces(_saveNameCtrl.text.trim())
+                  : l.celautEnvAskSaveHint(_saveNameCtrl.text.trim()),
               style: TextStyle(fontSize: 12.5, color: colors.muted),
             ),
           ),
+          if (_typedSave)
+            TextField(
+              key: const Key('env-typed-save-name'),
+              controller: _saveNameCtrl,
+              autocorrect: false,
+              enableSuggestions: false,
+              textCapitalization: TextCapitalization.characters,
+              onChanged: (_) => setState(() => _saveNameError = null),
+              decoration: InputDecoration(labelText: l.celautEnvName, errorText: _saveNameError, errorMaxLines: 3),
+            ),
           const SizedBox(height: 8),
           FilledButton(key: const Key('env-typed-use'), onPressed: _useTyped, child: Text(l.celautEnvAskUse)),
         ],

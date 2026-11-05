@@ -238,6 +238,8 @@ The checks are in `celaut-client` (`env.rs`, `db.rs`, `service_info.rs`), `walle
 
 ## 7. Open items
 
+- Sharing a variable by QR code: [env-share.md](env-share.md).
+
 - **Declarations are rare today.** The proto says that senders do not set
   `Container.environment_variables` yet, so a service in the wild does not declare variables
   and the questions do not appear. `claude-code.bee` is one of them. An alternative is a free

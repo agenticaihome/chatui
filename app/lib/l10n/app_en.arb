@@ -5390,5 +5390,18 @@
       }
     }
   },
-  "btcWalletButton": "Bitcoin wallet"
+  "btcWalletButton": "Bitcoin wallet",
+  "celautEnvShare": "Share by QR",
+  "celautEnvShareTitle": "Share {name}",
+  "@celautEnvShareTitle": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "celautEnvShareWarn": "Whoever scans this code gets the value in plain text. Show it only to people you trust.",
+  "celautEnvShareWarnSensitive": "This variable is sensitive. Whoever scans this code gets the value in plain text. Show it only to people you trust, and make sure nobody else sees or records your screen.",
+  "celautEnvShareTooBig": "This value is too large for a QR code.",
+  "celautEnvScan": "Receive by QR",
+  "celautEnvAskScan": "Scan a QR code",
+  "celautEnvScanNotVariable": "That QR code is not a shared variable."
 }
