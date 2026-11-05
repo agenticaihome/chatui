@@ -96,7 +96,7 @@ object PackageHandler {
     }
 
     /// The uri, the name and the size of a file (-1 if the provider does not say it).
-    private fun describe(context: Context, uri: Uri): Map<String, Any> {
+    fun describe(context: Context, uri: Uri): Map<String, Any> {
         var name: String? = null
         var size = -1L
         try {

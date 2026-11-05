@@ -8,6 +8,22 @@ import '../services/secure_storage.dart';
 import 'package_channel.dart';
 import 'service_transfer.dart';
 
+/// The name that the library gives to a file of this name (as `clean_name` of the core):
+/// without its folders and without `.celaut.bee` or `.bee`, with no control characters, and
+/// no more than 80 characters. Null for a name that is then empty.
+String? libraryNameOf(String fileName) {
+  var base = fileName.split(RegExp(r'[/\\]')).last.trim();
+  final lower = base.toLowerCase();
+  if (lower.endsWith('.celaut.bee')) {
+    base = base.substring(0, base.length - '.celaut.bee'.length);
+  } else if (lower.endsWith('.bee')) {
+    base = base.substring(0, base.length - '.bee'.length);
+  }
+  final kept = base.runes.where((r) => r >= 0x20 && (r < 0x7f || r > 0x9f)).take(80);
+  final name = String.fromCharCodes(kept).trim();
+  return name.isEmpty ? null : name;
+}
+
 /// What an import does now.
 enum ImportPhase {
   /// The app copies the chosen file into a private folder.

@@ -4620,6 +4620,24 @@
       }
     }
   },
+  "celautPkgAgainTitle": "Already in the app",
+  "celautPkgAgainBody": "{name} is already in the app, with the same size. Import it again?",
+  "@celautPkgAgainBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "celautPkgAgainImport": "Import again",
+  "celautPkgReplaced": "Loaded {name} again. It replaces the file that the app had.",
+  "@celautPkgReplaced": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "celautPkgMissing": "The file is gone. Import it again.",
   "celautPkgRedownload": "Download the file again and try once more: a browser sometimes saves it damaged.",
   "celautSendFromLibrary": "Send your loaded file to {to}",

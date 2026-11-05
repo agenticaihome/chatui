@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../bridge/argus_error.dart';
 import '../celaut/compute_home_flag.dart';
+import '../celaut/incoming_package.dart';
 import '../format.dart';
 import '../l10n/l10n.dart';
 import '../services/address_label_service.dart';
@@ -168,6 +169,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     _price.attach();
     _sync.addListener(_onSyncChanged);
     deepLinkController.addListener(_onDeepLink);
+    incomingPackages.addListener(_openIncomingPackage);
     computeHomeFlag.addListener(_onComputeHomeChanged);
     computeHomeFlag.load();
     walletService.currentWalletId.addListener(_onActiveWalletChanged);
@@ -208,6 +210,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     walletService.unlocked.removeListener(_syncLock);
     _sync.removeListener(_onSyncChanged);
     deepLinkController.removeListener(_onDeepLink);
+    incomingPackages.removeListener(_openIncomingPackage);
     _overview.dispose();
     _price.dispose();
     _pinCtrl.dispose();
@@ -234,6 +237,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!mounted) return;
     setState(() => _loading = false);
     unawaited(_overview.refreshOnLaunch());
+    // A file that the user opened in a file manager launched the app: its import starts
+    // when the home screen is there.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openIncomingPackage());
   }
 
   // ── Listeners ─────────────────────────────────────────────────────────
@@ -264,6 +270,25 @@ class _DashboardScreenState extends State<DashboardScreen>
         pending: ((tx['height'] as num?)?.toInt() ?? 0) == 0,
       );
     }
+  }
+
+  // ── Files opened in a file manager ────────────────────────────────────
+
+  /// Import the `.celaut.bee` file that the user opened in a file manager, on the page
+  /// Services over the list of chats. It waits while the app starts and while another
+  /// import runs ([IncomingPackages]). The page of a wallet closes first.
+  void _openIncomingPackage() {
+    if (!mounted || _loading || incomingPackages.pending == null) return;
+    if (!(widget.computeHome ?? computeHomeFlag.value)) return;
+    if (_open != null) {
+      _closeWallet();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openIncomingPackage());
+      return;
+    }
+    final home = _homeKey.currentState;
+    if (home == null) return;
+    final file = incomingPackages.take();
+    if (file != null) unawaited(home.importFile(file));
   }
 
   // ── Deep links ────────────────────────────────────────────────────────

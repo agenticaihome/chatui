@@ -10019,6 +10019,30 @@ abstract class AppLocalizations {
   /// **'The app cannot read this file: {reason}'**
   String celautPkgUnreadable(String reason);
 
+  /// No description provided for @celautPkgAgainTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in the app'**
+  String get celautPkgAgainTitle;
+
+  /// No description provided for @celautPkgAgainBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is already in the app, with the same size. Import it again?'**
+  String celautPkgAgainBody(String name);
+
+  /// No description provided for @celautPkgAgainImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import again'**
+  String get celautPkgAgainImport;
+
+  /// No description provided for @celautPkgReplaced.
+  ///
+  /// In en, this message translates to:
+  /// **'Loaded {name} again. It replaces the file that the app had.'**
+  String celautPkgReplaced(String name);
+
   /// No description provided for @celautPkgMissing.
   ///
   /// In en, this message translates to:

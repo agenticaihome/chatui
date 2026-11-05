@@ -9,6 +9,7 @@ import 'package:argus_wallet/bridge/api/celaut_package.dart';
 import 'package:argus_wallet/bridge/api/celaut_service.dart';
 import 'package:argus_wallet/celaut/celaut_strings.dart';
 import 'package:argus_wallet/celaut/env_store.dart';
+import 'package:argus_wallet/celaut/incoming_package.dart';
 import 'package:argus_wallet/celaut/launcher.dart';
 import 'package:argus_wallet/celaut/package_channel.dart';
 import 'package:argus_wallet/celaut/package_library.dart';
@@ -227,6 +228,9 @@ void main() {
     ServiceInfoLoader? inspect,
     EnvStore? envStore,
     Set<String> Function()? trustedNodes,
+    ChosenFile? importFile,
+    IncomingPackages? incoming,
+    bool settle = true,
   }) async {
     tester.view.physicalSize = const Size(390, 2400);
     tester.view.devicePixelRatio = 1;
@@ -274,12 +278,19 @@ void main() {
               transfer: transfer,
               packages: packages,
               library: (lib ?? _Lib()).library,
+              importFile: importFile,
+              incoming: incoming ?? IncomingPackages(),
             ),
           ),
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+      await tester.pump();
+    }
   }
 
   setUp(() {
@@ -873,6 +884,69 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('import-progress')), findsNothing);
       expect(find.text(appL10n.celautPkgLoaded('echo')), findsOneWidget);
+    });
+
+    testWidgets('a file opened in a file manager is imported at once, with no picker', (tester) async {
+      packages.picked = const PickedPackage(path: '/cache/picked.bee', bytes: 4000, name: 'echo.celaut.bee');
+      packages.copyGate = Completer<void>();
+      final incoming = IncomingPackages();
+      await open(
+        tester,
+        packages: packages,
+        lib: lib,
+        incoming: incoming,
+        importFile: const ChosenFile(uri: 'content://downloads/1', name: 'echo.celaut.bee', bytes: 4000),
+        settle: false,
+      );
+      // The card is there after the first frame, while the file is read.
+      expect(find.byKey(const Key('import-progress')), findsOneWidget);
+      expect(find.text(appL10n.celautImportReading), findsOneWidget);
+      expect(packages.picks, 0);
+      expect(incoming.busy.value, isTrue, reason: 'a file opened meanwhile waits');
+      packages.copyGate!.complete();
+      await tester.pumpAndSettle();
+      expect(lib.calls, ['import /cache/picked.bee echo.celaut.bee']);
+      expect(find.text(appL10n.celautPkgLoaded('echo')), findsOneWidget);
+      expect(find.byKey(Key('pkg-$_best')), findsOneWidget);
+      expect(incoming.busy.value, isFalse);
+    });
+
+    testWidgets('a file of the same name and size as a loaded one: the app asks first', (tester) async {
+      lib.stored = [lib.view(name: 'echo')];
+      packages.picked = const PickedPackage(path: '/cache/picked.bee', bytes: 4096, name: 'echo.celaut.bee');
+      await open(
+        tester,
+        packages: packages,
+        lib: lib,
+        importFile: const ChosenFile(uri: 'content://downloads/1', name: 'echo.celaut.bee', bytes: 4096),
+      );
+      expect(find.byKey(const Key('pkg-again-dialog')), findsOneWidget);
+      expect(find.text(appL10n.celautPkgAgainBody('echo')), findsOneWidget);
+      // Cancel: the file is not read.
+      await tester.tap(find.byKey(const Key('pkg-again-cancel')));
+      await tester.pumpAndSettle();
+      expect(lib.calls, isEmpty);
+      expect(find.byKey(const Key('import-progress')), findsNothing);
+      // From the picker, and Import again: the file replaces the loaded one, and the app
+      // says so.
+      await showFiles(tester);
+      await tester.tap(find.byKey(const Key('pkg-import')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('pkg-again-confirm')));
+      await tester.pumpAndSettle();
+      expect(lib.calls, ['import /cache/picked.bee echo.celaut.bee']);
+      expect(find.text(appL10n.celautPkgReplaced('echo')), findsOneWidget);
+    });
+
+    testWidgets('the same service under another name is loaded, and replaces the old file', (tester) async {
+      lib.stored = [lib.view(name: 'old')];
+      packages.picked = const PickedPackage(path: '/cache/picked.bee', bytes: 4096, name: 'echo.celaut.bee');
+      await open(tester, packages: packages, lib: lib);
+      await showFiles(tester);
+      await tester.tap(find.byKey(const Key('pkg-import')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('pkg-again-dialog')), findsNothing);
+      expect(find.text(appL10n.celautPkgReplaced('echo')), findsOneWidget);
     });
 
     testWidgets('the card shows at once, while the file is still read', (tester) async {

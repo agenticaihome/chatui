@@ -76,6 +76,39 @@
                 <data android:scheme="ergopay"/>
             </intent-filter>
         </activity>
+        <!-- Gives a .celaut.bee file that a file manager opens or shares to MainActivity,
+             in the task of the app, and shows nothing (OpenPackageActivity). -->
+        <activity
+            android:name=".OpenPackageActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay">
+            <!-- A .celaut.bee file that the user opens in a file manager, or shares with
+                 the app, starts its import. The file has no MIME type that Android knows,
+                 so file managers give application/octet-stream;
+                 application/vnd.celaut.bee is for an app that names the type. A file that
+                 is not a package is refused after its check, with the reason. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="application/vnd.celaut.bee"/>
+                <data android:mimeType="application/octet-stream"/>
+            </intent-filter>
+            <!-- The same file with another type, when its uri has the name of the file. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="content"/>
+                <data android:host="*"/>
+                <data android:mimeType="*/*"/>
+                <data android:pathPattern=".*\\.celaut\\.bee"/>
+                <data android:pathPattern=".*\\..*\\.celaut\\.bee"/>
+                <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
+            </intent-filter>
+        </activity>
         <service
             android:name=".ConversationService"
             android:exported="false"

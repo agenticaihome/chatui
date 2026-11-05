@@ -1882,6 +1882,24 @@
       }
     }
   },
+  "celautPkgAgainTitle": "Ya está en la app",
+  "celautPkgAgainBody": "{name} ya está en la app, con el mismo tamaño. ¿Importarlo de nuevo?",
+  "@celautPkgAgainBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "celautPkgAgainImport": "Importar de nuevo",
+  "celautPkgReplaced": "Cargado {name} de nuevo. Sustituye al archivo que tenía la app.",
+  "@celautPkgReplaced": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "celautPkgMissing": "El fichero ya no está. Impórtalo de nuevo.",
   "celautPkgRedownload": "Vuelve a descargar el archivo y prueba otra vez: a veces el navegador lo descarga dañado.",
   "celautSendFromLibrary": "Envía tu fichero cargado a {to}",

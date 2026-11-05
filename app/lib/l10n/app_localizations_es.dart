@@ -6354,6 +6354,22 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get celautPkgAgainTitle => 'Ya está en la app';
+
+  @override
+  String celautPkgAgainBody(String name) {
+    return '$name ya está en la app, con el mismo tamaño. ¿Importarlo de nuevo?';
+  }
+
+  @override
+  String get celautPkgAgainImport => 'Importar de nuevo';
+
+  @override
+  String celautPkgReplaced(String name) {
+    return 'Cargado $name de nuevo. Sustituye al archivo que tenía la app.';
+  }
+
+  @override
   String get celautPkgMissing => 'El fichero ya no está. Impórtalo de nuevo.';
 
   @override

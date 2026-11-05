@@ -10,6 +10,7 @@ import 'package:argus_wallet/celaut/chat_client.dart';
 import 'package:argus_wallet/celaut/chat_prefs.dart';
 import 'package:argus_wallet/celaut/conversations.dart';
 import 'package:argus_wallet/celaut/launcher.dart';
+import 'package:argus_wallet/celaut/package_channel.dart';
 import 'package:argus_wallet/celaut/package_library.dart';
 import 'package:argus_wallet/celaut/payers.dart';
 import 'package:argus_wallet/celaut/stopped_filter.dart';
@@ -322,11 +323,28 @@ void main() {
           },
           wallet: (context, deposit) => _WalletTab(deposit),
           page: _Place.new,
+          importPage: (file) => Scaffold(body: Text('import ${file.name}')),
         ),
       ),
     );
     if (settle) await tester.pumpAndSettle();
   }
+
+  testWidgets('a file opened in a file manager opens its import over the chats, from any tab', (
+    tester,
+  ) async {
+    await open(tester);
+    await tester.tap(find.byKey(const Key('tab-compute')));
+    await tester.pumpAndSettle();
+    final home = tester.state<HomeTabsState>(find.byType(HomeTabs));
+    unawaited(home.importFile(const ChosenFile(uri: 'content://downloads/1', name: 'echo.celaut.bee')));
+    await tester.pumpAndSettle();
+    expect(find.text('import echo.celaut.bee'), findsOneWidget);
+    expect(home.tab, HomeTab.chats);
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('chats-empty')), findsOneWidget);
+  });
 
   group('the list of conversations', () {
     testWidgets('with no instance it says how to start one, and its button opens the picker', (

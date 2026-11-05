@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/api/celaut_home.dart';
 import '../../bridge/api/celaut_service.dart';
 import '../../celaut/conversations.dart';
+import '../../celaut/package_channel.dart';
 import '../../celaut/payers.dart';
 import '../../celaut/wallet_money.dart';
 import '../../l10n/l10n.dart';
@@ -52,6 +53,7 @@ class HomeTabs extends StatefulWidget {
     this.runPage,
     this.loadCompute,
     this.page,
+    this.importPage,
   });
 
   final HomeTab initialTab;
@@ -90,6 +92,10 @@ class HomeTabs extends StatefulWidget {
 
   /// The page of a place. Tests give their own; null keeps the page of the app.
   final Widget? Function(HomePlace place)? page;
+
+  /// The page of the import of an opened file ([HomeTabsState.importFile]). Tests give
+  /// their own.
+  final Widget Function(ChosenFile file)? importPage;
 
   @override
   State<HomeTabs> createState() => HomeTabsState();
@@ -141,9 +147,36 @@ class HomeTabsState extends State<HomeTabs> {
     };
   }
 
-  Widget _runPage(String title) =>
-      _chats.currentState?.runPage(title) ??
-      RunServiceScreen(title: title, wallets: widget.wallets, newClient: widget.newClient);
+  Widget _runPage(String title, {ChosenFile? importFile}) =>
+      _chats.currentState?.runPage(title, importFile: importFile) ??
+      RunServiceScreen(
+        title: title,
+        wallets: widget.wallets,
+        newClient: widget.newClient,
+        importFile: importFile,
+      );
+
+  /// Import [file], a file that the user opened in a file manager: the page Services
+  /// opens over the list of chats, and the import starts at once.
+  Future<void> importFile(ChosenFile file) async {
+    select(HomeTab.chats);
+    // The page of the tab can be new: wait for its first frame.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    navigator.popUntil((r) => r.isFirst);
+    final title = context.l10n.chatsServicesTitle;
+    await navigator.push<void>(
+      MaterialPageRoute(
+        builder: (_) => widget.importPage?.call(file) ?? _runPage(title, importFile: file),
+      ),
+    );
+    if (!mounted) return;
+    await Future.wait([
+      ?_chats.currentState?.refresh(),
+      ?_compute.currentState?.refresh(),
+    ]);
+  }
 
   Future<void> _open(HomePlace place) async {
     await Navigator.of(context).push<void>(
