@@ -88,7 +88,7 @@ wallet-btc = { path = "crates/wallet-btc" }
 
 # ─── Celaut ──────────────────────────────────────────────────────────────
 # bee-rpc is GPL-3.0-only. It is a git dependency on a tag until a release exists.
-bee-rpc = { git = "https://github.com/bee-rpc-protocol/bee-rpc-over-grpc-rs", tag = "v0.3.0", features = ["grpc"] }
+bee-rpc = { git = "https://github.com/bee-rpc-protocol/bee-rpc-over-grpc-rs", tag = "v0.4.2", features = ["grpc"] }
 celaut-proto = { path = "crates/celaut-proto" }
 celaut-balancer = { path = "crates/celaut-balancer" }
 celaut-catalog = { path = "crates/celaut-catalog" }
