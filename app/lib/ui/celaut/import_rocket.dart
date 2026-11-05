@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../bridge/api/celaut_package.dart';
 import '../../celaut/celaut_strings.dart';
+import '../../celaut/package_library.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
 import 'raise_rocket.dart';
@@ -16,18 +16,20 @@ class ImportCancelled implements Exception {
   String toString() => 'ImportCancelled()';
 }
 
-/// Run [work] (the load of a service file) under a card with the rocket, the bytes that
-/// the app checked so far, and Cancel. The rocket lies on its pad and the pad raises it as
-/// the bytes are checked ([RaiseStage]); when [work] ends well, it stands before the card
-/// goes. It does not take off: that is the launch's. A failure of [work] is thrown again, as [ImportCancelled] when the user
-/// pressed Cancel.
+/// Run [work] (the load of a service file) under a card with the rocket, the step of the
+/// import (the read of the file, then the check of its blocks), its bytes so far, and
+/// Cancel. The card shows before [work] starts, so that the user sees at once that the
+/// import runs. The rocket lies on its pad and the pad raises it as the whole import goes
+/// on ([RaiseStage]); when [work] ends well, it stands before the card goes. It does not
+/// take off: that is the launch's. A failure of [work] is thrown again, as
+/// [ImportCancelled] when the user pressed Cancel.
 ///
-/// [progress] and [cancel] are the calls of the Rust side (`celaut_transfer_progress`,
-/// `celaut_cancel_transfer`): they are injected so that tests need no Rust.
+/// [progress] and [cancel] are those of [PackageLibrary] (`importProgress`,
+/// `cancelImport`): they are injected so that tests need no Rust and no Android.
 Future<T> runWithImportRocket<T>(
   BuildContext context, {
   required Future<T> Function() work,
-  required TransferView Function() progress,
+  required ImportProgress Function() progress,
   required void Function() cancel,
   Duration poll = const Duration(milliseconds: 200),
 }) async {
@@ -77,7 +79,7 @@ class _ImportCard extends StatefulWidget {
   });
 
   final GlobalKey<RaiseStageState> stage;
-  final TransferView Function() progress;
+  final ImportProgress Function() progress;
   final Duration poll;
   final VoidCallback onCancel;
 
@@ -87,18 +89,24 @@ class _ImportCard extends StatefulWidget {
 
 class _ImportCardState extends State<_ImportCard> {
   Timer? _timer;
-  TransferView? _view;
+  ImportProgress? _view;
   bool _cancelling = false;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(widget.poll, (_) {
-      if (!mounted) return;
-      final view = widget.progress();
-      setState(() => _view = view);
-      widget.stage.currentState?.setProgress(_fractionOf(view));
-    });
+    // The first count shows at once, not one poll later; the rocket follows after the first
+    // frame, when its stage is there.
+    _view = widget.progress();
+    _timer = Timer.periodic(widget.poll, (_) => _read());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _read());
+  }
+
+  void _read() {
+    if (!mounted) return;
+    final view = widget.progress();
+    setState(() => _view = view);
+    widget.stage.currentState?.setProgress(view.overall);
   }
 
   @override
@@ -107,21 +115,15 @@ class _ImportCardState extends State<_ImportCard> {
     super.dispose();
   }
 
-  /// The share of the file checked, or null while the total is not known.
-  static double? _fractionOf(TransferView? view) {
-    final total = view?.total?.toInt();
-    if (view == null || total == null || total <= 0) return null;
-    return (view.bytes.toInt() / total).clamp(0.0, 1.0).toDouble();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
     final view = _view;
-    final done = view?.bytes.toInt() ?? 0;
-    final total = view?.total?.toInt();
-    final fraction = _fractionOf(view);
+    final done = view?.bytes ?? 0;
+    final total = view?.total;
+    final fraction = view?.fraction;
+    final reading = view == null || view.phase == ImportPhase.reading;
     final amount = fraction != null
         ? l.celautSendProgress(
             CelautStrings.bytes(done),
@@ -142,13 +144,14 @@ class _ImportCardState extends State<_ImportCard> {
             Center(child: RaiseStage(key: widget.stage)),
             const SizedBox(height: 12),
             Text(
-              l.celautImportChecking,
+              reading ? l.celautImportReading : l.celautImportChecking,
+              key: const Key('import-step'),
               style: t.title,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
-              l.celautImportNote,
+              reading ? l.celautImportReadingNote : l.celautImportNote,
               style: t.secondary,
               textAlign: TextAlign.center,
             ),

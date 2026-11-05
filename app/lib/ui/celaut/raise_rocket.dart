@@ -48,7 +48,10 @@ class RaiseStageState extends State<RaiseStage> with SingleTickerProviderStateMi
       return;
     }
     _indeterminate = false;
-    _go(fraction.clamp(0.0, 1.0).toDouble(), const Duration(milliseconds: 250), Curves.linear);
+    // The rocket does not go down: the slow rise without a total can be higher than the
+    // first count.
+    _go(max(fraction.clamp(0.0, 1.0).toDouble(), _raise.value), const Duration(milliseconds: 250),
+        Curves.linear);
   }
 
   void _go(double to, Duration time, Curve curve) {

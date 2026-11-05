@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:argus_wallet/bridge/api/celaut.dart';
 import 'package:argus_wallet/bridge/api/celaut_package.dart';
 import 'package:argus_wallet/celaut/package_channel.dart';
@@ -6,6 +8,35 @@ import 'package:argus_wallet/celaut/service_transfer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final _id = 'ab' * 32;
+
+/// A channel whose copy is a real file of the test, so that a delete can be seen.
+class _Copier implements PackageChannel {
+  _Copier(this.path);
+
+  final String path;
+  int copies = 0;
+  int cancels = 0;
+
+  @override
+  int copied = 0;
+
+  @override
+  Future<ChosenFile?> pick() async => null;
+
+  @override
+  Future<PickedPackage> copy(ChosenFile file) async {
+    copies++;
+    File(path).writeAsBytesSync(List.filled(10, 1));
+    copied = 10;
+    return PickedPackage(path: path, bytes: 10, name: file.name);
+  }
+
+  @override
+  void cancelCopy() => cancels++;
+
+  @override
+  Future<bool> isMetered() async => false;
+}
 
 LibraryPackageView _view({String? id, String name = 'echo', bool present = true}) => LibraryPackageView(
   serviceId: id ?? _id,
@@ -32,6 +63,7 @@ void main() {
     list: () => stored,
     remove: (id) async => calls.add('remove $id'),
     privateDir: () async => dir,
+    progress: () => TransferView(stage: TransferStage.checking, bytes: BigInt.from(4), total: BigInt.from(10)),
   );
 
   setUp(() {
@@ -69,6 +101,55 @@ void main() {
       make().importPicked(const PickedPackage(path: '/c.bee', bytes: 1, name: 'c')),
       throwsA(isA<CelautError>().having((e) => e.message, 'message', 'no Service part')),
     );
+  });
+
+  group('a chosen file', () {
+    late Directory tmp;
+    late _Copier copier;
+    const chosen = ChosenFile(uri: 'content://files/echo.celaut.bee', name: 'echo.celaut.bee', bytes: 10);
+
+    setUp(() {
+      tmp = Directory.systemTemp.createTempSync('pkg');
+      copier = _Copier('${tmp.path}/picked-1.bee');
+    });
+    tearDown(() => tmp.deleteSync(recursive: true));
+
+    test('is copied, then loaded from its copy', () async {
+      final library = make();
+      final loaded = await library.importChosen(chosen, copier);
+      expect(copier.copies, 1);
+      expect(calls, ['import ${copier.path} echo.celaut.bee /data/app']);
+      expect(loaded.serviceId, _id);
+      final now = library.importProgress();
+      expect(now.phase, ImportPhase.checking);
+      expect(now.bytes, 4);
+      expect(now.total, 10);
+    });
+
+    test('that the core refuses: its copy is deleted', () async {
+      importError = const CelautError(kind: CelautErrorKind.invalidInput, message: 'no Service part');
+      await expectLater(make().importChosen(chosen, copier), throwsA(isA<CelautError>()));
+      expect(File(copier.path).existsSync(), isFalse);
+    });
+
+    test('with no private directory, is not copied', () async {
+      dir = null;
+      await expectLater(make().importChosen(chosen, copier), throwsA(isA<PackageRefused>()));
+      expect(copier.copies, 0);
+    });
+  });
+
+  test('the progress of an import: the read is the first half, the check the second', () {
+    const reading = ImportProgress(phase: ImportPhase.reading, bytes: 25, total: 100);
+    expect(reading.fraction, 0.25);
+    expect(reading.overall, 0.125);
+    const checking = ImportProgress(phase: ImportPhase.checking, bytes: 50, total: 100);
+    expect(checking.fraction, 0.5);
+    expect(checking.overall, 0.75);
+    const unknown = ImportProgress(phase: ImportPhase.reading, bytes: 25);
+    expect(unknown.fraction, isNull);
+    expect(unknown.overall, isNull);
+    expect(const ImportProgress(phase: ImportPhase.checking, bytes: 0).overall, 0.5);
   });
 
   test('find gives a loaded service by id, in any case, only if its file is there', () {

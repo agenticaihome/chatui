@@ -163,16 +163,41 @@ class _Lib {
 
 class _Packages implements PackageChannel {
   bool metered = false;
+
+  /// The copy of the file that the user picks: the picker gives its name and size.
   PickedPackage? picked;
   int picks = 0;
+
+  /// A copy that waits for the test: the card shows meanwhile.
+  Completer<void>? copyGate;
+  Object? copyError;
+  int cancels = 0;
+
+  @override
+  int copied = 0;
 
   @override
   Future<bool> isMetered() async => metered;
 
   @override
-  Future<PickedPackage?> pick() async {
+  Future<ChosenFile?> pick() async {
     picks++;
-    return picked;
+    final p = picked;
+    return p == null ? null : ChosenFile(uri: 'content://files/${p.name}', name: p.name, bytes: p.bytes);
+  }
+
+  @override
+  Future<PickedPackage> copy(ChosenFile file) async {
+    if (copyGate != null) await copyGate!.future;
+    if (copyError != null) throw copyError!;
+    return picked!;
+  }
+
+  @override
+  void cancelCopy() {
+    cancels++;
+    copyError = const CopyCancelled();
+    if (copyGate?.isCompleted == false) copyGate!.complete();
   }
 }
 
@@ -832,7 +857,7 @@ void main() {
       await open(tester, packages: packages, lib: lib);
     await showFiles(tester);
       await tester.tap(find.byKey(const Key('pkg-import')));
-      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 250));
       expect(find.byKey(const Key('import-progress')), findsOneWidget);
       // The rocket of an import is raised on its pad, not the one that hovers to launch.
       expect(find.byKey(const Key('raise-rocket')), findsOneWidget);
@@ -848,6 +873,67 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('import-progress')), findsNothing);
       expect(find.text(appL10n.celautPkgLoaded('echo')), findsOneWidget);
+    });
+
+    testWidgets('the card shows at once, while the file is still read', (tester) async {
+      packages.picked = const PickedPackage(path: '/cache/picked.bee', bytes: 4000, name: 'echo.celaut.bee');
+      packages.copyGate = Completer<void>();
+      await open(tester, packages: packages, lib: lib);
+      await showFiles(tester);
+      await tester.tap(find.byKey(const Key('pkg-import')));
+      await tester.pump();
+      await tester.pump();
+      // The copy did not end, and the card with the rocket is there.
+      expect(find.byKey(const Key('import-progress')), findsOneWidget);
+      expect(find.byKey(const Key('raise-rocket')), findsOneWidget);
+      expect(find.text(appL10n.celautImportReading), findsOneWidget);
+      expect(find.text(appL10n.celautImportReadingNote), findsOneWidget);
+      packages.copied = 2000;
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.text(appL10n.celautSendProgress(CelautStrings.bytes(2000), CelautStrings.bytes(4000), '50')), findsOneWidget);
+      expect(tester.widget<LinearProgressIndicator>(find.byKey(const Key('import-bar'))).value, 0.5);
+      expect(lib.calls, isEmpty);
+      // The copy ends: the check starts with its own count.
+      lib.importGate = Completer<void>();
+      packages.copyGate!.complete();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.text(appL10n.celautImportChecking), findsOneWidget);
+      expect(lib.calls, ['import /cache/picked.bee echo.celaut.bee']);
+      lib.importGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('import-progress')), findsNothing);
+      expect(find.text(appL10n.celautPkgLoaded('echo')), findsOneWidget);
+    });
+
+    testWidgets('Cancel while the file is read stops the copy and loads nothing', (tester) async {
+      packages.picked = const PickedPackage(path: '/cache/picked.bee', bytes: 4000, name: 'echo.celaut.bee');
+      packages.copyGate = Completer<void>();
+      await open(tester, packages: packages, lib: lib);
+      await showFiles(tester);
+      await tester.tap(find.byKey(const Key('pkg-import')));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byKey(const Key('import-cancel')));
+      await tester.pumpAndSettle();
+      expect(packages.cancels, 1);
+      expect(lib.calls, isEmpty);
+      expect(find.byKey(const Key('import-progress')), findsNothing);
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.byKey(const Key('pkg-empty')), findsOneWidget);
+    });
+
+    testWidgets('a file that the app cannot read is refused with the reason', (tester) async {
+      packages.picked = const PickedPackage(path: '/cache/picked.bee', bytes: 4000, name: 'echo.celaut.bee');
+      packages.copyError = const CopyFailed('Permission denied');
+      await open(tester, packages: packages, lib: lib);
+      await showFiles(tester);
+      await tester.tap(find.byKey(const Key('pkg-import')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('${appL10n.celautPkgUnreadable('Permission denied')}\n${appL10n.celautPkgRedownload}'),
+        findsOneWidget,
+      );
+      expect(lib.calls, isEmpty);
+      expect(find.byKey(const Key('pkg-empty')), findsOneWidget);
     });
 
     testWidgets('Cancel stops the check, says nothing and loads nothing', (tester) async {

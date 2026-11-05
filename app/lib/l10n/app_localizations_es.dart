@@ -6277,6 +6277,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautSendStarting => 'Empezando la transferencia…';
 
   @override
+  String get celautImportReading => 'Leyendo el archivo del servicio…';
+
+  @override
+  String get celautImportReadingNote =>
+      'Primero la app copia el archivo en su propio almacenamiento. Un archivo grande tarda un poco.';
+
+  @override
   String get celautImportChecking => 'Comprobando el archivo del servicio…';
 
   @override
@@ -6339,6 +6346,11 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String celautPkgBadFile(String reason) {
     return 'Este fichero no es un paquete de servicio: $reason';
+  }
+
+  @override
+  String celautPkgUnreadable(String reason) {
+    return 'La app no puede leer este archivo: $reason';
   }
 
   @override

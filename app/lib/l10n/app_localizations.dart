@@ -9899,6 +9899,18 @@ abstract class AppLocalizations {
   /// **'Starting the transfer…'**
   String get celautSendStarting;
 
+  /// No description provided for @celautImportReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the service file…'**
+  String get celautImportReading;
+
+  /// No description provided for @celautImportReadingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The app copies the file into its own storage first. A large file takes some time.'**
+  String get celautImportReadingNote;
+
   /// No description provided for @celautImportChecking.
   ///
   /// In en, this message translates to:
@@ -10000,6 +10012,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This file is not a service package: {reason}'**
   String celautPkgBadFile(String reason);
+
+  /// No description provided for @celautPkgUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The app cannot read this file: {reason}'**
+  String celautPkgUnreadable(String reason);
 
   /// No description provided for @celautPkgMissing.
   ///

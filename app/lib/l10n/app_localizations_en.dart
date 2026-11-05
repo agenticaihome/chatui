@@ -6201,6 +6201,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautSendStarting => 'Starting the transfer…';
 
   @override
+  String get celautImportReading => 'Reading the service file…';
+
+  @override
+  String get celautImportReadingNote =>
+      'The app copies the file into its own storage first. A large file takes some time.';
+
+  @override
   String get celautImportChecking => 'Checking the service file…';
 
   @override
@@ -6262,6 +6269,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String celautPkgBadFile(String reason) {
     return 'This file is not a service package: $reason';
+  }
+
+  @override
+  String celautPkgUnreadable(String reason) {
+    return 'The app cannot read this file: $reason';
   }
 
   @override
