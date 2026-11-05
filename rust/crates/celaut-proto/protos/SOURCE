@@ -1,3 +1,3 @@
-celaut-project/nodo 515d92aa86be3f453c95da36af5e49416b2c4e01 protos/celaut.proto (dev, after nodo#599)
+celaut-project/nodo 1359ebda78779f96264e8797952acbbd6f9dac4a protos/celaut.proto (dev, after nodo#603)
 celaut-project/nodo b5c1e8a5ea43b43d0779c1a7613d5294f39c6745 protos/buffer.proto
 celaut-project/nodo f4dcb3b2 protos/invite.proto (the peer invitation of nodo#579; it is not part of celaut.proto)

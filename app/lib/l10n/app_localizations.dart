@@ -11950,6 +11950,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That QR code is not a shared variable.'**
   String get celautEnvScanNotVariable;
+
+  /// No description provided for @chatsStateHibernated.
+  ///
+  /// In en, this message translates to:
+  /// **'Hibernated'**
+  String get chatsStateHibernated;
+
+  /// No description provided for @chatsHibernate.
+  ///
+  /// In en, this message translates to:
+  /// **'Hibernate'**
+  String get chatsHibernate;
+
+  /// No description provided for @chatsWake.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake'**
+  String get chatsWake;
+
+  /// No description provided for @chatsHibernateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hibernate {name}?'**
+  String chatsHibernateTitle(String name);
+
+  /// No description provided for @chatsHibernateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance stops using CPU and RAM, and the node charges only for its disk. The process state is lost: when you wake the instance, the service starts again from its entrypoint. The address and the ports stay. The app keeps the CPU and RAM that the instance has now, and wakes it with them. Hibernating costs the instance two call fees.'**
+  String get chatsHibernateBody;
+
+  /// No description provided for @chatsHibernated.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance is hibernated.'**
+  String get chatsHibernated;
+
+  /// No description provided for @chatsWakeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake {name}?'**
+  String chatsWakeTitle(String name);
+
+  /// No description provided for @chatsWakeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance starts again with {cpu} and {ram}. The process state was lost: the service starts from its entrypoint. Waking costs the instance one call fee.'**
+  String chatsWakeBody(String cpu, String ram);
+
+  /// No description provided for @chatsWakeLastKnown.
+  ///
+  /// In en, this message translates to:
+  /// **'The app does not know if these values are the ones that the instance had when it hibernated. They are the last that the app got from the node.'**
+  String get chatsWakeLastKnown;
+
+  /// No description provided for @chatsWakeUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'The app does not know the CPU and RAM of this instance, so it cannot wake it.'**
+  String get chatsWakeUnknown;
+
+  /// No description provided for @chatsWoken.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance is awake.'**
+  String get chatsWoken;
+
+  /// No description provided for @chatsResourcesCpu.
+  ///
+  /// In en, this message translates to:
+  /// **'{cores} CPU cores'**
+  String chatsResourcesCpu(String cores);
+
+  /// No description provided for @chatsRefusalSharedFilesystem.
+  ///
+  /// In en, this message translates to:
+  /// **'The node does not hibernate this instance: it shares a filesystem with other instances.'**
+  String get chatsRefusalSharedFilesystem;
+
+  /// No description provided for @chatsRefusalNotRevivable.
+  ///
+  /// In en, this message translates to:
+  /// **'The node does not hibernate this instance: it cannot start again from its own disk.'**
+  String get chatsRefusalNotRevivable;
+
+  /// No description provided for @chatsRefusalInstanceBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance has not enough balance to pay the fee of this call. Add time to the instance, then try again.'**
+  String get chatsRefusalInstanceBalance;
+
+  /// No description provided for @chatsRefusalDoesNotFit.
+  ///
+  /// In en, this message translates to:
+  /// **'The node has no room for the CPU and RAM of this instance now. The instance stays hibernated. Try again later.'**
+  String get chatsRefusalDoesNotFit;
+
+  /// No description provided for @chatsRefusalNoLocalInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'This instance runs on a peer of the node, or it is gone. The node cannot hibernate or wake it.'**
+  String get chatsRefusalNoLocalInstance;
+
+  /// No description provided for @chatsRefusalNotTheFather.
+  ///
+  /// In en, this message translates to:
+  /// **'The node says that this app is not the owner of the instance, so it does not accept the call.'**
+  String get chatsRefusalNotTheFather;
+
+  /// No description provided for @chatsRefusalNoResources.
+  ///
+  /// In en, this message translates to:
+  /// **'The app could not read the CPU and RAM of the instance, so it did not hibernate it. Nothing changed.'**
+  String get chatsRefusalNoResources;
+
+  /// No description provided for @chatsRefusalUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This node does not support hibernation. It is older than the feature, so the app hides the hibernate and wake actions for its instances. Nothing was charged.'**
+  String get chatsRefusalUnsupported;
+
+  /// No description provided for @chatsRefusalNotConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'The node did not confirm the hibernation. Nothing changed in the app.'**
+  String get chatsRefusalNotConfirmed;
+
+  /// No description provided for @chatsRefusalOther.
+  ///
+  /// In en, this message translates to:
+  /// **'The node refused the call: {message}'**
+  String chatsRefusalOther(String message);
+
+  /// No description provided for @chatsInfoResources.
+  ///
+  /// In en, this message translates to:
+  /// **'CPU and RAM'**
+  String get chatsInfoResources;
+
+  /// No description provided for @chatsInfoResourcesNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Not known yet'**
+  String get chatsInfoResourcesNone;
+
+  /// No description provided for @chatsInfoResourcesLastKnown.
+  ///
+  /// In en, this message translates to:
+  /// **'{resources} (last known values)'**
+  String chatsInfoResourcesLastKnown(String resources);
+
+  /// No description provided for @chatsInfoHibernatedSince.
+  ///
+  /// In en, this message translates to:
+  /// **'Hibernated since'**
+  String get chatsInfoHibernatedSince;
+
+  /// No description provided for @chatsInfoHibernateNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Hibernate frees the CPU and RAM, and the node charges only for the disk. The process state is lost when the instance wakes.'**
+  String get chatsInfoHibernateNote;
+
+  /// No description provided for @chatsInfoHibernatedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A hibernated instance pays only for its disk. Wake it to use it again. Stop it to get the refund; only a stopped instance can be deleted.'**
+  String get chatsInfoHibernatedNote;
 }
 
 class _AppLocalizationsDelegate

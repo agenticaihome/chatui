@@ -279,11 +279,17 @@ class AutoTopUp extends ChangeNotifier {
     _schedule();
     final balance = BigInt.tryParse(status.instanceBalanceMu);
     if (balance == null) return;
+    // A hibernated instance costs its disk only, and the plan has that price. Its balance
+    // must also hold the fee of the wake call, which the instance pays. A top-up never
+    // wakes it: the keep-alive only keeps its disk (ui.md, section 4b).
     final price = priceOf(plan);
-    final low = price == null ? balance < fallbackThresholdMu : price.lasts(balance) < _threshold;
+    final reserve = plan.hibernated ? (BigInt.tryParse(plan.wakeFeeMu) ?? BigInt.zero) : BigInt.zero;
+    final spare = balance > reserve ? balance - reserve : BigInt.zero;
+    final low = price == null ? spare < fallbackThresholdMu : price.lasts(spare) < _threshold;
     if (!low || _waiting(id) || !_busy.add(id)) return;
     try {
       var amount = price == null ? fallbackAmountMu : price.addFor(_chunk);
+      if (balance < reserve) amount += reserve - balance;
       if (amount > maxCallMu) amount = maxCallMu;
       final limit = BigInt.tryParse(plan.budgetMu);
       if (limit != null) {

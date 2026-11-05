@@ -110,6 +110,9 @@ pub struct RunningInstanceView {
     pub cost_so_far_mu: Option<String>,
     /// The same in nanoERG, at the rate of the node. `None` is unknown.
     pub cost_so_far_nano_erg: Option<String>,
+    /// The time of the hibernation, in Unix seconds. `None` while the instance is awake.
+    /// A hibernated instance costs its disk only.
+    pub hibernated_at: Option<i64>,
 }
 
 /// The compute overview.
@@ -348,6 +351,7 @@ pub async fn celaut_compute_overview() -> Result<ComputeOverviewView, CelautErro
             cost_so_far_nano_erg: cost
                 .and_then(|c| nano_erg_of(c, rate))
                 .map(|n| n.to_string()),
+            hibernated_at: record.hibernated_at,
         });
     }
 

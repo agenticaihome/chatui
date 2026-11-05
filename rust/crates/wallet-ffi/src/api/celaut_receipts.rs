@@ -229,6 +229,10 @@ mod tests {
                     refund_mu: None,
                     pricing: None,
                     keep_alive: None,
+                    awake_resources: None,
+                    awake_source: None,
+                    hibernated_at: None,
+                    hibernated_price: None,
                 },
             );
         })

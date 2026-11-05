@@ -8,9 +8,9 @@ import 'celaut.dart';
 import 'celaut_env.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `address_of_key`, `check`, `configuration`, `cost_so_far`, `forget_if_broken_key`, `forget_if_broken`, `instance`, `key`, `n`, `new_client_session`, `open_session`, `preferred_port`, `quote_view`, `service_id`, `session_pinned`, `session_with`, `session`, `spent_since`, `start_configuration`, `state`, `stopped_instance`, `unknown_instance`
+// These functions are ignored because they are not marked as `pub`: `address_of_key`, `already_hibernated`, `awake_view`, `check`, `configuration`, `cost_so_far`, `forget_if_broken_key`, `forget_if_broken`, `hibernation_view`, `instance`, `key`, `mark_gone_if_hibernated`, `n`, `new_client_session`, `not_hibernated`, `open_session`, `preferred_port`, `quote_view`, `refusal_view`, `refused_view`, `resources_view`, `service_id`, `session_pinned`, `session_with`, `session`, `source_view`, `spent_since`, `start_configuration`, `state_of`, `state`, `stopped_instance`, `unknown_instance`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `State`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 // These functions are ignored (category: IgnoreBecauseOwnerTyShouldIgnore): `default`
 
 /// Make a new client on the node, after the node forgot the stored client id and the
@@ -172,6 +172,119 @@ Future<StopView> celautStopService({required String instanceId}) => RustLib
     .api
     .crateApiCelautServiceCelautStopService(instanceId: instanceId);
 
+/// Hibernate the instance: the node stops its CPU and RAM, and charges it for its disk
+/// only. The app reads the resources of the instance from the node just before, and keeps
+/// them in the database, so a wake gives it the same CPU and RAM. The values are the
+/// ones that the instance has at this moment, not the ones that it had at the start.
+///
+/// This costs the instance two fees of the node (one for the read, one for the
+/// hibernation). The call is refused with an error for a stopped instance, and for one
+/// that is hibernated already. A refusal of the node or of the rules of the app is not an
+/// error: it is the `refusal` of the view, and the state does not change. The process
+/// state of the instance is lost at the next wake.
+Future<HibernationView> celautHibernateInstance({required String instanceId}) =>
+    RustLib.instance.api.crateApiCelautServiceCelautHibernateInstance(
+      instanceId: instanceId,
+    );
+
+/// Wake a hibernated instance with the resources that the app kept at the hibernation
+/// (all of CPU quota, CPU period and RAM, as the node asks). The node runs the
+/// entrypoint again; the address and the ports stay. The call is refused with an error
+/// for a stopped instance and for one that is not hibernated. If the node has no room,
+/// the `refusal` is `DoesNotFit`, and the instance stays hibernated with the same stored
+/// resources.
+Future<HibernationView> celautWakeInstance({required String instanceId}) =>
+    RustLib.instance.api.crateApiCelautServiceCelautWakeInstance(
+      instanceId: instanceId,
+    );
+
+/// The CPU and RAM that an instance has when it is awake. For a hibernated instance,
+/// these are the values that the wake sends.
+class AwakeResourcesView {
+  /// The CPU quota in microseconds for each `cpu_period`.
+  final BigInt cpuQuota;
+
+  /// The CPU period in microseconds.
+  final BigInt cpuPeriod;
+
+  /// The RAM limit in bytes.
+  final BigInt memLimit;
+  final ResourcesSourceView source;
+
+  const AwakeResourcesView({
+    required this.cpuQuota,
+    required this.cpuPeriod,
+    required this.memLimit,
+    required this.source,
+  });
+
+  @override
+  int get hashCode =>
+      cpuQuota.hashCode ^
+      cpuPeriod.hashCode ^
+      memLimit.hashCode ^
+      source.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AwakeResourcesView &&
+          runtimeType == other.runtimeType &&
+          cpuQuota == other.cpuQuota &&
+          cpuPeriod == other.cpuPeriod &&
+          memLimit == other.memLimit &&
+          source == other.source;
+}
+
+/// What a hibernation or a wake gave.
+class HibernationView {
+  /// The state of the instance after the call. With a `refusal`, it is the state from
+  /// before the call.
+  final InstanceStateView state;
+
+  /// The balance of the instance in MU after the call (empty if unknown, or if the
+  /// call was refused).
+  final String instanceBalanceMu;
+
+  /// The resources now: after a hibernation, the ones that a wake sends; after a wake,
+  /// the ones that the node gave. None if the app has none.
+  final AwakeResourcesView? resources;
+
+  /// The reason, if the call did not happen.
+  final ResourceRefusalView? refusal;
+
+  /// The text of the node for the refusal, without the wrapper of the transport (empty
+  /// if there is no refusal, or the app found the reason itself).
+  final String message;
+
+  const HibernationView({
+    required this.state,
+    required this.instanceBalanceMu,
+    this.resources,
+    this.refusal,
+    required this.message,
+  });
+
+  @override
+  int get hashCode =>
+      state.hashCode ^
+      instanceBalanceMu.hashCode ^
+      resources.hashCode ^
+      refusal.hashCode ^
+      message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HibernationView &&
+          runtimeType == other.runtimeType &&
+          state == other.state &&
+          instanceBalanceMu == other.instanceBalanceMu &&
+          resources == other.resources &&
+          refusal == other.refusal &&
+          message == other.message;
+}
+
 /// An instance in the database, without its token.
 class InstanceListView {
   final String instanceId;
@@ -210,6 +323,14 @@ class InstanceListView {
   /// What the node gave back at the stop, in MU (empty if unknown or not stopped).
   final String refundMu;
 
+  /// The time of the hibernation, in Unix seconds; none while the instance is awake.
+  final PlatformInt64? hibernatedAt;
+
+  /// The resources that the app keeps for the instance: the ones that a wake sends
+  /// while it is hibernated, the last known ones while it is awake. None if the app
+  /// has not got them yet.
+  final AwakeResourcesView? awakeResources;
+
   const InstanceListView({
     required this.instanceId,
     required this.peerId,
@@ -225,6 +346,8 @@ class InstanceListView {
     required this.title,
     this.stoppedAt,
     required this.refundMu,
+    this.hibernatedAt,
+    this.awakeResources,
   });
 
   @override
@@ -242,7 +365,9 @@ class InstanceListView {
       alias.hashCode ^
       title.hashCode ^
       stoppedAt.hashCode ^
-      refundMu.hashCode;
+      refundMu.hashCode ^
+      hibernatedAt.hashCode ^
+      awakeResources.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -262,7 +387,9 @@ class InstanceListView {
           alias == other.alias &&
           title == other.title &&
           stoppedAt == other.stoppedAt &&
-          refundMu == other.refundMu;
+          refundMu == other.refundMu &&
+          hibernatedAt == other.hibernatedAt &&
+          awakeResources == other.awakeResources;
 }
 
 /// What the app knows to keep an instance running: the price of its node, and whether the
@@ -286,6 +413,19 @@ class InstancePlanView {
   /// The margin of the node for the difference of the real cost.
   final double variance;
 
+  /// The app keeps the instance hibernated. A top-up does not wake it, and the node
+  /// charges it for its disk only.
+  final bool hibernated;
+
+  /// `maintenance_mu` is the price of the disk only. False for a hibernated instance
+  /// whose disk price the app could not work out: `maintenance_mu` is then the price
+  /// of the awake instance, which is more than the node charges.
+  final bool diskOnly;
+
+  /// The fee of the call that wakes the instance, in MU. The instance pays it, so a
+  /// hibernated instance needs it in its balance (empty if the app does not know it).
+  final String wakeFeeMu;
+
   const InstancePlanView({
     required this.keepAlive,
     required this.budgetMu,
@@ -293,6 +433,9 @@ class InstancePlanView {
     required this.maintenanceMu,
     required this.maintenanceSeconds,
     required this.variance,
+    required this.hibernated,
+    required this.diskOnly,
+    required this.wakeFeeMu,
   });
 
   @override
@@ -302,7 +445,10 @@ class InstancePlanView {
       spentMu.hashCode ^
       maintenanceMu.hashCode ^
       maintenanceSeconds.hashCode ^
-      variance.hashCode;
+      variance.hashCode ^
+      hibernated.hashCode ^
+      diskOnly.hashCode ^
+      wakeFeeMu.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -314,8 +460,15 @@ class InstancePlanView {
           spentMu == other.spentMu &&
           maintenanceMu == other.maintenanceMu &&
           maintenanceSeconds == other.maintenanceSeconds &&
-          variance == other.variance;
+          variance == other.variance &&
+          hibernated == other.hibernated &&
+          diskOnly == other.diskOnly &&
+          wakeFeeMu == other.wakeFeeMu;
 }
+
+/// The state of an instance that the app keeps (the node has no call that says
+/// "hibernated").
+enum InstanceStateView { running, hibernated }
 
 /// The state of an instance.
 class InstanceStatusView {
@@ -563,6 +716,58 @@ class QuotesView {
           runtimeType == other.runtimeType &&
           quotes == other.quotes &&
           failures == other.failures;
+}
+
+/// Why the node, or the app, did not hibernate or wake an instance. The screen shows its
+/// own text for each one. When there is a reason, nothing changed, and the state is the
+/// one from before the call.
+enum ResourceRefusalView {
+  /// The instance exports or mounts a shared filesystem. The node does not hibernate it.
+  sharedFilesystem,
+
+  /// The instance cannot be started again from its own disk. The node does not
+  /// hibernate it.
+  notRevivable,
+
+  /// The instance has not enough balance for the fee of the call. A top-up is the way
+  /// to continue.
+  instanceBalance,
+
+  /// The node has no room for the resources of the wake. The instance stays hibernated.
+  doesNotFit,
+
+  /// The node has no local instance with that token: it runs on a peer of the node, or
+  /// it is gone. The node cannot hibernate it.
+  noLocalInstance,
+
+  /// The node says that the father of the instance is a client and this call is not
+  /// from it.
+  notTheFather,
+
+  /// The app does not know the resources of the instance, so it cannot hibernate it
+  /// (the read failed), or cannot wake it (no stored values).
+  noResources,
+
+  /// The node answered the hibernation, but did not confirm it.
+  notConfirmed,
+
+  /// The node does not support hibernation (it is older than the `service_token` of
+  /// `ModifyServiceSystemResources`). Nothing was charged. The screen says it once and
+  /// hides the hibernate and wake actions of that node.
+  unsupported,
+
+  /// The node refused the call with a text that the app does not know. See `message`.
+  other,
+}
+
+/// Where the resources of [`AwakeResourcesView`] came from.
+enum ResourcesSourceView {
+  /// The app read them from the node just before the hibernation.
+  readFromNode,
+
+  /// The last values that the app got from the node. They can be old: the screen must
+  /// warn the user.
+  lastKnown,
 }
 
 /// What a stop gives back.

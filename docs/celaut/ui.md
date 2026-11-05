@@ -236,3 +236,22 @@ Details:
   landing page as the reference, and ask Josemi for anything it does not show.
 
 Ask Josemi before you decide anything not written here.
+
+## Hibernate and wake
+
+The long press of a row (and the info page) offers Hibernate for a running instance, and Wake
+for a hibernated one. Both ask first, and both need the wallet open, as Stop does. The
+Hibernate dialog says that the process state is lost when the instance wakes, and that the node
+charges only for the disk meanwhile. The Wake dialog shows the CPU and RAM that the instance will
+use, and says if those values are only the last that the app knows. The info page of a hibernated
+instance shows the state, the time of the hibernation and the stored CPU and RAM. A tap on a
+hibernated row opens its info page, because its service does not answer. A refusal of the node
+(shared filesystem, no restart from its own disk, not enough balance for the fee, no room on the
+node, or another reason) shows as a snack bar, and nothing changes.
+
+A hibernated instance with "run until I stop it" on is kept alive for its disk only (see
+`decisions.md`): the engine tops it up to the disk price plus the fee of the wake call, and the
+top-up does not wake it. A hibernated row is never "Not answering" and gives no notice. If the
+node stopped it for lack of balance, the row shows as stopped after the next read. If the node
+refuses hibernation as unsupported, the app says so once, and the rows of that node show no
+Hibernate or Wake until the app restarts; the info page says why.

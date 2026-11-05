@@ -14,9 +14,14 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use celaut_balancer::QuoteCache;
-use celaut_client::db::{InstancePricing, InstanceRecord, KeepAlive, NodeRecord, QuoteRecord};
+use celaut_client::db::{
+    CelautDb, InstancePricing, InstanceRecord, KeepAlive, NodeRecord, QuoteRecord, Resources,
+    ResourcesSource,
+};
+use celaut_client::hibernation::{self, Hibernation, HibernationError};
 use celaut_client::receipts::{check_start, InstanceReceipts, StoredReceipt};
 use celaut_client::session::parse_service_id;
+use celaut_client::ResourceRefusal;
 use celaut_client::{new_client_id, quotes_weighted, ClientError, LocalPort, NodeSession};
 use celaut_proto::celaut::{Amount, Configuration, EstimatedCost};
 use celaut_wire::{ConnectOptions, Connection, TunnelOpener, WireError};
@@ -543,6 +548,13 @@ pub async fn celaut_start_service(
         refund_mu: None,
         pricing: None,
         keep_alive: None,
+        // The answer of StartService has no resources (`ServiceInstance` holds the token,
+        // the addresses and the receipt), so there is no value of the start to keep. The
+        // first value comes from a read of the node at the hibernation.
+        awake_resources: None,
+        awake_source: None,
+        hibernated_at: None,
+        hibernated_price: None,
     };
     let view = InstanceView {
         instance_id: instance_id.clone(),
@@ -650,6 +662,12 @@ pub struct InstanceListView {
     pub stopped_at: Option<i64>,
     /// What the node gave back at the stop, in MU (empty if unknown or not stopped).
     pub refund_mu: String,
+    /// The time of the hibernation, in Unix seconds; none while the instance is awake.
+    pub hibernated_at: Option<i64>,
+    /// The resources that the app keeps for the instance: the ones that a wake sends
+    /// while it is hibernated, the last known ones while it is awake. None if the app
+    /// has not got them yet.
+    pub awake_resources: Option<AwakeResourcesView>,
 }
 
 /// The instances that the app started, whichever wallet was open: the ones that run,
@@ -674,6 +692,8 @@ pub fn celaut_instances() -> Vec<InstanceListView> {
                 title: r.title.clone().unwrap_or_default(),
                 stopped_at: r.stopped_at,
                 refund_mu: r.refund_mu.clone().unwrap_or_default(),
+                hibernated_at: r.hibernated_at,
+                awake_resources: awake_view(r),
             })
             .collect()
     })
@@ -873,6 +893,31 @@ pub(crate) fn cost_so_far(
     Some((charge + topped).saturating_sub(instance_balance))
 }
 
+/// The node answered that the token of a hibernated instance is not one of its instances:
+/// it stopped the instance after the grace period for lack of balance (nodo
+/// `docs/PRICING.md`, "Hibernating an instance"), and its disk is gone. Mark the record
+/// stopped, as a stop does, with no refund (the node kept none). Gives true if the record
+/// changed. An awake instance, a stopped one, and any other error change nothing: only a
+/// hibernated record has a reason to read "unknown token" as "stopped by the node", because
+/// the app does not know the state of an instance that it cannot reach.
+pub(crate) fn mark_gone_if_hibernated(
+    db: &CelautDb,
+    instance_id: &str,
+    error: &ClientError,
+) -> bool {
+    if !error.is_unknown_token() {
+        return false;
+    }
+    db.update(|d| match d.instances.get_mut(instance_id) {
+        Some(r) if r.stopped_at.is_none() && r.hibernated_at.is_some() => {
+            r.stopped_at = Some(now_seconds());
+            true
+        }
+        _ => false,
+    })
+    .unwrap_or(false)
+}
+
 /// The balance of the instance and the use of its tunnels.
 #[flutter_rust_bridge::frb]
 pub async fn celaut_instance_status(
@@ -887,10 +932,17 @@ pub async fn celaut_instance_status(
             ports.and_then(|p| p.values().find_map(LocalPort::last_error)),
         )
     };
-    let balance = session
-        .instance_balance(&record.token)
-        .await
-        .map_err(error_of)?;
+    let balance = match session.instance_balance(&record.token).await {
+        Ok(balance) => balance,
+        Err(e) => {
+            // The node stops a hibernated instance that cannot pay its disk, after the
+            // grace, and forgets its token. Then it is gone, and the record must say so.
+            if mark_gone_if_hibernated(&db(), &instance_id, &e) {
+                drop(state()?.ports.remove(&instance_id));
+            }
+            return Err(error_of(e));
+        }
+    };
     Ok(InstanceStatusView {
         instance_balance_mu: balance.to_string(),
         cost_so_far_mu: cost_so_far(
@@ -921,6 +973,16 @@ pub struct InstancePlanView {
     pub maintenance_seconds: u32,
     /// The margin of the node for the difference of the real cost.
     pub variance: f64,
+    /// The app keeps the instance hibernated. A top-up does not wake it, and the node
+    /// charges it for its disk only.
+    pub hibernated: bool,
+    /// `maintenance_mu` is the price of the disk only. False for a hibernated instance
+    /// whose disk price the app could not work out: `maintenance_mu` is then the price
+    /// of the awake instance, which is more than the node charges.
+    pub disk_only: bool,
+    /// The fee of the call that wakes the instance, in MU. The instance pays it, so a
+    /// hibernated instance needs it in its balance (empty if the app does not know it).
+    pub wake_fee_mu: String,
 }
 
 /// What the app moved to the instance since `keep_alive` started, in MU.
@@ -937,7 +999,7 @@ pub fn celaut_instance_plan(instance_id: String) -> Result<InstancePlanView, Cel
     db().read(|d| {
         let r = d.instances.get(&instance_id).ok_or_else(unknown_instance)?;
         let keep = r.keep_alive.as_ref();
-        let (maintenance_mu, maintenance_seconds, variance) = match &r.pricing {
+        let (mut maintenance_mu, maintenance_seconds, variance) = match &r.pricing {
             Some(p) => (
                 p.maintenance_mu.clone(),
                 p.maintenance_seconds,
@@ -945,6 +1007,13 @@ pub fn celaut_instance_plan(instance_id: String) -> Result<InstancePlanView, Cel
             ),
             None => (String::new(), 0, 0.0),
         };
+        // A hibernated instance costs its disk only: the keep-alive aims at that.
+        let hibernated = r.hibernated_at.is_some();
+        let price = r.hibernated_price.as_ref().filter(|_| hibernated);
+        if let Some(p) = price.filter(|_| !maintenance_mu.is_empty()) {
+            maintenance_mu = p.disk_maintenance_mu.clone();
+        }
+        let disk_only = price.is_some() && !maintenance_mu.is_empty();
         Ok(InstancePlanView {
             keep_alive: keep.is_some(),
             budget_mu: keep.and_then(|k| k.budget_mu.clone()).unwrap_or_default(),
@@ -956,6 +1025,9 @@ pub fn celaut_instance_plan(instance_id: String) -> Result<InstancePlanView, Cel
             maintenance_mu,
             maintenance_seconds,
             variance,
+            hibernated,
+            disk_only,
+            wake_fee_mu: price.map(|p| p.wake_fee_mu.clone()).unwrap_or_default(),
         })
     })
 }
@@ -1138,6 +1210,271 @@ pub async fn celaut_stop_service(instance_id: String) -> Result<StopView, Celaut
     })
 }
 
+/// Where the resources of [`AwakeResourcesView`] came from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResourcesSourceView {
+    /// The app read them from the node just before the hibernation.
+    ReadFromNode,
+    /// The last values that the app got from the node. They can be old: the screen must
+    /// warn the user.
+    LastKnown,
+}
+
+fn source_view(source: Option<ResourcesSource>) -> ResourcesSourceView {
+    match source {
+        Some(ResourcesSource::ReadFromNode) => ResourcesSourceView::ReadFromNode,
+        // A record that has resources and no source is a guess.
+        _ => ResourcesSourceView::LastKnown,
+    }
+}
+
+/// The CPU and RAM that an instance has when it is awake. For a hibernated instance,
+/// these are the values that the wake sends.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AwakeResourcesView {
+    /// The CPU quota in microseconds for each `cpu_period`.
+    pub cpu_quota: u64,
+    /// The CPU period in microseconds.
+    pub cpu_period: u64,
+    /// The RAM limit in bytes.
+    pub mem_limit: u64,
+    pub source: ResourcesSourceView,
+}
+
+fn resources_view(r: Resources, source: Option<ResourcesSource>) -> AwakeResourcesView {
+    AwakeResourcesView {
+        cpu_quota: r.cpu_quota,
+        cpu_period: r.cpu_period,
+        mem_limit: r.mem_limit,
+        source: source_view(source),
+    }
+}
+
+fn awake_view(r: &InstanceRecord) -> Option<AwakeResourcesView> {
+    r.awake_resources
+        .map(|res| resources_view(res, r.awake_source))
+}
+
+/// The state of an instance that the app keeps (the node has no call that says
+/// "hibernated").
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InstanceStateView {
+    Running,
+    Hibernated,
+}
+
+/// Why the node, or the app, did not hibernate or wake an instance. The screen shows its
+/// own text for each one. When there is a reason, nothing changed, and the state is the
+/// one from before the call.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResourceRefusalView {
+    /// The instance exports or mounts a shared filesystem. The node does not hibernate it.
+    SharedFilesystem,
+    /// The instance cannot be started again from its own disk. The node does not
+    /// hibernate it.
+    NotRevivable,
+    /// The instance has not enough balance for the fee of the call. A top-up is the way
+    /// to continue.
+    InstanceBalance,
+    /// The node has no room for the resources of the wake. The instance stays hibernated.
+    DoesNotFit,
+    /// The node has no local instance with that token: it runs on a peer of the node, or
+    /// it is gone. The node cannot hibernate it.
+    NoLocalInstance,
+    /// The node says that the father of the instance is a client and this call is not
+    /// from it.
+    NotTheFather,
+    /// The app does not know the resources of the instance, so it cannot hibernate it
+    /// (the read failed), or cannot wake it (no stored values).
+    NoResources,
+    /// The node answered the hibernation, but did not confirm it.
+    NotConfirmed,
+    /// The node does not support hibernation (it is older than the `service_token` of
+    /// `ModifyServiceSystemResources`). Nothing was charged. The screen says it once and
+    /// hides the hibernate and wake actions of that node.
+    Unsupported,
+    /// The node refused the call with a text that the app does not know. See `message`.
+    Other,
+}
+
+fn refusal_view(reason: ResourceRefusal) -> ResourceRefusalView {
+    match reason {
+        ResourceRefusal::SharedFilesystem => ResourceRefusalView::SharedFilesystem,
+        ResourceRefusal::NotRevivable => ResourceRefusalView::NotRevivable,
+        ResourceRefusal::InstanceBalance => ResourceRefusalView::InstanceBalance,
+        ResourceRefusal::DoesNotFit => ResourceRefusalView::DoesNotFit,
+        ResourceRefusal::NoLocalInstance => ResourceRefusalView::NoLocalInstance,
+        ResourceRefusal::NotTheFather => ResourceRefusalView::NotTheFather,
+        ResourceRefusal::Unsupported => ResourceRefusalView::Unsupported,
+    }
+}
+
+/// What a hibernation or a wake gave.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HibernationView {
+    /// The state of the instance after the call. With a `refusal`, it is the state from
+    /// before the call.
+    pub state: InstanceStateView,
+    /// The balance of the instance in MU after the call (empty if unknown, or if the
+    /// call was refused).
+    pub instance_balance_mu: String,
+    /// The resources now: after a hibernation, the ones that a wake sends; after a wake,
+    /// the ones that the node gave. None if the app has none.
+    pub resources: Option<AwakeResourcesView>,
+    /// The reason, if the call did not happen.
+    pub refusal: Option<ResourceRefusalView>,
+    /// The text of the node for the refusal, without the wrapper of the transport (empty
+    /// if there is no refusal, or the app found the reason itself).
+    pub message: String,
+}
+
+fn state_of(record: &InstanceRecord) -> InstanceStateView {
+    if record.hibernated_at.is_some() {
+        InstanceStateView::Hibernated
+    } else {
+        InstanceStateView::Running
+    }
+}
+
+/// The view of the record `instance_id` after a call that did not happen for `reason`.
+fn refused_view(
+    db: &CelautDb,
+    instance_id: &str,
+    reason: ResourceRefusalView,
+    message: String,
+) -> Result<HibernationView, CelautError> {
+    let record = db
+        .read(|d| d.instances.get(instance_id).cloned())
+        .ok_or_else(unknown_instance)?;
+    Ok(HibernationView {
+        state: state_of(&record),
+        instance_balance_mu: String::new(),
+        resources: awake_view(&record),
+        refusal: Some(reason),
+        message,
+    })
+}
+
+/// The answer of `celaut_client::hibernation` as the view of the app. A refusal of the
+/// node that the app knows, or one with an unknown text, is a view with a `refusal`. A
+/// failure of the connection, and a refusal that the other calls also have (rate limit,
+/// unknown client), is an error.
+fn hibernation_view(
+    db: &CelautDb,
+    instance_id: &str,
+    now_state: InstanceStateView,
+    outcome: Result<Hibernation, HibernationError>,
+) -> Result<HibernationView, CelautError> {
+    match outcome {
+        Ok(done) => Ok(HibernationView {
+            state: now_state,
+            instance_balance_mu: if done.balance_mu > 0 {
+                done.balance_mu.to_string()
+            } else {
+                String::new()
+            },
+            resources: Some(resources_view(done.resources, Some(done.source))),
+            refusal: None,
+            message: String::new(),
+        }),
+        Err(HibernationError::Client(e)) => {
+            if let Some(reason) = e.resource_refusal() {
+                let message = match &e {
+                    ClientError::Wire(WireError::Call(text)) => {
+                        celaut_client::refusal::message_of(text)
+                    }
+                    _ => e.to_string(),
+                };
+                return refused_view(db, instance_id, refusal_view(reason), message);
+            }
+            if let ClientError::Wire(WireError::Call(text)) = &e {
+                if celaut_client::refusal::classify(text).is_none() && !e.is_unknown_client() {
+                    let message = celaut_client::refusal::message_of(text);
+                    return refused_view(db, instance_id, ResourceRefusalView::Other, message);
+                }
+            }
+            Err(error_of(e))
+        }
+        Err(HibernationError::NoResources) => refused_view(
+            db,
+            instance_id,
+            ResourceRefusalView::NoResources,
+            String::new(),
+        ),
+        Err(HibernationError::NotConfirmed) => refused_view(
+            db,
+            instance_id,
+            ResourceRefusalView::NotConfirmed,
+            String::new(),
+        ),
+        Err(HibernationError::Db(e)) => Err(storage_error(e)),
+        Err(HibernationError::UnknownInstance) => Err(unknown_instance()),
+        Err(HibernationError::Stopped) => Err(stopped_instance()),
+        Err(HibernationError::AlreadyHibernated) => Err(already_hibernated()),
+        Err(HibernationError::NotHibernated) => Err(not_hibernated()),
+    }
+}
+
+fn already_hibernated() -> CelautError {
+    invalid("This instance is hibernated already.")
+}
+
+fn not_hibernated() -> CelautError {
+    invalid("This instance is not hibernated, so it cannot wake.")
+}
+
+/// Hibernate the instance: the node stops its CPU and RAM, and charges it for its disk
+/// only. The app reads the resources of the instance from the node just before, and keeps
+/// them in the database, so a wake gives it the same CPU and RAM. The values are the
+/// ones that the instance has at this moment, not the ones that it had at the start.
+///
+/// This costs the instance two fees of the node (one for the read, one for the
+/// hibernation). The call is refused with an error for a stopped instance, and for one
+/// that is hibernated already. A refusal of the node or of the rules of the app is not an
+/// error: it is the `refusal` of the view, and the state does not change. The process
+/// state of the instance is lost at the next wake.
+#[flutter_rust_bridge::frb]
+pub async fn celaut_hibernate_instance(
+    instance_id: String,
+) -> Result<HibernationView, CelautError> {
+    let known = db()
+        .read(|d| d.instances.get(&instance_id).cloned())
+        .ok_or_else(unknown_instance)?;
+    if known.hibernated_at.is_some() {
+        return Err(already_hibernated());
+    }
+    let (session, _) = instance(&instance_id).await?;
+    let outcome = hibernation::hibernate(&session, &db(), &instance_id, now_seconds()).await;
+    if outcome.is_ok() {
+        // The instance does not run: its local ports have no one behind them.
+        drop(state()?.ports.remove(&instance_id));
+    }
+    hibernation_view(&db(), &instance_id, InstanceStateView::Hibernated, outcome)
+}
+
+/// Wake a hibernated instance with the resources that the app kept at the hibernation
+/// (all of CPU quota, CPU period and RAM, as the node asks). The node runs the
+/// entrypoint again; the address and the ports stay. The call is refused with an error
+/// for a stopped instance and for one that is not hibernated. If the node has no room,
+/// the `refusal` is `DoesNotFit`, and the instance stays hibernated with the same stored
+/// resources.
+#[flutter_rust_bridge::frb]
+pub async fn celaut_wake_instance(instance_id: String) -> Result<HibernationView, CelautError> {
+    let known = db()
+        .read(|d| d.instances.get(&instance_id).cloned())
+        .ok_or_else(unknown_instance)?;
+    if known.hibernated_at.is_none() {
+        // The same error for a stopped instance comes from `instance` below.
+        if known.stopped_at.is_some() {
+            return Err(stopped_instance());
+        }
+        return Err(not_hibernated());
+    }
+    let (session, _) = instance(&instance_id).await?;
+    let outcome = hibernation::wake(&session, &db(), &instance_id).await;
+    hibernation_view(&db(), &instance_id, InstanceStateView::Running, outcome)
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -1186,6 +1523,265 @@ mod tests {
         assert_eq!(err.kind, CelautErrorKind::InvalidInput);
         let err = celaut_stop_service("nope".into()).await.unwrap_err();
         assert_eq!(err.kind, CelautErrorKind::InvalidInput);
+    }
+
+    fn remove_record(id: &str) {
+        // `celaut_forget_instance` refuses a running instance.
+        db().update(|d| d.instances.remove(id)).unwrap();
+    }
+
+    fn hibernation_record(id: &str, hibernated: bool) {
+        db().update(|d| {
+            d.instances.insert(
+                id.to_string(),
+                InstanceRecord {
+                    peer_id: "ab".repeat(32),
+                    address: "127.0.0.1:1".into(),
+                    token: "token".into(),
+                    awake_resources: Some(Resources {
+                        cpu_quota: 50_000,
+                        cpu_period: 100_000,
+                        mem_limit: 512 << 20,
+                    }),
+                    awake_source: Some(ResourcesSource::ReadFromNode),
+                    hibernated_at: hibernated.then_some(7),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
+    }
+
+    fn unknown_token() -> ClientError {
+        ClientError::Wire(WireError::Call(
+            "status: Unknown, message: \"Exception calling application: Invalid token, it should be an instance token.  token: x\"".into(),
+        ))
+    }
+
+    #[test]
+    fn a_hibernated_instance_that_the_node_forgot_is_marked_stopped() {
+        let asleep = "gone-test-asleep".to_string();
+        let awake = "gone-test-awake".to_string();
+        hibernation_record(&asleep, true);
+        hibernation_record(&awake, false);
+        // Any other error says nothing about the instance.
+        let timeout = ClientError::Wire(WireError::Call("status: Unavailable".into()));
+        assert!(!mark_gone_if_hibernated(&db(), &asleep, &timeout));
+        assert_eq!(db().read(|d| d.instances[&asleep].stopped_at), None);
+        // An awake instance is not marked: the app cannot tell why it does not answer.
+        assert!(!mark_gone_if_hibernated(&db(), &awake, &unknown_token()));
+        assert_eq!(db().read(|d| d.instances[&awake].stopped_at), None);
+        // A hibernated one is, and the hibernation stays in the record as it is.
+        assert!(mark_gone_if_hibernated(&db(), &asleep, &unknown_token()));
+        let r = db().read(|d| d.instances[&asleep].clone());
+        assert!(r.stopped_at.is_some());
+        assert_eq!(r.refund_mu, None);
+        // It is stopped now: a second answer changes nothing.
+        assert!(!mark_gone_if_hibernated(&db(), &asleep, &unknown_token()));
+    }
+
+    #[test]
+    fn the_plan_of_a_hibernated_instance_has_the_price_of_its_disk() {
+        use celaut_client::db::HibernatedPrice;
+        let id = "plan-hibernated-test".to_string();
+        hibernation_record(&id, true);
+        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, 0.0).unwrap();
+        // The app has no price of the disk: it uses the awake price and says so.
+        let plan = celaut_instance_plan(id.clone()).unwrap();
+        assert!(plan.hibernated);
+        assert!(!plan.disk_only);
+        assert_eq!(plan.maintenance_mu, "1000");
+        db().update(|d| {
+            d.instances.get_mut(&id).unwrap().hibernated_price = Some(HibernatedPrice {
+                disk_maintenance_mu: "40".into(),
+                wake_fee_mu: "10000".into(),
+            })
+        })
+        .unwrap();
+        let plan = celaut_instance_plan(id.clone()).unwrap();
+        assert!(plan.disk_only);
+        assert_eq!(plan.maintenance_mu, "40");
+        assert_eq!(plan.maintenance_seconds, 60);
+        assert_eq!(plan.wake_fee_mu, "10000");
+        // A wake brings the awake price back.
+        db().update(|d| d.instances.get_mut(&id).unwrap().hibernated_at = None)
+            .unwrap();
+        let plan = celaut_instance_plan(id.clone()).unwrap();
+        assert!(!plan.hibernated && !plan.disk_only);
+        assert_eq!(plan.maintenance_mu, "1000");
+        assert_eq!(plan.wake_fee_mu, "");
+    }
+
+    #[tokio::test]
+    async fn hibernate_and_wake_check_the_state_before_any_connection() {
+        let awake = "hibernate-test-awake".to_string();
+        let asleep = "hibernate-test-asleep".to_string();
+        let stopped = "hibernate-test-stopped".to_string();
+        hibernation_record(&awake, false);
+        hibernation_record(&asleep, true);
+        hibernation_record(&stopped, false);
+        db().update(|d| d.instances.get_mut(&stopped).unwrap().stopped_at = Some(1))
+            .unwrap();
+        let err = celaut_hibernate_instance("nope".into()).await.unwrap_err();
+        assert_eq!(err.kind, CelautErrorKind::InvalidInput);
+        assert_eq!(err.message, "This instance is not known. It was deleted.");
+        let err = celaut_wake_instance("nope".into()).await.unwrap_err();
+        assert_eq!(err.message, "This instance is not known. It was deleted.");
+        let err = celaut_hibernate_instance(asleep.clone()).await.unwrap_err();
+        assert_eq!(err.kind, CelautErrorKind::InvalidInput);
+        assert_eq!(err.message, "This instance is hibernated already.");
+        let err = celaut_wake_instance(awake.clone()).await.unwrap_err();
+        assert_eq!(err.kind, CelautErrorKind::InvalidInput);
+        assert_eq!(
+            err.message,
+            "This instance is not hibernated, so it cannot wake."
+        );
+        for err in [
+            celaut_hibernate_instance(stopped.clone())
+                .await
+                .unwrap_err(),
+            celaut_wake_instance(stopped.clone()).await.unwrap_err(),
+        ] {
+            assert_eq!(err.message, "This instance was stopped.");
+        }
+        // Nothing changed.
+        let list = celaut_instances();
+        let of = |id: &str| list.iter().find(|i| i.instance_id == id).unwrap().clone();
+        assert_eq!(of(&awake).hibernated_at, None);
+        assert_eq!(of(&asleep).hibernated_at, Some(7));
+        let kept = of(&asleep).awake_resources.unwrap();
+        assert_eq!(kept.cpu_quota, 50_000);
+        assert_eq!(kept.mem_limit, 512 << 20);
+        assert_eq!(kept.source, ResourcesSourceView::ReadFromNode);
+        for id in [awake, asleep, stopped] {
+            remove_record(&id);
+        }
+    }
+
+    fn call_error(text: &str) -> HibernationError {
+        HibernationError::Client(ClientError::Wire(WireError::Call(text.into())))
+    }
+
+    #[test]
+    fn a_refusal_of_the_node_is_a_reason_and_not_an_error() {
+        let id = "hibernate-test-refusal".to_string();
+        hibernation_record(&id, false);
+        let reason_of = |text: &str, now: InstanceStateView| {
+            hibernation_view(&db(), &id, now, Err(call_error(text)))
+        };
+        let wrapped = |t: &str| {
+            format!("status: Unknown, message: \"Exception calling application: {t}\", details: []")
+        };
+        for (text, reason) in [
+            (
+                "This instance exports or mounts a shared filesystem, and hibernating it would take that share away.",
+                ResourceRefusalView::SharedFilesystem,
+            ),
+            (
+                "This instance cannot be started again from its own disk, so it cannot be hibernated.",
+                ResourceRefusalView::NotRevivable,
+            ),
+            (
+                "Error charging for the resource change of abc",
+                ResourceRefusalView::InstanceBalance,
+            ),
+            (
+                "The instance could not be woken: it stays hibernated.",
+                ResourceRefusalView::DoesNotFit,
+            ),
+            (
+                "This node has no local instance with that token.",
+                ResourceRefusalView::NoLocalInstance,
+            ),
+            (
+                "The father of this instance is a client, and this call must come from it.",
+                ResourceRefusalView::NotTheFather,
+            ),
+            ("Something new went wrong.", ResourceRefusalView::Other),
+        ] {
+            let view = reason_of(&wrapped(text), InstanceStateView::Hibernated).unwrap();
+            assert_eq!(view.refusal, Some(reason), "{text}");
+            // The record did not change: the instance still runs, with its resources.
+            assert_eq!(view.state, InstanceStateView::Running);
+            assert_eq!(view.resources.unwrap().cpu_period, 100_000);
+            assert!(!view.message.contains("Exception calling"), "{text}");
+        }
+        // A reason that every call has stays an error.
+        let err = reason_of(
+            "Client abc is calling too fast and is temporarily quarantined.",
+            InstanceStateView::Hibernated,
+        );
+        assert_eq!(err.unwrap_err().kind, CelautErrorKind::RateLimited);
+        let err = hibernation_view(
+            &db(),
+            &id,
+            InstanceStateView::Hibernated,
+            Err(HibernationError::Client(ClientError::Wire(
+                WireError::Timeout,
+            ))),
+        );
+        assert_eq!(err.unwrap_err().kind, CelautErrorKind::Timeout);
+        remove_record(&id);
+    }
+
+    #[test]
+    fn the_rules_of_the_app_are_reasons_or_clear_errors() {
+        let id = "hibernate-test-rules".to_string();
+        hibernation_record(&id, true);
+        let state = InstanceStateView::Hibernated;
+        let view = |e| hibernation_view(&db(), &id, state, Err(e));
+        let v = view(HibernationError::NoResources).unwrap();
+        assert_eq!(v.refusal, Some(ResourceRefusalView::NoResources));
+        assert_eq!(v.state, InstanceStateView::Hibernated);
+        let v = view(HibernationError::NotConfirmed).unwrap();
+        assert_eq!(v.refusal, Some(ResourceRefusalView::NotConfirmed));
+        assert_eq!(
+            view(HibernationError::AlreadyHibernated)
+                .unwrap_err()
+                .message,
+            "This instance is hibernated already."
+        );
+        assert_eq!(
+            view(HibernationError::NotHibernated).unwrap_err().message,
+            "This instance is not hibernated, so it cannot wake."
+        );
+        assert_eq!(
+            view(HibernationError::Stopped).unwrap_err().message,
+            "This instance was stopped."
+        );
+        assert_eq!(
+            view(HibernationError::UnknownInstance).unwrap_err().kind,
+            CelautErrorKind::InvalidInput
+        );
+        remove_record(&id);
+    }
+
+    #[test]
+    fn a_done_call_gives_the_state_the_balance_and_the_resources() {
+        let id = "hibernate-test-done".to_string();
+        hibernation_record(&id, true);
+        let resources = Resources {
+            cpu_quota: 25_000,
+            cpu_period: 100_000,
+            mem_limit: 256 << 20,
+        };
+        let done = |balance_mu| Hibernation {
+            resources,
+            source: ResourcesSource::LastKnown,
+            balance_mu,
+        };
+        let v = hibernation_view(&db(), &id, InstanceStateView::Running, Ok(done(90))).unwrap();
+        assert_eq!(v.state, InstanceStateView::Running);
+        assert_eq!(v.instance_balance_mu, "90");
+        assert_eq!(v.refusal, None);
+        let r = v.resources.unwrap();
+        assert_eq!((r.cpu_quota, r.mem_limit), (25_000, 256 << 20));
+        assert_eq!(r.source, ResourcesSourceView::LastKnown);
+        // A balance that the node did not give is empty, not 0.
+        let v = hibernation_view(&db(), &id, InstanceStateView::Hibernated, Ok(done(0))).unwrap();
+        assert_eq!(v.instance_balance_mu, "");
+        assert_eq!(v.state, InstanceStateView::Hibernated);
+        remove_record(&id);
     }
 
     #[test]

@@ -7517,4 +7517,114 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get celautEnvScanNotVariable =>
       'Ese código QR no es una variable compartida.';
+
+  @override
+  String get chatsStateHibernated => 'Hibernada';
+
+  @override
+  String get chatsHibernate => 'Hibernar';
+
+  @override
+  String get chatsWake => 'Despertar';
+
+  @override
+  String chatsHibernateTitle(String name) {
+    return '¿Hibernar $name?';
+  }
+
+  @override
+  String get chatsHibernateBody =>
+      'La instancia deja de usar CPU y RAM, y el nodo cobra solo por su disco. El estado del proceso se pierde: al despertar la instancia, el servicio arranca de nuevo desde su punto de entrada. La dirección y los puertos se mantienen. La app guarda la CPU y la RAM que tiene la instancia ahora, y la despierta con ellas. Hibernar cuesta a la instancia dos tarifas de llamada.';
+
+  @override
+  String get chatsHibernated => 'La instancia está hibernada.';
+
+  @override
+  String chatsWakeTitle(String name) {
+    return '¿Despertar $name?';
+  }
+
+  @override
+  String chatsWakeBody(String cpu, String ram) {
+    return 'La instancia arranca de nuevo con $cpu y $ram. El estado del proceso se perdió: el servicio arranca desde su punto de entrada. Despertar cuesta a la instancia una tarifa de llamada.';
+  }
+
+  @override
+  String get chatsWakeLastKnown =>
+      'La app no sabe si estos valores son los que tenía la instancia al hibernar. Son los últimos que la app obtuvo del nodo.';
+
+  @override
+  String get chatsWakeUnknown =>
+      'La app no conoce la CPU y la RAM de esta instancia, así que no puede despertarla.';
+
+  @override
+  String get chatsWoken => 'La instancia está despierta.';
+
+  @override
+  String chatsResourcesCpu(String cores) {
+    return '$cores núcleos de CPU';
+  }
+
+  @override
+  String get chatsRefusalSharedFilesystem =>
+      'El nodo no hiberna esta instancia: comparte un sistema de archivos con otras instancias.';
+
+  @override
+  String get chatsRefusalNotRevivable =>
+      'El nodo no hiberna esta instancia: no puede arrancar de nuevo desde su propio disco.';
+
+  @override
+  String get chatsRefusalInstanceBalance =>
+      'La instancia no tiene saldo para pagar la tarifa de esta llamada. Añade tiempo a la instancia e inténtalo de nuevo.';
+
+  @override
+  String get chatsRefusalDoesNotFit =>
+      'El nodo no tiene sitio ahora para la CPU y la RAM de esta instancia. La instancia sigue hibernada. Inténtalo más tarde.';
+
+  @override
+  String get chatsRefusalNoLocalInstance =>
+      'Esta instancia se ejecuta en un par del nodo, o ya no existe. El nodo no puede hibernarla ni despertarla.';
+
+  @override
+  String get chatsRefusalNotTheFather =>
+      'El nodo dice que esta app no es la propietaria de la instancia, así que no acepta la llamada.';
+
+  @override
+  String get chatsRefusalNoResources =>
+      'La app no pudo leer la CPU y la RAM de la instancia, así que no la hibernó. Nada cambió.';
+
+  @override
+  String get chatsRefusalUnsupported =>
+      'Este nodo no admite la hibernación: es anterior a esa función, así que la app oculta las acciones de hibernar y despertar de sus instancias. No se cobró nada.';
+
+  @override
+  String get chatsRefusalNotConfirmed =>
+      'El nodo no confirmó la hibernación. Nada cambió en la app.';
+
+  @override
+  String chatsRefusalOther(String message) {
+    return 'El nodo rechazó la llamada: $message';
+  }
+
+  @override
+  String get chatsInfoResources => 'CPU y RAM';
+
+  @override
+  String get chatsInfoResourcesNone => 'Aún no se conocen';
+
+  @override
+  String chatsInfoResourcesLastKnown(String resources) {
+    return '$resources (últimos valores conocidos)';
+  }
+
+  @override
+  String get chatsInfoHibernatedSince => 'Hibernada desde';
+
+  @override
+  String get chatsInfoHibernateNote =>
+      'Hibernar libera la CPU y la RAM, y el nodo cobra solo por el disco. El estado del proceso se pierde al despertar la instancia.';
+
+  @override
+  String get chatsInfoHibernatedNote =>
+      'Una instancia hibernada paga solo su disco. Despiértala para usarla de nuevo. Detenla para recibir el reembolso; solo se puede eliminar una instancia detenida.';
 }

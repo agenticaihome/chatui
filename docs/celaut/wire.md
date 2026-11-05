@@ -88,6 +88,7 @@ client). Auth "token" = possession of an instance token.
 | StartService | same as above | signal, then 1 `ServiceInstance` (with the start receipt, [receipts.md](receipts.md)) | client |
 | StopService | 1 `TokenMessage{instance token}`, 2 `Client` (the father) | 1 `Refund` | token+client |
 | ModifyDeposit | 1 `ModifyDepositInput`, 2 `Client` (the father) | 1 `ModifyDepositOutput` | token+client |
+| ModifyServiceSystemResources | 1 `ModifyServiceSystemResourcesInput` (with `service_token`), 2 `Client` (the father) | 1 `ModifyServiceSystemResourcesOutput` | token+client |
 | GetMetrics | 1 `TokenMessage{instance token}` | 1 `Metrics` | token |
 | GetClientMetrics | 1 `Client` | 1 `Metrics` (free) | client |
 | GetResourceAvailability | 1 `ArchitectureResources`, 2 `Client` | 1 `ResourceAvailability` | client |
@@ -142,6 +143,27 @@ Notes:
   reachable from the app.
 - **Observe** takes the instance token in `ObserveRequest.instance_id`
   (`nodo:protos/gateway_bee.py:153-157`, `nodo:src/gateway/iterables/observe_iterable.py`).
+- **ModifyServiceSystemResources** (`nodo:src/gateway/gateway.py`, `nodo:src/manager/hibernation.py`):
+  hibernate and wake use this call. There is no other RPC. Send part 1 with `service_token`
+  (the instance token) and `max_sysreq`, and part 2 with the `Client` of the father. The
+  answer has the resources of the instance and its balance.
+  - Hibernate: `max_sysreq.cpu_quota` or `mem_limit` is 0. The node sends the answer before
+    the VM stops. The answer has 0 for CPU and RAM, so it does not give the old resources.
+  - Wake: send `cpu_quota`, `cpu_period` and `mem_limit` together, all above 0. A field that
+    is not set keeps the value of the node row, and a hibernated row holds 0 for all three.
+    The answer gives the resources of the instance now. A wake that does not fit leaves the
+    instance hibernated and refunds the call.
+  - An empty `max_sysreq` with `service_token` changes nothing for a running instance and
+    returns its real resources. The app uses it to read the resources just before it
+    hibernates the instance. This is from the nodo source, and no live node confirmed it.
+  - The instance pays the call fee (`modify_resources_mu`), not the caller. A call that the
+    node refuses after the charge is refunded.
+  - No RPC says that an instance is hibernated. `GetMetrics.suspended` is false for it.
+  - The node refuses an instance with a shared filesystem, and an instance that it cannot
+    start again from its own disk. A delegated instance (alias token) gets "no local
+    instance with that token". A node older than `service_token` ignores the field.
+  - A hibernated instance pays for its disk only. A top-up keeps it alive and does not
+    wake it.
 - **Chat** answers `stored=false, "client_id … is not associated with any peer"` to a
   light client (`nodo:src/manager/chat.py:164-184`).
 

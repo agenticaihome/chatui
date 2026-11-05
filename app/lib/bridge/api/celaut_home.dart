@@ -457,6 +457,10 @@ class RunningInstanceView {
   /// The same in nanoERG, at the rate of the node. `None` is unknown.
   final String? costSoFarNanoErg;
 
+  /// The time of the hibernation, in Unix seconds. `None` while the instance is awake.
+  /// A hibernated instance costs its disk only.
+  final PlatformInt64? hibernatedAt;
+
   const RunningInstanceView({
     required this.instanceId,
     required this.peerId,
@@ -465,6 +469,7 @@ class RunningInstanceView {
     this.balanceMu,
     this.costSoFarMu,
     this.costSoFarNanoErg,
+    this.hibernatedAt,
   });
 
   @override
@@ -475,7 +480,8 @@ class RunningInstanceView {
       startedAt.hashCode ^
       balanceMu.hashCode ^
       costSoFarMu.hashCode ^
-      costSoFarNanoErg.hashCode;
+      costSoFarNanoErg.hashCode ^
+      hibernatedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -488,5 +494,6 @@ class RunningInstanceView {
           startedAt == other.startedAt &&
           balanceMu == other.balanceMu &&
           costSoFarMu == other.costSoFarMu &&
-          costSoFarNanoErg == other.costSoFarNanoErg;
+          costSoFarNanoErg == other.costSoFarNanoErg &&
+          hibernatedAt == other.hibernatedAt;
 }

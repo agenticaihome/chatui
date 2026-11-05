@@ -850,8 +850,9 @@ class _ServiceScreenState extends State<ServiceScreen> {
 }
 
 /// The instances of the app that run: the database also keeps the stopped ones until
-/// the user deletes them.
+/// the user deletes them. A hibernated instance does not run, and its service does not
+/// answer.
 List<InstanceListView> _runningInstances() => [
-      for (final i in celautInstances())
-        if (i.stoppedAt == null) i,
-    ];
+  for (final i in celautInstances())
+    if (i.stoppedAt == null && i.hibernatedAt == null) i,
+];

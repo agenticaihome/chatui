@@ -187,6 +187,7 @@ pub(crate) fn error_of(e: ClientError) -> CelautError {
         ClientError::Protocol(_) | ClientError::Random | ClientError::Amount(_) => K::Protocol,
         ClientError::Deposit(DepositError::BadAmount(_)) => K::InvalidInput,
         ClientError::Deposit(_) => K::Protocol,
+        ClientError::Resources(_) => K::InvalidInput,
     };
     CelautError {
         kind,

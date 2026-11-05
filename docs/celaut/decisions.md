@@ -207,3 +207,36 @@
   algorithm (`available` false, or ignored in a `FileReference`). A SHA3-256 hash whose `value`
   is not 32 bytes is `bad_request`, `QueryFiles` too. This is round 5 of revision 6 of
   [chat.md](chat.md).
+- **Hibernate and wake (2026-11-05, Josemi):** the user can hibernate an instance that the app
+  runs, so that it costs only its disk, and wake it later with the same CPU and RAM. There is
+  no new RPC: both are `ModifyServiceSystemResources` with `service_token` and the `Client`
+  of the father (the app). The resources that a wake sends are the resources that the
+  instance has at the moment of the hibernation, and not its resources at the launch (it can
+  be resized later). The app reads them from the node just before it hibernates the instance,
+  and keeps them in its record. If the read fails, it uses the last values that it knows,
+  and the wake dialog says so. If it has none, it does not hibernate. The node does not say
+  that an instance is hibernated (`GetMetrics.suspended` is false), so the state is in the
+  record of the app. The list shows a hibernated instance as "Hibernated", not as "Not
+  answering", and the filter of stopped instances does not hide it. A hibernated instance
+  cannot be deleted: the user stops it first. Hibernate costs the instance two call fees
+  (the read and the request); a wake costs one. A wake keeps the address and the ports, but
+  the process state is lost, and the dialog warns about it.
+- **Hibernate and the rest of the app (2026-11-05, Josemi's plan, phase 5):**
+  - Keep-alive: a top-up never wakes a hibernated instance (the node does not wake it
+    either). While it is hibernated, the keep-alive aims at the disk price plus the fee of
+    one wake call. At the hibernation the app works out the disk price from the rates that
+    the node advertised (`disk_mu_per_gib_second`, `scarcity_max_multiplier`,
+    `modify_resources_mu`) and the disk that the read of the resources gave. The figure is an
+    upper bound (the rate plus 1, because the node drops the fraction; times the scarcity
+    ceiling; never more than the awake price). If the app cannot work it out, the keep-alive
+    uses the awake price, which only over-funds. The wake clears the hibernated price.
+  - A hibernated instance gives no "unreachable" state and no notice. The watcher of finished
+    answers does not watch it, and ends a watch when the record says that the instance is
+    hibernated. The status read (a balance only) goes on.
+  - If the status read of a hibernated instance gets "Invalid token" from the node, the node
+    stopped the instance after the grace period and deleted its disk. The core marks the
+    record stopped and the list reads again. An awake instance is not marked this way: the
+    app cannot tell why it does not answer.
+  - A node that does not support hibernation (older than `service_token`) is found at the
+    first call, by its refusal. The app says so once and hides Hibernate and Wake for the
+    instances of that node, until the app restarts. The call costs nothing.

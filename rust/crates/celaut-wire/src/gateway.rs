@@ -7,9 +7,9 @@ use std::time::Duration;
 use bee_rpc::frame::Part;
 use celaut_proto::celaut::metadata::hash_tag::Hash;
 use celaut_proto::celaut::{
-    Amount, Client, Configuration, EstimatedCost, Metrics, ModifyDepositInput,
-    ModifyDepositOutput, Payment, Peer, PoWRequired, RecursionGuard, Refund, ServiceInstance,
-    TokenMessage,
+    Amount, Client, Configuration, EstimatedCost, Metrics, ModifyDepositInput, ModifyDepositOutput,
+    ModifyServiceSystemResourcesInput, ModifyServiceSystemResourcesOutput, Payment, Peer,
+    PoWRequired, RecursionGuard, Refund, ServiceInstance, Sysresources, TokenMessage,
 };
 use prost::Message;
 
@@ -348,6 +348,48 @@ pub async fn modify_deposit<T: Transport>(
         Some(part) => decode(part, "the ModifyDepositOutput"),
         // A false bool and an empty text have no bytes.
         None => Ok(ModifyDepositOutput::default()),
+    }
+}
+
+/// `ModifyServiceSystemResources`: change the resources of the instance of the token
+/// `token`, or read them. The call has the `ModifyServiceSystemResourcesInput` (index 1)
+/// with `service_token` set, and the `Client` (2), which must be the father of the
+/// instance. The answer (1) holds the resources that the instance has after the call and
+/// its balance.
+///
+/// `max_sysreq` is the request. A field that is not set keeps the value of the node. A
+/// `cpu_quota` or `mem_limit` of 0 hibernates the instance. Both above 0 on a
+/// hibernated instance wake it: send `cpu_quota`, `cpu_period` and `mem_limit` together.
+/// With `None` the request changes nothing and the answer holds the current resources.
+/// The instance pays the fee of the call, not the client. A hibernation answer holds 0
+/// for the CPU and the RAM: the node sends it before it stops the instance.
+///
+/// A receiver drops an all-default message (it has no bytes), so no part means an empty
+/// answer.
+pub async fn modify_system_resources<T: Transport>(
+    transport: &T,
+    token: &str,
+    client_id: &str,
+    max_sysreq: Option<Sysresources>,
+) -> Result<ModifyServiceSystemResourcesOutput, WireError> {
+    let input = ModifyServiceSystemResourcesInput {
+        max_sysreq,
+        service_token: token.to_string(),
+        ..Default::default()
+    };
+    let answer = transport
+        .call(
+            "ModifyServiceSystemResources",
+            vec![
+                Part::new(1, input.encode_to_vec()),
+                client_part(2, client_id),
+            ],
+            &[1],
+        )
+        .await?;
+    match answer.iter().find(|p| p.index == 1) {
+        Some(part) => decode(part, "the ModifyServiceSystemResourcesOutput"),
+        None => Ok(ModifyServiceSystemResourcesOutput::default()),
     }
 }
 

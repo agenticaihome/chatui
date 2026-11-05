@@ -32,6 +32,8 @@ InstanceListView withTitle(InstanceListView i, String title) => InstanceListView
       title: title,
       stoppedAt: i.stoppedAt,
       refundMu: i.refundMu,
+      hibernatedAt: i.hibernatedAt,
+      awakeResources: i.awakeResources,
     );
 
 /// [i] with the name that the user gave it ([alias]; empty for none).
@@ -50,6 +52,8 @@ InstanceListView withAlias(InstanceListView i, String alias) => InstanceListView
       title: i.title,
       stoppedAt: i.stoppedAt,
       refundMu: i.refundMu,
+      hibernatedAt: i.hibernatedAt,
+      awakeResources: i.awakeResources,
     );
 
 /// The text of a message for a list or a notice, in one line: its text, or, when the

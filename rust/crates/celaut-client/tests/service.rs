@@ -9,16 +9,18 @@ use bee_rpc::buffer::Buffer;
 use bee_rpc::frame::Part;
 use celaut_balancer::{Misfit, QuoteCache, ServiceAsk};
 use celaut_client::session::parse_service_id;
-use celaut_client::{quotes, quotes_for, ClientError, MemoryPeerStore, NodeSession};
+use celaut_client::{
+    quotes, quotes_for, ClientError, MemoryPeerStore, NodeSession, ResourceRefusal, ResourcesError,
+};
 use celaut_proto::celaut::contract::Ledger;
 use celaut_proto::celaut::instance::UriSlot;
 use celaut_proto::celaut::metadata::hash_tag::Hash;
 use celaut_proto::celaut::service::container::Architecture;
 use celaut_proto::celaut::{
-    Amount, ArchitectureResources, BytesKeyValue, Client, Configuration, Contract, ContractRate,
-    EstimatedCost, Instance, Metrics, ModifyDepositInput, ModifyDepositOutput, Peer,
-    ExecutionReceipt, RecursionGuard, Refund, ServiceInstance,
-    Sysresources, TokenMessage,
+    Amount, AmountKeyValue, ArchitectureResources, BytesKeyValue, Client, Configuration, Contract,
+    ContractRate, EstimatedCost, ExecutionReceipt, Instance, Metrics, ModifyDepositInput,
+    ModifyDepositOutput, ModifyServiceSystemResourcesInput, ModifyServiceSystemResourcesOutput,
+    Peer, RecursionGuard, Refund, ServiceInstance, Sysresources, TokenMessage,
 };
 use celaut_wire::gateway::SHA3_256_TYPE;
 use celaut_wire::WireError;
@@ -71,6 +73,11 @@ fn peer_with(
             mu_per_unit: mu(rate),
         }];
     }
+    sign_peer(peer, seed)
+}
+
+/// Sign `peer` with the key of `seed`. Gives the Peer and its peer_id.
+fn sign_peer(mut peer: Peer, seed: u8) -> (Peer, String) {
     let pair = Ed25519KeyPair::from_seed_unchecked(&[seed; 32]).unwrap();
     peer.public_key = hex::encode(pair.public_key().as_ref());
     let digest = celaut_client::peer::content_digest(&peer);
@@ -97,6 +104,31 @@ async fn session_with(
     more: Vec<Vec<Buffer>>,
 ) -> NodeSession<FixedStreams> {
     let (peer, peer_id) = peer_with(seed, rate, resources);
+    open_with(peer, peer_id, more).await
+}
+
+/// A session with a node that advertises `rates` (key, MU) in `mu_per_call`.
+async fn session_priced(
+    rates: &[(&str, &str)],
+    more: Vec<Vec<Buffer>>,
+) -> NodeSession<FixedStreams> {
+    let (mut peer, _) = peer_with(1, None, None);
+    peer.mu_per_call = rates
+        .iter()
+        .map(|(k, v)| AmountKeyValue {
+            key: (*k).into(),
+            value: mu(v),
+        })
+        .collect();
+    let (peer, peer_id) = sign_peer(peer, 1);
+    open_with(peer, peer_id, more).await
+}
+
+async fn open_with(
+    peer: Peer,
+    peer_id: String,
+    more: Vec<Vec<Buffer>>,
+) -> NodeSession<FixedStreams> {
     let mut answers = vec![
         stream_of(
             1,
@@ -308,7 +340,174 @@ async fn a_top_up_moves_credit_to_the_instance_with_modify_deposit() {
     assert_eq!(input.difference.unwrap().n, "250000");
     // The node refuses: the client has less credit than that.
     let err = s.top_up("instance-token", 9).await.unwrap_err();
-    assert!(err.to_string().contains("Error charging the father"), "{err}");
+    assert!(
+        err.to_string().contains("Error charging the father"),
+        "{err}"
+    );
+}
+
+fn resources(quota: Option<u64>, period: Option<u64>, mem: Option<u64>) -> Sysresources {
+    Sysresources {
+        cpu_quota: quota,
+        cpu_period: period,
+        mem_limit: mem,
+        ..Default::default()
+    }
+}
+
+fn change_answer(sysreq: Sysresources, balance: &str) -> Vec<Buffer> {
+    stream_of(
+        1,
+        &ModifyServiceSystemResourcesOutput {
+            sysreq: Some(sysreq),
+            balance: mu(balance),
+        },
+    )
+}
+
+/// The request of the call `n`: the input (index 1) and the father Client (index 2).
+fn resource_request(s: &NodeSession<FixedStreams>, n: usize) -> ModifyServiceSystemResourcesInput {
+    let (method, parts) = s.transport().request(n);
+    assert_eq!(method, "ModifyServiceSystemResources");
+    assert_eq!(indices(&parts), vec![1, 2]);
+    assert_eq!(
+        Client::decode(parts[1].data.as_slice()).unwrap().client_id,
+        s.client_id()
+    );
+    ModifyServiceSystemResourcesInput::decode(parts[0].data.as_slice()).unwrap()
+}
+
+#[tokio::test]
+async fn the_read_of_the_resources_sends_the_token_and_no_change() {
+    let live = resources(Some(50_000), Some(100_000), Some(1 << 30));
+    let s = session(vec![
+        change_answer(
+            Sysresources {
+                disk_space: Some(7),
+                ..live.clone()
+            },
+            "900",
+        ),
+        // A hibernated instance: all zero.
+        change_answer(resources(Some(0), Some(0), Some(0)), "800"),
+    ])
+    .await;
+    let now = s.current_resources("instance-token").await.unwrap();
+    assert_eq!(now.sysreq.cpu_quota, Some(50_000));
+    assert_eq!(now.sysreq.cpu_period, Some(100_000));
+    assert_eq!(now.sysreq.mem_limit, Some(1 << 30));
+    assert_eq!(now.balance_mu, 900);
+    let input = resource_request(&s, 2);
+    assert_eq!(input.service_token, "instance-token");
+    assert_eq!(input.max_sysreq, None);
+    assert_eq!(input.min_sysreq, None);
+
+    // All zero: nothing to store for a wake.
+    let err = s.current_resources("instance-token").await.unwrap_err();
+    assert!(
+        matches!(
+            err,
+            ClientError::Resources(ResourcesError::NotReadable("cpu_quota"))
+        ),
+        "{err:?}"
+    );
+}
+
+#[tokio::test]
+async fn hibernate_sets_cpu_quota_and_mem_limit_to_zero() {
+    let s = session(vec![change_answer(
+        Sysresources {
+            disk_space: Some(7),
+            ..resources(Some(0), Some(0), Some(0))
+        },
+        "700",
+    )])
+    .await;
+    let done = s.hibernate("instance-token").await.unwrap();
+    assert_eq!(done.sysreq.mem_limit, Some(0));
+    assert_eq!(done.balance_mu, 700);
+    let input = resource_request(&s, 2);
+    assert_eq!(input.service_token, "instance-token");
+    let max = input.max_sysreq.unwrap();
+    // A 0 that is set is sent: the field has a presence bit.
+    assert_eq!(max.cpu_quota, Some(0));
+    assert_eq!(max.mem_limit, Some(0));
+    assert_eq!(max.cpu_period, None);
+}
+
+#[tokio::test]
+async fn wake_sends_the_three_fields_and_gives_the_resources_now() {
+    let stored = Sysresources {
+        disk_space: Some(7),
+        blkio_weight: Some(3),
+        ..resources(Some(50_000), Some(100_000), Some(1 << 30))
+    };
+    let s = session(vec![
+        change_answer(resources(Some(50_000), Some(100_000), Some(1 << 30)), "600"),
+        // The node has no answer part: an all-default answer.
+        vec![],
+    ])
+    .await;
+    let done = s.wake("instance-token", &stored).await.unwrap();
+    assert_eq!(done.sysreq.cpu_quota, Some(50_000));
+    assert_eq!(done.balance_mu, 600);
+    let input = resource_request(&s, 2);
+    assert_eq!(input.service_token, "instance-token");
+    let max = input.max_sysreq.unwrap();
+    assert_eq!(max.cpu_quota, Some(50_000));
+    assert_eq!(max.cpu_period, Some(100_000));
+    assert_eq!(max.mem_limit, Some(1 << 30));
+    // Only the three fields go to the node.
+    assert_eq!(max.disk_space, None);
+    assert_eq!(max.blkio_weight, None);
+    // No part: balance 0 and no resources, not an error.
+    let empty = s.wake("instance-token", &stored).await.unwrap();
+    assert_eq!(empty.balance_mu, 0);
+    assert_eq!(empty.sysreq, Sysresources::default());
+}
+
+#[tokio::test]
+async fn wake_refuses_with_a_field_missing_or_zero_and_makes_no_call() {
+    let s = session(vec![]).await;
+    let calls = s.transport().calls();
+    let cases = [
+        (resources(None, Some(1), Some(1)), "cpu_quota"),
+        (resources(Some(0), Some(1), Some(1)), "cpu_quota"),
+        (resources(Some(1), None, Some(1)), "cpu_period"),
+        (resources(Some(1), Some(0), Some(1)), "cpu_period"),
+        (resources(Some(1), Some(1), None), "mem_limit"),
+        (resources(Some(1), Some(1), Some(0)), "mem_limit"),
+        (Sysresources::default(), "cpu_quota"),
+    ];
+    for (r, field) in cases {
+        let err = s.wake("t", &r).await.unwrap_err();
+        assert!(
+            matches!(&err, ClientError::Resources(ResourcesError::WakeIncomplete(f)) if *f == field),
+            "{field}: {err:?}"
+        );
+    }
+    assert_eq!(s.transport().calls(), calls);
+}
+
+#[test]
+fn the_refusals_of_a_resource_change_are_classified() {
+    let refused = |text: &str| {
+        ClientError::Wire(WireError::Call(format!(
+            "status: Unknown, message: \"Exception calling application: {text}\", details: []"
+        )))
+    };
+    assert_eq!(
+        refused("The instance could not be woken: it stays hibernated.").resource_refusal(),
+        Some(ResourceRefusal::DoesNotFit)
+    );
+    assert_eq!(
+        refused("This instance exports or mounts a shared filesystem, and hibernating it would take that share away from the guests that use it.").resource_refusal(),
+        Some(ResourceRefusal::SharedFilesystem)
+    );
+    assert_eq!(
+        ClientError::Wire(WireError::Timeout).resource_refusal(),
+        None
+    );
 }
 
 #[tokio::test]
@@ -383,10 +582,21 @@ fn announced(tag: &str, mem_limit: u64) -> ArchitectureResources {
 async fn quotes_for_skips_the_nodes_that_can_never_run_the_service_and_does_not_call_them() {
     let answer = || vec![after_signal(&quote("100"))];
     // Big enough, too small, another architecture only, and a node that announced nothing.
-    let big = session_with(1, Some("1"), Some(vec![announced("amd64", 4 * GIB)]), answer()).await;
-    let small =
-        session_with(2, Some("1"), Some(vec![announced("x86_64", GIB)]), answer()).await;
-    let arm = session_with(3, Some("1"), Some(vec![announced("arm64", 8 * GIB)]), answer()).await;
+    let big = session_with(
+        1,
+        Some("1"),
+        Some(vec![announced("amd64", 4 * GIB)]),
+        answer(),
+    )
+    .await;
+    let small = session_with(2, Some("1"), Some(vec![announced("x86_64", GIB)]), answer()).await;
+    let arm = session_with(
+        3,
+        Some("1"),
+        Some(vec![announced("arm64", 8 * GIB)]),
+        answer(),
+    )
+    .await;
     let silent = session_with(4, Some("1"), Some(vec![]), answer()).await;
     let ask = ServiceAsk {
         architecture: Some("linux/amd64"),
@@ -437,8 +647,7 @@ async fn quotes_for_skips_the_nodes_that_can_never_run_the_service_and_does_not_
 #[tokio::test]
 async fn quotes_for_with_no_ask_or_no_known_architecture_skips_no_node() {
     let answer = || vec![after_signal(&quote("100"))];
-    let small =
-        session_with(2, Some("1"), Some(vec![announced("amd64", 1)]), answer()).await;
+    let small = session_with(2, Some("1"), Some(vec![announced("amd64", 1)]), answer()).await;
     let config = Configuration::default();
     let no_ask = quotes_for(
         &[&small],
@@ -451,8 +660,7 @@ async fn quotes_for_with_no_ask_or_no_known_architecture_skips_no_node() {
     assert_eq!(no_ask.ranked.len(), 1);
     assert!(no_ask.skipped.is_empty());
 
-    let small =
-        session_with(2, Some("1"), Some(vec![announced("amd64", 1)]), answer()).await;
+    let small = session_with(2, Some("1"), Some(vec![announced("amd64", 1)]), answer()).await;
     let unknown = ServiceAsk {
         architecture: None,
         resources: Sysresources {
@@ -500,4 +708,253 @@ async fn a_resumed_session_keeps_the_client_id_and_makes_no_new_client() {
     assert_eq!(session.transport().request(0).0, "GetPeerInfo");
     // The advertisement went into the database of the app.
     assert!(store.read(|d| d.seen.contains_key(&peer_id)));
+}
+
+// The record of a hibernation (`celaut_client::hibernation`).
+
+mod hibernation_record {
+    use super::*;
+    use celaut_client::db::{
+        CelautDb, HibernatedPrice, InstancePricing, InstanceRecord, Resources, ResourcesSource,
+    };
+    use celaut_client::hibernation::{self, HibernationError};
+
+    const LAUNCH: Resources = Resources {
+        cpu_quota: 25_000,
+        cpu_period: 100_000,
+        mem_limit: 512 << 20,
+    };
+    const NOW: Resources = Resources {
+        cpu_quota: 50_000,
+        cpu_period: 100_000,
+        mem_limit: 1 << 30,
+    };
+
+    fn db_with(record: InstanceRecord) -> CelautDb {
+        let db = CelautDb::in_memory();
+        db.update(|d| d.instances.insert("i1".into(), record))
+            .unwrap();
+        db
+    }
+
+    fn running(awake: Option<Resources>) -> InstanceRecord {
+        InstanceRecord {
+            token: "instance-token".into(),
+            awake_resources: awake,
+            awake_source: awake.map(|_| ResourcesSource::LastKnown),
+            ..Default::default()
+        }
+    }
+
+    fn hibernated() -> InstanceRecord {
+        InstanceRecord {
+            hibernated_at: Some(5),
+            awake_source: Some(ResourcesSource::ReadFromNode),
+            ..running(Some(NOW))
+        }
+    }
+
+    fn record(db: &CelautDb) -> InstanceRecord {
+        db.read(|d| d.instances["i1"].clone())
+    }
+
+    fn zero() -> Vec<Buffer> {
+        change_answer(resources(Some(0), Some(0), Some(0)), "700")
+    }
+
+    #[tokio::test]
+    async fn hibernate_stores_the_resources_of_now_not_the_launch_ones() {
+        // The record holds the launch size; the node says it was resized since.
+        let db = db_with(running(Some(LAUNCH)));
+        let s = session(vec![change_answer(NOW.to_sysresources(), "900"), zero()]).await;
+        let done = hibernation::hibernate(&s, &db, "i1", 42).await.unwrap();
+        assert_eq!(
+            (done.resources, done.source),
+            (NOW, ResourcesSource::ReadFromNode)
+        );
+        assert_eq!(done.balance_mu, 700);
+        let r = record(&db);
+        assert_eq!(r.awake_resources, Some(NOW));
+        assert_eq!(r.awake_source, Some(ResourcesSource::ReadFromNode));
+        assert_eq!(r.hibernated_at, Some(42));
+        assert_eq!(r.stopped_at, None);
+        // The read comes first, and has no change; then the zeroing request.
+        assert_eq!(resource_request(&s, 2).max_sysreq, None);
+        assert_eq!(
+            resource_request(&s, 3).max_sysreq.unwrap().mem_limit,
+            Some(0)
+        );
+    }
+
+    #[tokio::test]
+    async fn a_failed_hibernation_leaves_the_record_as_it_was() {
+        let before = running(Some(LAUNCH));
+        let db = db_with(before.clone());
+        // The read works; the node gives no answer to the hibernation request.
+        let s = session(vec![change_answer(NOW.to_sysresources(), "900")]).await;
+        let err = hibernation::hibernate(&s, &db, "i1", 42).await.unwrap_err();
+        assert!(matches!(err, HibernationError::Client(_)), "{err:?}");
+        assert_eq!(record(&db), before);
+    }
+
+    #[tokio::test]
+    async fn an_answer_that_is_not_zero_is_not_a_hibernation() {
+        let before = running(Some(LAUNCH));
+        let db = db_with(before.clone());
+        let s = session(vec![
+            change_answer(NOW.to_sysresources(), "900"),
+            change_answer(NOW.to_sysresources(), "800"),
+        ])
+        .await;
+        let err = hibernation::hibernate(&s, &db, "i1", 42).await.unwrap_err();
+        assert!(matches!(err, HibernationError::NotConfirmed), "{err:?}");
+        assert_eq!(record(&db), before);
+    }
+
+    #[tokio::test]
+    async fn a_failed_read_uses_the_last_known_values_and_marks_them() {
+        let db = db_with(running(Some(LAUNCH)));
+        let s = session(vec![
+            // The read: an all-zero answer is "not readable", so the last known values
+            // are used. Then the hibernation works.
+            zero(),
+            zero(),
+        ])
+        .await;
+        let done = hibernation::hibernate(&s, &db, "i1", 7).await.unwrap();
+        assert_eq!(
+            (done.resources, done.source),
+            (LAUNCH, ResourcesSource::LastKnown)
+        );
+        let r = record(&db);
+        assert_eq!(r.awake_source, Some(ResourcesSource::LastKnown));
+        assert_eq!(r.hibernated_at, Some(7));
+    }
+
+    #[tokio::test]
+    async fn with_no_value_at_all_it_refuses_and_changes_nothing() {
+        let before = running(None);
+        let db = db_with(before.clone());
+        let s = session(vec![zero()]).await;
+        let err = hibernation::hibernate(&s, &db, "i1", 7).await.unwrap_err();
+        assert!(matches!(err, HibernationError::NoResources), "{err:?}");
+        assert_eq!(record(&db), before);
+        // Only the read was sent: the zeroing request was not.
+        assert_eq!(s.transport().calls(), 3);
+    }
+
+    #[tokio::test]
+    async fn wake_sends_all_the_fields_and_clears_the_hibernation() {
+        let db = db_with(hibernated());
+        let s = session(vec![change_answer(NOW.to_sysresources(), "600")]).await;
+        let done = hibernation::wake(&s, &db, "i1").await.unwrap();
+        assert_eq!(done.resources, NOW);
+        let max = resource_request(&s, 2).max_sysreq.unwrap();
+        assert_eq!(
+            (max.cpu_quota, max.cpu_period, max.mem_limit),
+            (Some(50_000), Some(100_000), Some(1 << 30))
+        );
+        let r = record(&db);
+        assert_eq!(r.hibernated_at, None);
+        assert_eq!(r.awake_resources, Some(NOW));
+    }
+
+    #[tokio::test]
+    async fn a_failed_wake_keeps_the_instance_hibernated() {
+        let before = hibernated();
+        let db = db_with(before.clone());
+        // No answer: the call fails.
+        let s = session(vec![]).await;
+        let err = hibernation::wake(&s, &db, "i1").await.unwrap_err();
+        assert!(matches!(err, HibernationError::Client(_)), "{err:?}");
+        assert_eq!(record(&db), before);
+        // An instance that is not hibernated has nothing to wake, and no call is made.
+        let db = db_with(running(Some(NOW)));
+        let calls = s.transport().calls();
+        let err = hibernation::wake(&s, &db, "i1").await.unwrap_err();
+        assert!(matches!(err, HibernationError::NotHibernated), "{err:?}");
+        assert_eq!(s.transport().calls(), calls);
+    }
+
+    const RATES: [(&str, &str); 3] = [
+        ("disk_mu_per_gib_second", "27"),
+        ("scarcity_max_multiplier", "10"),
+        ("modify_resources_mu", "10000"),
+    ];
+
+    fn priced(awake_mu: &str) -> InstanceRecord {
+        InstanceRecord {
+            pricing: Some(InstancePricing {
+                maintenance_mu: awake_mu.into(),
+                maintenance_seconds: 60,
+                variance: "0".into(),
+            }),
+            ..running(Some(LAUNCH))
+        }
+    }
+
+    fn read_with_disk(gib: u64) -> Vec<Buffer> {
+        let mut sysreq = NOW.to_sysresources();
+        sysreq.disk_space = Some(gib << 30);
+        change_answer(sysreq, "900")
+    }
+
+    #[tokio::test]
+    async fn hibernate_keeps_the_price_of_the_disk_and_the_wake_fee() {
+        let db = db_with(priced("1000000"));
+        let s = session_priced(&RATES, vec![read_with_disk(10), zero()]).await;
+        hibernation::hibernate(&s, &db, "i1", 42).await.unwrap();
+        // (27 + 1) MU per GiB and second, times 10 for scarcity, 10 GiB, 60 seconds.
+        assert_eq!(
+            record(&db).hibernated_price,
+            Some(HibernatedPrice {
+                disk_maintenance_mu: "168000".into(),
+                wake_fee_mu: "10000".into(),
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn the_price_of_the_disk_is_never_more_than_the_awake_price() {
+        let db = db_with(priced("50000"));
+        let s = session_priced(&RATES, vec![read_with_disk(10), zero()]).await;
+        hibernation::hibernate(&s, &db, "i1", 42).await.unwrap();
+        assert_eq!(
+            record(&db).hibernated_price.unwrap().disk_maintenance_mu,
+            "50000"
+        );
+    }
+
+    #[tokio::test]
+    async fn no_disk_rate_or_no_pricing_gives_no_hibernated_price() {
+        // The node advertises no disk rate.
+        let db = db_with(priced("1000000"));
+        let s = session_priced(
+            &[("modify_resources_mu", "10000")],
+            vec![read_with_disk(10), zero()],
+        )
+        .await;
+        hibernation::hibernate(&s, &db, "i1", 42).await.unwrap();
+        assert_eq!(record(&db).hibernated_price, None);
+        // The record has no price of the start.
+        let db = db_with(running(Some(LAUNCH)));
+        let s = session_priced(&RATES, vec![read_with_disk(10), zero()]).await;
+        hibernation::hibernate(&s, &db, "i1", 42).await.unwrap();
+        assert_eq!(record(&db).hibernated_price, None);
+        assert_eq!(record(&db).hibernated_at, Some(42));
+    }
+
+    #[tokio::test]
+    async fn a_wake_clears_the_hibernated_price() {
+        let mut r = hibernated();
+        r.hibernated_price = Some(HibernatedPrice {
+            disk_maintenance_mu: "1".into(),
+            wake_fee_mu: "2".into(),
+        });
+        let db = db_with(r);
+        let s = session(vec![change_answer(NOW.to_sysresources(), "500")]).await;
+        hibernation::wake(&s, &db, "i1").await.unwrap();
+        assert_eq!(record(&db).hibernated_price, None);
+        assert_eq!(record(&db).hibernated_at, None);
+    }
 }
