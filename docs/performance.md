@@ -212,7 +212,8 @@ imports a `.celaut.bee` file, and read the times of the frames (`Animator::Begin
 UI thread, `Rasterizer::DoDraw` on the raster thread). The timeline keeps a ring of events,
 so read it every 3 seconds and join the parts. Note the time of the VM (`getVMTimelineMicros`)
 just before the tap on the file in the picker, and follow the copy of the app with
-`adb shell run-as org.celaut.chatui ls -l cache/packages` (the copy grows, then the check moves
+`adb shell run-as org.celaut.chatui ls -l cache/packages` (now `no_backup/celaut/packages/incoming`;
+the copy grows, then the check moves
 it into the library). The VM service needs no tool of its own: `setVMTimelineFlags` with the
 streams `Dart`, `Embedder` and `GC`, `clearVMTimeline`, then `getVMTimeline`, over its web
 socket (`adb forward` to the port that `adb logcat -s flutter` gives).
@@ -229,6 +230,11 @@ builds, the files in Downloads, the build host under load (two other emulators a
 
 The copy itself took 255 s before and 105 s after for the large file: that is the load of the
 build host, not the fix. The fix does not make the import shorter; it shows it from the start.
+
+A later run with a nearly full emulator found a second problem: when the storage is low,
+Android clears the cache of the apps (`DeviceStorageMonitorService`), and it deleted the copy of
+1.45 GB in the middle of the import. The copy is now in a private folder that is not a cache
+(`no_backup/celaut/packages/incoming`, next to the library).
 
 **The cause: the picker copied the file before the app knew that a file was chosen.** The
 Android side of the picker answered only after it had copied the whole file into the cache of

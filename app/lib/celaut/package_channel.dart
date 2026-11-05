@@ -19,7 +19,7 @@ class ChosenFile {
   final int? bytes;
 }
 
-/// A `.celaut.bee` file that the user picked, copied into the cache of the app.
+/// A `.celaut.bee` file that the user picked, copied into a private folder of the app.
 @immutable
 class PickedPackage {
   const PickedPackage({required this.path, required this.bytes, required this.name});
@@ -57,7 +57,7 @@ abstract class PackageChannel {
   /// file: the app did not read it yet. Null if the user cancels, or off Android.
   Future<ChosenFile?> pick();
 
-  /// Copy [file] into the cache of the app, with a stream. Throws [CopyCancelled] after
+  /// Copy [file] into a private folder of the app, with a stream. Throws [CopyCancelled] after
   /// [cancelCopy], or [CopyFailed] when the file cannot be read.
   Future<PickedPackage> copy(ChosenFile file);
 

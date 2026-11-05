@@ -15,7 +15,7 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 /// The package of a service, for a node that does not have it (`docs/celaut/package.md`):
-/// the user picks a `.celaut.bee` file, and the app copies it into its cache with a
+/// the user picks a `.celaut.bee` file, and the app copies it into a private folder with a
 /// stream (a service can be large, so never into memory). Also says if the network is
 /// metered, so that the app can warn before a large transfer on mobile data.
 ///
@@ -144,7 +144,12 @@ object PackageHandler {
     private class CopyCancelled : Exception()
 
     private fun copy(context: Context, uri: Uri): Map<String, Any> {
-        val folder = File(context.cacheDir, "packages")
+        // Not in the cache: Android clears the cache of the apps when the storage is low, and
+        // a copy of a large service fills it. The folder is next to the library, on the same
+        // disk, so the import moves the copy and does not copy it again. One copy at a time:
+        // what is in the folder is left from a copy that stopped (the app was killed).
+        val folder = File(context.noBackupFilesDir, "celaut/packages/incoming")
+        folder.listFiles()?.forEach { it.delete() }
         folder.mkdirs()
         val target = File(folder, "picked-${System.currentTimeMillis()}.bee")
         val input = context.contentResolver.openInputStream(uri)

@@ -14,8 +14,9 @@ type, because the file has no MIME type of its own). The picker gives the file a
 with its name and size, and the card of the import shows before the app reads a byte. The
 app then:
 
-1. **reads** it: Android copies the file into the cache of the app with a stream, and tells
-   the bytes copied (`copied` on the channel `org.celaut.chatui/package`). The card says
+1. **reads** it: Android copies the file with a stream into `<private dir>/packages/incoming`
+   (not the cache: Android clears the cache when the storage is low, also in the middle of
+   a copy of 1.45 GB), and tells the bytes copied (`copied` on the channel `org.celaut.chatui/package`). The card says
    "Reading the service file…" with these bytes; Cancel stops the copy and deletes it. A
    file that the app cannot read is refused with the reason;
 2. checks it: the file must be a package of a service, with a Service part, and it must say
@@ -30,7 +31,7 @@ app then:
    leaves the chosen file where it was; the copy of the app is deleted, as is the copy of
    a file that the check refuses. The count is `celaut_transfer_progress` (stage
    `checking`);
-3. **moves** it (the picker's copy is in the cache of the app) to
+3. **moves** it (the copy is on the same disk) to
    `<private dir>/packages/library/<service id>.bee`, through a partial file that is
    renamed when it is complete, so the library never holds a cut file;
 4. records it in the Celaut database (`packages`: name, size, time, layout). The name is
@@ -172,7 +173,7 @@ button (`app/lib/celaut/service_transfer.dart` decides which):
   has (closed, no room, no credit, rate limit, launch failed, network policy,
   architecture). A node that did not answer says nothing.
 - **Choose a .celaut.bee file and send it to B**, when no node of the list has it. The
-  Android file picker copies the file into the cache of the app with a stream
+  Android file picker copies the file into a private folder of the app with a stream
   (`PackageHandler.kt`). A file of another service, or with no Service part, is refused
   before anything is sent.
 

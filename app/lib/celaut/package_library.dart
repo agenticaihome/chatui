@@ -10,7 +10,7 @@ import 'service_transfer.dart';
 
 /// What an import does now.
 enum ImportPhase {
-  /// The app copies the chosen file into its cache.
+  /// The app copies the chosen file into a private folder.
   reading,
 
   /// The app checks the blocks of its copy.
@@ -125,7 +125,7 @@ class PackageLibrary {
     cancel();
   }
 
-  /// Copy the file that the user chose into the cache of the app (through [channel]), then
+  /// Copy the file that the user chose into a private folder of the app (through [channel]), then
   /// load it ([importPicked]). A copy that the library does not take is deleted. Throws
   /// [CopyCancelled] or [CopyFailed] for the copy, and as [importPicked] for the load.
   Future<LibraryPackageView> importChosen(ChosenFile file, PackageChannel channel) async {
@@ -155,7 +155,7 @@ class PackageLibrary {
       final file = File(path);
       if (file.existsSync()) file.deleteSync();
     } on FileSystemException {
-      // The cache of the app goes when the system needs the room.
+      // The next copy deletes what is left in the folder.
     }
   }
 
