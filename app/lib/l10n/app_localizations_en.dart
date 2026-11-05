@@ -7419,10 +7419,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get celautEnvShareWarn => 'Whoever scans this code gets the value in plain text. Show it only to people you trust.';
+  String get celautEnvShareWarn =>
+      'Whoever scans this code gets the value in plain text. Show it only to people you trust.';
 
   @override
-  String get celautEnvShareWarnSensitive => 'This variable is sensitive. Whoever scans this code gets the value in plain text. Show it only to people you trust, and make sure nobody else sees or records your screen.';
+  String get celautEnvShareWarnSensitive =>
+      'This variable is sensitive. Whoever scans this code gets the value in plain text. Show it only to people you trust, and make sure nobody else sees or records your screen.';
 
   @override
   String get celautEnvShareTooBig => 'This value is too large for a QR code.';
@@ -7434,5 +7436,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautEnvAskScan => 'Scan a QR code';
 
   @override
-  String get celautEnvScanNotVariable => 'That QR code is not a shared variable.';
+  String get celautEnvScanNotVariable =>
+      'That QR code is not a shared variable.';
 }
