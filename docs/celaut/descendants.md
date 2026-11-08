@@ -196,6 +196,12 @@ A `child_start` with no `child_bound` and no `refund` is a start in progress. A
 - If the father is gone, the `refund` before the `stop` has `detail.lost = father_gone`.
   If the `leftover` is above 0, the MU stayed with the node. This is the fault that the
   node `killed_with_mu` scores. The app only shows it.
+- A father that stopped its child gets the MU in a second `refund` row, so a `leftover`
+  above 0 alone is **not** a fault. A real node writes it for each normal stop
+  (`reason = manual_kill`). The app gives the alert only when the father is gone, and not
+  for an `out_of_balance` stop with less left than one tick (`detail.tick`, at most 10
+  times the largest maintenance row; with no tick the largest maintenance row; with no
+  maintenance row the stop is not judged).
 
 The app treats a movement of a kind that it does not know as a charge that it did not
 cause. It shows it and does not stop.
@@ -438,7 +444,7 @@ Code: `celaut-wire/src/statement.rs`, `celaut-client/src/descendants.rs`,
 - The statement of the held instance (depth 0) is read with an empty `instance_ref`, so
   it also works on an old node.
 - A node that refuses a statement makes the descendant "not verifiable" and gives a
-  finding. It is not an error. A `stop` movement with a leftover above 0 gives an alert.
+  finding. It is not an error. A `stop` movement with a leftover above 0 gives an alert only if the father is gone.
 - Open starts a tunnel only for a descendant that the last check found alive, and only for
   a web slot that the service declares. A chat slot of a descendant is not opened (the
   chat screen needs an instance). Open asks first, each time: the app makes a quote (it

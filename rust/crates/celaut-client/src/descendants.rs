@@ -190,7 +190,9 @@ pub fn key(instance_id: &str, instance_ref: &str) -> String {
 /// Something that the app must show to the user.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Finding {
-    /// The account ended and the MU that stayed with the node is above 0.
+    /// The account ended with MU above 0, the father was gone, and nobody got the MU: the
+    /// fault that nodo scores as `killed_with_mu`. A stop whose `refund` went to a live
+    /// father is not one.
     StoppedWithMu {
         instance_ref: String,
         reason: String,
@@ -614,6 +616,38 @@ fn lost_father_gone(statement: &VerifiedStatement) -> bool {
         .any(|d| d.get("lost").and_then(|v| v.as_str()) == Some("father_gone"))
 }
 
+/// The factor that bounds the `tick` of a `stop`, as nodo does (`_MAX_TICK_FACTOR`).
+const MAX_TICK_FACTOR: u128 = 10;
+
+/// True if a `stop` with a leftover above 0 is the fault that nodo scores as
+/// `killed_with_mu` (`balance_statement._judge_stop`): the MU stayed with the node because
+/// the father was gone. A father that stopped its child got the MU, so that stop is not a
+/// fault. An `out_of_balance` with less left than the tick that the instance could not pay
+/// is not one either. The tick comes from the row, and is bounded by 10 times the largest
+/// maintenance row; a row with no tick uses that row, and with no maintenance row the stop
+/// is not judged.
+fn stop_is_a_fault(statement: &VerifiedStatement, stop: &celaut_wire::statement::Stop, father_gone: bool) -> bool {
+    if !father_gone {
+        return false;
+    }
+    if stop.reason != "out_of_balance" {
+        return true;
+    }
+    let period = statement
+        .movements
+        .iter()
+        .filter(|m| m.kind == Kind::Maintenance && m.amount < 0)
+        .map(|m| m.amount.unsigned_abs())
+        .max()
+        .unwrap_or(0);
+    let tick = match stop.tick.as_deref().and_then(|t| t.parse::<u128>().ok()) {
+        Some(t) if period > 0 => t.min(period.saturating_mul(MAX_TICK_FACTOR)),
+        Some(t) => t,
+        None => period,
+    };
+    tick != 0 && stop.leftover >= tick
+}
+
 /// Keep what a verified statement says about the record `record_key`: its head, its
 /// state, its `stop` and its children. `now` is in Unix seconds. This reads nothing.
 /// `None` if the record is not in the database.
@@ -652,7 +686,7 @@ pub fn apply_read(
         record.stop_reason = Some(stop.reason.clone());
         record.leftover_mu = Some(stop.leftover.to_string());
         record.father_gone = lost_father_gone(statement);
-        if stop.leftover > 0 {
+        if stop.leftover > 0 && stop_is_a_fault(statement, stop, record.father_gone) {
             report.findings.push(Finding::StoppedWithMu {
                 instance_ref: record.instance_ref.clone(),
                 reason: stop.reason.clone(),

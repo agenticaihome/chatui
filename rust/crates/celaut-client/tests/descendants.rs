@@ -503,7 +503,7 @@ async fn a_stop_with_a_leftover_is_a_finding_and_the_state_is_kept() {
         &child(1),
         1,
         None,
-        &[refund, stop("out_of_balance", 12)],
+        &[refund, stop("manual_kill", 12)],
     )]);
     let v = read(&data, &c, &t, 2, u128::MAX).await.unwrap();
     let report = apply_read(&mut data, &c, &v, 50).unwrap();
@@ -511,14 +511,14 @@ async fn a_stop_with_a_leftover_is_a_finding_and_the_state_is_kept() {
         report.findings,
         vec![Finding::StoppedWithMu {
             instance_ref: child(1),
-            reason: "out_of_balance".into(),
+            reason: "manual_kill".into(),
             leftover_mu: 12,
             father_gone: true,
         }]
     );
     let r = &data.descendants[&c];
     assert_eq!(r.state, DescendantState::Stopped);
-    assert_eq!(r.stop_reason.as_deref(), Some("out_of_balance"));
+    assert_eq!(r.stop_reason.as_deref(), Some("manual_kill"));
     assert_eq!(r.leftover(), Some(12));
     assert!(r.father_gone);
 }
@@ -1029,13 +1029,44 @@ async fn a_paged_read_is_not_a_proof_that_the_account_is_alive() {
     let r = &data.descendants[&root];
     assert!(!r.incomplete);
     assert_eq!(r.state, DescendantState::Stopped);
-    assert!(matches!(
-        report.findings[0],
-        Finding::StoppedWithMu {
-            leftover_mu: 40,
-            ..
-        }
-    ));
+    // The father is not gone, so the MU went back to it: no fault, and the leftover is kept.
+    assert!(report.findings.is_empty(), "{:?}", report.findings);
+    assert_eq!(r.leftover(), Some(40));
+}
+
+#[tokio::test]
+async fn a_stop_that_the_father_refunded_is_no_finding() {
+    // What a real node writes when a father stops its child: nothing lost.
+    let (mut data, root) = data_with_instance();
+    let t = Fixed::with_statements(vec![statement_of(
+        TOKEN,
+        "",
+        1,
+        None,
+        &[stop("manual_kill", 4_479_944)],
+    )]);
+    let v = read(&data, &root, &t, 2, u128::MAX).await.unwrap();
+    let report = apply_read(&mut data, &root, &v, 1).unwrap();
+    assert!(report.findings.is_empty(), "{:?}", report.findings);
+    assert_eq!(data.descendants[&root].state, DescendantState::Stopped);
+    assert_eq!(data.descendants[&root].leftover(), Some(4_479_944));
+}
+
+#[tokio::test]
+async fn an_out_of_balance_stop_below_one_tick_is_no_finding_with_the_father_gone() {
+    let (mut data, root) = data_with_instance();
+    let refund: Row = ("refund", String::new(), r#"{"lost":"father_gone"}"#.to_string());
+    // No maintenance row and no tick: nodo does not judge it.
+    let t = Fixed::with_statements(vec![statement_of(
+        TOKEN,
+        "",
+        1,
+        None,
+        &[refund, stop("out_of_balance", 12)],
+    )]);
+    let v = read(&data, &root, &t, 2, u128::MAX).await.unwrap();
+    let report = apply_read(&mut data, &root, &v, 1).unwrap();
+    assert!(report.findings.is_empty(), "{:?}", report.findings);
 }
 
 #[tokio::test]

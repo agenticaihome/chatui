@@ -339,6 +339,13 @@ async fn read_the_statements_of_the_descendants() {
     // so the test can start the service itself (CELAUT_START_SERVICE_ID) and call it to make
     // it start descendants (CELAUT_CALL_PATH and CELAUT_CALL_BODY, one POST), or take a
     // token that a person gives (CELAUT_INSTANCE_TOKEN) when this session holds it.
+    // A pause, so that a person can give this new client a balance on the node (for
+    // example with `nodo credit_client`): the children of a service are paid by it.
+    if let Some(pause) = env("CELAUT_PAUSE_S").and_then(|v| v.parse::<u64>().ok()) {
+        println!("paused {pause} s: the client is the newest of `nodo clients`");
+        tokio::time::sleep(Duration::from_secs(pause)).await;
+        println!("balance after the pause: {} MU", session.balance().await.expect("balance"));
+    }
     let mut started_token = None;
     let token = if let Some(id) = env("CELAUT_START_SERVICE_ID") {
         let service_id = parse_service_id(&id).expect("id");
