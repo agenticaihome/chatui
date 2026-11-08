@@ -7858,4 +7858,130 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get btcToolLockBlurb => 'Bloquear la billetera: Ergo y Bitcoin';
+
+  @override
+  String get celautErrorNoDescendants => 'Este nodo no admite descendientes.';
+
+  @override
+  String get descendantsTitle => 'Descendientes';
+
+  @override
+  String get descendantsNote =>
+      'Instancias que esta instancia arrancó, y las que arrancaron ellas. La app las encuentra cuando compruebas. Una comprobación pregunta al nodo y cuesta MU.';
+
+  @override
+  String get descendantsThisInstance => 'Esta instancia';
+
+  @override
+  String get descendantsStateAlive => 'Viva';
+
+  @override
+  String get descendantsStateStopped => 'Parada';
+
+  @override
+  String get descendantsStateNotVerifiable => 'No verificable';
+
+  @override
+  String get descendantsStateNotChecked => 'Sin comprobar';
+
+  @override
+  String descendantsService(String id) {
+    return 'Servicio $id';
+  }
+
+  @override
+  String get descendantsServiceUnknown => 'Servicio desconocido';
+
+  @override
+  String descendantsLastCheck(String time) {
+    return 'Última comprobación: $time';
+  }
+
+  @override
+  String get descendantsNeverChecked => 'Nunca comprobada';
+
+  @override
+  String get descendantsCheck => 'Comprobar';
+
+  @override
+  String get descendantsCheckTitle => '¿Comprobar con el nodo?';
+
+  @override
+  String descendantsCheckBody(String node) {
+    return 'La app pide al nodo $node un extracto firmado de la cuenta. Esto cuesta MU y escribe un movimiento en el nodo. Puede costar hasta el máximo de abajo, y no más.';
+  }
+
+  @override
+  String get descendantsMaxLabel => 'MU máximos';
+
+  @override
+  String get descendantsMaxInvalid => 'Escribe un número entero de MU.';
+
+  @override
+  String get descendantsCheckConfirm => 'Comprobar y pagar';
+
+  @override
+  String get descendantsCancel => 'Cancelar';
+
+  @override
+  String descendantsQuoteFailed(String error) {
+    return 'La app no puede calcular el coste: $error';
+  }
+
+  @override
+  String descendantsCheckFailed(String error) {
+    return 'La comprobación falló: $error';
+  }
+
+  @override
+  String descendantsFoundNew(String count) {
+    return 'Descendientes nuevos encontrados: $count';
+  }
+
+  @override
+  String get descendantsFoundNone => 'Ningún descendiente nuevo.';
+
+  @override
+  String get descendantsDiedWithMuTitle =>
+      'Un nodo terminó una instancia que aún tenía MU';
+
+  @override
+  String descendantsDiedWithMu(String mu, String reason) {
+    return 'La cuenta terminó con $mu todavía en ella. Motivo: $reason. Los MU se quedaron en el nodo.';
+  }
+
+  @override
+  String get descendantsFatherGone =>
+      'El padre ya no estaba, así que el nodo no dio los MU a nadie.';
+
+  @override
+  String get descendantsRefusedTitle => 'El nodo rechazó la comprobación';
+
+  @override
+  String get descendantsRefused =>
+      'El nodo rechazó mostrar el extracto, así que la app no puede verificar este descendiente. Si murió con MU, la app no puede verlo.';
+
+  @override
+  String get descendantsClose => 'Cerrar';
+
+  @override
+  String get descendantsOpen => 'Abrir página';
+
+  @override
+  String get descendantsNoWeb =>
+      'El servicio no declara ninguna página que abrir.';
+
+  @override
+  String descendantsOpenFailed(String error) {
+    return 'La página no se abrió: $error';
+  }
+
+  @override
+  String get descendantsChatSlots =>
+      'El servicio declara un puerto de chat. La app todavía no lo abre.';
+
+  @override
+  String descendantsDepth(String depth) {
+    return 'Nivel $depth';
+  }
 }

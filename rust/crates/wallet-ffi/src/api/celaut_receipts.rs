@@ -74,7 +74,7 @@ pub struct ReceiptsView {
     pub faults: Vec<ReceiptFaultView>,
 }
 
-fn fault_view(fault: &Fault) -> ReceiptFaultView {
+pub(crate) fn fault_view(fault: &Fault) -> ReceiptFaultView {
     let (kind, detail) = match fault {
         Fault::Invalid { reason } => (ReceiptFaultKind::Invalid, reason.clone()),
         // An ordering fault shows as an invalid receipt, with its reason as the detail.
@@ -197,6 +197,18 @@ pub(crate) fn sink(instance_id: String) -> ReceiptSink {
         if kept {
             schedule_flush(ended);
         }
+    })
+}
+
+/// The sink of the tunnel streams to a descendant: the receipts go under the descendant
+/// `record_key` ([`celaut_client::descendants::key`]), in memory first and then to the
+/// disk as for [`sink`]. A descendant that the database does not know keeps nothing.
+pub(crate) fn descendant_sink(record_key: String) -> ReceiptSink {
+    let inner = celaut_client::descendants::receipt_sink(db(), record_key, now_seconds);
+    Arc::new(move |event| {
+        let ended = matches!(event, ReceiptEvent::Ended { .. });
+        inner(event);
+        schedule_flush(ended);
     })
 }
 

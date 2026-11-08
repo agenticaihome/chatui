@@ -2521,5 +2521,105 @@
   "btcToolUtxosBlurb": "Las monedas de la billetera, una a una",
   "btcToolNetworkBlurb": "La red y el servidor Esplora",
   "btcToolBackupBlurb": "Las mismas palabras que la billetera",
-  "btcToolLockBlurb": "Bloquear la billetera: Ergo y Bitcoin"
+  "btcToolLockBlurb": "Bloquear la billetera: Ergo y Bitcoin",
+  "celautErrorNoDescendants": "Este nodo no admite descendientes.",
+  "descendantsTitle": "Descendientes",
+  "descendantsNote": "Instancias que esta instancia arrancó, y las que arrancaron ellas. La app las encuentra cuando compruebas. Una comprobación pregunta al nodo y cuesta MU.",
+  "descendantsThisInstance": "Esta instancia",
+  "descendantsStateAlive": "Viva",
+  "descendantsStateStopped": "Parada",
+  "descendantsStateNotVerifiable": "No verificable",
+  "descendantsStateNotChecked": "Sin comprobar",
+  "descendantsService": "Servicio {id}",
+  "@descendantsService": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsServiceUnknown": "Servicio desconocido",
+  "descendantsLastCheck": "Última comprobación: {time}",
+  "@descendantsLastCheck": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsNeverChecked": "Nunca comprobada",
+  "descendantsCheck": "Comprobar",
+  "descendantsCheckTitle": "¿Comprobar con el nodo?",
+  "descendantsCheckBody": "La app pide al nodo {node} un extracto firmado de la cuenta. Esto cuesta MU y escribe un movimiento en el nodo. Puede costar hasta el máximo de abajo, y no más.",
+  "@descendantsCheckBody": {
+    "placeholders": {
+      "node": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsMaxLabel": "MU máximos",
+  "descendantsMaxInvalid": "Escribe un número entero de MU.",
+  "descendantsCheckConfirm": "Comprobar y pagar",
+  "descendantsCancel": "Cancelar",
+  "descendantsQuoteFailed": "La app no puede calcular el coste: {error}",
+  "@descendantsQuoteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsCheckFailed": "La comprobación falló: {error}",
+  "@descendantsCheckFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsFoundNew": "Descendientes nuevos encontrados: {count}",
+  "@descendantsFoundNew": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsFoundNone": "Ningún descendiente nuevo.",
+  "descendantsDiedWithMuTitle": "Un nodo terminó una instancia que aún tenía MU",
+  "descendantsDiedWithMu": "La cuenta terminó con {mu} todavía en ella. Motivo: {reason}. Los MU se quedaron en el nodo.",
+  "@descendantsDiedWithMu": {
+    "placeholders": {
+      "mu": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsFatherGone": "El padre ya no estaba, así que el nodo no dio los MU a nadie.",
+  "descendantsRefusedTitle": "El nodo rechazó la comprobación",
+  "descendantsRefused": "El nodo rechazó mostrar el extracto, así que la app no puede verificar este descendiente. Si murió con MU, la app no puede verlo.",
+  "descendantsClose": "Cerrar",
+  "descendantsOpen": "Abrir página",
+  "descendantsNoWeb": "El servicio no declara ninguna página que abrir.",
+  "descendantsOpenFailed": "La página no se abrió: {error}",
+  "@descendantsOpenFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsChatSlots": "El servicio declara un puerto de chat. La app todavía no lo abre.",
+  "descendantsDepth": "Nivel {depth}",
+  "@descendantsDepth": {
+    "placeholders": {
+      "depth": {
+        "type": "String"
+      }
+    }
+  }
 }

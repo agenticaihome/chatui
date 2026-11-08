@@ -10,6 +10,7 @@ import 'api/celaut_btc_deposit.dart';
 import 'api/celaut_catalog.dart';
 import 'api/celaut_db.dart';
 import 'api/celaut_deposit.dart';
+import 'api/celaut_descendants.dart';
 import 'api/celaut_env.dart';
 import 'api/celaut_health.dart';
 import 'api/celaut_home.dart';
@@ -61,6 +62,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CelautErrorKind dco_decode_box_autoadd_celaut_error_kind(dynamic raw);
+
+  @protected
+  DescendantRefusalKind dco_decode_box_autoadd_descendant_refusal_kind(
+    dynamic raw,
+  );
 
   @protected
   double dco_decode_box_autoadd_f_64(dynamic raw);
@@ -159,6 +165,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatSupportView dco_decode_chat_support_view(dynamic raw);
 
   @protected
+  CheckReportView dco_decode_check_report_view(dynamic raw);
+
+  @protected
   ComputeOverviewView dco_decode_compute_overview_view(dynamic raw);
 
   @protected
@@ -178,6 +187,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DepositSentView dco_decode_deposit_sent_view(dynamic raw);
+
+  @protected
+  DescendantFindingKind dco_decode_descendant_finding_kind(dynamic raw);
+
+  @protected
+  DescendantFindingView dco_decode_descendant_finding_view(dynamic raw);
+
+  @protected
+  DescendantRefusalKind dco_decode_descendant_refusal_kind(dynamic raw);
+
+  @protected
+  DescendantSlotsView dco_decode_descendant_slots_view(dynamic raw);
+
+  @protected
+  DescendantStateView dco_decode_descendant_state_view(dynamic raw);
+
+  @protected
+  DescendantView dco_decode_descendant_view(dynamic raw);
+
+  @protected
+  DescendantsView dco_decode_descendants_view(dynamic raw);
 
   @protected
   EnvChoice dco_decode_env_choice(dynamic raw);
@@ -261,6 +291,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<DepositSentView> dco_decode_list_deposit_sent_view(dynamic raw);
+
+  @protected
+  List<DescendantFindingView> dco_decode_list_descendant_finding_view(
+    dynamic raw,
+  );
+
+  @protected
+  List<DescendantView> dco_decode_list_descendant_view(dynamic raw);
 
   @protected
   List<EnvChoice> dco_decode_list_env_choice(dynamic raw);
@@ -402,6 +440,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CelautErrorKind? dco_decode_opt_box_autoadd_celaut_error_kind(dynamic raw);
 
   @protected
+  DescendantRefusalKind? dco_decode_opt_box_autoadd_descendant_refusal_kind(
+    dynamic raw,
+  );
+
+  @protected
   double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
 
   @protected
@@ -453,6 +496,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   QuotesView dco_decode_quotes_view(dynamic raw);
+
+  @protected
+  ReadQuoteView dco_decode_read_quote_view(dynamic raw);
 
   @protected
   ReceiptFaultKind dco_decode_receipt_fault_kind(dynamic raw);
@@ -553,6 +599,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CelautErrorKind sse_decode_box_autoadd_celaut_error_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DescendantRefusalKind sse_decode_box_autoadd_descendant_refusal_kind(
     SseDeserializer deserializer,
   );
 
@@ -673,6 +724,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ChatSupportView sse_decode_chat_support_view(SseDeserializer deserializer);
 
   @protected
+  CheckReportView sse_decode_check_report_view(SseDeserializer deserializer);
+
+  @protected
   ComputeOverviewView sse_decode_compute_overview_view(
     SseDeserializer deserializer,
   );
@@ -698,6 +752,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DepositSentView sse_decode_deposit_sent_view(SseDeserializer deserializer);
+
+  @protected
+  DescendantFindingKind sse_decode_descendant_finding_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DescendantFindingView sse_decode_descendant_finding_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DescendantRefusalKind sse_decode_descendant_refusal_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DescendantSlotsView sse_decode_descendant_slots_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DescendantStateView sse_decode_descendant_state_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DescendantView sse_decode_descendant_view(SseDeserializer deserializer);
+
+  @protected
+  DescendantsView sse_decode_descendants_view(SseDeserializer deserializer);
 
   @protected
   EnvChoice sse_decode_env_choice(SseDeserializer deserializer);
@@ -799,6 +884,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<DepositSentView> sse_decode_list_deposit_sent_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<DescendantFindingView> sse_decode_list_descendant_finding_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<DescendantView> sse_decode_list_descendant_view(
     SseDeserializer deserializer,
   );
 
@@ -980,6 +1075,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  DescendantRefusalKind? sse_decode_opt_box_autoadd_descendant_refusal_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer);
 
   @protected
@@ -1039,6 +1139,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   QuotesView sse_decode_quotes_view(SseDeserializer deserializer);
+
+  @protected
+  ReadQuoteView sse_decode_read_quote_view(SseDeserializer deserializer);
 
   @protected
   ReceiptFaultKind sse_decode_receipt_fault_kind(SseDeserializer deserializer);
@@ -1153,6 +1256,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_celaut_error_kind(
     CelautErrorKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_descendant_refusal_kind(
+    DescendantRefusalKind self,
     SseSerializer serializer,
   );
 
@@ -1313,6 +1422,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_check_report_view(
+    CheckReportView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_compute_overview_view(
     ComputeOverviewView self,
     SseSerializer serializer,
@@ -1351,6 +1466,48 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_deposit_sent_view(
     DepositSentView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_descendant_finding_kind(
+    DescendantFindingKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_descendant_finding_view(
+    DescendantFindingView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_descendant_refusal_kind(
+    DescendantRefusalKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_descendant_slots_view(
+    DescendantSlotsView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_descendant_state_view(
+    DescendantStateView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_descendant_view(
+    DescendantView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_descendants_view(
+    DescendantsView self,
     SseSerializer serializer,
   );
 
@@ -1483,6 +1640,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_deposit_sent_view(
     List<DepositSentView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_descendant_finding_view(
+    List<DescendantFindingView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_descendant_view(
+    List<DescendantView> self,
     SseSerializer serializer,
   );
 
@@ -1733,6 +1902,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_descendant_refusal_kind(
+    DescendantRefusalKind? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer);
 
   @protected
@@ -1803,6 +1978,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_quotes_view(QuotesView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_read_quote_view(ReadQuoteView self, SseSerializer serializer);
 
   @protected
   void sse_encode_receipt_fault_kind(

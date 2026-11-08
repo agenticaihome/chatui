@@ -36,11 +36,14 @@ pub(crate) type Session = Arc<NodeSession<Connection>>;
 // The state stays in Rust: not part of the Dart API.
 #[flutter_rust_bridge::frb(ignore)]
 #[derive(Default)]
-struct State {
+pub(crate) struct State {
     /// The connections, by node address.
     sessions: HashMap<String, Session>,
     /// The local ports of each instance, by instance id.
     ports: HashMap<String, HashMap<u16, LocalPort>>,
+    /// The local ports to the descendants of an instance, by the key of the descendant
+    /// ([`celaut_client::descendants::key`]).
+    pub(crate) descendant_ports: HashMap<String, HashMap<u16, LocalPort>>,
 }
 
 static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(State::default()));
@@ -48,7 +51,7 @@ static QUOTES: Lazy<Mutex<QuoteCache>> = Lazy::new(|| Mutex::new(QuoteCache::new
 /// One new session at a time, so that two calls do not make two clients on one node.
 static OPENING: Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
 
-fn state() -> Result<std::sync::MutexGuard<'static, State>, CelautError> {
+pub(crate) fn state() -> Result<std::sync::MutexGuard<'static, State>, CelautError> {
     STATE.lock().map_err(|_| CelautError {
         kind: CelautErrorKind::Storage,
         message: "the state of the Celaut services is broken".into(),
@@ -595,7 +598,7 @@ pub async fn celaut_start_service(
     Ok(view)
 }
 
-fn unknown_instance() -> CelautError {
+pub(crate) fn unknown_instance() -> CelautError {
     invalid("This instance is not known. It was deleted.")
 }
 
@@ -605,7 +608,7 @@ fn stopped_instance() -> CelautError {
 
 /// The instance `instance_id` from the database, and a session on its node. A stopped
 /// instance has none: the node does not run it.
-async fn instance(instance_id: &str) -> Result<(Session, InstanceRecord), CelautError> {
+pub(crate) async fn instance(instance_id: &str) -> Result<(Session, InstanceRecord), CelautError> {
     let record = db()
         .read(|d| d.instances.get(instance_id).cloned())
         .ok_or_else(unknown_instance)?;
@@ -799,7 +802,10 @@ pub fn celaut_forget_instance(instance_id: String) -> Result<(), CelautError> {
         })
         .map_err(storage_error)?;
     removed?;
-    drop(state()?.ports.remove(&instance_id));
+    let prefix = format!("{instance_id}/");
+    let mut s = state()?;
+    drop(s.ports.remove(&instance_id));
+    s.descendant_ports.retain(|k, _| !k.starts_with(&prefix));
     Ok(())
 }
 
@@ -857,7 +863,7 @@ pub async fn celaut_open_tunnel(instance_id: String, slot: u16) -> Result<u16, C
 /// slot, so it is the same in each start of the app, and a web page keeps its origin (its
 /// cookies and its local storage). It is under the range of the ports that the system
 /// gives to outgoing connections. If it is taken, the port is another one.
-fn preferred_port(instance_id: &str, slot: u16) -> u16 {
+pub(crate) fn preferred_port(instance_id: &str, slot: u16) -> u16 {
     // FNV-1a: the same value on every run and every platform.
     let mut h: u32 = 0x811c_9dc5;
     for b in instance_id.bytes().chain(slot.to_be_bytes()) {

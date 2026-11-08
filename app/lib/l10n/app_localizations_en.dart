@@ -7777,4 +7777,130 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get btcToolLockBlurb => 'Lock the wallet: Ergo and Bitcoin';
+
+  @override
+  String get celautErrorNoDescendants =>
+      'This node does not support descendants.';
+
+  @override
+  String get descendantsTitle => 'Descendants';
+
+  @override
+  String get descendantsNote =>
+      'Instances that this instance started, and the ones that they started. The app finds them when you check. A check asks the node and costs MU.';
+
+  @override
+  String get descendantsThisInstance => 'This instance';
+
+  @override
+  String get descendantsStateAlive => 'Alive';
+
+  @override
+  String get descendantsStateStopped => 'Stopped';
+
+  @override
+  String get descendantsStateNotVerifiable => 'Not verifiable';
+
+  @override
+  String get descendantsStateNotChecked => 'Not checked';
+
+  @override
+  String descendantsService(String id) {
+    return 'Service $id';
+  }
+
+  @override
+  String get descendantsServiceUnknown => 'Service unknown';
+
+  @override
+  String descendantsLastCheck(String time) {
+    return 'Last check: $time';
+  }
+
+  @override
+  String get descendantsNeverChecked => 'Never checked';
+
+  @override
+  String get descendantsCheck => 'Check';
+
+  @override
+  String get descendantsCheckTitle => 'Check with the node?';
+
+  @override
+  String descendantsCheckBody(String node) {
+    return 'The app asks the node $node for a signed statement of the account. This costs MU and writes a movement on the node. It can cost up to the maximum below, and no more.';
+  }
+
+  @override
+  String get descendantsMaxLabel => 'Maximum MU';
+
+  @override
+  String get descendantsMaxInvalid => 'Enter a whole number of MU.';
+
+  @override
+  String get descendantsCheckConfirm => 'Check and pay';
+
+  @override
+  String get descendantsCancel => 'Cancel';
+
+  @override
+  String descendantsQuoteFailed(String error) {
+    return 'The app cannot find the cost: $error';
+  }
+
+  @override
+  String descendantsCheckFailed(String error) {
+    return 'The check failed: $error';
+  }
+
+  @override
+  String descendantsFoundNew(String count) {
+    return 'New descendants found: $count';
+  }
+
+  @override
+  String get descendantsFoundNone => 'No new descendant.';
+
+  @override
+  String get descendantsDiedWithMuTitle =>
+      'A node ended an instance that still had MU';
+
+  @override
+  String descendantsDiedWithMu(String mu, String reason) {
+    return 'The account ended with $mu still on it. Reason: $reason. The MU stayed with the node.';
+  }
+
+  @override
+  String get descendantsFatherGone =>
+      'The father was gone, so the node gave the MU to nobody.';
+
+  @override
+  String get descendantsRefusedTitle => 'The node refused the check';
+
+  @override
+  String get descendantsRefused =>
+      'The node refused to show the statement, so the app cannot verify this descendant. If it died with MU, the app cannot see it.';
+
+  @override
+  String get descendantsClose => 'Close';
+
+  @override
+  String get descendantsOpen => 'Open page';
+
+  @override
+  String get descendantsNoWeb => 'The service declares no page to open.';
+
+  @override
+  String descendantsOpenFailed(String error) {
+    return 'The page did not open: $error';
+  }
+
+  @override
+  String get descendantsChatSlots =>
+      'The service declares a chat port. The app does not open it yet.';
+
+  @override
+  String descendantsDepth(String depth) {
+    return 'Level $depth';
+  }
 }

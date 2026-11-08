@@ -63,6 +63,10 @@ pub mod celaut_package;
 /// The execution receipts of the instances: what the app keeps, shows and exports.
 pub mod celaut_receipts;
 
+/// The descendants of an instance (nodo#631): the list, the paid check of a statement
+/// and the tunnel (`docs/celaut/descendants.md`).
+pub mod celaut_descendants;
+
 /// The Bitcoin wallet of the open wallet's seed (issue #92).
 pub mod btc;
 

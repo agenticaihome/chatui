@@ -15,6 +15,7 @@ import '../../theme/argus_theme.dart';
 import '../home/home_scene.dart';
 import '../home/home_style.dart';
 import '../layout.dart';
+import 'descendants_section.dart';
 import 'instance_actions.dart';
 import 'instance_receipts.dart';
 import 'instance_time_section.dart';
@@ -43,7 +44,11 @@ class InstanceInfoScreen extends StatefulWidget {
     this.onRenamed,
     this.loadReceipts = readReceipts,
     this.exportReceipts = shareReceipts,
+    this.descendants = const DescendantsApi(),
   });
+
+  /// The calls of the Descendants section. Tests give their own.
+  final DescendantsApi descendants;
 
   /// Read the execution receipts of an instance; null if the app cannot. Tests give
   /// their own.
@@ -382,6 +387,14 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
             if (_receipts case final receipts?) ...[
               const SizedBox(height: 16),
               InstanceReceiptsSection(view: receipts, onExport: _exportReceipts),
+            ],
+            if (widget.state != InstanceState.stopped && !hibernated) ...[
+              const SizedBox(height: 16),
+              InstanceDescendantsSection(
+                instanceId: _instance.instanceId,
+                node: _instance.address,
+                api: widget.descendants,
+              ),
             ],
             if (widget.state != InstanceState.stopped) ...[
               const SizedBox(height: 24),

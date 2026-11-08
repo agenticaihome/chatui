@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 import 'celaut.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `fault_view`, `flush_now`, `schedule_flush`, `sink`, `unknown_instance`
+// These functions are ignored because they are not marked as `pub`: `descendant_sink`, `fault_view`, `flush_now`, `schedule_flush`, `sink`, `unknown_instance`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// The receipts of the instance `instance_id`. The stored receipts are checked again
