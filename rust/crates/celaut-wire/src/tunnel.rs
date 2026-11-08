@@ -1,7 +1,8 @@
 //! `ServiceTunnel`: a byte stream to one port of an instance, through the node.
 //!
 //! The request is `TokenMessage{token, slot, receipts}` at index 1, then each payload at
-//! index 0. The answer is the bytes of the service at index 0 (`docs/celaut/wire.md`,
+//! index 0. A caller that holds the token of an ancestor can send a `DescendantTunnel`
+//! at index 2 in place of it ([`TunnelOpener::open_descendant_tunnel`]). The answer is the bytes of the service at index 0 (`docs/celaut/wire.md`,
 //! section 5), and the signed checkpoints of the execution receipt at index 2
 //! (nodo#419). The end of the request (a half-close) closes the write side of the TCP
 //! connection from the node to the service.
@@ -26,14 +27,14 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use bee_rpc::buffer::Buffer;
 use bee_rpc::frame::{serialize_part, ParseOptions, Parser, Part};
-use celaut_proto::celaut::{ExecutionReceipt, TokenMessage};
+use celaut_proto::celaut::{DescendantTunnel, ExecutionReceipt, TokenMessage};
 use prost::Message;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::StreamExt;
 use tonic::codegen::http::uri::PathAndQuery;
 
-use crate::receipt::{self, Chain, DIRECTION_IN, DIRECTION_OUT, KIND_CLOSE};
+use crate::receipt::{self, Chain, Execution, DIRECTION_IN, DIRECTION_OUT, KIND_CLOSE};
 use crate::{Connection, WireError};
 
 /// How many messages wait in each direction before the sender waits.
@@ -44,8 +45,10 @@ pub const MAX_PAYLOAD: usize = 64 * 1024;
 
 /// The index of the payloads.
 const BYTES: i32 = 0;
-/// The index of the handshake in the request.
+/// The index of the handshake in the request: a `TokenMessage`.
 const HANDSHAKE: i32 = 1;
+/// The index of the handshake of a tunnel to a descendant: a `DescendantTunnel`.
+const DESCENDANT_HANDSHAKE: i32 = 2;
 /// The index of the receipts in the answer.
 const RECEIPT: i32 = 2;
 
@@ -123,11 +126,55 @@ pub trait TunnelOpener: Send + Sync + 'static {
     /// Open a tunnel to port `slot` of the instance with `token`. The receipts of the
     /// stream go to `receipts`, if given. Must be called inside a Tokio runtime.
     fn open_tunnel(&self, token: &str, slot: u16, receipts: Option<ReceiptSink>) -> Tunnel;
+
+    /// Open a tunnel to port `slot` of the descendant `instance_ref` of the instance with
+    /// `token` (`DescendantTunnel`). The receipts of the stream go to `receipts`, if
+    /// given: they name the execution by `instance_ref`. A node that does not know
+    /// descendants makes the stream end with [`WireError::NoDescendants`].
+    ///
+    /// The default gives a tunnel that fails with [`WireError::NoDescendants`]. Must be
+    /// called inside a Tokio runtime.
+    fn open_descendant_tunnel(
+        &self,
+        token: &str,
+        instance_ref: &str,
+        slot: u16,
+        remaining_hops: Option<u32>,
+        receipts: Option<ReceiptSink>,
+    ) -> Tunnel {
+        let _ = (token, instance_ref, slot, remaining_hops, receipts);
+        let (to_service, _) = mpsc::channel(1);
+        let (from_tx, from_service) = mpsc::channel(1);
+        let _ = from_tx.try_send(Err(WireError::NoDescendants));
+        Tunnel {
+            to_service,
+            from_service,
+        }
+    }
 }
 
 impl TunnelOpener for Connection {
     fn open_tunnel(&self, token: &str, slot: u16, receipts: Option<ReceiptSink>) -> Tunnel {
         open(self.channel(), self.peer_id(), token, slot, receipts)
+    }
+
+    fn open_descendant_tunnel(
+        &self,
+        token: &str,
+        instance_ref: &str,
+        slot: u16,
+        remaining_hops: Option<u32>,
+        receipts: Option<ReceiptSink>,
+    ) -> Tunnel {
+        open_descendant(
+            self.channel(),
+            self.peer_id(),
+            token,
+            instance_ref,
+            slot,
+            remaining_hops,
+            receipts,
+        )
     }
 }
 
@@ -140,13 +187,50 @@ pub fn open(
     slot: u16,
     receipts: Option<ReceiptSink>,
 ) -> Tunnel {
+    open_with(
+        channel,
+        peer_id,
+        Handshake::Token(handshake(token, slot)),
+        receipts,
+    )
+}
+
+/// [`open`] for a descendant: the first message is a [`DescendantTunnel`] at index 2.
+/// The receipts must carry the name that [`receipt::execution_name_by_ref`] gives.
+pub fn open_descendant(
+    channel: tonic::transport::Channel,
+    peer_id: &str,
+    token: &str,
+    instance_ref: &str,
+    slot: u16,
+    remaining_hops: Option<u32>,
+    receipts: Option<ReceiptSink>,
+) -> Tunnel {
+    open_with(
+        channel,
+        peer_id,
+        Handshake::Descendant(descendant_handshake(
+            token,
+            instance_ref,
+            slot,
+            remaining_hops,
+        )),
+        receipts,
+    )
+}
+
+fn open_with(
+    channel: tonic::transport::Channel,
+    peer_id: &str,
+    handshake: Handshake,
+    receipts: Option<ReceiptSink>,
+) -> Tunnel {
     let (to_service, to_rx) = mpsc::channel(QUEUE);
     let (from_tx, from_service) = mpsc::channel(QUEUE);
-    let handshake = handshake(token, slot);
     // With no sink, nobody reads the receipts: the chains are not computed.
     let checker = receipts
         .as_ref()
-        .map(|_| Arc::new(Mutex::new(Checker::new(peer_id, token))));
+        .map(|_| Arc::new(Mutex::new(Checker::new(peer_id, handshake.execution()))));
     tokio::spawn(async move {
         let cancelled = match run(
             channel,
@@ -194,6 +278,77 @@ pub fn handshake(token: &str, slot: u16) -> TokenMessage {
         token: token.to_string(),
         slot: Some(slot.to_string()),
         receipts: true,
+    }
+}
+
+/// The handshake of a tunnel to a descendant: the token of the ancestor, the descendant,
+/// the slot, and the receipts, which the client always asks for. `remaining_hops` is the
+/// hop budget: with `None` the node uses its own maximum.
+pub fn descendant_handshake(
+    token: &str,
+    instance_ref: &str,
+    slot: u16,
+    remaining_hops: Option<u32>,
+) -> DescendantTunnel {
+    DescendantTunnel {
+        token: token.to_string(),
+        instance_ref: instance_ref.to_string(),
+        slot: slot.to_string(),
+        receipts: true,
+        remaining_hops,
+    }
+}
+
+/// The first message of a tunnel.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Handshake {
+    /// A `TokenMessage` at index 1: an instance that the caller holds.
+    Token(TokenMessage),
+    /// A `DescendantTunnel` at index 2: a descendant of such an instance.
+    Descendant(DescendantTunnel),
+}
+
+impl Handshake {
+    fn index(&self) -> i32 {
+        match self {
+            Handshake::Token(_) => HANDSHAKE,
+            Handshake::Descendant(_) => DESCENDANT_HANDSHAKE,
+        }
+    }
+
+    fn encode(&self) -> Vec<u8> {
+        match self {
+            Handshake::Token(m) => m.encode_to_vec(),
+            Handshake::Descendant(m) => m.encode_to_vec(),
+        }
+    }
+
+    /// How the receipts of the stream name the execution.
+    fn execution(&self) -> ExecutionKey {
+        match self {
+            Handshake::Token(m) => ExecutionKey::Token(m.token.clone()),
+            Handshake::Descendant(m) => ExecutionKey::InstanceRef(m.instance_ref.clone()),
+        }
+    }
+
+    fn is_descendant(&self) -> bool {
+        matches!(self, Handshake::Descendant(_))
+    }
+}
+
+/// The owned form of [`Execution`].
+#[derive(Debug, Clone)]
+enum ExecutionKey {
+    Token(String),
+    InstanceRef(String),
+}
+
+impl ExecutionKey {
+    fn as_execution(&self) -> Execution<'_> {
+        match self {
+            ExecutionKey::Token(t) => Execution::Token(t),
+            ExecutionKey::InstanceRef(r) => Execution::InstanceRef(r),
+        }
     }
 }
 
@@ -299,7 +454,7 @@ struct Waiting {
 #[derive(Debug)]
 struct Checker {
     peer_id: String,
-    token: String,
+    execution: ExecutionKey,
     sent: Seen,
     got: Seen,
     session: Option<String>,
@@ -309,10 +464,10 @@ struct Checker {
 }
 
 impl Checker {
-    fn new(peer_id: &str, token: &str) -> Self {
+    fn new(peer_id: &str, execution: ExecutionKey) -> Self {
         Checker {
             peer_id: peer_id.to_string(),
-            token: token.to_string(),
+            execution,
             sent: Seen::new(DIRECTION_IN),
             got: Seen::new(DIRECTION_OUT),
             session: None,
@@ -330,7 +485,11 @@ impl Checker {
     }
 
     fn examine(&mut self, receipt: ExecutionReceipt) -> Waiting {
-        let mut problems = receipt::problems(&receipt, Some(&self.peer_id), Some(&self.token));
+        let mut problems = receipt::problems_named(
+            &receipt,
+            Some(&self.peer_id),
+            Some(self.execution.as_execution()),
+        );
         if problems.is_empty() && receipt.kind == receipt::KIND_START {
             problems.push("a start receipt in a tunnel stream".into());
         }
@@ -457,8 +616,13 @@ fn track(checker: Option<&Arc<Mutex<Checker>>>, f: impl FnOnce(&mut Checker)) {
 /// The Buffers of the request: the handshake, then the payloads. Empty payloads are not
 /// sent (a receiver drops a part with no bytes).
 pub fn request_buffers(handshake: &TokenMessage, payloads: &[Vec<u8>]) -> Vec<Buffer> {
+    request_buffers_for(&Handshake::Token(handshake.clone()), payloads)
+}
+
+/// [`request_buffers`] for any handshake.
+pub fn request_buffers_for(handshake: &Handshake, payloads: &[Vec<u8>]) -> Vec<Buffer> {
     let mut out: Vec<Buffer> =
-        serialize_part(&Part::new(HANDSHAKE, handshake.encode_to_vec())).collect();
+        serialize_part(&Part::new(handshake.index(), handshake.encode())).collect();
     for payload in payloads {
         for piece in payload.chunks(MAX_PAYLOAD) {
             out.extend(piece_buffers(piece));
@@ -486,17 +650,46 @@ fn status(e: tonic::Status) -> WireError {
     WireError::Call(format!("{:?}: {}", e.code(), e.message()))
 }
 
+/// The error for a refusal that came before the first byte of a stream that started with a
+/// `DescendantTunnel`. A node with descendants refuses with one of four codes, and each
+/// keeps its meaning ([`status`]). Another code, with no transport error under it, is
+/// what a node that does not know index 2 gives: [`WireError::NoDescendants`]. This rule
+/// is a guess that no node confirmed (`docs/celaut/descendants.md`, section 9).
+pub fn descendant_refusal(e: &tonic::Status) -> WireError {
+    use std::error::Error;
+    use tonic::Code;
+    let known = matches!(
+        e.code(),
+        Code::PermissionDenied
+            | Code::ResourceExhausted
+            | Code::Unavailable
+            | Code::InvalidArgument
+    );
+    // A time limit and a cancel are not a refusal. A status with a source error comes
+    // from the transport (a reset connection), not from the node.
+    let not_a_refusal = matches!(
+        e.code(),
+        Code::Cancelled | Code::DeadlineExceeded | Code::Ok
+    ) || e.source().is_some();
+    if known || not_a_refusal {
+        status(e.clone())
+    } else {
+        WireError::NoDescendants
+    }
+}
+
 /// The call. Gives true if it ended because the reader went away (a cancel).
 async fn run(
     channel: tonic::transport::Channel,
-    handshake: TokenMessage,
+    handshake: Handshake,
     mut to_rx: mpsc::Receiver<Vec<u8>>,
     from_tx: &mpsc::Sender<Result<Vec<u8>, WireError>>,
     checker: Option<&Arc<Mutex<Checker>>>,
     sink: Option<&ReceiptSink>,
 ) -> Result<bool, WireError> {
     let (buffer_tx, buffer_rx) = mpsc::channel::<Buffer>(QUEUE);
-    for buffer in request_buffers(&handshake, &[]) {
+    let descendant = handshake.is_descendant();
+    for buffer in request_buffers_for(&handshake, &[]) {
         buffer_tx
             .send(buffer)
             .await
@@ -544,6 +737,8 @@ async fn run(
             // not open. A refusal of the node (another code) stays a call error.
             if !started.load(Ordering::SeqCst) && e.code() == tonic::Code::Unavailable {
                 WireError::Connect(format!("{:?}: {}", e.code(), e.message()))
+            } else if descendant {
+                descendant_refusal(&e)
             } else {
                 status(e)
             }
@@ -553,16 +748,31 @@ async fn run(
     // Index 2 is accepted also when the client did not ask for it: a bee-rpc reader
     // refuses an index that it does not know, and the node can send receipts to all.
     let mut parser = Parser::new(ParseOptions::accepting([BYTES, RECEIPT]));
+    // True after the first message of the answer: a refusal comes before it.
+    let mut answered = false;
     loop {
         let message = tokio::select! {
-            message = response.message() => message.map_err(status)?,
+            message = response.message() => message.map_err(|e| {
+                if descendant && !answered {
+                    descendant_refusal(&e)
+                } else {
+                    status(e)
+                }
+            })?,
             // The reader is gone: dropping the response cancels the call.
             _ = from_tx.closed() => return Ok(true),
         };
         let Some(buffer) = message else { break };
-        let parts = parser
-            .push(buffer)
-            .map_err(|e| WireError::Protocol(e.to_string()))?;
+        let first = !answered;
+        answered = true;
+        let parts = parser.push(buffer).map_err(|e| {
+            if descendant && first {
+                // An answer that cannot be framed, before any byte.
+                WireError::NoDescendants
+            } else {
+                WireError::Protocol(e.to_string())
+            }
+        })?;
         if !forward(parts, from_tx, checker, sink).await {
             return Ok(true);
         }
@@ -675,7 +885,7 @@ mod tests {
 
     #[test]
     fn a_checkpoint_ahead_of_the_client_waits_until_the_client_catches_up() {
-        let mut checker = Checker::new("peer", "tok");
+        let mut checker = Checker::new("peer", ExecutionKey::Token("tok".into()));
         let in_chain = Chain::default();
         let out = receipt::replay_chain([b"one".as_slice(), b"two".as_slice()], DIRECTION_OUT);
         checker.waiting.push_back(waiting_for(&out, &in_chain));
@@ -691,7 +901,7 @@ mod tests {
 
     #[test]
     fn a_checkpoint_that_stays_ahead_is_a_mismatch_when_the_stream_ends() {
-        let mut checker = Checker::new("peer", "tok");
+        let mut checker = Checker::new("peer", ExecutionKey::Token("tok".into()));
         let out = receipt::replay_chain([b"one".as_slice(), b"two".as_slice()], DIRECTION_OUT);
         checker
             .waiting
@@ -705,7 +915,7 @@ mod tests {
 
     #[test]
     fn a_checkpoint_with_another_head_is_a_mismatch_at_once() {
-        let mut checker = Checker::new("peer", "tok");
+        let mut checker = Checker::new("peer", ExecutionKey::Token("tok".into()));
         let out = receipt::replay_chain([b"zzz".as_slice()], DIRECTION_OUT);
         checker
             .waiting

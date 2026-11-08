@@ -11,6 +11,8 @@
 //! - [`relay`]: the call that gives a service to a node, and stops when the node
 //!   answers before the end (it already has the service).
 //! - [`tunnel`]: `ServiceTunnel`, a byte stream to one port of an instance.
+//! - [`statement`]: the balance statements of `GetBalanceStatement`: the request, its
+//!   maximum cost, and the check of the signature, the chain and the `instance_ref`.
 //! - [`receipt`]: the execution receipts that a node signs (nodo#419), and their check.
 //!
 //! Input from a peer must never make this crate panic.
@@ -27,6 +29,7 @@ pub mod identity;
 pub mod receipt;
 pub mod relay;
 pub mod skips;
+pub mod statement;
 pub mod transport;
 pub mod tunnel;
 

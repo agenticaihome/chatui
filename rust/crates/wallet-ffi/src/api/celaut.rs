@@ -176,7 +176,10 @@ pub(crate) fn error_of(e: ClientError) -> CelautError {
         ClientError::Wire(WireError::Identity(_)) => K::BadCertificate,
         ClientError::Wire(WireError::Connect(_)) => K::Unreachable,
         ClientError::Wire(WireError::Timeout) => K::Timeout,
-        ClientError::Wire(WireError::Call(_) | WireError::Protocol(_)) => K::Protocol,
+        // NoDescendants has no kind of its own yet: its message says it.
+        ClientError::Wire(WireError::Call(_) | WireError::Protocol(_) | WireError::NoDescendants) => {
+            K::Protocol
+        }
         ClientError::Wire(WireError::Relay(_)) => K::TransferFailed,
         ClientError::Peer(PeerError::KeyMismatch { .. }) => K::IdentityMismatch,
         ClientError::Peer(PeerError::StaleTs { .. }) => K::StaleTimestamp,

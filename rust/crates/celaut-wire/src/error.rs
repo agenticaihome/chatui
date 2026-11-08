@@ -46,6 +46,11 @@ pub enum WireError {
     /// The answer has the wrong shape (a missing or undecodable message).
     #[error("unexpected answer: {0}")]
     Protocol(String),
+    /// The node does not know `DescendantTunnel` (index 2 of `ServiceTunnel`): a stream
+    /// that used it failed before the first byte, in a way that no refusal of a node with
+    /// descendants has (`docs/celaut/descendants.md`, section 9).
+    #[error("node does not support descendants")]
+    NoDescendants,
     /// The input of a relay failed (a file or another call). The node got markers that
     /// make it refuse the request.
     #[error("the service could not be read: {0}")]
