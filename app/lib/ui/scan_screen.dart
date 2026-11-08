@@ -85,7 +85,16 @@ class _ScanScreenState extends State<ScanScreen> {
               onControllerCreated: _onControllerCreated,
               showGallery: false,
               showToggleCamera: false,
+              // Light modules on a dark ground (a QR in a dark terminal) need the inverted try.
+              tryInverted: true,
+              tryHarder: true,
+              // The whole frame: the default scans only the centre square of half the short
+              // side, which cuts a large code and gives a dense one few pixels per module.
+              cropPercent: 0,
+              // A failed frame must not make the next ones wait a second.
+              scanDelay: const Duration(milliseconds: 100),
               scanDelaySuccess: Duration.zero,
+              resolution: ResolutionPreset.veryHigh,
             ),
     );
   }
