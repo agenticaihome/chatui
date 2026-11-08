@@ -793,6 +793,7 @@ pub fn celaut_forget_instance(instance_id: String) -> Result<(), CelautError> {
             Some(_) => {
                 d.instances.remove(&instance_id);
                 d.receipts.remove(&instance_id);
+                d.remove_descendants_of(&instance_id);
                 Ok(())
             }
         })
