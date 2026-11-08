@@ -124,6 +124,10 @@ enum CelautErrorKind {
   /// The transfer of a service stopped: the file could not be read, it is cut, or the
   /// user cancelled it. The node refused the cut service.
   transferFailed,
+
+  /// The node does not know descendants (`DescendantTunnel` or the `instance_ref` of a
+  /// balance statement).
+  noDescendants,
 }
 
 /// One key and its value, as text.

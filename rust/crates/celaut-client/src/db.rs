@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use crate::store::{keep_newer, PeerStore, Seen, StoreError};
 
 /// The version of the content.
-pub const DB_VERSION: u32 = 2;
+pub const DB_VERSION: u32 = 3;
 
 /// The length of the key, in bytes.
 pub const KEY_LEN: usize = 32;
@@ -472,6 +472,15 @@ pub struct CelautData {
     /// go when the instance is deleted.
     #[serde(default)]
     pub receipts: BTreeMap<String, crate::receipts::InstanceReceipts>,
+    /// The descendants of the instances (nodo#631), by [`crate::descendants::key`]: the
+    /// local id of the held instance and the `instance_ref`. Version 3. They go when the
+    /// instance is deleted ([`CelautData::remove_descendants_of`]).
+    #[serde(default)]
+    pub descendants: BTreeMap<String, crate::descendants::DescendantRecord>,
+    /// The receipts of the tunnels to descendants, by the same key. They are named by
+    /// `instance_ref`, not by token.
+    #[serde(default)]
+    pub descendant_receipts: BTreeMap<String, crate::receipts::InstanceReceipts>,
 }
 
 /// One environment variable of the container of the app.
@@ -651,6 +660,12 @@ impl CelautData {
         }
         for (k, v) in other.receipts {
             self.receipts.entry(k).or_insert(v);
+        }
+        for (k, v) in other.descendants {
+            self.descendants.entry(k).or_insert(v);
+        }
+        for (k, v) in other.descendant_receipts {
+            self.descendant_receipts.entry(k).or_insert(v);
         }
     }
 
@@ -1429,6 +1444,59 @@ mod tests {
         // The limit and the addresses stay.
         assert_eq!(node.deposit_limit_nano_erg, Some(3));
         assert_eq!(node.addresses, vec!["n:1".to_string()]);
+    }
+
+    #[test]
+    fn a_database_of_version_2_has_no_descendants_and_a_new_one_keeps_them() {
+        use crate::descendants::{DescendantRecord, DescendantState};
+        let old: CelautData = serde_json::from_str(
+            r#"{"version": 2, "instances": {"i": {"peer_id": "p", "address": "a",
+                "token": "t", "service_id": "s", "started_at": 1}},
+                "receipts": {"i": {}}}"#,
+        )
+        .unwrap();
+        assert!(old.descendants.is_empty() && old.descendant_receipts.is_empty());
+        assert_eq!(old.instances.len(), 1, "the old data stays");
+        assert_eq!(old.receipts.len(), 1);
+
+        // The same through the file: a file of version 2 opens, and the version is 3.
+        let dir = dir();
+        let key = [7u8; KEY_LEN];
+        let file = DbFile::new(dir.join("celaut.db"), &key).unwrap();
+        file.write(&old).unwrap();
+        let db = CelautDb::open(dir.join("celaut.db"), &key).unwrap();
+        assert_eq!(db.read(|d| d.version), DB_VERSION);
+        assert_eq!(DB_VERSION, 3);
+        assert_eq!(db.read(|d| d.instances.len()), 1);
+        db.update(|d| {
+            d.descendants.insert(
+                "i/r".into(),
+                DescendantRecord {
+                    instance_id: "i".into(),
+                    instance_ref: "r".into(),
+                    service_id: None,
+                    parent_token: "t".into(),
+                    parent_ref: None,
+                    peer_id: "p".into(),
+                    depth: 1,
+                    rows_seq: 0,
+                    head_seq: 0,
+                    head_hash: String::new(),
+                    state: DescendantState::Bound,
+                    last_checked_at: None,
+                    stop_reason: None,
+                    leftover_mu: None,
+                    father_gone: false,
+                    relayed: false,
+                    last_refusal: None,
+                    incomplete: false,
+                },
+            );
+        })
+        .unwrap();
+        let again = CelautDb::open(dir.join("celaut.db"), &key).unwrap();
+        assert_eq!(again.read(|d| d.descendants.len()), 1);
+        assert_eq!(again.read(|d| d.instances.len()), 1);
     }
 
     #[test]

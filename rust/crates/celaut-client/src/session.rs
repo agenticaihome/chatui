@@ -15,9 +15,14 @@ use celaut_wire::gateway::{
     get_service_estimated_cost_with_service, get_service_raw, get_service_skippable,
     modify_deposit, modify_system_resources, payable, start_service, stop_service, ServiceRequest,
 };
-use celaut_wire::{Transport, WireError};
+use celaut_wire::{ReceiptSink, Transport, TunnelOpener, WireError};
+
+use celaut_wire::statement::VerifiedStatement;
 
 use crate::deposit::{check_deposit_token, BtcPayment, ErgPayment};
+use crate::descendants::{
+    self, quote_read, read_statement, DescendantError, DescendantRecord, ReadQuote,
+};
 use crate::{
     fetch_node_info_as, obtain_client_id, ClientError, NodeInfo, PeerStore, ResourcesError,
 };
@@ -446,6 +451,102 @@ impl<T: Transport> NodeSession<T> {
     pub async fn payable(&self, payment: &Payment) -> Result<(), ClientError> {
         Ok(payable(&self.transport, &self.client_id, payment).await?)
     }
+}
+
+impl<T: Transport> NodeSession<T> {
+    /// The quote for the next read of the statement of `record` on this node: the most MU
+    /// that it can cost. It sends nothing. Show it to the user and read only after a yes.
+    pub fn quote_statement(
+        &self,
+        record: &DescendantRecord,
+        remaining_hops: u32,
+    ) -> Result<ReadQuote, DescendantError> {
+        quote_read(
+            record,
+            descendants::rates_of(&self.info.peer),
+            remaining_hops,
+        )
+    }
+
+    /// The quote for the streams of a tunnel to `record`: the most MU that one stream can
+    /// cost to open. It sends nothing. Show it to the user and open the tunnel only after
+    /// a yes ([`descendants::TunnelQuote::streams_for`]).
+    pub fn quote_tunnel(
+        &self,
+        record: &DescendantRecord,
+        remaining_hops: u32,
+    ) -> Result<descendants::TunnelQuote, DescendantError> {
+        descendants::quote_tunnel(record, &self.info.peer, remaining_hops)
+    }
+
+    /// Read one statement of `record` (`GetBalanceStatement` with `instance_ref`). This is
+    /// one paid call: it never repeats, and the caller must ask the user for each read.
+    /// `max_mu` is the budget that the user confirmed. If the maximum cost of `quote` is
+    /// above it, nothing is sent ([`DescendantError::OverBudget`]).
+    pub async fn read_statement(
+        &self,
+        record: &DescendantRecord,
+        quote: &ReadQuote,
+        max_mu: u128,
+    ) -> Result<VerifiedStatement, DescendantError> {
+        read_statement(
+            &self.transport,
+            &self.info.peer_id,
+            &self.client_id,
+            record,
+            quote,
+            max_mu,
+            unix_now(),
+        )
+        .await
+    }
+}
+
+impl<T: Transport + TunnelOpener> NodeSession<T> {
+    /// Open a tunnel to port `slot` of the descendant `record`, through the token of the
+    /// held instance (`DescendantTunnel`). The receipts go to `receipts`: use
+    /// [`descendants::receipt_sink`] to keep them with the descendant. A node that does
+    /// not know descendants ends the stream with `WireError::NoDescendants`. The call
+    /// goes on the transport of the session, so with Tor on it uses the route of the app.
+    ///
+    /// `remaining_hops`, if given, is limited to [`descendants::MAX_REMAINING_HOPS`]. The
+    /// tunnel costs the opening fee, and the app asks the user as for a normal tunnel.
+    pub fn open_descendant_tunnel(
+        &self,
+        record: &DescendantRecord,
+        slot: u16,
+        remaining_hops: Option<u32>,
+        receipts: Option<ReceiptSink>,
+    ) -> Result<celaut_wire::Tunnel, DescendantError> {
+        if record.depth == 0 {
+            return Err(DescendantError::NotADescendant);
+        }
+        if record.peer_id != self.info.peer_id {
+            return Err(DescendantError::OtherNode);
+        }
+        if let Some(hops) = remaining_hops {
+            if hops == 0 || hops > descendants::MAX_REMAINING_HOPS {
+                return Err(DescendantError::BadHops {
+                    hops,
+                    max: descendants::MAX_REMAINING_HOPS,
+                });
+            }
+        }
+        Ok(self.transport.open_descendant_tunnel(
+            &record.parent_token,
+            &record.instance_ref,
+            slot,
+            remaining_hops,
+            receipts,
+        ))
+    }
+}
+
+/// The time of the app in Unix seconds, for the date check of a statement.
+fn unix_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
 }
 
 /// A service id from 64 hexadecimal characters.

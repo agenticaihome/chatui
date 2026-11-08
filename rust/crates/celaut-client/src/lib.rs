@@ -23,6 +23,12 @@
 //! - [`deposit`]: the ERG payment contract of a node, the `Payment` of `Payable`, and the
 //!   check of the deposit box on the explorer. The wallet makes the transaction.
 //!
+//! Milestone M4, the descendants of nodo#631:
+//!
+//! - [`descendants`]: the descendants of an instance, found in the `child_bound` rows of
+//!   its statement. A statement read costs MU, so each read is one call with a `max_mu`
+//!   that the user confirmed. Nothing reads by itself.
+//!
 //! Storage, for the whole app (`docs/celaut/ui.md`):
 //!
 //! - [`db`]: one encrypted database for all the Celaut data of the app (client ids,
@@ -40,6 +46,7 @@
 
 pub mod db;
 pub mod deposit;
+pub mod descendants;
 pub mod env;
 pub mod health;
 pub mod hibernation;

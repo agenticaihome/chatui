@@ -291,7 +291,15 @@ pub async fn celaut_service_info(
     service_id_hex: String,
     node: Option<NodeAddress>,
 ) -> Result<ServiceInfoView, CelautError> {
-    let id = service_id(&service_id_hex)?;
+    Ok(view_of(read_info(&service_id_hex, node).await?))
+}
+
+/// The [`ServiceInfo`] of [`celaut_service_info`], before the view.
+pub(crate) async fn read_info(
+    service_id_hex: &str,
+    node: Option<NodeAddress>,
+) -> Result<ServiceInfo, CelautError> {
+    let id = service_id(service_id_hex)?;
     let library = db()
         .read(|d| {
             d.packages
@@ -317,7 +325,7 @@ pub async fn celaut_service_info(
             .await
             .map_err(package_error)?
     };
-    Ok(view_of(info))
+    Ok(info)
 }
 
 #[cfg(test)]

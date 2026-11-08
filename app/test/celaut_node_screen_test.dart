@@ -232,6 +232,7 @@ void main() {
       CelautErrorKind.insufficientCredit: 'Your credit on the node',
       CelautErrorKind.launchFailed: 'tried to start the service',
       CelautErrorKind.transferFailed: 'The transfer of the service stopped',
+      CelautErrorKind.noDescendants: 'does not support descendants',
     };
     for (final entry in cases.entries) {
       testWidgets('${entry.key.name} shows its text and the detail', (tester) async {

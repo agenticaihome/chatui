@@ -12484,6 +12484,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lock the wallet: Ergo and Bitcoin'**
   String get btcToolLockBlurb;
+
+  /// No description provided for @celautErrorNoDescendants.
+  ///
+  /// In en, this message translates to:
+  /// **'This node does not support descendants.'**
+  String get celautErrorNoDescendants;
+
+  /// No description provided for @descendantsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Descendants'**
+  String get descendantsTitle;
+
+  /// No description provided for @descendantsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Instances that this instance started, and the ones that they started. The app finds them when you check. A check asks the node and costs MU.'**
+  String get descendantsNote;
+
+  /// No description provided for @descendantsThisInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'This instance'**
+  String get descendantsThisInstance;
+
+  /// No description provided for @descendantsStateAlive.
+  ///
+  /// In en, this message translates to:
+  /// **'Alive'**
+  String get descendantsStateAlive;
+
+  /// No description provided for @descendantsStateStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get descendantsStateStopped;
+
+  /// No description provided for @descendantsStateNotVerifiable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not verifiable'**
+  String get descendantsStateNotVerifiable;
+
+  /// No description provided for @descendantsStateNotChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Not checked'**
+  String get descendantsStateNotChecked;
+
+  /// No description provided for @descendantsService.
+  ///
+  /// In en, this message translates to:
+  /// **'Service {id}'**
+  String descendantsService(String id);
+
+  /// No description provided for @descendantsServiceUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Service unknown'**
+  String get descendantsServiceUnknown;
+
+  /// No description provided for @descendantsLastCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Last check: {time}'**
+  String descendantsLastCheck(String time);
+
+  /// No description provided for @descendantsNeverChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Never checked'**
+  String get descendantsNeverChecked;
+
+  /// No description provided for @descendantsCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get descendantsCheck;
+
+  /// No description provided for @descendantsCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check with the node?'**
+  String get descendantsCheckTitle;
+
+  /// No description provided for @descendantsCheckBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The app asks the node {node} for a signed statement of the account. This costs MU and writes a movement on the node. It can cost up to the maximum below, and no more.'**
+  String descendantsCheckBody(String node);
+
+  /// No description provided for @descendantsMaxLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum MU'**
+  String get descendantsMaxLabel;
+
+  /// No description provided for @descendantsMaxInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number of MU.'**
+  String get descendantsMaxInvalid;
+
+  /// No description provided for @descendantsCheckConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Check and pay'**
+  String get descendantsCheckConfirm;
+
+  /// No description provided for @descendantsCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get descendantsCancel;
+
+  /// No description provided for @descendantsQuoteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The app cannot find the cost: {error}'**
+  String descendantsQuoteFailed(String error);
+
+  /// No description provided for @descendantsCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The check failed: {error}'**
+  String descendantsCheckFailed(String error);
+
+  /// No description provided for @descendantsFoundNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New descendants found: {count}'**
+  String descendantsFoundNew(String count);
+
+  /// No description provided for @descendantsFoundNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No new descendant.'**
+  String get descendantsFoundNone;
+
+  /// No description provided for @descendantsDiedWithMuTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A node ended an instance that still had MU'**
+  String get descendantsDiedWithMuTitle;
+
+  /// No description provided for @descendantsDiedWithMu.
+  ///
+  /// In en, this message translates to:
+  /// **'The account ended with {mu} still on it. Reason: {reason}. The MU stayed with the node.'**
+  String descendantsDiedWithMu(String mu, String reason);
+
+  /// No description provided for @descendantsFatherGone.
+  ///
+  /// In en, this message translates to:
+  /// **'The father was gone, so the node gave the MU to nobody.'**
+  String get descendantsFatherGone;
+
+  /// No description provided for @descendantsRefusedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The node refused the check'**
+  String get descendantsRefusedTitle;
+
+  /// No description provided for @descendantsRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The node refused to show the statement, so the app cannot verify this descendant. If it died with MU, the app cannot see it.'**
+  String get descendantsRefused;
+
+  /// No description provided for @descendantsClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get descendantsClose;
+
+  /// No description provided for @descendantsOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open page'**
+  String get descendantsOpen;
+
+  /// No description provided for @descendantsNoWeb.
+  ///
+  /// In en, this message translates to:
+  /// **'The service declares no page to open.'**
+  String get descendantsNoWeb;
+
+  /// No description provided for @descendantsOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The page did not open: {error}'**
+  String descendantsOpenFailed(String error);
+
+  /// No description provided for @descendantsChatSlots.
+  ///
+  /// In en, this message translates to:
+  /// **'The service declares a chat port. The app does not open it yet.'**
+  String get descendantsChatSlots;
+
+  /// No description provided for @descendantsDepth.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {depth}'**
+  String descendantsDepth(String depth);
+
+  /// No description provided for @descendantsRelayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Relayed. Another node wrote this statement. The node of this instance signed it again, and the app cannot check the other node.'**
+  String get descendantsRelayed;
+
+  /// No description provided for @descendantsUnreadRows.
+  ///
+  /// In en, this message translates to:
+  /// **'Partly checked. Some movements are not read, and one of them can be a stop. Check again.'**
+  String get descendantsUnreadRows;
+
+  /// No description provided for @descendantsOpenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open with the node?'**
+  String get descendantsOpenTitle;
+
+  /// No description provided for @descendantsOpenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The app opens one stream to the descendant for each connection of the page, through the node {node}. One stream can cost up to {perStream} MU to open ({hops} hops at most). The traffic costs more. The port stops after the streams that the budget below pays for.'**
+  String descendantsOpenBody(String node, String perStream, String hops);
+
+  /// No description provided for @descendantsOpenStreams.
+  ///
+  /// In en, this message translates to:
+  /// **'The budget pays for {count} streams.'**
+  String descendantsOpenStreams(String count);
+
+  /// No description provided for @descendantsOpenBudgetTooSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'The budget does not pay for one stream.'**
+  String get descendantsOpenBudgetTooSmall;
+
+  /// No description provided for @descendantsOpenConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Open and pay'**
+  String get descendantsOpenConfirm;
 }
 
 class _AppLocalizationsDelegate

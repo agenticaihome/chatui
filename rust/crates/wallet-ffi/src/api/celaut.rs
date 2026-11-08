@@ -128,6 +128,9 @@ pub enum CelautErrorKind {
     /// The transfer of a service stopped: the file could not be read, it is cut, or the
     /// user cancelled it. The node refused the cut service.
     TransferFailed,
+    /// The node does not know descendants (`DescendantTunnel` or the `instance_ref` of a
+    /// balance statement).
+    NoDescendants,
 }
 
 /// The error of [`celaut_peer_info`].
@@ -176,6 +179,7 @@ pub(crate) fn error_of(e: ClientError) -> CelautError {
         ClientError::Wire(WireError::Identity(_)) => K::BadCertificate,
         ClientError::Wire(WireError::Connect(_)) => K::Unreachable,
         ClientError::Wire(WireError::Timeout) => K::Timeout,
+        ClientError::Wire(WireError::NoDescendants) => K::NoDescendants,
         ClientError::Wire(WireError::Call(_) | WireError::Protocol(_)) => K::Protocol,
         ClientError::Wire(WireError::Relay(_)) => K::TransferFailed,
         ClientError::Peer(PeerError::KeyMismatch { .. }) => K::IdentityMismatch,

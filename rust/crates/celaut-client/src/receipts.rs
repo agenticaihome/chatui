@@ -348,6 +348,28 @@ pub struct ReceiptSummary {
 /// against the node and the token: a receipt that was changed in the database shows as
 /// [`Fault::Invalid`].
 pub fn summarize(receipts: &InstanceReceipts, peer_id: &str, token: &str) -> ReceiptSummary {
+    summarize_named(receipts, peer_id, receipt::Execution::Token(token))
+}
+
+/// [`summarize`] for the receipts of a tunnel to a descendant: the name of the execution
+/// is the one that `instance_ref` gives, not the one of a token.
+pub fn summarize_descendant(
+    receipts: &InstanceReceipts,
+    peer_id: &str,
+    instance_ref: &str,
+) -> ReceiptSummary {
+    summarize_named(
+        receipts,
+        peer_id,
+        receipt::Execution::InstanceRef(instance_ref),
+    )
+}
+
+fn summarize_named(
+    receipts: &InstanceReceipts,
+    peer_id: &str,
+    execution: receipt::Execution<'_>,
+) -> ReceiptSummary {
     let mut summary = ReceiptSummary {
         dropped_streams: receipts.dropped_streams,
         ..Default::default()
@@ -355,7 +377,7 @@ pub fn summarize(receipts: &InstanceReceipts, peer_id: &str, token: &str) -> Rec
     let again = |stored: &StoredReceipt| -> Vec<Fault> {
         let mut faults = stored.faults.clone();
         let now = match stored.receipt() {
-            Some(r) => receipt::problems(&r, Some(peer_id), Some(token)),
+            Some(r) => receipt::problems_named(&r, Some(peer_id), Some(execution)),
             None => vec!["the stored receipt cannot be read".to_string()],
         };
         for reason in now {

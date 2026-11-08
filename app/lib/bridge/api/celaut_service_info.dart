@@ -9,7 +9,7 @@ import 'celaut_env.dart';
 import 'celaut_service.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `amounts`, `network_view`, `protocol_view`, `resources_view`, `scores`, `slot_view`, `view_of`
+// These functions are ignored because they are not marked as `pub`: `amounts`, `network_view`, `protocol_view`, `read_info`, `resources_view`, `scores`, `slot_view`, `view_of`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// What the service `service_id_hex` says about itself. The app reads it from the file of

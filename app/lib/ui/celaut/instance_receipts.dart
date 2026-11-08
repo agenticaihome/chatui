@@ -65,10 +65,12 @@ String receiptsCloseText(AppLocalizations l, ReceiptsView v) {
 /// The Receipts part of the info page of an instance: the start receipt, the count of
 /// the checkpoints, the close of the tunnels, every fault in red, and Export.
 class InstanceReceiptsSection extends StatelessWidget {
-  const InstanceReceiptsSection({super.key, required this.view, required this.onExport});
+  const InstanceReceiptsSection({super.key, required this.view, this.onExport});
 
   final ReceiptsView view;
-  final VoidCallback onExport;
+
+  /// Export the receipts. Null hides Export (the receipts of a descendant).
+  final VoidCallback? onExport;
 
   @override
   Widget build(BuildContext context) {
@@ -123,15 +125,17 @@ class InstanceReceiptsSection extends StatelessWidget {
               ],
             ),
           ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          key: const Key('info-receipts-export'),
-          onPressed: onExport,
-          icon: const Icon(Icons.ios_share),
-          label: Text(l.chatsReceiptsExport),
-        ),
-        const SizedBox(height: 8),
-        Text(l.chatsReceiptsNote, style: t.secondary),
+        if (onExport != null) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            key: const Key('info-receipts-export'),
+            onPressed: onExport,
+            icon: const Icon(Icons.ios_share),
+            label: Text(l.chatsReceiptsExport),
+          ),
+          const SizedBox(height: 8),
+          Text(l.chatsReceiptsNote, style: t.secondary),
+        ],
       ],
     );
   }

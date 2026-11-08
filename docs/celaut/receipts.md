@@ -28,6 +28,10 @@ canonical text, the digests, the chains and the check. Its tests use the vectors
 - The client sends a payload in pieces of 64 KiB or less. Each piece is one message.
 - The receipt must verify against the `peer_id` of the TLS connection and the token of
   the instance (`execution_name`).
+- A tunnel to a descendant (`DescendantTunnel`) has no token of the instance. Its receipts
+  name the execution by the `instance_ref` instead:
+  `blake2b_256("celaut-execution-ref:" + instance_ref || peer_id_raw)`. See
+  [descendants.md](descendants.md). Each node signs only its own leg.
 
 ### 2.1 The check of a checkpoint
 

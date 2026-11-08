@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use celaut_client::local_port::PortLimits;
 use celaut_client::LocalPort;
 use celaut_wire::{Tunnel, TunnelOpener, WireError};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
@@ -410,4 +411,82 @@ async fn a_failed_open_is_retried_and_the_request_is_delivered_once() {
     assert_eq!(answer, "1 /once");
     assert_eq!(fake.opened.lock().unwrap().len(), 2);
     assert_eq!(fake.delivered.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn a_port_with_no_retries_opens_one_stream_and_not_four() {
+    let fake = node(None).await;
+    fake.unreachable.store(100, Ordering::SeqCst);
+    let limits = PortLimits {
+        max_streams: None,
+        retries: 0,
+    };
+    let local = LocalPort::bind_limited(fake.clone(), "tok".into(), 3030, None, None, limits)
+        .await
+        .unwrap();
+    let mut socket = TcpStream::connect(("127.0.0.1", local.port()))
+        .await
+        .unwrap();
+    socket.write_all(b"GET / HTTP/1.1\r\n\r\n").await.unwrap();
+    let mut all = Vec::new();
+    let _ = tokio::time::timeout(Duration::from_secs(10), socket.read_to_end(&mut all))
+        .await
+        .expect("the local connection was not closed");
+    assert!(all.is_empty());
+    // The open that failed is the only one: a try again is not paid for by the user.
+    assert_eq!(fake.opened.lock().unwrap().len(), 1);
+    assert!(local.last_error().unwrap().contains("no route"));
+}
+
+/// One request on a new connection. Gives the bytes that came back.
+async fn one_request(port: u16, path: &str) -> Vec<u8> {
+    let mut socket = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+    let _ = socket
+        .write_all(format!("GET {path} HTTP/1.1\r\nhost: x\r\n\r\n").as_bytes())
+        .await;
+    // The end of the request half-closes the stream, and the server closes.
+    let _ = socket.shutdown().await;
+    let mut all = Vec::new();
+    let _ = tokio::time::timeout(Duration::from_secs(10), socket.read_to_end(&mut all)).await;
+    all
+}
+
+#[tokio::test]
+async fn a_port_opens_no_stream_over_its_budget() {
+    let fake = node(None).await;
+    let limits = PortLimits {
+        max_streams: Some(2),
+        retries: 0,
+    };
+    let local = LocalPort::bind_limited(fake.clone(), "tok".into(), 3030, None, None, limits)
+        .await
+        .unwrap();
+    assert!(!one_request(local.port(), "/a").await.is_empty());
+    assert!(!one_request(local.port(), "/b").await.is_empty());
+    assert_eq!(local.streams_opened(), 2);
+    // The third connection is closed, and no stream is opened (no MU is spent).
+    assert!(one_request(local.port(), "/c").await.is_empty());
+    assert_eq!(fake.opened.lock().unwrap().len(), 2);
+    assert_eq!(local.streams_opened(), 2);
+    assert!(local.last_error().unwrap().contains("budget"));
+    // A new confirmation pays for one more.
+    local.allow_streams(1);
+    assert!(!one_request(local.port(), "/d").await.is_empty());
+    assert_eq!(fake.opened.lock().unwrap().len(), 3);
+    assert!(one_request(local.port(), "/e").await.is_empty());
+    assert_eq!(fake.opened.lock().unwrap().len(), 3);
+}
+
+#[tokio::test]
+async fn a_port_with_no_budget_set_has_no_limit() {
+    let fake = node(None).await;
+    let local = LocalPort::bind(fake.clone(), "tok".into(), 3030, None)
+        .await
+        .unwrap();
+    // `allow_streams` does not put a limit on a port that has none.
+    local.allow_streams(1);
+    for i in 0..4 {
+        assert!(!one_request(local.port(), &format!("/{i}")).await.is_empty());
+    }
+    assert_eq!(fake.opened.lock().unwrap().len(), 4);
 }

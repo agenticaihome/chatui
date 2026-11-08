@@ -22,6 +22,7 @@ ring = "0.17"
 # Blake2b-256 of the execution receipts (nodo#419); the same version as celaut-client.
 blake2 = "0.11"
 hex = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 prost = "0.14"
 

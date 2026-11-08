@@ -7,12 +7,16 @@ use std::time::Duration;
 use bee_rpc::frame::Part;
 use celaut_proto::celaut::metadata::hash_tag::Hash;
 use celaut_proto::celaut::{
-    Amount, Client, Configuration, EstimatedCost, Metrics, ModifyDepositInput, ModifyDepositOutput,
-    ModifyServiceSystemResourcesInput, ModifyServiceSystemResourcesOutput, Payment, Peer,
-    PoWRequired, RecursionGuard, Refund, ServiceInstance, Sysresources, TokenMessage,
+    Amount, BalanceStatement, Client, Configuration, EstimatedCost, Metrics, ModifyDepositInput,
+    ModifyDepositOutput, ModifyServiceSystemResourcesInput, ModifyServiceSystemResourcesOutput,
+    Payment, Peer, PoWRequired, RecursionGuard, Refund, ServiceInstance, Sysresources,
+    TokenMessage,
 };
 use prost::Message;
 
+use crate::statement::{
+    self, KeptHead, Rates, StatementError, StatementRequest, VerifiedStatement,
+};
 use crate::{Transport, WireError};
 
 /// The type id of SHA3-256: the digest of the empty input
@@ -446,4 +450,61 @@ pub async fn payable<T: Transport>(
     ];
     transport.call("Payable", parts, &[1]).await?;
     Ok(())
+}
+
+/// `GetBalanceStatement`: read the signed movements of an account, or, with
+/// `request.instance_ref`, of a descendant of the instance of `request.token`
+/// (`docs/celaut/descendants.md`).
+///
+/// A read costs MU and writes a `statement_query` movement on the node, so the caller
+/// must pass `max_mu`: the most that the user agreed to pay. The call sends nothing and
+/// gives [`StatementError::OverBudget`] when [`StatementRequest::max_mu_needed`] is more
+/// than `max_mu`. The caller must show that maximum to the user and get a new
+/// confirmation for each read. The call never repeats a read.
+///
+/// `peer_id` is the identity that the TLS connection proved ([`crate::Connection::peer_id`]):
+/// the node must have signed the statement. `rates` are the rates of that node
+/// ([`Rates::from_peer`]). `kept` is the head of an earlier read of the same descendant
+/// on the same node, if the caller has one.
+///
+/// `now` is the time of the app in Unix seconds. The statement must be dated near it.
+/// With an empty `request.token` and no `instance_ref`, the answer must be for the account
+/// of `client_id`.
+///
+/// The answer is checked as [`statement::verify`] says. An answer from a node that
+/// ignores `instance_ref` is [`StatementError::NoDescendants`].
+#[allow(clippy::too_many_arguments)]
+pub async fn get_balance_statement<T: Transport>(
+    transport: &T,
+    peer_id: &str,
+    client_id: &str,
+    request: &StatementRequest,
+    rates: &Rates,
+    max_mu: u128,
+    kept: Option<&KeptHead>,
+    now: i64,
+) -> Result<VerifiedStatement, StatementError> {
+    request.check()?;
+    let needed = request.max_mu_needed(rates);
+    if needed > max_mu {
+        return Err(StatementError::OverBudget {
+            needed,
+            max: max_mu,
+        });
+    }
+    let parts = vec![
+        Part::new(1, request.to_proto().encode_to_vec()),
+        client_part(2, client_id),
+    ];
+    let answer = transport.call("GetBalanceStatement", parts, &[1]).await?;
+    let statement: BalanceStatement = find(&answer, 1, "BalanceStatement")?;
+    if request.token.is_empty()
+        && request.instance_ref.is_empty()
+        && statement.account_ref != statement::account_ref(client_id)
+    {
+        return Err(StatementError::Invalid(
+            "the account of the answer is not the account that was asked for".into(),
+        ));
+    }
+    statement::verify(request, peer_id, statement, kept, now)
 }

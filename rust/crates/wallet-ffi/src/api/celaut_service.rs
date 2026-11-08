@@ -36,11 +36,14 @@ pub(crate) type Session = Arc<NodeSession<Connection>>;
 // The state stays in Rust: not part of the Dart API.
 #[flutter_rust_bridge::frb(ignore)]
 #[derive(Default)]
-struct State {
+pub(crate) struct State {
     /// The connections, by node address.
     sessions: HashMap<String, Session>,
     /// The local ports of each instance, by instance id.
     ports: HashMap<String, HashMap<u16, LocalPort>>,
+    /// The local ports to the descendants of an instance, by the key of the descendant
+    /// ([`celaut_client::descendants::key`]).
+    pub(crate) descendant_ports: HashMap<String, HashMap<u16, LocalPort>>,
 }
 
 static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(State::default()));
@@ -48,7 +51,18 @@ static QUOTES: Lazy<Mutex<QuoteCache>> = Lazy::new(|| Mutex::new(QuoteCache::new
 /// One new session at a time, so that two calls do not make two clients on one node.
 static OPENING: Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
 
-fn state() -> Result<std::sync::MutexGuard<'static, State>, CelautError> {
+/// Close every local port of the instance: its own ports and the ports to its descendants.
+/// Call it when the instance stops, hibernates or is gone. A port that stays open keeps
+/// the token of the instance in use, and each connection to it opens a paid stream.
+pub(crate) fn close_ports(instance_id: &str) -> Result<(), CelautError> {
+    let prefix = format!("{instance_id}/");
+    let mut s = state()?;
+    drop(s.ports.remove(instance_id));
+    s.descendant_ports.retain(|k, _| !k.starts_with(&prefix));
+    Ok(())
+}
+
+pub(crate) fn state() -> Result<std::sync::MutexGuard<'static, State>, CelautError> {
     STATE.lock().map_err(|_| CelautError {
         kind: CelautErrorKind::Storage,
         message: "the state of the Celaut services is broken".into(),
@@ -595,7 +609,7 @@ pub async fn celaut_start_service(
     Ok(view)
 }
 
-fn unknown_instance() -> CelautError {
+pub(crate) fn unknown_instance() -> CelautError {
     invalid("This instance is not known. It was deleted.")
 }
 
@@ -605,7 +619,7 @@ fn stopped_instance() -> CelautError {
 
 /// The instance `instance_id` from the database, and a session on its node. A stopped
 /// instance has none: the node does not run it.
-async fn instance(instance_id: &str) -> Result<(Session, InstanceRecord), CelautError> {
+pub(crate) async fn instance(instance_id: &str) -> Result<(Session, InstanceRecord), CelautError> {
     let record = db()
         .read(|d| d.instances.get(instance_id).cloned())
         .ok_or_else(unknown_instance)?;
@@ -793,12 +807,16 @@ pub fn celaut_forget_instance(instance_id: String) -> Result<(), CelautError> {
             Some(_) => {
                 d.instances.remove(&instance_id);
                 d.receipts.remove(&instance_id);
+                d.remove_descendants_of(&instance_id);
                 Ok(())
             }
         })
         .map_err(storage_error)?;
     removed?;
-    drop(state()?.ports.remove(&instance_id));
+    let prefix = format!("{instance_id}/");
+    let mut s = state()?;
+    drop(s.ports.remove(&instance_id));
+    s.descendant_ports.retain(|k, _| !k.starts_with(&prefix));
     Ok(())
 }
 
@@ -856,7 +874,7 @@ pub async fn celaut_open_tunnel(instance_id: String, slot: u16) -> Result<u16, C
 /// slot, so it is the same in each start of the app, and a web page keeps its origin (its
 /// cookies and its local storage). It is under the range of the ports that the system
 /// gives to outgoing connections. If it is taken, the port is another one.
-fn preferred_port(instance_id: &str, slot: u16) -> u16 {
+pub(crate) fn preferred_port(instance_id: &str, slot: u16) -> u16 {
     // FNV-1a: the same value on every run and every platform.
     let mut h: u32 = 0x811c_9dc5;
     for b in instance_id.bytes().chain(slot.to_be_bytes()) {
@@ -938,7 +956,7 @@ pub async fn celaut_instance_status(
             // The node stops a hibernated instance that cannot pay its disk, after the
             // grace, and forgets its token. Then it is gone, and the record must say so.
             if mark_gone_if_hibernated(&db(), &instance_id, &e) {
-                drop(state()?.ports.remove(&instance_id));
+                close_ports(&instance_id)?;
             }
             return Err(error_of(e));
         }
@@ -1190,7 +1208,7 @@ pub struct StopView {
 #[flutter_rust_bridge::frb]
 pub async fn celaut_stop_service(instance_id: String) -> Result<StopView, CelautError> {
     let (session, record) = instance(&instance_id).await?;
-    drop(state()?.ports.remove(&instance_id));
+    close_ports(&instance_id)?;
     let refund = session.stop(&record.token).await.map_err(error_of)?;
     db().update(|d| {
         if let Some(r) = d.instances.get_mut(&instance_id) {
@@ -1447,7 +1465,7 @@ pub async fn celaut_hibernate_instance(
     let outcome = hibernation::hibernate(&session, &db(), &instance_id, now_seconds()).await;
     if outcome.is_ok() {
         // The instance does not run: its local ports have no one behind them.
-        drop(state()?.ports.remove(&instance_id));
+        close_ports(&instance_id)?;
     }
     hibernation_view(&db(), &instance_id, InstanceStateView::Hibernated, outcome)
 }
@@ -2137,5 +2155,68 @@ mod tests {
         assert_eq!(answer.failures.len(), 1);
         assert_eq!(answer.failures[0].address, node);
         assert_eq!(answer.failures[0].kind, CelautErrorKind::Unreachable);
+    }
+
+    #[tokio::test]
+    async fn closing_the_ports_of_an_instance_closes_the_ports_to_its_descendants() {
+        use celaut_client::LocalPort;
+        use celaut_wire::{Tunnel, TunnelOpener};
+
+        struct Idle;
+        impl TunnelOpener for Idle {
+            fn open_tunnel(
+                &self,
+                _t: &str,
+                _s: u16,
+                _r: Option<celaut_wire::ReceiptSink>,
+            ) -> Tunnel {
+                let (to_service, _) = tokio::sync::mpsc::channel(1);
+                let (_, from_service) = tokio::sync::mpsc::channel(1);
+                Tunnel {
+                    to_service,
+                    from_service,
+                }
+            }
+        }
+        let bind = || async {
+            LocalPort::bind(Arc::new(Idle), "t".into(), 80, None)
+                .await
+                .unwrap()
+        };
+        let (mine, other_instance, descendant, other_descendant) =
+            (bind().await, bind().await, bind().await, bind().await);
+        let (port_of_descendant, port_of_other) = (descendant.port(), other_descendant.port());
+        {
+            let mut s = state().unwrap();
+            s.ports.insert("close-me".into(), HashMap::from([(80, mine)]));
+            s.ports
+                .insert("keep-me".into(), HashMap::from([(80, other_instance)]));
+            s.descendant_ports
+                .insert("close-me/ref".into(), HashMap::from([(80, descendant)]));
+            s.descendant_ports
+                .insert("keep-me/ref".into(), HashMap::from([(80, other_descendant)]));
+        }
+        // Stop, hibernation and a node that forgot the instance all call this.
+        close_ports("close-me").unwrap();
+        {
+            let s = state().unwrap();
+            assert!(!s.ports.contains_key("close-me"));
+            assert!(!s.descendant_ports.contains_key("close-me/ref"));
+            assert!(s.ports.contains_key("keep-me"));
+            assert!(s.descendant_ports.contains_key("keep-me/ref"));
+        }
+        // The port of the descendant no longer accepts a connection.
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        assert!(
+            tokio::net::TcpStream::connect(("127.0.0.1", port_of_descendant))
+                .await
+                .is_err()
+        );
+        assert!(
+            tokio::net::TcpStream::connect(("127.0.0.1", port_of_other))
+                .await
+                .is_ok()
+        );
+        close_ports("keep-me").unwrap();
     }
 }

@@ -71,6 +71,7 @@ class CelautStrings {
         CelautErrorKind.insufficientCredit => appL10n.celautErrorInsufficientCredit,
         CelautErrorKind.launchFailed => appL10n.celautErrorLaunchFailed,
         CelautErrorKind.transferFailed => appL10n.celautErrorTransferFailed,
+        CelautErrorKind.noDescendants => appL10n.celautErrorNoDescendants,
       };
 
   static String detailLabel(String detail) => appL10n.celautDetailLabel(detail);

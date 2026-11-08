@@ -5634,5 +5634,132 @@
   "btcToolUtxosBlurb": "The coins of the wallet, one by one",
   "btcToolNetworkBlurb": "The network and the Esplora server",
   "btcToolBackupBlurb": "The same words as the wallet",
-  "btcToolLockBlurb": "Lock the wallet: Ergo and Bitcoin"
+  "btcToolLockBlurb": "Lock the wallet: Ergo and Bitcoin",
+  "celautErrorNoDescendants": "This node does not support descendants.",
+  "descendantsTitle": "Descendants",
+  "descendantsNote": "Instances that this instance started, and the ones that they started. The app finds them when you check. A check asks the node and costs MU.",
+  "descendantsThisInstance": "This instance",
+  "descendantsStateAlive": "Alive",
+  "descendantsStateStopped": "Stopped",
+  "descendantsStateNotVerifiable": "Not verifiable",
+  "descendantsStateNotChecked": "Not checked",
+  "descendantsService": "Service {id}",
+  "@descendantsService": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsServiceUnknown": "Service unknown",
+  "descendantsLastCheck": "Last check: {time}",
+  "@descendantsLastCheck": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsNeverChecked": "Never checked",
+  "descendantsCheck": "Check",
+  "descendantsCheckTitle": "Check with the node?",
+  "descendantsCheckBody": "The app asks the node {node} for a signed statement of the account. This costs MU and writes a movement on the node. It can cost up to the maximum below, and no more.",
+  "@descendantsCheckBody": {
+    "placeholders": {
+      "node": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsMaxLabel": "Maximum MU",
+  "descendantsMaxInvalid": "Enter a whole number of MU.",
+  "descendantsCheckConfirm": "Check and pay",
+  "descendantsCancel": "Cancel",
+  "descendantsQuoteFailed": "The app cannot find the cost: {error}",
+  "@descendantsQuoteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsCheckFailed": "The check failed: {error}",
+  "@descendantsCheckFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsFoundNew": "New descendants found: {count}",
+  "@descendantsFoundNew": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsFoundNone": "No new descendant.",
+  "descendantsDiedWithMuTitle": "A node ended an instance that still had MU",
+  "descendantsDiedWithMu": "The account ended with {mu} still on it. Reason: {reason}. The MU stayed with the node.",
+  "@descendantsDiedWithMu": {
+    "placeholders": {
+      "mu": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsFatherGone": "The father was gone, so the node gave the MU to nobody.",
+  "descendantsRefusedTitle": "The node refused the check",
+  "descendantsRefused": "The node refused to show the statement, so the app cannot verify this descendant. If it died with MU, the app cannot see it.",
+  "descendantsClose": "Close",
+  "descendantsOpen": "Open page",
+  "descendantsNoWeb": "The service declares no page to open.",
+  "descendantsOpenFailed": "The page did not open: {error}",
+  "@descendantsOpenFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsChatSlots": "The service declares a chat port. The app does not open it yet.",
+  "descendantsDepth": "Level {depth}",
+  "@descendantsDepth": {
+    "placeholders": {
+      "depth": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsRelayed": "Relayed. Another node wrote this statement. The node of this instance signed it again, and the app cannot check the other node.",
+  "descendantsUnreadRows": "Partly checked. Some movements are not read, and one of them can be a stop. Check again.",
+  "descendantsOpenTitle": "Open with the node?",
+  "descendantsOpenBody": "The app opens one stream to the descendant for each connection of the page, through the node {node}. One stream can cost up to {perStream} MU to open ({hops} hops at most). The traffic costs more. The port stops after the streams that the budget below pays for.",
+  "@descendantsOpenBody": {
+    "placeholders": {
+      "node": {
+        "type": "String"
+      },
+      "perStream": {
+        "type": "String"
+      },
+      "hops": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsOpenStreams": "The budget pays for {count} streams.",
+  "@descendantsOpenStreams": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsOpenBudgetTooSmall": "The budget does not pay for one stream.",
+  "descendantsOpenConfirm": "Open and pay"
 }

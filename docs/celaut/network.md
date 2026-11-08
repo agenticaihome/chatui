@@ -30,6 +30,13 @@ Everything that the Rust core connects to:
   connection through the SOCKS5 proxy (the proxy looks up the name, and the TLS of GitHub
   goes inside), or fails with the reason. Through the proxy it accepts HTTPS only.
 
+- The statement reads and the tunnels of descendants (`GetBalanceStatement` with
+  `instance_ref`, and `ServiceTunnel` with `DescendantTunnel`). They use the connection of
+  the node that holds the instance, so they use its route. The code has no other dial for
+  them. With Tor on, a descendant read or tunnel never opens a direct connection. The node
+  that holds the instance asks the other nodes, not the phone, so Tor does not need to
+  reach them.
+
 What does not go through Tor: the system (for example the DNS of Android and the
 connections of other apps).
 
@@ -84,5 +91,8 @@ With Tor on, the app never falls back to a direct connection.
   with a password: direct, through the proxy, a wrong password, no proxy, blocked, and
   plain HTTP refused; in each failure nothing reaches the server
   (`app/test/celaut_routed_http_test.dart`).
+- A test on a fake transport checks that a descendant read and a descendant tunnel use the
+  transport of the session and no other (`celaut-client/tests/descendants.rs`). The real
+  descendant test is ignored (`celaut-client/tests/real_node.rs`) and was not run through Tor.
 - Not checked: a phone, Android (the Arti client builds for the Android targets in the CI,
   but it was not run there), the battery use, and a Celaut node through Tor.

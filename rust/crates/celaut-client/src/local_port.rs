@@ -26,10 +26,36 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
 use tokio::task::{JoinHandle, JoinSet};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Shared {
     streams: AtomicU64,
+    /// The most streams that the port opens in all. `u64::MAX` is no limit.
+    limit: AtomicU64,
     last_error: Mutex<Option<String>>,
+}
+
+/// What a local port limits. The default is the limit of a port to an instance: no limit
+/// on the streams, and [`OPEN_RETRIES`] new tries for a stream that fails to open.
+///
+/// A port that spends MU the user did not confirm one by one (a tunnel to a descendant)
+/// sets `max_streams` to what the confirmed budget pays for, and `retries` to 0: a try
+/// again can open, and so charge, a stream that the user did not count.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PortLimits {
+    /// The most streams that the port opens in all. A connection after it is closed with
+    /// no stream and no cost.
+    pub max_streams: Option<u64>,
+    /// How many times a stream that failed to open is opened again.
+    pub retries: u32,
+}
+
+impl Default for PortLimits {
+    fn default() -> Self {
+        PortLimits {
+            max_streams: None,
+            retries: OPEN_RETRIES,
+        }
+    }
 }
 
 /// What a connection needs to open its stream. The opener can be replaced while the port
@@ -39,6 +65,7 @@ struct Target {
     token: String,
     slot: u16,
     receipts: Option<ReceiptSink>,
+    retries: u32,
 }
 
 impl std::fmt::Debug for Target {
@@ -92,6 +119,26 @@ impl LocalPort {
         receipts: Option<ReceiptSink>,
         preferred: Option<u16>,
     ) -> std::io::Result<LocalPort> {
+        Self::bind_limited(
+            opener,
+            token,
+            slot,
+            receipts,
+            preferred,
+            PortLimits::default(),
+        )
+        .await
+    }
+
+    /// Like [`LocalPort::bind_preferred`], with the [`PortLimits`] of the port.
+    pub async fn bind_limited(
+        opener: Arc<dyn TunnelOpener>,
+        token: String,
+        slot: u16,
+        receipts: Option<ReceiptSink>,
+        preferred: Option<u16>,
+        limits: PortLimits,
+    ) -> std::io::Result<LocalPort> {
         let listener = match preferred {
             Some(p) => match TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, p))).await {
                 Ok(listener) => listener,
@@ -100,12 +147,17 @@ impl LocalPort {
             None => TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0))).await?,
         };
         let port = listener.local_addr()?.port();
-        let shared = Arc::new(Shared::default());
+        let shared = Arc::new(Shared {
+            streams: AtomicU64::new(0),
+            limit: AtomicU64::new(limits.max_streams.unwrap_or(u64::MAX)),
+            last_error: Mutex::new(None),
+        });
         let target = Arc::new(Target {
             opener: Mutex::new(opener),
             token,
             slot,
             receipts,
+            retries: limits.retries,
         });
         let task = tokio::spawn(accept(listener, target.clone(), shared.clone()));
         Ok(LocalPort {
@@ -124,6 +176,14 @@ impl LocalPort {
         if let Ok(mut last) = self.shared.last_error.lock() {
             *last = None;
         }
+    }
+
+    /// Allow `more` streams after the ones that the port may open now. A port with no
+    /// limit stays with no limit. Call it only after the user confirmed a budget for them.
+    pub fn allow_streams(&self, more: u64) {
+        update(&self.shared.limit, |limit| {
+            (limit != u64::MAX).then(|| limit.saturating_add(more))
+        });
     }
 
     /// False if the task of the port ended, so that the port accepts nothing.
@@ -173,6 +233,20 @@ async fn accept(listener: TcpListener, target: Arc<Target>, shared: Arc<Shared>)
     }
 }
 
+/// Set `counter` to `f(counter)` in one step, if `f` gives a value. Gives true if it did.
+fn update(counter: &AtomicU64, f: impl Fn(u64) -> Option<u64>) -> bool {
+    let mut current = counter.load(Ordering::SeqCst);
+    loop {
+        let Some(next) = f(current) else {
+            return false;
+        };
+        match counter.compare_exchange_weak(current, next, Ordering::SeqCst, Ordering::SeqCst) {
+            Ok(_) => return true,
+            Err(seen) => current = seen,
+        }
+    }
+}
+
 /// Aborts a task when dropped.
 struct AbortOnDrop(JoinHandle<()>);
 
@@ -210,7 +284,17 @@ async fn relay(socket: TcpStream, target: Arc<Target>, shared: Arc<Shared>) {
         Ok(n) => n,
     };
     let first_chunk = buffer[..first].to_vec();
-    shared.streams.fetch_add(1, Ordering::Relaxed);
+    // The limit counts the streams that the port opens. A connection over it opens none.
+    let counted = update(&shared.streams, |n| {
+        (n < shared.limit.load(Ordering::SeqCst)).then(|| n + 1)
+    });
+    if !counted {
+        if let Ok(mut last) = shared.last_error.lock() {
+            *last = Some("the budget for the streams of this port is used up".into());
+        }
+        let _ = writer.shutdown().await;
+        return;
+    }
     let Tunnel {
         to_service,
         mut from_service,
@@ -292,7 +376,7 @@ async fn relay(socket: TcpStream, target: Arc<Target>, shared: Arc<Shared>) {
                     }
                 }
                 Some(Err(e)) => {
-                    if !answered && replayable && retries < OPEN_RETRIES && is_transient(&e) {
+                    if !answered && replayable && retries < target.retries && is_transient(&e) {
                         retries += 1;
                         // A short wait, longer each time: the link may be coming back.
                         tokio::time::sleep(std::time::Duration::from_millis(250 * u64::from(retries))).await;

@@ -118,6 +118,42 @@ pub fn execution_name(token: &str, peer_id: &str) -> Option<String> {
     Some(blake2b_256_hex(&data))
 }
 
+/// The prefix of the name of an execution that a caller knows by an `instance_ref`
+/// (`nodo:src/utils/execution_receipt.py`, `EXECUTION_REF_PREFIX`).
+pub const EXECUTION_REF_PREFIX: &str = "celaut-execution-ref:";
+
+/// `blake2b_256(UTF-8("celaut-execution-ref:" + instance_ref) || the 32 bytes of the key)`,
+/// lowercase hex: the name of an execution in the receipts of a `DescendantTunnel`. The
+/// caller has the `instance_ref` and not the token of the descendant. The prefix keeps
+/// this name apart from [`execution_name`]. `None` if `peer_id` is not a key.
+pub fn execution_name_by_ref(instance_ref: &str, peer_id: &str) -> Option<String> {
+    let key = hex::decode(normalize_key(peer_id)?).ok()?;
+    let mut data = EXECUTION_REF_PREFIX.as_bytes().to_vec();
+    data.extend_from_slice(instance_ref.as_bytes());
+    data.extend_from_slice(&key);
+    Some(blake2b_256_hex(&data))
+}
+
+/// How the caller of a stream knows the execution: it decides the name that a receipt
+/// must carry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Execution<'a> {
+    /// The token of the instance ([`execution_name`]).
+    Token(&'a str),
+    /// The `instance_ref` of a descendant ([`execution_name_by_ref`]).
+    InstanceRef(&'a str),
+}
+
+impl Execution<'_> {
+    /// The name that a receipt of the node `peer_id` must carry.
+    pub fn name(&self, peer_id: &str) -> Option<String> {
+        match self {
+            Execution::Token(token) => execution_name(token, peer_id),
+            Execution::InstanceRef(instance_ref) => execution_name_by_ref(instance_ref, peer_id),
+        }
+    }
+}
+
 /// Where an environment variable came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Origin {
@@ -442,6 +478,17 @@ fn plane_coverages(plane: &str) -> &'static [&'static str] {
 /// that the client holds: the name must be its name. The shape checks come before the
 /// signature, because they make the canonical text have one reading.
 pub fn problems(r: &ExecutionReceipt, peer_id: Option<&str>, token: Option<&str>) -> Vec<String> {
+    problems_named(r, peer_id, token.map(Execution::Token))
+}
+
+/// [`problems`], with the way that the client knows the execution: `execution`, if given,
+/// decides the name that the receipt must carry (a token, or the `instance_ref` of a
+/// descendant).
+pub fn problems_named(
+    r: &ExecutionReceipt,
+    peer_id: Option<&str>,
+    execution: Option<Execution<'_>>,
+) -> Vec<String> {
     let mut found = Vec::new();
     if !KINDS.contains(&r.kind.as_str()) {
         found.push(format!(
@@ -472,8 +519,7 @@ pub fn problems(r: &ExecutionReceipt, peer_id: Option<&str>, token: Option<&str>
     if !is_hex(&r.signature, Some(SIGNATURE_HEX_LEN)) {
         found.push("signature is not 128 lowercase hex".into());
     }
-    if !r.envs_salt.is_empty() && (r.kind != KIND_START || r.envs_salt.len() != ENVS_SALT_BYTES)
-    {
+    if !r.envs_salt.is_empty() && (r.kind != KIND_START || r.envs_salt.len() != ENVS_SALT_BYTES) {
         found.push(format!(
             "envs_salt is not {ENVS_SALT_BYTES} bytes of a start receipt"
         ));
@@ -557,11 +603,18 @@ pub fn problems(r: &ExecutionReceipt, peer_id: Option<&str>, token: Option<&str>
             found.push("peer_id is not the expected node".into());
         }
     }
-    if let Some(token) = token {
+    if let Some(execution) = execution {
         if found.is_empty()
-            && execution_name(token, &r.peer_id).as_deref() != Some(r.execution_name.as_str())
+            && execution.name(&r.peer_id).as_deref() != Some(r.execution_name.as_str())
         {
-            found.push("execution_name is not the name of this token on this node".into());
+            found.push(match execution {
+                Execution::Token(_) => {
+                    "execution_name is not the name of this token on this node".into()
+                }
+                Execution::InstanceRef(_) => {
+                    "execution_name is not the name of this descendant on this node".into()
+                }
+            });
         }
     }
 
@@ -930,6 +983,56 @@ mod tests {
         assert_eq!(execution_name(TOKEN, "not-a-key"), None);
     }
 
+    // Vectors of `docs/celaut/descendants.md`, section 10.
+    const CHILD_REF: &str = "407e5db0b61e39e7eeeef075270dbf0d1f60f8cb6f9a56493fca5a6f464cfa61";
+    const REF_EXECUTION_NAME: &str =
+        "f4ddd19cef1fc8bc22992a1e64f3098c7499d3dcfa931b0c9de925d5a2243b91";
+
+    #[test]
+    fn the_execution_name_by_ref_is_blake2b_of_the_prefix_the_ref_and_the_raw_key() {
+        assert_eq!(
+            execution_name_by_ref(CHILD_REF, PEER_ID).unwrap(),
+            REF_EXECUTION_NAME
+        );
+        assert_eq!(
+            execution_name_by_ref(CHILD_REF, &PEER_ID.to_uppercase()).unwrap(),
+            REF_EXECUTION_NAME
+        );
+        assert_eq!(execution_name_by_ref(CHILD_REF, "not-a-key"), None);
+        // The prefix keeps it apart from the name of a token with the same text.
+        assert_ne!(
+            execution_name_by_ref(CHILD_REF, PEER_ID),
+            execution_name(CHILD_REF, PEER_ID)
+        );
+    }
+
+    fn by_ref_checkpoint() -> ExecutionReceipt {
+        let mut r = checkpoint();
+        r.execution_name = REF_EXECUTION_NAME.into();
+        sign_with_seed(&mut r, &KEY).unwrap();
+        r
+    }
+
+    #[test]
+    fn a_receipt_of_a_descendant_is_checked_against_its_instance_ref() {
+        let r = by_ref_checkpoint();
+        let by_ref = Some(Execution::InstanceRef(CHILD_REF));
+        assert_eq!(
+            problems_named(&r, Some(PEER_ID), by_ref),
+            Vec::<String>::new()
+        );
+        // Another descendant.
+        let other = Some(Execution::InstanceRef(PEER_ID));
+        let found = problems_named(&r, Some(PEER_ID), other);
+        assert_eq!(
+            found,
+            vec!["execution_name is not the name of this descendant on this node".to_string()]
+        );
+        // It is not the name of a token, and a token receipt is not a name by ref.
+        assert!(!problems(&r, Some(PEER_ID), Some(CHILD_REF)).is_empty());
+        assert!(!problems_named(&checkpoint(), Some(PEER_ID), by_ref).is_empty());
+    }
+
     #[test]
     fn the_envs() {
         assert_eq!(canonical_envs(&envs(), &no_origins()), CANONICAL_ENVS);
@@ -1104,8 +1207,9 @@ mod tests {
         let mut r = r;
         r.envs_salt = long_salt;
         assert!(!envs_match(&r, &rest, &no_origins(), None));
-        assert!(problems(&r, None, None)
-            .contains(&format!("envs_salt is not {ENVS_SALT_BYTES} bytes of a start receipt")));
+        assert!(problems(&r, None, None).contains(&format!(
+            "envs_salt is not {ENVS_SALT_BYTES} bytes of a start receipt"
+        )));
     }
 
     #[test]
@@ -1119,7 +1223,12 @@ mod tests {
         let mut stripped = r.clone();
         stripped.envs_salt.clear();
         assert!(verify(&stripped, None, None));
-        assert!(envs_match(&stripped, &envs(), &no_origins(), Some(&r.envs_salt)));
+        assert!(envs_match(
+            &stripped,
+            &envs(),
+            &no_origins(),
+            Some(&r.envs_salt)
+        ));
     }
 
     /// Final review of nodo#593: the hex decoder reads uppercase (and Python's reads
@@ -1142,7 +1251,8 @@ mod tests {
             let mut r = start();
             r.signature = spelling.clone();
             assert!(
-                problems(&r, None, None).contains(&"signature is not 128 lowercase hex".to_string()),
+                problems(&r, None, None)
+                    .contains(&"signature is not 128 lowercase hex".to_string()),
                 "{spelling:.20}"
             );
         }

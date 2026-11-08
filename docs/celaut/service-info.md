@@ -141,6 +141,12 @@ the instance has the port, because `ServiceTunnel` accepts only the ports of an 
 - Not checked: a skip request against a real nodo (the in-process node follows its code, not its
   process), `call_raw_skippable` of `celaut-wire` on a TLS channel, and a phone.
 
+## 6.1 Descendants
+
+The slots of a descendant come from the same read of the interface of its service. The app
+shows them on the instance info page ([descendants.md](descendants.md), section 12). It
+opens only a web slot. A chat slot of a descendant is shown but not opened.
+
 ## 7. Open items
 
 - A node that does not honour `skip` sends the whole filesystem. A service of more than 128 MiB
