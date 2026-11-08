@@ -26,7 +26,9 @@
 //! held instance and of its descendants. A read costs MU and writes a movement on the
 //! node, so the test reads nothing unless a person sets `CELAUT_DESCENDANTS_MAX_MU`: that
 //! is the confirmation, and it is the budget of each read. It needs the token of a running
-//! instance on the node (`CELAUT_INSTANCE_TOKEN`) that has descendants. It never loops: it
+//! instance of the same session that has descendants: the test starts a service itself
+//! (`CELAUT_START_SERVICE_ID`, and one POST with `CELAUT_CALL_PATH` and `CELAUT_CALL_BODY`
+//! to make it start descendants), or takes `CELAUT_INSTANCE_TOKEN` of a held instance. It never loops: it
 //! reads each statement once, down to `CELAUT_DESCENDANTS_MAX_READS` reads (default 4).
 //! `CELAUT_DESCENDANT_SLOT` also opens a tunnel to the first descendant that is alive (it
 //! does not send data; a real tunnel costs the opening fee).
@@ -84,6 +86,23 @@ async fn get(socket: &mut BufReader<TcpStream>, path: &str) -> std::io::Result<(
     let mut body = vec![0u8; length];
     socket.read_exact(&mut body).await?;
     Ok((code, String::from_utf8_lossy(&body).into_owned()))
+}
+
+/// One HTTP/1.1 POST of JSON, read to the end of the connection. For an MCP service.
+async fn post(port: u16, path: &str, body: &str) -> std::io::Result<String> {
+    let mut socket = TcpStream::connect(("127.0.0.1", port)).await?;
+    let request = format!(
+        "POST {path} HTTP/1.1\r\nHost: service\r\nContent-Type: application/json\r\nAccept: application/json, text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    socket.write_all(request.as_bytes()).await?;
+    let mut out = Vec::new();
+    socket.read_to_end(&mut out).await?;
+    if out.is_empty() {
+        // The service is not listening yet: the caller tries again.
+        return Err(std::io::ErrorKind::UnexpectedEof.into());
+    }
+    Ok(String::from_utf8_lossy(&out).into_owned())
 }
 
 #[tokio::test]
@@ -298,7 +317,6 @@ async fn read_the_statements_of_the_descendants() {
         .expect("set CELAUT_NODE_PORT")
         .parse()
         .expect("port");
-    let token = env("CELAUT_INSTANCE_TOKEN").expect("set CELAUT_INSTANCE_TOKEN");
     // The confirmation of the person: the most MU that one read can cost.
     let max_mu: u128 = env("CELAUT_DESCENDANTS_MAX_MU")
         .expect("set CELAUT_DESCENDANTS_MAX_MU: each read costs MU and needs a confirmation")
@@ -316,6 +334,59 @@ async fn read_the_statements_of_the_descendants() {
     let session = NodeSession::open(connection, &peer_id, &store)
         .await
         .expect("open a session");
+
+    // The token of an instance of this client. A new client sees only its own instances,
+    // so the test can start the service itself (CELAUT_START_SERVICE_ID) and call it to make
+    // it start descendants (CELAUT_CALL_PATH and CELAUT_CALL_BODY, one POST), or take a
+    // token that a person gives (CELAUT_INSTANCE_TOKEN) when this session holds it.
+    let mut started_token = None;
+    let token = if let Some(id) = env("CELAUT_START_SERVICE_ID") {
+        let service_id = parse_service_id(&id).expect("id");
+        let configuration = Configuration {
+            initial_mu: Some(Amount {
+                n: env("CELAUT_INITIAL_MU").unwrap_or_else(|| "5000000".into()),
+            }),
+            ..Default::default()
+        };
+        let started = session.start(service_id, configuration).await.expect("start");
+        println!("started {}: slots {:?}", id, started.slots());
+        started_token = Some(started.token.clone());
+        if let Some(path) = env("CELAUT_CALL_PATH") {
+            let slot = started.slots()[0];
+            let opener: Arc<dyn TunnelOpener> = Arc::new(session.transport().clone());
+            let local = LocalPort::bind(opener, started.token.clone(), slot, None)
+                .await
+                .expect("local port");
+            let body = env("CELAUT_CALL_BODY").unwrap_or_default();
+            let deadline = Instant::now() + Duration::from_secs(180);
+            loop {
+                let answer = tokio::time::timeout(
+                    Duration::from_secs(120),
+                    post(local.port(), &path, &body),
+                )
+                .await;
+                match answer {
+                    Ok(Ok(text)) => {
+                        println!("answer to the call: {}", &text[..text.len().min(1500)]);
+                        break;
+                    }
+                    other => {
+                        if Instant::now() > deadline {
+                            println!("no answer to the call: {other:?}");
+                            break;
+                        }
+                        tokio::time::sleep(Duration::from_secs(3)).await;
+                    }
+                }
+            }
+        }
+        // A service can start its dependencies after it starts: give it time to bind them.
+        let wait: u64 = env("CELAUT_CALL_WAIT_S").and_then(|v| v.parse().ok()).unwrap_or(0);
+        tokio::time::sleep(Duration::from_secs(wait)).await;
+        started.token
+    } else {
+        env("CELAUT_INSTANCE_TOKEN").expect("set CELAUT_START_SERVICE_ID or CELAUT_INSTANCE_TOKEN")
+    };
 
     let mut data = CelautData::default();
     data.instances.insert(
@@ -346,10 +417,16 @@ async fn read_the_statements_of_the_descendants() {
             record.instance_ref,
             quote.max_mu_needed()
         );
-        let verified = session
-            .read_statement(&record, &quote, max_mu)
-            .await
-            .expect("a checked statement");
+        let verified = match session.read_statement(&record, &quote, max_mu).await {
+            Ok(v) => v,
+            Err(e) => {
+                // Do not leave the instance of the test running on the node.
+                if let Some(token) = &started_token {
+                    stop_and_refund(&session, token).await;
+                }
+                panic!("a checked statement: {e:?}");
+            }
+        };
         reads += 1;
         println!(
             "balance {} MU, head {}, {} rows, children {:?}",
@@ -358,6 +435,11 @@ async fn read_the_statements_of_the_descendants() {
             verified.movements.len(),
             verified.children().count()
         );
+        let mut kinds = std::collections::BTreeMap::new();
+        for m in &verified.movements {
+            *kinds.entry(format!("{:?}", m.kind)).or_insert(0u32) += 1;
+        }
+        println!("movements by kind: {kinds:?}");
         let report = descendants::apply_read(&mut data, &k, &verified, 0).expect("apply");
         println!("new descendants: {:?}, findings: {:?}", report.new, report.findings);
         next = descendants::pending(&data, "real")
@@ -373,6 +455,9 @@ async fn read_the_statements_of_the_descendants() {
 
     // A tunnel to the first descendant that is alive, if a slot is given.
     let Some(slot) = env("CELAUT_DESCENDANT_SLOT") else {
+        if let Some(token) = started_token {
+            stop_and_refund(&session, &token).await;
+        }
         return;
     };
     let slot: u16 = slot.parse().expect("slot");
@@ -386,4 +471,7 @@ async fn read_the_statements_of_the_descendants() {
         .expect("tunnel");
     let _keep = tunnel;
     println!("tunnel to {} opened on slot {slot}", alive.instance_ref);
+    if let Some(token) = started_token {
+        stop_and_refund(&session, &token).await;
+    }
 }
