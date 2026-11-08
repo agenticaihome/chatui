@@ -375,3 +375,34 @@ Read:
 
 Tunnel: send `DescendantTunnel` at index 2 as the first message, then bytes at index 0.
 Name the receipts with `execution_name_by_ref`.
+
+## 12. What the app does (final code)
+
+Code: `celaut-wire/src/statement.rs`, `celaut-client/src/descendants.rs`,
+`wallet-ffi/src/api/celaut_descendants.rs`, `app/lib/ui/celaut/descendants_section.dart`.
+
+- The instance info page has a Descendants section. It reads the list from the database. It
+  sends nothing when it opens.
+- Check: the app makes a quote (it sends nothing), shows the maximum MU in a dialog, and
+  reads one statement only after the user confirms. The user can change the budget. Cancel
+  or a tap outside sends nothing. Each check asks again. There is no timer, no loop and no
+  background read. A paged read is not followed by itself.
+- The app limits are choices of the app, not of nodo: `remaining_hops` is 2 by default
+  (the UI has no control for it) and 4 at most; `MAX_DEPTH` is 4; `MAX_PER_INSTANCE` is
+  256 descendants.
+- The statement of the held instance (depth 0) is read with an empty `instance_ref`, so
+  it also works on an old node.
+- A node that refuses a statement makes the descendant "not verifiable" and gives a
+  finding. It is not an error. A `stop` movement with a leftover above 0 gives an alert.
+- Open starts a tunnel only for a descendant that the last check found alive, and only for
+  a web slot that the service declares. A chat slot of a descendant is not opened (the
+  chat screen needs an instance). The tunnel costs the opening fee, with no extra dialog.
+- Errors: `NoDescendants` ("node does not support descendants") is a separate error kind
+  in the app.
+- The Tor route is the route of the connection of the node (see [network.md](network.md)).
+- Tests: Rust tests with the vectors of section 10; Dart widget tests with fakes. The test
+  `read_the_statements_of_the_descendants` in `celaut-client/tests/real_node.rs` is for a
+  real node. It is ignored, and it reads only if `CELAUT_DESCENDANTS_MAX_MU` is set. No
+  real node was used for it. The vectors of section 10 were not compared with the Python
+  of nodo (the module `mnemonic` was missing), and the refusal of an old node for
+  `DescendantTunnel` is still a heuristic.

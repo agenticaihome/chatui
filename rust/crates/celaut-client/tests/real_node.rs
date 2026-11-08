@@ -21,11 +21,22 @@
 //! checks the start receipt, the close of the kept-alive stream, and a second stream that
 //! the client cancels (no close, and no fault). `CELAUT_RECEIPTS_OUT=<file>` writes the
 //! receipts in the form of `nodo receipt verify`.
+//!
+//! The second test, `read_the_statements_of_the_descendants`, reads the statement of a
+//! held instance and of its descendants. A read costs MU and writes a movement on the
+//! node, so the test reads nothing unless a person sets `CELAUT_DESCENDANTS_MAX_MU`: that
+//! is the confirmation, and it is the budget of each read. It needs the token of a running
+//! instance on the node (`CELAUT_INSTANCE_TOKEN`) that has descendants. It never loops: it
+//! reads each statement once, down to `CELAUT_DESCENDANTS_MAX_READS` reads (default 4).
+//! `CELAUT_DESCENDANT_SLOT` also opens a tunnel to the first descendant that is alive (it
+//! does not send data; a real tunnel costs the opening fee).
 
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use celaut_balancer::QuoteCache;
+use celaut_client::db::{CelautData, InstanceRecord};
+use celaut_client::descendants::{self, DescendantState};
 use celaut_client::receipts::{check_start, export_jsonl, summarize, InstanceReceipts};
 use celaut_client::session::parse_service_id;
 use celaut_client::{quotes, LocalPort, MemoryPeerStore, NodeSession};
@@ -275,4 +286,104 @@ async fn stop_and_refund(session: &NodeSession<Connection>, token: &str) {
         gone.is_err(),
         "the stopped instance is still known: {gone:?}"
     );
+}
+
+/// The statements of a held instance and of its descendants, one read each, with the
+/// budget that a person gave. See the comment at the top of the file.
+#[tokio::test]
+#[ignore = "needs a real node and spends MU: see the comment at the top of the file"]
+async fn read_the_statements_of_the_descendants() {
+    let host = env("CELAUT_NODE_HOST").unwrap_or_else(|| "127.0.0.1".into());
+    let port: u16 = env("CELAUT_NODE_PORT")
+        .expect("set CELAUT_NODE_PORT")
+        .parse()
+        .expect("port");
+    let token = env("CELAUT_INSTANCE_TOKEN").expect("set CELAUT_INSTANCE_TOKEN");
+    // The confirmation of the person: the most MU that one read can cost.
+    let max_mu: u128 = env("CELAUT_DESCENDANTS_MAX_MU")
+        .expect("set CELAUT_DESCENDANTS_MAX_MU: each read costs MU and needs a confirmation")
+        .parse()
+        .expect("MU");
+    let max_reads: usize = env("CELAUT_DESCENDANTS_MAX_READS")
+        .map(|v| v.parse().expect("number of reads"))
+        .unwrap_or(4);
+
+    let connection = Connection::connect(&host, port, ConnectOptions::default())
+        .await
+        .expect("connect");
+    let peer_id = connection.peer_id().to_string();
+    let store = MemoryPeerStore::new();
+    let session = NodeSession::open(connection, &peer_id, &store)
+        .await
+        .expect("open a session");
+
+    let mut data = CelautData::default();
+    data.instances.insert(
+        "real".into(),
+        InstanceRecord {
+            peer_id: peer_id.clone(),
+            address: format!("{host}:{port}"),
+            token,
+            ..Default::default()
+        },
+    );
+    let root = descendants::ensure_root(&mut data, "real").expect("root");
+    let before = session.balance().await.expect("balance");
+
+    // One read for each record that is not read yet, shallowest first. No loop on time.
+    let mut reads = 0;
+    let mut next = Some(root);
+    while let Some(k) = next.take() {
+        if reads == max_reads {
+            break;
+        }
+        let record = data.descendants[&k].clone();
+        let quote = session
+            .quote_statement(&record, descendants::DEFAULT_REMAINING_HOPS)
+            .expect("quote");
+        println!(
+            "read {}: at most {} MU of {max_mu}",
+            record.instance_ref,
+            quote.max_mu_needed()
+        );
+        let verified = session
+            .read_statement(&record, &quote, max_mu)
+            .await
+            .expect("a checked statement");
+        reads += 1;
+        println!(
+            "balance {} MU, head {}, {} rows, children {:?}",
+            verified.balance,
+            verified.head.seq,
+            verified.movements.len(),
+            verified.children().count()
+        );
+        let report = descendants::apply_read(&mut data, &k, &verified, 0).expect("apply");
+        println!("new descendants: {:?}, findings: {:?}", report.new, report.findings);
+        next = descendants::pending(&data, "real")
+            .first()
+            .map(|r| descendants::key(&r.instance_id, &r.instance_ref));
+    }
+    let after = session.balance().await.expect("balance");
+    println!("{reads} reads cost {} MU", before.saturating_sub(after));
+    assert!(
+        before.saturating_sub(after) <= max_mu * reads as u128,
+        "the reads cost more than the budget"
+    );
+
+    // A tunnel to the first descendant that is alive, if a slot is given.
+    let Some(slot) = env("CELAUT_DESCENDANT_SLOT") else {
+        return;
+    };
+    let slot: u16 = slot.parse().expect("slot");
+    let alive = descendants::of_instance(&data, "real")
+        .into_iter()
+        .find(|r| r.state == DescendantState::Running)
+        .cloned()
+        .expect("no descendant is alive");
+    let tunnel = session
+        .open_descendant_tunnel(&alive, slot, None, None)
+        .expect("tunnel");
+    let _keep = tunnel;
+    println!("tunnel to {} opened on slot {slot}", alive.instance_ref);
 }
