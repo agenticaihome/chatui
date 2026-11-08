@@ -1489,6 +1489,7 @@ mod tests {
                     father_gone: false,
                     relayed: false,
                     last_refusal: None,
+                    incomplete: false,
                 },
             );
         })

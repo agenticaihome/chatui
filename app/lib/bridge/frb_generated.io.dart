@@ -501,6 +501,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ReadQuoteView dco_decode_read_quote_view(dynamic raw);
 
   @protected
+  TunnelQuoteView dco_decode_tunnel_quote_view(dynamic raw);
+
+  @protected
   ReceiptFaultKind dco_decode_receipt_fault_kind(dynamic raw);
 
   @protected
@@ -1142,6 +1145,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ReadQuoteView sse_decode_read_quote_view(SseDeserializer deserializer);
+
+  @protected
+  TunnelQuoteView sse_decode_tunnel_quote_view(SseDeserializer deserializer);
 
   @protected
   ReceiptFaultKind sse_decode_receipt_fault_kind(SseDeserializer deserializer);
@@ -1981,6 +1987,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_read_quote_view(ReadQuoteView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_tunnel_quote_view(
+    TunnelQuoteView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_receipt_fault_kind(

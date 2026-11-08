@@ -35,8 +35,8 @@
 use celaut_proto::celaut::Peer;
 use celaut_wire::gateway::get_balance_statement;
 use celaut_wire::statement::{
-    instance_ref as ref_of_token, KeptHead, Kind, Rates, StatementError, StatementRequest,
-    VerifiedStatement,
+    instance_ref as ref_of_token, peer_rate, KeptHead, Kind, Rates, StatementError,
+    StatementRequest, VerifiedStatement,
 };
 use celaut_wire::{ReceiptEvent, ReceiptSink, Transport, WireError};
 use serde::{Deserialize, Serialize};
@@ -74,7 +74,11 @@ pub enum DescendantState {
 }
 
 /// A descendant (or, at depth 0, the held instance itself) as the database keeps it.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// The `Debug` text hides `parent_token`, and the file of the database does not keep it:
+/// the token is in the record of the held instance, and a caller that needs it takes it
+/// from there ([`DescendantRecord::with_token`]).
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DescendantRecord {
     /// The local id of the instance that the app holds.
     pub instance_id: String,
@@ -84,7 +88,9 @@ pub struct DescendantRecord {
     #[serde(default)]
     pub service_id: Option<String>,
     /// The token of the held instance. A bearer secret. Each read and each tunnel names
-    /// the descendant through it.
+    /// the descendant through it. It is not written to the file: it is empty after the
+    /// file is read, until [`DescendantRecord::with_token`] sets it.
+    #[serde(default, skip_serializing)]
     pub parent_token: String,
     /// The `instance_ref` of the descendant that holds this one. `None` for a child of
     /// the held instance.
@@ -122,9 +128,46 @@ pub struct DescendantRecord {
     /// The text of the last refusal of the node, if the last read was refused.
     #[serde(default)]
     pub last_refusal: Option<String>,
+    /// True if the last read did not reach the head: the node gave fewer movements than
+    /// the head holds. A `stop` or a `child_bound` can be in the movements that are not
+    /// read. The state is then not `Running`, and the next check goes on after `rows_seq`.
+    #[serde(default)]
+    pub incomplete: bool,
+}
+
+impl std::fmt::Debug for DescendantRecord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DescendantRecord")
+            .field("instance_id", &self.instance_id)
+            .field("instance_ref", &self.instance_ref)
+            .field("service_id", &self.service_id)
+            .field("parent_token", &"<hidden>")
+            .field("parent_ref", &self.parent_ref)
+            .field("peer_id", &self.peer_id)
+            .field("depth", &self.depth)
+            .field("rows_seq", &self.rows_seq)
+            .field("head_seq", &self.head_seq)
+            .field("head_hash", &self.head_hash)
+            .field("state", &self.state)
+            .field("last_checked_at", &self.last_checked_at)
+            .field("stop_reason", &self.stop_reason)
+            .field("leftover_mu", &self.leftover_mu)
+            .field("father_gone", &self.father_gone)
+            .field("relayed", &self.relayed)
+            .field("last_refusal", &self.last_refusal)
+            .field("incomplete", &self.incomplete)
+            .finish()
+    }
 }
 
 impl DescendantRecord {
+    /// The record with the current token of the held instance. The caller takes the token
+    /// from the record of the instance, so that the file never holds a copy of it.
+    pub fn with_token(mut self, token: &str) -> Self {
+        self.parent_token = token.to_string();
+        self
+    }
+
     /// The head to give the next read, if the app has read one.
     pub fn kept_head(&self) -> Option<KeptHead> {
         (!self.head_hash.is_empty()).then(|| KeptHead {
@@ -233,6 +276,10 @@ pub enum DescendantError {
     /// A tunnel needs a descendant, not the held instance. Nothing was sent.
     #[error("the held instance is not a descendant: use its own tunnel")]
     NotADescendant,
+    /// The statement names another service than the one that the app knows for this
+    /// descendant. The node did charge the read. The app keeps nothing of the answer.
+    #[error("the node gave another service for this descendant than the one that it gave before")]
+    ServiceChanged { known: String, said: String },
     /// The read failed or its answer was refused.
     #[error(transparent)]
     Statement(#[from] StatementError),
@@ -243,6 +290,7 @@ impl DescendantError {
     pub fn may_have_charged(&self) -> bool {
         match self {
             DescendantError::Statement(e) => e.may_have_charged(),
+            DescendantError::ServiceChanged { .. } => true,
             _ => false,
         }
     }
@@ -284,6 +332,7 @@ pub fn ensure_root(data: &mut CelautData, instance_id: &str) -> Option<String> {
         father_gone: false,
         relayed: false,
         last_refusal: None,
+        incomplete: false,
     };
     data.descendants.entry(k.clone()).or_insert(record);
     Some(k)
@@ -400,8 +449,11 @@ pub fn quote_read(
 /// `max_mu` is the budget that the user confirmed for this read. If the maximum cost of
 /// the quote is more than `max_mu`, the call returns [`DescendantError::OverBudget`] and
 /// sends nothing. The answer is checked as [`celaut_wire::statement::verify`] says: the
-/// `instance_ref`, the signature against `peer_id`, the chain and the head that the record
-/// kept. A node that ignores `instance_ref` gives `NoDescendants`.
+/// `instance_ref`, the signature against `peer_id`, the date against `now` (Unix seconds),
+/// the chain and the head that the record kept. A node that ignores `instance_ref` gives
+/// `NoDescendants`. A statement that names another service than the one that the record
+/// knows gives [`DescendantError::ServiceChanged`].
+#[allow(clippy::too_many_arguments)]
 pub async fn read_statement<T: Transport>(
     transport: &T,
     peer_id: &str,
@@ -409,6 +461,7 @@ pub async fn read_statement<T: Transport>(
     record: &DescendantRecord,
     quote: &ReadQuote,
     max_mu: u128,
+    now: i64,
 ) -> Result<VerifiedStatement, DescendantError> {
     if record.peer_id != peer_id {
         return Err(DescendantError::OtherNode);
@@ -424,7 +477,7 @@ pub async fn read_statement<T: Transport>(
         });
     }
     let kept = record.kept_head();
-    Ok(get_balance_statement(
+    let statement = get_balance_statement(
         transport,
         peer_id,
         client_id,
@@ -432,8 +485,101 @@ pub async fn read_statement<T: Transport>(
         &quote.rates,
         max_mu,
         kept.as_ref(),
+        now,
     )
-    .await?)
+    .await?;
+    if let Some(known) = record.service_id.as_deref().filter(|s| !s.is_empty()) {
+        if !statement.service_id.is_empty() && statement.service_id != known {
+            return Err(DescendantError::ServiceChanged {
+                known: known.to_string(),
+                said: statement.service_id.clone(),
+            });
+        }
+    }
+    Ok(statement)
+}
+
+// ─── The quote of a tunnel ────────────────────────────────────────────────
+
+/// The maximum cost of the streams of a tunnel to a descendant, and the hop budget that
+/// the streams use. Only [`quote_tunnel`] makes one. Show
+/// [`TunnelQuote::max_mu_per_stream`] to the user, and open the tunnel only after the user
+/// gave a budget for it ([`TunnelQuote::streams_for`]).
+///
+/// Each TCP connection to the local port is one stream, and each node on the way charges
+/// `tunnel_open_mu` for its own leg. A node gives one hop less to the next node, so a
+/// stream has at most `remaining_hops` legs. The traffic after the opening is charged
+/// also (`net_mu_per_gib`), and this quote does not cover it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TunnelQuote {
+    key: String,
+    remaining_hops: u32,
+    open_mu: u128,
+}
+
+impl TunnelQuote {
+    /// The `remaining_hops` of each stream. The app always sends it.
+    pub fn remaining_hops(&self) -> u32 {
+        self.remaining_hops
+    }
+
+    /// The `tunnel_open_mu` of the node of the instance.
+    pub fn open_mu(&self) -> u128 {
+        self.open_mu
+    }
+
+    /// The most MU that the opening of one stream can cost: one fee for each leg.
+    pub fn max_mu_per_stream(&self) -> u128 {
+        self.open_mu.saturating_mul(u128::from(self.remaining_hops))
+    }
+
+    /// How many streams `max_mu` pays for, at the maximum cost of each. It is
+    /// [`DescendantError::OverBudget`] if `max_mu` does not pay for one.
+    pub fn streams_for(&self, max_mu: u128) -> Result<u64, DescendantError> {
+        let per = self.max_mu_per_stream();
+        if per == 0 {
+            return Ok(u64::MAX);
+        }
+        let n = max_mu / per;
+        if n == 0 {
+            return Err(DescendantError::OverBudget {
+                needed: per,
+                max: max_mu,
+            });
+        }
+        Ok(u64::try_from(n).unwrap_or(u64::MAX))
+    }
+
+    /// True if this quote is for `record`.
+    pub fn is_for(&self, record: &DescendantRecord) -> bool {
+        self.key == key(&record.instance_id, &record.instance_ref)
+    }
+}
+
+/// The quote for the streams of a tunnel to `record`, from the advertisement of its node
+/// (`tunnel_open_mu`). It sends nothing and costs nothing. `remaining_hops` is from 1 to
+/// [`MAX_REMAINING_HOPS`]: the app always sets it. A node that gives no rate gives
+/// [`DescendantError::NoRates`], and the tunnel stays closed.
+pub fn quote_tunnel(
+    record: &DescendantRecord,
+    peer: &Peer,
+    remaining_hops: u32,
+) -> Result<TunnelQuote, DescendantError> {
+    if record.depth == 0 {
+        return Err(DescendantError::NotADescendant);
+    }
+    if remaining_hops == 0 || remaining_hops > MAX_REMAINING_HOPS {
+        return Err(DescendantError::BadHops {
+            hops: remaining_hops,
+            max: MAX_REMAINING_HOPS,
+        });
+    }
+    let open_mu = peer_rate(peer, "tunnel_open_mu").ok_or(DescendantError::NoRates)?;
+    Ok(TunnelQuote {
+        key: key(&record.instance_id, &record.instance_ref),
+        remaining_hops,
+        open_mu,
+    })
 }
 
 // ─── What a read changes ──────────────────────────────────────────────────
@@ -448,6 +594,15 @@ pub struct ReadReport {
     /// The children that were left out because the instance has [`MAX_PER_INSTANCE`].
     pub too_many: usize,
     pub findings: Vec<Finding>,
+    /// True if the read did not reach the head ([`VerifiedStatement::next_from_seq`]). The
+    /// state is not `Running`: the movements that are not read can hold a `stop`.
+    pub incomplete: bool,
+    /// True if the node says that it deleted movements before the first one that it gave
+    /// ([`VerifiedStatement::gap`]). A child can be in them. The app cannot check this.
+    pub gap: bool,
+    /// The children that a statement named with another service than the one that the
+    /// app kept. The app keeps the first one.
+    pub service_conflicts: Vec<String>,
 }
 
 fn lost_father_gone(statement: &VerifiedStatement) -> bool {
@@ -478,8 +633,19 @@ pub fn apply_read(
     record.relayed = statement.relayed;
     record.last_checked_at = Some(now);
     record.last_refusal = None;
+    record.incomplete = statement.next_from_seq.is_some();
+    report.incomplete = record.incomplete;
+    report.gap = statement.gap;
+    // The first service that a node gave stays. `read_statement` refuses an answer with
+    // another one, so this is a second guard for a caller that does not use it.
     if !statement.service_id.is_empty() {
-        record.service_id = Some(statement.service_id.clone());
+        match record.service_id.as_deref().filter(|s| !s.is_empty()) {
+            None => record.service_id = Some(statement.service_id.clone()),
+            Some(known) if known != statement.service_id => {
+                report.service_conflicts.push(record.instance_ref.clone());
+            }
+            Some(_) => {}
+        }
     }
     if let Some(stop) = statement.stop() {
         record.state = DescendantState::Stopped;
@@ -495,7 +661,13 @@ pub fn apply_read(
             });
         }
     } else if record.state != DescendantState::Stopped {
-        record.state = DescendantState::Running;
+        // A read that stops before the head is not a proof that the account is alive: the
+        // rows that are not read can hold the stop. The check goes on from `rows_seq`.
+        record.state = if record.incomplete {
+            DescendantState::Bound
+        } else {
+            DescendantState::Running
+        };
     }
 
     let parent = record.clone();
@@ -504,8 +676,12 @@ pub fn apply_read(
         let service_id = bound.service_id.clone().filter(|s| !s.is_empty());
         if let Some(existing) = data.descendants.get_mut(&k) {
             // A known descendant: keep what it says about the service, if nothing is.
-            if existing.service_id.is_none() {
-                existing.service_id = service_id;
+            match (&existing.service_id, &service_id) {
+                (None, _) => existing.service_id = service_id,
+                (Some(known), Some(said)) if known != said => {
+                    report.service_conflicts.push(child_ref.to_string());
+                }
+                _ => {}
             }
             continue;
         }
@@ -542,6 +718,7 @@ pub fn apply_read(
                 father_gone: false,
                 relayed: false,
                 last_refusal: None,
+                incomplete: false,
             },
         );
         report.new.push(child_ref.to_string());

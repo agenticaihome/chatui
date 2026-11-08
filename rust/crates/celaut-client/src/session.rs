@@ -468,6 +468,17 @@ impl<T: Transport> NodeSession<T> {
         )
     }
 
+    /// The quote for the streams of a tunnel to `record`: the most MU that one stream can
+    /// cost to open. It sends nothing. Show it to the user and open the tunnel only after
+    /// a yes ([`descendants::TunnelQuote::streams_for`]).
+    pub fn quote_tunnel(
+        &self,
+        record: &DescendantRecord,
+        remaining_hops: u32,
+    ) -> Result<descendants::TunnelQuote, DescendantError> {
+        descendants::quote_tunnel(record, &self.info.peer, remaining_hops)
+    }
+
     /// Read one statement of `record` (`GetBalanceStatement` with `instance_ref`). This is
     /// one paid call: it never repeats, and the caller must ask the user for each read.
     /// `max_mu` is the budget that the user confirmed. If the maximum cost of `quote` is
@@ -485,6 +496,7 @@ impl<T: Transport> NodeSession<T> {
             record,
             quote,
             max_mu,
+            unix_now(),
         )
         .await
     }
@@ -528,6 +540,13 @@ impl<T: Transport + TunnelOpener> NodeSession<T> {
             receipts,
         ))
     }
+}
+
+/// The time of the app in Unix seconds, for the date check of a statement.
+fn unix_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
 }
 
 /// A service id from 64 hexadecimal characters.

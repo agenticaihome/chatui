@@ -47,6 +47,11 @@ pub const INSTANCE_PREFIX: &str = "celaut-ledger-instance:";
 /// can cost.
 pub const MAX_STATEMENT_ROWS: u64 = 1000;
 
+/// How far the clock of a node can be from the clock of the app, in seconds
+/// (`statement_check.CLOCK_SKEW_SECONDS`). A statement dated further away is refused, so a
+/// node cannot give an old signed statement as a new one.
+pub const CLOCK_SKEW_SECONDS: u64 = 120;
+
 /// The kind of the movement that moves nothing and links a child.
 pub const KIND_CHILD_BOUND: &str = "child_bound";
 /// The kind of the last movement of an account.
@@ -185,22 +190,25 @@ pub struct Rates {
     pub row_mu: u128,
 }
 
+/// One rate that the `Peer` advertises in `mu_per_call`, in MU. `None` if it advertises
+/// it not at all, or not as a decimal integer: then the app does not know the cost.
+pub fn peer_rate(peer: &Peer, key: &str) -> Option<u128> {
+    let entry = peer.mu_per_call.iter().find(|e| e.key == key)?;
+    let n = &entry.value.as_ref()?.n;
+    if n.is_empty() || !n.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    n.parse().ok()
+}
+
 impl Rates {
     /// The rates that the `Peer` advertises in `mu_per_call`. `None` if it advertises
     /// one of them not at all, or not as a decimal integer: then the app does not know
     /// the cost and must not read.
     pub fn from_peer(peer: &Peer) -> Option<Rates> {
-        let find = |key: &str| -> Option<u128> {
-            let entry = peer.mu_per_call.iter().find(|e| e.key == key)?;
-            let n = &entry.value.as_ref()?.n;
-            if n.is_empty() || !n.bytes().all(|b| b.is_ascii_digit()) {
-                return None;
-            }
-            n.parse().ok()
-        };
         Some(Rates {
-            query_mu: find("statement_query_mu")?,
-            row_mu: find("statement_row_mu")?,
+            query_mu: peer_rate(peer, "statement_query_mu")?,
+            row_mu: peer_rate(peer, "statement_row_mu")?,
         })
     }
 
@@ -211,8 +219,9 @@ impl Rates {
     }
 }
 
-/// What to read: the arguments of `BalanceStatementRequest`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// What to read: the arguments of `BalanceStatementRequest`. The `Debug` text hides the
+/// token, which is a bearer secret.
+#[derive(Clone, PartialEq, Eq)]
 pub struct StatementRequest {
     /// The token of an instance that the caller holds: the ancestor. Empty reads the
     /// account of the client.
@@ -227,6 +236,18 @@ pub struct StatementRequest {
     /// The hop budget. The app always sets it: a node that gets none uses its own
     /// maximum, and the cost then depends on a value that the node chooses.
     pub remaining_hops: u32,
+}
+
+impl std::fmt::Debug for StatementRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StatementRequest")
+            .field("token", &"<hidden>")
+            .field("instance_ref", &self.instance_ref)
+            .field("from_seq", &self.from_seq)
+            .field("to_seq", &self.to_seq)
+            .field("remaining_hops", &self.remaining_hops)
+            .finish()
+    }
 }
 
 impl StatementRequest {
@@ -262,7 +283,7 @@ impl StatementRequest {
     }
 
     /// The most movements that the answer can hold.
-    fn most_rows(&self) -> u64 {
+    pub fn most_rows(&self) -> u64 {
         if self.from_seq == 0 {
             0
         } else if self.to_seq >= self.from_seq {
@@ -392,15 +413,22 @@ pub struct Movement {
     pub hash: String,
 }
 
-/// A decimal integer with an optional minus sign.
+/// A canonical decimal integer with an optional minus sign: the text of the number that
+/// `str(int(n))` gives in nodo (`statement_check._canonical`). So `007`, `-0` and `+5` are
+/// refused.
 fn parse_amount(what: &str, amount: &Option<Amount>) -> Result<i128, StatementError> {
     let text = amount_text(amount);
     let digits = text.strip_prefix('-').unwrap_or(text);
     if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
         return invalid(format!("{what} is not a decimal integer"));
     }
-    text.parse()
-        .or_else(|_| invalid(format!("{what} is too large")))
+    let value: i128 = text
+        .parse()
+        .or_else(|_| invalid(format!("{what} is too large")))?;
+    if value.to_string() != text {
+        return invalid(format!("{what} is not a canonical integer"));
+    }
+    Ok(value)
 }
 
 /// The string value of a key of a detail object. A value of another type is an error.
@@ -526,6 +554,11 @@ pub struct VerifiedStatement {
     /// The first `from_seq` to ask for the rest of the range, if the node gave fewer
     /// movements than the range holds (its limit or its retention).
     pub next_from_seq: Option<u64>,
+    /// True if the first movement is after `from_seq`: the node says that it deleted the
+    /// movements before it (its retention). The app cannot check this. Children or a
+    /// `child_bound` movement can be in the movements that are gone. A `stop` cannot: a
+    /// movement after it would not be valid.
+    pub gap: bool,
 }
 
 impl VerifiedStatement {
@@ -548,15 +581,23 @@ impl VerifiedStatement {
 
 /// Check an answer to `request` from the node `peer_id` (the identity that the TLS
 /// connection proved), and type its movements. `kept` is the head that the caller kept
-/// from an earlier read, if any.
+/// from an earlier read, if any. `now` is the time of the app in Unix seconds: the
+/// statement must be dated within [`CLOCK_SKEW_SECONDS`] of it.
 ///
-/// The order is: the `instance_ref` first, then the range, the signature, the chain and
-/// the head.
+/// The order is: the `instance_ref` first, then the range, the account, the signature,
+/// the date, the chain and the head.
+///
+/// The account of the answer is checked only for a read with no `instance_ref`: it must be
+/// `account_ref(request.token)`. A read of a descendant has an account that the app does
+/// not know by token, so the signed `instance_ref` stands in its place. A read of the
+/// account of the client (empty token) is checked by
+/// [`crate::gateway::get_balance_statement`], which knows the `client_id`.
 pub fn verify(
     request: &StatementRequest,
     peer_id: &str,
     answer: BalanceStatement,
     kept: Option<&KeptHead>,
+    now: i64,
 ) -> Result<VerifiedStatement, StatementError> {
     // A node that ignores instance_ref answers with its own account and no instance_ref.
     if answer.instance_ref != request.instance_ref {
@@ -567,6 +608,12 @@ pub fn verify(
     }
     if answer.from_seq != request.from_seq || answer.to_seq != request.to_seq {
         return invalid("the range of the answer is not the range of the request");
+    }
+    if request.instance_ref.is_empty()
+        && !request.token.is_empty()
+        && answer.account_ref != account_ref(&request.token)
+    {
+        return invalid("the account of the answer is not the account that was asked for");
     }
     if answer.signature.is_empty() {
         return invalid("the statement has no signature");
@@ -580,9 +627,18 @@ pub fn verify(
     if !answer.service_id.is_empty() && !is_lower_hex(&answer.service_id) {
         return invalid("service_id is not lowercase hex");
     }
+    if answer.ts.abs_diff(now) > CLOCK_SKEW_SECONDS {
+        return invalid(format!(
+            "the statement is dated {}, and the time of the app is {now}",
+            answer.ts
+        ));
+    }
     let balance = parse_amount("the balance", &answer.balance)?;
     let movements = check_chain(request, &answer)?;
     check_head(&answer, &movements, balance, kept)?;
+    let gap = movements
+        .first()
+        .is_some_and(|first| first.seq > request.from_seq);
 
     let last = movements.last().map(|m| m.seq);
     let next_from_seq = match last {
@@ -601,19 +657,26 @@ pub fn verify(
             hash: answer.head_hash.clone(),
         },
         next_from_seq,
+        gap,
         movements,
         statement: answer,
     })
 }
 
-/// The chain of the movements: ascending seqs with no gap, each `prev_hash` the hash of
-/// the movement before, the genesis hash before seq 1, and a stop that ends the account.
+/// The chain of the movements (`statement_check.verify_chain`): ascending seqs with no
+/// gap, each `prev_hash` the hash of the movement before, each balance the one before plus
+/// the amount, no movement dated after the statement, the genesis hash and a balance from
+/// 0 at seq 1, a first movement that the node does not skip, and a stop that ends the
+/// account.
 fn check_chain(
     request: &StatementRequest,
     s: &BalanceStatement,
 ) -> Result<Vec<Movement>, StatementError> {
     if request.from_seq == 0 && !s.movements.is_empty() {
         return invalid("the answer holds movements, and the request asked for none");
+    }
+    if u64::try_from(s.movements.len()).map_or(true, |n| n > request.most_rows()) {
+        return invalid("the answer holds more movements than the read can pay for");
     }
     let mut out: Vec<Movement> = Vec::with_capacity(s.movements.len());
     for m in &s.movements {
@@ -625,8 +688,17 @@ fn check_chain(
                 m.seq
             ));
         }
+        let kind = parse_kind(m, amount)?;
+        if m.ts > s.ts {
+            return invalid(format!("movement {} is dated after the statement", m.seq));
+        }
         let expected_prev = match out.last() {
-            None if m.seq == 1 => Some(genesis_hash(&s.account_ref)),
+            None if m.seq == 1 => {
+                if amount != balance_after {
+                    return invalid("the first movement does not start from 0");
+                }
+                Some(genesis_hash(&s.account_ref))
+            }
             None => None,
             Some(before) => {
                 if before.seq.checked_add(1) != Some(m.seq) {
@@ -634,6 +706,9 @@ fn check_chain(
                 }
                 if matches!(before.kind, Kind::Stop(_)) {
                     return invalid(format!("movement {} comes after a stop", m.seq));
+                }
+                if before.balance_after.checked_add(amount) != Some(balance_after) {
+                    return invalid(format!("movement {} does not add up", m.seq));
                 }
                 Some(before.hash.clone())
             }
@@ -653,7 +728,7 @@ fn check_chain(
             ts: m.ts,
             amount,
             balance_after,
-            kind: parse_kind(m, amount)?,
+            kind,
             instance_ref: m.instance_ref.clone(),
             detail: m.detail.clone(),
             prev_hash: m.prev_hash.clone(),
@@ -661,8 +736,17 @@ fn check_chain(
         });
     }
     if let Some(first) = out.first() {
-        if first.seq == 0 || first.seq < request.from_seq || first.seq < s.oldest_seq {
+        // The node gives the movements from `from_seq`, or from the first one that it
+        // holds if that is later. It never skips some of what it holds.
+        let expected = request.from_seq.max(s.oldest_seq);
+        if first.seq < expected {
             return invalid("the first movement is outside the range");
+        }
+        if first.seq != expected {
+            return invalid(format!(
+                "movements {expected} to {} are held and not shown",
+                first.seq.saturating_sub(1)
+            ));
         }
     }
     if let Some(last) = out.last() {

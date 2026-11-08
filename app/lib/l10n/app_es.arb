@@ -2621,5 +2621,32 @@
         "type": "String"
       }
     }
-  }
+  },
+  "descendantsRelayed": "Retransmitido. Otro nodo escribió este extracto. El nodo de esta instancia lo firmó de nuevo, y la app no puede comprobar al otro nodo.",
+  "descendantsUnreadRows": "Comprobado en parte. Faltan movimientos por leer, y uno de ellos puede ser una parada. Comprueba otra vez.",
+  "descendantsOpenTitle": "¿Abrir con el nodo?",
+  "descendantsOpenBody": "La app abre un flujo al descendiente por cada conexión de la página, a través del nodo {node}. Abrir un flujo puede costar hasta {perStream} MU (como máximo {hops} saltos). El tráfico cuesta más. El puerto se detiene tras los flujos que paga el presupuesto de abajo.",
+  "@descendantsOpenBody": {
+    "placeholders": {
+      "node": {
+        "type": "String"
+      },
+      "perStream": {
+        "type": "String"
+      },
+      "hops": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsOpenStreams": "El presupuesto paga {count} flujos.",
+  "@descendantsOpenStreams": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsOpenBudgetTooSmall": "El presupuesto no paga ni un flujo.",
+  "descendantsOpenConfirm": "Abrir y pagar"
 }

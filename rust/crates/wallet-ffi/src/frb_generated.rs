@@ -2480,6 +2480,8 @@ fn wire__crate__api__celaut_descendants__celaut_open_descendant_tunnel_impl(
             let api_instance_id = <String>::sse_decode(&mut deserializer);
             let api_instance_ref = <String>::sse_decode(&mut deserializer);
             let api_slot = <u16>::sse_decode(&mut deserializer);
+            let api_remaining_hops = <Option<u32>>::sse_decode(&mut deserializer);
+            let api_max_mu = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::celaut::CelautError>(
@@ -2489,6 +2491,8 @@ fn wire__crate__api__celaut_descendants__celaut_open_descendant_tunnel_impl(
                                 api_instance_id,
                                 api_instance_ref,
                                 api_slot,
+                                api_remaining_hops,
+                                api_max_mu,
                             )
                             .await?;
                         std::result::Result::Ok(output_ok)
@@ -2645,6 +2649,50 @@ fn wire__crate__api__celaut_descendants__celaut_quote_descendant_read_impl(
                     (move || async move {
                         let output_ok =
                             crate::api::celaut_descendants::celaut_quote_descendant_read(
+                                api_instance_id,
+                                api_instance_ref,
+                                api_remaining_hops,
+                            )
+                            .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__celaut_descendants__celaut_quote_descendant_tunnel_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "celaut_quote_descendant_tunnel",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_instance_id = <String>::sse_decode(&mut deserializer);
+            let api_instance_ref = <String>::sse_decode(&mut deserializer);
+            let api_remaining_hops = <Option<u32>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::celaut::CelautError>(
+                    (move || async move {
+                        let output_ok =
+                            crate::api::celaut_descendants::celaut_quote_descendant_tunnel(
                                 api_instance_id,
                                 api_instance_ref,
                                 api_remaining_hops,
@@ -6000,6 +6048,7 @@ impl SseDecode for crate::api::celaut_descendants::DescendantView {
         let mut var_fatherGone = <bool>::sse_decode(deserializer);
         let mut var_relayed = <bool>::sse_decode(deserializer);
         let mut var_lastRefusal = <Option<String>>::sse_decode(deserializer);
+        let mut var_unreadRows = <bool>::sse_decode(deserializer);
         return crate::api::celaut_descendants::DescendantView {
             instance_ref: var_instanceRef,
             service_id: var_serviceId,
@@ -6012,6 +6061,7 @@ impl SseDecode for crate::api::celaut_descendants::DescendantView {
             father_gone: var_fatherGone,
             relayed: var_relayed,
             last_refusal: var_lastRefusal,
+            unread_rows: var_unreadRows,
         };
     }
 }
@@ -7385,6 +7435,24 @@ impl SseDecode for crate::api::celaut_descendants::ReadQuoteView {
     }
 }
 
+impl SseDecode for crate::api::celaut_descendants::TunnelQuoteView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_instanceRef = <String>::sse_decode(deserializer);
+        let mut var_node = <String>::sse_decode(deserializer);
+        let mut var_remainingHops = <u32>::sse_decode(deserializer);
+        let mut var_openMu = <String>::sse_decode(deserializer);
+        let mut var_maxMuPerStream = <String>::sse_decode(deserializer);
+        return crate::api::celaut_descendants::TunnelQuoteView {
+            instance_ref: var_instanceRef,
+            node: var_node,
+            remaining_hops: var_remainingHops,
+            open_mu: var_openMu,
+            max_mu_per_stream: var_maxMuPerStream,
+        };
+    }
+}
+
 impl SseDecode for crate::api::celaut_receipts::ReceiptFaultKind {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -7912,6 +7980,12 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         73 => wire__crate__api__celaut__celaut_peer_info_impl(port, ptr, rust_vec_len, data_len),
         74 => wire__crate__api__celaut_descendants__celaut_quote_descendant_read_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        140 => wire__crate__api__celaut_descendants__celaut_quote_descendant_tunnel_impl(
             port,
             ptr,
             rust_vec_len,
@@ -9151,6 +9225,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_descendants::Descendan
             self.father_gone.into_into_dart().into_dart(),
             self.relayed.into_into_dart().into_dart(),
             self.last_refusal.into_into_dart().into_dart(),
+            self.unread_rows.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -10070,6 +10145,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut_descendants::ReadQuote
     for crate::api::celaut_descendants::ReadQuoteView
 {
     fn into_into_dart(self) -> crate::api::celaut_descendants::ReadQuoteView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::celaut_descendants::TunnelQuoteView {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.instance_ref.into_into_dart().into_dart(),
+            self.node.into_into_dart().into_dart(),
+            self.remaining_hops.into_into_dart().into_dart(),
+            self.open_mu.into_into_dart().into_dart(),
+            self.max_mu_per_stream.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::celaut_descendants::TunnelQuoteView
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut_descendants::TunnelQuoteView>
+    for crate::api::celaut_descendants::TunnelQuoteView
+{
+    fn into_into_dart(self) -> crate::api::celaut_descendants::TunnelQuoteView {
         self
     }
 }
@@ -11019,6 +11118,7 @@ impl SseEncode for crate::api::celaut_descendants::DescendantView {
         <bool>::sse_encode(self.father_gone, serializer);
         <bool>::sse_encode(self.relayed, serializer);
         <Option<String>>::sse_encode(self.last_refusal, serializer);
+        <bool>::sse_encode(self.unread_rows, serializer);
     }
 }
 
@@ -12036,6 +12136,17 @@ impl SseEncode for crate::api::celaut_descendants::ReadQuoteView {
         <String>::sse_encode(self.node, serializer);
         <u32>::sse_encode(self.remaining_hops, serializer);
         <String>::sse_encode(self.max_mu, serializer);
+    }
+}
+
+impl SseEncode for crate::api::celaut_descendants::TunnelQuoteView {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.instance_ref, serializer);
+        <String>::sse_encode(self.node, serializer);
+        <u32>::sse_encode(self.remaining_hops, serializer);
+        <String>::sse_encode(self.open_mu, serializer);
+        <String>::sse_encode(self.max_mu_per_stream, serializer);
     }
 }
 

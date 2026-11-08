@@ -15,6 +15,11 @@
 //!   can cost more, it sends nothing. One call is one read.
 //! - Two reads of the same descendant cannot run together.
 //!
+//! - [`celaut_quote_descendant_tunnel`] gives the most MU that one stream of a tunnel can
+//!   cost to open. It sends nothing. [`celaut_open_descendant_tunnel`] needs the `max_mu`
+//!   that the user confirmed. The local port opens only as many streams as that budget
+//!   pays for at the maximum cost of each, and it never opens a stream again by itself.
+//!
 //! The list ([`celaut_descendants`]), the receipts and the slots send nothing that costs
 //! MU to the node by themselves. With Tor on, each call uses the route of the app.
 
@@ -25,6 +30,7 @@ use celaut_client::db::InstanceRecord;
 use celaut_client::descendants::{
     self, DescendantError, DescendantRecord, DescendantState, Finding, RefusalKind,
 };
+use celaut_client::local_port::PortLimits;
 use celaut_client::receipts::summarize_descendant;
 use celaut_client::session::{api_chat_ports, api_web_ports};
 use celaut_client::{ClientError, LocalPort};
@@ -89,6 +95,9 @@ pub struct DescendantView {
     pub relayed: bool,
     /// The text of the last refusal of the node.
     pub last_refusal: Option<String>,
+    /// The last check did not reach the end of the statement: some movements are not read,
+    /// and one of them can be a stop. The descendant is not shown as alive. Check again.
+    pub unread_rows: bool,
 }
 
 fn view_of(r: &DescendantRecord) -> DescendantView {
@@ -104,6 +113,7 @@ fn view_of(r: &DescendantRecord) -> DescendantView {
         father_gone: r.father_gone,
         relayed: r.relayed,
         last_refusal: r.last_refusal.clone(),
+        unread_rows: r.incomplete,
     }
 }
 
@@ -249,7 +259,13 @@ fn record_of(instance_id: &str, instance_ref: &str) -> Result<DescendantRecord, 
             // The held instance has a record when the list was read. Make it here too.
             descendants::ensure_root(d, instance_id);
         }
-        d.descendants.get(&key).cloned()
+        // The file keeps no copy of the token: take it from the held instance.
+        let token = d.instances.get(instance_id).map(|i| i.token.clone());
+        d.descendants
+            .get(&key)
+            .cloned()
+            .zip(token)
+            .map(|(record, token)| record.with_token(&token))
     })
     .map_err(storage_error)?
     .ok_or_else(|| invalid("The app does not know this descendant."))
@@ -266,6 +282,10 @@ fn error_of_descendant(e: DescendantError) -> CelautError {
         DescendantError::Statement(StatementError::Invalid(m)) => CelautError {
             kind: CelautErrorKind::Protocol,
             message: m,
+        },
+        e @ DescendantError::ServiceChanged { .. } => CelautError {
+            kind: CelautErrorKind::Protocol,
+            message: e.to_string(),
         },
         other => CelautError {
             kind: CelautErrorKind::InvalidInput,
@@ -504,26 +524,86 @@ async fn declared_slots(
     })
 }
 
+/// The most that one stream of a tunnel to a descendant can cost to open. It is a quote:
+/// nothing was sent.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TunnelQuoteView {
+    pub instance_ref: String,
+    /// The node that is asked (`host:port`).
+    pub node: String,
+    /// The `remaining_hops` that each stream sends.
+    pub remaining_hops: u32,
+    /// The `tunnel_open_mu` of the node, as text.
+    pub open_mu: String,
+    /// The most MU that the opening of one stream can cost, as text: the fee of each leg,
+    /// up to `remaining_hops` legs. The dialog shows it and starts with it as the budget.
+    /// The traffic after the opening costs more, and this number does not cover it.
+    pub max_mu_per_stream: String,
+}
+
+/// The most MU that the opening of one stream to a descendant can cost. This sends nothing
+/// and costs nothing. `remaining_hops` is from 1 to 4 (`None` for
+/// [`celaut_descendant_default_hops`]). A node that does not say its fee gives an error:
+/// the tunnel stays closed.
+#[flutter_rust_bridge::frb]
+pub async fn celaut_quote_descendant_tunnel(
+    instance_id: String,
+    instance_ref: String,
+    remaining_hops: Option<u32>,
+) -> Result<TunnelQuoteView, CelautError> {
+    let record = record_of(&instance_id, &instance_ref)?;
+    let (session, held) = instance(&instance_id).await?;
+    let quote = session
+        .quote_tunnel(
+            &record,
+            remaining_hops.unwrap_or(descendants::DEFAULT_REMAINING_HOPS),
+        )
+        .map_err(error_of_descendant)?;
+    Ok(TunnelQuoteView {
+        instance_ref,
+        node: held.address,
+        remaining_hops: quote.remaining_hops(),
+        open_mu: quote.open_mu().to_string(),
+        max_mu_per_stream: quote.max_mu_per_stream().to_string(),
+    })
+}
+
 /// Opens the tunnel of a local port as a tunnel to a descendant. The port keeps the token
-/// of the held instance, and each stream names the descendant.
+/// of the held instance, and each stream names the descendant and sends the hop budget
+/// that the user saw in the quote.
 struct DescendantOpener {
     inner: Arc<dyn TunnelOpener>,
     instance_ref: String,
+    remaining_hops: u32,
 }
 
 impl TunnelOpener for DescendantOpener {
     fn open_tunnel(&self, token: &str, slot: u16, receipts: Option<ReceiptSink>) -> Tunnel {
-        self.inner
-            .open_descendant_tunnel(token, &self.instance_ref, slot, None, receipts)
+        self.inner.open_descendant_tunnel(
+            token,
+            &self.instance_ref,
+            slot,
+            Some(self.remaining_hops),
+            receipts,
+        )
     }
 }
 
 /// A port on 127.0.0.1 for a slot of a descendant, as [`celaut_open_tunnel`] gives for an
 /// instance. Each TCP connection to it opens one `DescendantTunnel` stream, and the node
-/// charges each one. The slot must be one that the service declares (a chat or a web
-/// port), and the descendant must be alive after a check: a node asks for a read of its
-/// statement first. A node that does not know descendants ends the streams, and the
-/// error is [`CelautErrorKind::NoDescendants`] in the receipts and in the page.
+/// charges each one. THIS CAN COST MU.
+///
+/// `max_mu` is the budget that the user confirmed after [`celaut_quote_descendant_tunnel`],
+/// as text. It is not optional. The port opens at most `max_mu / max_mu_per_stream`
+/// streams, and a connection after that is closed with no stream. The port never opens a
+/// stream again by itself after a failure. A call for a port that is open adds the streams
+/// that the new budget pays for. `remaining_hops` is from 1 to 4 (`None` for
+/// [`celaut_descendant_default_hops`]) and each stream sends it.
+///
+/// The slot must be one that the service declares (a chat or a web port), and the
+/// descendant must be alive after a check: a node asks for a read of its statement first.
+/// A node that does not know descendants ends the streams, and the error is
+/// [`CelautErrorKind::NoDescendants`] in the receipts and in the page.
 ///
 /// [`celaut_open_tunnel`]: super::celaut_service::celaut_open_tunnel
 #[flutter_rust_bridge::frb]
@@ -531,12 +611,13 @@ pub async fn celaut_open_descendant_tunnel(
     instance_id: String,
     instance_ref: String,
     slot: u16,
+    remaining_hops: Option<u32>,
+    max_mu: String,
 ) -> Result<u16, CelautError> {
+    let budget = parse_max_mu(&max_mu)?;
     let record = record_of(&instance_id, &instance_ref)?;
     if record.depth == 0 {
-        return Err(invalid(
-            "This is the held instance. Use its own tunnel.",
-        ));
+        return Err(invalid("This is the held instance. Use its own tunnel."));
     }
     if record.state != DescendantState::Running {
         return Err(invalid(
@@ -544,6 +625,14 @@ pub async fn celaut_open_descendant_tunnel(
         ));
     }
     let (session, held) = instance(&instance_id).await?;
+    if held.hibernated_at.is_some() {
+        return Err(invalid("This instance is hibernated. Wake it first."));
+    }
+    let hops = remaining_hops.unwrap_or(descendants::DEFAULT_REMAINING_HOPS);
+    let quote = session
+        .quote_tunnel(&record, hops)
+        .map_err(error_of_descendant)?;
+    let streams = quote.streams_for(budget).map_err(error_of_descendant)?;
     let declared = declared_slots(&record, node_of(&held)).await?;
     if !declared.known
         || !(declared.chat_slots.contains(&slot) || declared.web_slots.contains(&slot))
@@ -554,6 +643,7 @@ pub async fn celaut_open_descendant_tunnel(
     let opener: Arc<dyn TunnelOpener> = Arc::new(DescendantOpener {
         inner: Arc::new(session.transport().clone()),
         instance_ref: record.instance_ref.clone(),
+        remaining_hops: quote.remaining_hops(),
     });
     {
         let mut s = state()?;
@@ -561,6 +651,7 @@ pub async fn celaut_open_descendant_tunnel(
         match ports.get(&slot) {
             Some(port) if port.is_alive() => {
                 port.set_opener(opener);
+                port.allow_streams(streams);
                 return Ok(port.port());
             }
             Some(_) => {
@@ -569,12 +660,18 @@ pub async fn celaut_open_descendant_tunnel(
             None => {}
         }
     }
-    let port = LocalPort::bind_preferred(
+    // No try again: a stream that is opened again is a stream that the user did not count.
+    let limits = PortLimits {
+        max_streams: Some(streams),
+        retries: 0,
+    };
+    let port = LocalPort::bind_limited(
         opener,
         record.parent_token.clone(),
         slot,
         Some(descendant_sink(key.clone())),
         Some(preferred_port(&key, slot)),
+        limits,
     )
     .await
     .map_err(|e| CelautError {
@@ -594,6 +691,7 @@ pub async fn celaut_open_descendant_tunnel(
 mod tests {
     use super::*;
     use celaut_client::db::InstanceRecord;
+    use celaut_wire::Tunnel;
 
     fn held(id: &str) {
         db().update(|d| {
@@ -650,7 +748,11 @@ mod tests {
     fn a_missing_service_id_gives_unknown_slots() {
         let mut r = {
             held("desc-slots");
-            record_of("desc-slots", &celaut_wire::statement::instance_ref("token-of-desc-slots")).unwrap()
+            record_of(
+                "desc-slots",
+                &celaut_wire::statement::instance_ref("token-of-desc-slots"),
+            )
+            .unwrap()
         };
         r.service_id = None;
         let v = tokio::runtime::Builder::new_current_thread()
@@ -675,12 +777,112 @@ mod tests {
     fn a_stop_with_leftover_shows_in_the_view() {
         let mut r = {
             held("desc-stop");
-            record_of("desc-stop", &celaut_wire::statement::instance_ref("token-of-desc-stop")).unwrap()
+            record_of(
+                "desc-stop",
+                &celaut_wire::statement::instance_ref("token-of-desc-stop"),
+            )
+            .unwrap()
         };
         r.state = DescendantState::Stopped;
         r.leftover_mu = Some("40".into());
         let v = view_of(&r);
         assert_eq!(v.state, DescendantStateView::Stopped);
         assert_eq!(v.leftover_mu.as_deref(), Some("40"));
+    }
+
+    #[test]
+    fn the_token_comes_from_the_held_instance_and_not_from_the_file() {
+        held("desc-token");
+        let r = record_of(
+            "desc-token",
+            &celaut_wire::statement::instance_ref("token-of-desc-token"),
+        )
+        .unwrap();
+        assert_eq!(r.parent_token, "token-of-desc-token");
+        // The stored record has no token, as the file does not keep one.
+        let stored = db()
+            .read(|d| {
+                d.descendants
+                    .values()
+                    .find(|x| x.instance_id == "desc-token")
+                    .map(|x| serde_json::to_string(x).unwrap())
+            })
+            .unwrap();
+        assert!(!stored.contains("token-of-desc-token"), "{stored}");
+    }
+
+    /// An opener that keeps the arguments of each descendant stream.
+    struct Spy {
+        calls: Mutex<Vec<(String, String, u16, Option<u32>)>>,
+    }
+
+    impl TunnelOpener for Spy {
+        fn open_tunnel(&self, _t: &str, _s: u16, _r: Option<ReceiptSink>) -> Tunnel {
+            panic!("a descendant stream must use open_descendant_tunnel");
+        }
+
+        fn open_descendant_tunnel(
+            &self,
+            token: &str,
+            instance_ref: &str,
+            slot: u16,
+            remaining_hops: Option<u32>,
+            _receipts: Option<ReceiptSink>,
+        ) -> Tunnel {
+            self.calls.lock().unwrap().push((
+                token.into(),
+                instance_ref.into(),
+                slot,
+                remaining_hops,
+            ));
+            let (to_service, _) = tokio::sync::mpsc::channel(1);
+            let (_, from_service) = tokio::sync::mpsc::channel(1);
+            Tunnel {
+                to_service,
+                from_service,
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn each_stream_of_a_descendant_port_sends_the_hop_budget() {
+        let spy = Arc::new(Spy {
+            calls: Mutex::new(Vec::new()),
+        });
+        let opener = DescendantOpener {
+            inner: spy.clone(),
+            instance_ref: "r".repeat(64),
+            remaining_hops: 3,
+        };
+        let _ = opener.open_tunnel("tok", 8080, None);
+        assert_eq!(
+            spy.calls.lock().unwrap()[0],
+            ("tok".into(), "r".repeat(64), 8080, Some(3)),
+            "the hops are never absent"
+        );
+    }
+
+    #[tokio::test]
+    async fn opening_needs_a_budget_that_is_a_whole_number_before_anything_else() {
+        held("desc-open");
+        let iref = celaut_wire::statement::instance_ref("token-of-desc-open");
+        for bad in ["", "-1", "1.5", "x"] {
+            let e = celaut_open_descendant_tunnel(
+                "desc-open".into(),
+                iref.clone(),
+                8080,
+                Some(2),
+                bad.into(),
+            )
+            .await
+            .unwrap_err();
+            assert_eq!(e.kind, CelautErrorKind::InvalidInput, "{bad}");
+            assert!(e.message.contains("whole number"), "{}", e.message);
+        }
+        // The held instance and a descendant that was not checked get no port.
+        let e = celaut_open_descendant_tunnel("desc-open".into(), iref, 8080, Some(2), "9".into())
+            .await
+            .unwrap_err();
+        assert!(e.message.contains("held instance"), "{}", e.message);
     }
 }

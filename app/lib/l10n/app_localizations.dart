@@ -12688,6 +12688,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Level {depth}'**
   String descendantsDepth(String depth);
+
+  /// No description provided for @descendantsRelayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Relayed. Another node wrote this statement. The node of this instance signed it again, and the app cannot check the other node.'**
+  String get descendantsRelayed;
+
+  /// No description provided for @descendantsUnreadRows.
+  ///
+  /// In en, this message translates to:
+  /// **'Partly checked. Some movements are not read, and one of them can be a stop. Check again.'**
+  String get descendantsUnreadRows;
+
+  /// No description provided for @descendantsOpenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open with the node?'**
+  String get descendantsOpenTitle;
+
+  /// No description provided for @descendantsOpenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The app opens one stream to the descendant for each connection of the page, through the node {node}. One stream can cost up to {perStream} MU to open ({hops} hops at most). The traffic costs more. The port stops after the streams that the budget below pays for.'**
+  String descendantsOpenBody(String node, String perStream, String hops);
+
+  /// No description provided for @descendantsOpenStreams.
+  ///
+  /// In en, this message translates to:
+  /// **'The budget pays for {count} streams.'**
+  String descendantsOpenStreams(String count);
+
+  /// No description provided for @descendantsOpenBudgetTooSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'The budget does not pay for one stream.'**
+  String get descendantsOpenBudgetTooSmall;
+
+  /// No description provided for @descendantsOpenConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Open and pay'**
+  String get descendantsOpenConfirm;
 }
 
 class _AppLocalizationsDelegate

@@ -28,7 +28,10 @@ Two features use it:
 4. The app refuses an answer in each of these cases:
    - the `instance_ref` of the answer is not the `instance_ref` of the request;
    - the signature does not verify;
-   - the hash chain does not verify;
+   - the hash chain does not verify (section 5);
+   - the statement is dated more than 120 seconds from the clock of the app;
+   - for a read with no `instance_ref`, the `account_ref` of the answer is not the account
+     that was asked for;
    - the answer is from a node that ignores the field (section 9).
 5. A node that does not know `DescendantTunnel` (index 2) gives an error. The app shows
    the message "node does not support descendants".
@@ -130,19 +133,42 @@ The hash of a movement (`ledger.movement_hash`) is the blake2b-256 hex of the UT
 
   The `account_ref` here is the hash of section 3, as a text.
 
-The app checks the chain of a statement in this way:
+The app checks a statement in this way. The rules follow `statement_check.verify_chain` of nodo.
 
-1. Each movement has `prev_hash` equal to the hash of the movement before it. The `seq`
-   goes up by 1, with no gap.
-2. The first movement of the range hangs from a hash that the app cannot check, unless
-   the range starts at seq 1. Then the `prev_hash` must be the genesis hash.
-3. If the statement has movements up to the head, the hash of the last movement is
-   `head_hash`, and its `seq` is `head_seq`.
-4. With no movement in the range (`from_seq` 0), the head is only signed. If `head_seq` is
+1. The statement is dated within 120 seconds of the clock of the app (`CLOCK_SKEW_SECONDS`).
+   An old signed statement is not accepted as a new one.
+2. Each number is canonical: the text is the same as `str(int(n))`. So `007`, `-0` and `+5`
+   are refused.
+3. Each movement has `prev_hash` equal to the hash of the movement before it. The `seq`
+   goes up by 1, with no gap. Nothing follows a `stop`.
+4. Each `balance_after` is the one before plus the `amount`. No movement is dated after the
+   statement.
+5. The movement at `seq` 1 hangs from the genesis hash, and its `amount` is its
+   `balance_after` (the account starts from 0).
+6. The first movement is `max(from_seq, oldest_seq)`. A node never skips a movement that it
+   holds. If the first movement is after `from_seq`, the node says that it deleted the
+   movements before it (its retention). The app cannot check this, and it shows it as a gap
+   (`VerifiedStatement::gap`). A `stop` cannot be in the deleted movements, but a
+   `child_bound` can.
+7. The answer has no more movements than the read can pay for (`most_rows`).
+8. If the statement has movements up to the head, the hash of the last movement is
+   `head_hash`, its `seq` is `head_seq`, and its `balance_after` is the balance.
+9. With no movement in the range (`from_seq` 0), the head is only signed. If `head_seq` is
    0, `head_hash` is the genesis hash.
-5. If the app kept an earlier head of the same descendant, a statement must agree with it.
-   The head never goes back, a `seq` keeps its hash, and the movement after the kept head
-   hangs from it (`head_conflict`).
+10. If the app kept an earlier head of the same descendant, a statement must agree with it.
+    The head never goes back, a `seq` keeps its hash, and the movement after the kept head
+    hangs from it (`head_conflict`).
+11. For a read with no `instance_ref`, `account_ref` is `account_ref(token)`. For the
+    account of the client (empty token), it is `account_ref(client_id)`. For a descendant,
+    the app does not know the token. The signed `instance_ref` stands in its place.
+
+A read that stops before the head (paging) is not complete. The app keeps `rows_seq` and
+the signed head. It does not set the state to alive, because the rows that are not read can
+hold the `stop`. It shows that rows are unread, and the next check goes on after `rows_seq`.
+
+The app keeps the first `service_id` that a node gives for a descendant. A statement with
+another `service_id` is refused (`ServiceChanged`), and the app keeps nothing of it. The
+node did charge the read.
 
 ## 6. The movements child_bound and stop
 
@@ -204,8 +230,18 @@ The relay can fail after the stream started. The node then stops the stream with
 status of the refusal. The app maps the status in the same way.
 
 The tunnel costs MU as any tunnel: the opening fee and the traffic. The descendant pays on
-its node, and each relay node charges its own leg. The user confirms the opening fee as for
-a normal tunnel (`TUNNEL_OPEN_MU`, default 10 000 MU).
+its node, and each relay node charges its own leg. The user confirms the cost before the
+app opens a local port (section 12).
+
+Each TCP connection to the local port is one stream, and each stream pays the opening fee
+on each leg. A node gives one hop less to the next node, so a stream has at most
+`remaining_hops` legs. The app computes the most that one stream can cost to open:
+
+    max_mu_per_stream = remaining_hops * tunnel_open_mu
+
+`tunnel_open_mu` is in the `mu_per_call` of the `Peer` (default 10 000 MU). The app does not
+open the port if the node gives no rate. The app always sets `remaining_hops` (2 by
+default, 4 at most). The quote does not cover the traffic (`net_mu_per_gib`).
 
 ### 7.1 The receipts
 
@@ -263,8 +299,10 @@ that makes the read.
 The app does not know the rates of a node that gave no rates. Then it does not send the
 read. The confirmation shows the maximum MU and the node. The user confirms each read.
 
-An answer cannot charge more than the maximum. The account of the client on the node shows
-the charge as a `statement_query` movement.
+The app cannot read back the charge of the node. The account of the client on the node shows
+it as a `statement_query` movement. The app refuses an answer with more movements than the
+read can pay for, so the quote holds for the number of rows. An operator can set a limit
+above 1000 rows, or other rates for a relay leg. The app does not see this.
 
 ## 9. A node that does not know the fields
 
@@ -350,12 +388,19 @@ The execution name for a `DescendantTunnel` with the child above and that `peer_
 
     f4ddd19cef1fc8bc22992a1e64f3098c7499d3dcfa931b0c9de925d5a2243b91
 
-Note on the method. The harness did not allow a run of the nodo Python code itself (it
-needs modules that are not installed, and the run was refused). The vectors come from a
-separate script of about 40 lines. It follows `ledger.py`, `balance_statement.py` and
-`node_identity.py` line by line, and uses only `hashlib` and `cryptography`. The nodo code
-was not run on these values. The next phase must run its Rust tests against these values
-and, if a node is available, against a real statement of nodo.
+Note on the method. The harness did not allow a run of the nodo Python code itself (the
+run was refused in two sessions). The vectors come from a separate script that follows
+`ledger.py`, `balance_statement.py` and `node_identity.py` line by line, and uses only
+`hashlib` and `cryptography`. A review of the code recomputed the `instance_ref`, the
+`account_ref`, the genesis hash, the four movement hashes and the first two digests with an
+own script of `hashlib`, and the values were the same. The Ed25519 signature and the digest
+with only `relayed` were not recomputed. The nodo code was not run on these values.
+
+The first movement of these vectors does not start from 0 (its `amount` is not its
+`balance_after`), so the chain check refuses it. The vectors are for the hash, digest and
+signature tests only. The tests of the chain check use a statement where the first movement
+is a `credit` that starts from 0. Its hashes come from the Rust code, so those tests check
+the rules and not the hashes.
 
 ## 11. The algorithm in short
 
@@ -396,7 +441,22 @@ Code: `celaut-wire/src/statement.rs`, `celaut-client/src/descendants.rs`,
   finding. It is not an error. A `stop` movement with a leftover above 0 gives an alert.
 - Open starts a tunnel only for a descendant that the last check found alive, and only for
   a web slot that the service declares. A chat slot of a descendant is not opened (the
-  chat screen needs an instance). The tunnel costs the opening fee, with no extra dialog.
+  chat screen needs an instance). Open asks first, each time: the app makes a quote (it
+  sends nothing), and a dialog shows the node, the hops, and the most that one stream can
+  cost to open. The user gives a budget. The local port opens at most
+  `budget / max_mu_per_stream` streams, and it closes each connection after that with no
+  stream. A new Open adds the streams that the new budget pays for. The port never opens a
+  stream again by itself after a failure (no retries), because a try again can charge a
+  stream that the user did not count. The app always sends `remaining_hops`.
+- The local ports of an instance, and the ports to its descendants, close when the
+  instance stops, hibernates, is gone on the node, or is deleted. A hibernated or stopped
+  instance gets no new port.
+- The database does not keep the token of the held instance in a descendant record. The
+  app takes it from the record of the instance when it needs it. The `Debug` text of a
+  request, a quote and a record hides it.
+- Each row shows when the statement is relayed (another node wrote it, and the node of the
+  instance signed it again), and when the last check did not reach the end of the
+  statement. A descendant with unread rows is not shown as alive and has no Open.
 - Errors: `NoDescendants` ("node does not support descendants") is a separate error kind
   in the app.
 - The Tor route is the route of the connection of the node (see [network.md](network.md)).
@@ -404,5 +464,7 @@ Code: `celaut-wire/src/statement.rs`, `celaut-client/src/descendants.rs`,
   `read_the_statements_of_the_descendants` in `celaut-client/tests/real_node.rs` is for a
   real node. It is ignored, and it reads only if `CELAUT_DESCENDANTS_MAX_MU` is set. No
   real node was used for it. The vectors of section 10 were not compared with the Python
-  of nodo (the module `mnemonic` was missing), and the refusal of an old node for
-  `DescendantTunnel` is still a heuristic.
+  of nodo (the run was refused), and the refusal of an old node for `DescendantTunnel` is
+  still a heuristic. The generated bridge (`frb_generated.*`) was edited by hand for the
+  new fields and functions, because the code generator needs Flutter. Run
+  `flutter_rust_bridge_codegen generate` when Flutter is available.

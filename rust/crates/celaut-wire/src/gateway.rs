@@ -467,8 +467,13 @@ pub async fn payable<T: Transport>(
 /// ([`Rates::from_peer`]). `kept` is the head of an earlier read of the same descendant
 /// on the same node, if the caller has one.
 ///
+/// `now` is the time of the app in Unix seconds. The statement must be dated near it.
+/// With an empty `request.token` and no `instance_ref`, the answer must be for the account
+/// of `client_id`.
+///
 /// The answer is checked as [`statement::verify`] says. An answer from a node that
 /// ignores `instance_ref` is [`StatementError::NoDescendants`].
+#[allow(clippy::too_many_arguments)]
 pub async fn get_balance_statement<T: Transport>(
     transport: &T,
     peer_id: &str,
@@ -477,6 +482,7 @@ pub async fn get_balance_statement<T: Transport>(
     rates: &Rates,
     max_mu: u128,
     kept: Option<&KeptHead>,
+    now: i64,
 ) -> Result<VerifiedStatement, StatementError> {
     request.check()?;
     let needed = request.max_mu_needed(rates);
@@ -492,5 +498,13 @@ pub async fn get_balance_statement<T: Transport>(
     ];
     let answer = transport.call("GetBalanceStatement", parts, &[1]).await?;
     let statement: BalanceStatement = find(&answer, 1, "BalanceStatement")?;
-    statement::verify(request, peer_id, statement, kept)
+    if request.token.is_empty()
+        && request.instance_ref.is_empty()
+        && statement.account_ref != statement::account_ref(client_id)
+    {
+        return Err(StatementError::Invalid(
+            "the account of the answer is not the account that was asked for".into(),
+        ));
+    }
+    statement::verify(request, peer_id, statement, kept, now)
 }

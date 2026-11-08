@@ -78,22 +78,49 @@ Future<DescendantSlotsView> celautDescendantSlots({
   instanceRef: instanceRef,
 );
 
+/// The most MU that the opening of one stream to a descendant can cost. This sends nothing
+/// and costs nothing. `remaining_hops` is from 1 to 4 (`None` for
+/// [`celaut_descendant_default_hops`]). A node that does not say its fee gives an error:
+/// the tunnel stays closed.
+Future<TunnelQuoteView> celautQuoteDescendantTunnel({
+  required String instanceId,
+  required String instanceRef,
+  int? remainingHops,
+}) => RustLib.instance.api.crateApiCelautDescendantsCelautQuoteDescendantTunnel(
+  instanceId: instanceId,
+  instanceRef: instanceRef,
+  remainingHops: remainingHops,
+);
+
 /// A port on 127.0.0.1 for a slot of a descendant, as [`celaut_open_tunnel`] gives for an
 /// instance. Each TCP connection to it opens one `DescendantTunnel` stream, and the node
-/// charges each one. The slot must be one that the service declares (a chat or a web
-/// port), and the descendant must be alive after a check: a node asks for a read of its
-/// statement first. A node that does not know descendants ends the streams, and the
-/// error is [`CelautErrorKind::NoDescendants`] in the receipts and in the page.
+/// charges each one. THIS CAN COST MU.
+///
+/// `max_mu` is the budget that the user confirmed after [`celaut_quote_descendant_tunnel`],
+/// as text. It is not optional. The port opens at most `max_mu / max_mu_per_stream`
+/// streams, and a connection after that is closed with no stream. The port never opens a
+/// stream again by itself after a failure. A call for a port that is open adds the streams
+/// that the new budget pays for. `remaining_hops` is from 1 to 4 (`None` for
+/// [`celaut_descendant_default_hops`]) and each stream sends it.
+///
+/// The slot must be one that the service declares (a chat or a web port), and the
+/// descendant must be alive after a check: a node asks for a read of its statement first.
+/// A node that does not know descendants ends the streams, and the error is
+/// [`CelautErrorKind::NoDescendants`] in the receipts and in the page.
 ///
 /// [`celaut_open_tunnel`]: super::celaut_service::celaut_open_tunnel
 Future<int> celautOpenDescendantTunnel({
   required String instanceId,
   required String instanceRef,
   required int slot,
+  int? remainingHops,
+  required String maxMu,
 }) => RustLib.instance.api.crateApiCelautDescendantsCelautOpenDescendantTunnel(
   instanceId: instanceId,
   instanceRef: instanceRef,
   slot: slot,
+  remainingHops: remainingHops,
+  maxMu: maxMu,
 );
 
 /// What a check found.
@@ -301,6 +328,10 @@ class DescendantView {
   /// The text of the last refusal of the node.
   final String? lastRefusal;
 
+  /// The last check did not reach the end of the statement: some movements are not read,
+  /// and one of them can be a stop. The descendant is not shown as alive. Check again.
+  final bool unreadRows;
+
   const DescendantView({
     required this.instanceRef,
     this.serviceId,
@@ -313,6 +344,7 @@ class DescendantView {
     required this.fatherGone,
     required this.relayed,
     this.lastRefusal,
+    required this.unreadRows,
   });
 
   @override
@@ -327,7 +359,8 @@ class DescendantView {
       leftoverMu.hashCode ^
       fatherGone.hashCode ^
       relayed.hashCode ^
-      lastRefusal.hashCode;
+      lastRefusal.hashCode ^
+      unreadRows.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -344,7 +377,8 @@ class DescendantView {
           leftoverMu == other.leftoverMu &&
           fatherGone == other.fatherGone &&
           relayed == other.relayed &&
-          lastRefusal == other.lastRefusal;
+          lastRefusal == other.lastRefusal &&
+          unreadRows == other.unreadRows;
 }
 
 /// The descendants that the app knows for an instance.
@@ -406,4 +440,51 @@ class ReadQuoteView {
           node == other.node &&
           remainingHops == other.remainingHops &&
           maxMu == other.maxMu;
+}
+
+/// The most that one stream of a tunnel to a descendant can cost to open. It is a quote:
+/// nothing was sent.
+class TunnelQuoteView {
+  final String instanceRef;
+
+  /// The node that is asked (`host:port`).
+  final String node;
+
+  /// The `remaining_hops` that each stream sends.
+  final int remainingHops;
+
+  /// The `tunnel_open_mu` of the node, as text.
+  final String openMu;
+
+  /// The most MU that the opening of one stream can cost, as text: the fee of each leg,
+  /// up to `remaining_hops` legs. The dialog shows it and starts with it as the budget.
+  /// The traffic after the opening costs more, and this number does not cover it.
+  final String maxMuPerStream;
+
+  const TunnelQuoteView({
+    required this.instanceRef,
+    required this.node,
+    required this.remainingHops,
+    required this.openMu,
+    required this.maxMuPerStream,
+  });
+
+  @override
+  int get hashCode =>
+      instanceRef.hashCode ^
+      node.hashCode ^
+      remainingHops.hashCode ^
+      openMu.hashCode ^
+      maxMuPerStream.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TunnelQuoteView &&
+          runtimeType == other.runtimeType &&
+          instanceRef == other.instanceRef &&
+          node == other.node &&
+          remainingHops == other.remainingHops &&
+          openMu == other.openMu &&
+          maxMuPerStream == other.maxMuPerStream;
 }

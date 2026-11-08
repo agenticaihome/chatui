@@ -17,6 +17,8 @@ DescendantView _d(
   String? leftover,
   String? service,
   int? checked,
+  bool relayed = false,
+  bool unreadRows = false,
 }) => DescendantView(
   instanceRef: ref,
   serviceId: service,
@@ -26,7 +28,8 @@ DescendantView _d(
   stopReason: leftover == null ? null : 'out_of_balance',
   leftoverMu: leftover,
   fatherGone: false,
-  relayed: false,
+  relayed: relayed,
+  unreadRows: unreadRows,
 );
 
 class _Calls {
@@ -34,6 +37,8 @@ class _Calls {
   int checks = 0;
   String? lastBudget;
   int opens = 0;
+  int tunnelQuotes = 0;
+  String? openBudget;
 }
 
 DescendantsApi _api(
@@ -63,8 +68,19 @@ DescendantsApi _api(
   receipts: (_, _) => null,
   slots: (_, _) async =>
       slots ?? DescendantSlotsView(known: true, chatSlots: Uint16List(0), webSlots: Uint16List.fromList([80])),
-  openTunnel: (_, _, _) async {
+  quoteTunnel: (id, ref) async {
+    calls.tunnelQuotes++;
+    return TunnelQuoteView(
+      instanceRef: ref,
+      node: 'node.example:1',
+      remainingHops: 2,
+      openMu: '10000',
+      maxMuPerStream: '20000',
+    );
+  },
+  openTunnel: (_, _, _, budget) async {
     calls.opens++;
+    calls.openBudget = budget;
     return 12345;
   },
   launch: (_) async => true,
@@ -266,7 +282,126 @@ void main() {
     expect(find.byKey(Key('descendant-open-$_ref2')), findsNothing);
     await tester.tap(find.byKey(Key('descendant-open-$_ref')));
     await tester.pumpAndSettle();
+    // The dialog comes first: nothing opened yet.
+    expect(find.byKey(const Key('descendant-open-dialog')), findsOneWidget);
+    expect(calls.opens, 0);
+    await tester.tap(find.byKey(const Key('descendant-open-confirm')));
+    await tester.pumpAndSettle();
     expect(calls.opens, 1);
+    expect(calls.openBudget, '20000');
+  });
+
+  testWidgets('Open shows the cost of one stream, and a cancel opens nothing', (tester) async {
+    final calls = _Calls();
+    await _pump(
+      tester,
+      _api(calls, view: _view([_d(_ref, state: DescendantStateView.alive)])),
+    );
+    await tester.tap(find.byKey(Key('descendant-open-$_ref')));
+    await tester.pumpAndSettle();
+    expect(calls.tunnelQuotes, 1);
+    expect(tester.widget<TextField>(find.byKey(const Key('descendant-open-max'))).controller!.text, '20000');
+    expect(find.textContaining('20000 MU'), findsWidgets);
+    await tester.tap(find.byKey(const Key('descendant-open-cancel')));
+    await tester.pumpAndSettle();
+    expect(calls.opens, 0);
+    // A tap outside the dialog opens nothing either.
+    await tester.tap(find.byKey(Key('descendant-open-$_ref')));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(calls.opens, 0);
+  });
+
+  testWidgets('a budget that pays for no stream cannot be confirmed, and the field is used', (tester) async {
+    final calls = _Calls();
+    await _pump(
+      tester,
+      _api(calls, view: _view([_d(_ref, state: DescendantStateView.alive)])),
+    );
+    await tester.tap(find.byKey(Key('descendant-open-$_ref')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('descendant-open-max')), '19999');
+    await tester.pump();
+    expect(tester.widget<FilledButton>(find.byKey(const Key('descendant-open-confirm'))).onPressed, isNull);
+    await tester.enterText(find.byKey(const Key('descendant-open-max')), '60000');
+    await tester.pump();
+    final l = AppLocalizations.of(tester.element(find.byKey(const Key('descendant-open-dialog'))));
+    expect(find.text(l.descendantsOpenStreams('3')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('descendant-open-confirm')));
+    await tester.pumpAndSettle();
+    expect((calls.opens, calls.openBudget), (1, '60000'));
+  });
+
+  testWidgets('each Open asks again', (tester) async {
+    final calls = _Calls();
+    await _pump(
+      tester,
+      _api(calls, view: _view([_d(_ref, state: DescendantStateView.alive)])),
+    );
+    for (var i = 1; i <= 2; i++) {
+      await tester.tap(find.byKey(Key('descendant-open-$_ref')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('descendant-open-dialog')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('descendant-open-confirm')));
+      await tester.pumpAndSettle();
+      expect(calls.opens, i);
+    }
+    expect(calls.tunnelQuotes, 2);
+  });
+
+  testWidgets('a tunnel quote that fails opens no dialog and no port', (tester) async {
+    final calls = _Calls();
+    final api = DescendantsApi(
+      list: (_) => _view([_d(_ref, state: DescendantStateView.alive)]),
+      receipts: (_, _) => null,
+      slots: (_, _) async =>
+          DescendantSlotsView(known: true, chatSlots: Uint16List(0), webSlots: Uint16List.fromList([80])),
+      quoteTunnel: (_, _) async => throw StateError('no rates'),
+      openTunnel: (_, _, _, _) async {
+        calls.opens++;
+        return 1;
+      },
+    );
+    await _pump(tester, api);
+    await tester.tap(find.byKey(Key('descendant-open-$_ref')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('descendant-open-dialog')), findsNothing);
+    expect(calls.opens, 0);
+  });
+
+  testWidgets('a relayed statement is shown as relayed, and a direct one is not', (tester) async {
+    await _pump(
+      tester,
+      _api(
+        _Calls(),
+        view: _view([
+          _d(_ref, state: DescendantStateView.alive, relayed: true),
+          _d(_ref2, depth: 2, state: DescendantStateView.alive),
+        ]),
+      ),
+    );
+    final l = AppLocalizations.of(tester.element(find.byKey(const Key('info-descendants'))));
+    expect(find.byKey(Key('descendant-relayed-$_ref')), findsOneWidget);
+    expect(find.byKey(Key('descendant-relayed-$_ref2')), findsNothing);
+    expect(find.text(l.descendantsRelayed), findsOneWidget);
+  });
+
+  testWidgets('a check that did not reach the end is not shown as alive without a note', (tester) async {
+    await _pump(
+      tester,
+      _api(
+        _Calls(),
+        view: _view([_d(_ref, state: DescendantStateView.notChecked, unreadRows: true, checked: 1700000000)]),
+      ),
+    );
+    final l = AppLocalizations.of(tester.element(find.byKey(const Key('info-descendants'))));
+    expect(find.byKey(Key('descendant-unread-$_ref')), findsOneWidget);
+    expect(find.text(l.descendantsUnreadRows), findsOneWidget);
+    expect(find.text(l.descendantsStateAlive), findsNothing);
+    // It can be checked again, and it cannot be opened.
+    expect(find.byKey(Key('descendant-check-$_ref')), findsOneWidget);
+    expect(find.byKey(Key('descendant-open-$_ref')), findsNothing);
   });
 
   testWidgets('Open does nothing when the service declares no page', (tester) async {

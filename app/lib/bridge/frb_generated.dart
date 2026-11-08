@@ -370,6 +370,8 @@ abstract class RustLibApi extends BaseApi {
     required String instanceId,
     required String instanceRef,
     required int slot,
+    int? remainingHops,
+    required String maxMu,
   });
 
   Future<int> crateApiCelautServiceCelautOpenTunnel({
@@ -387,6 +389,12 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Future<ReadQuoteView> crateApiCelautDescendantsCelautQuoteDescendantRead({
+    required String instanceId,
+    required String instanceRef,
+    int? remainingHops,
+  });
+
+  Future<TunnelQuoteView> crateApiCelautDescendantsCelautQuoteDescendantTunnel({
     required String instanceId,
     required String instanceRef,
     int? remainingHops,
@@ -2852,6 +2860,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required String instanceId,
     required String instanceRef,
     required int slot,
+    int? remainingHops,
+    required String maxMu,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -2860,6 +2870,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(instanceId, serializer);
           sse_encode_String(instanceRef, serializer);
           sse_encode_u_16(slot, serializer);
+          sse_encode_opt_box_autoadd_u_32(remainingHops, serializer);
+          sse_encode_String(maxMu, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -2873,7 +2885,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         ),
         constMeta:
             kCrateApiCelautDescendantsCelautOpenDescendantTunnelConstMeta,
-        argValues: [instanceId, instanceRef, slot],
+        argValues: [instanceId, instanceRef, slot, remainingHops, maxMu],
         apiImpl: this,
       ),
     );
@@ -2883,7 +2895,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   get kCrateApiCelautDescendantsCelautOpenDescendantTunnelConstMeta =>
       const TaskConstMeta(
         debugName: "celaut_open_descendant_tunnel",
-        argNames: ["instanceId", "instanceRef", "slot"],
+        argNames: ["instanceId", "instanceRef", "slot", "remainingHops", "maxMu"],
       );
 
   @override
@@ -3017,6 +3029,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   get kCrateApiCelautDescendantsCelautQuoteDescendantReadConstMeta =>
       const TaskConstMeta(
         debugName: "celaut_quote_descendant_read",
+        argNames: ["instanceId", "instanceRef", "remainingHops"],
+      );
+
+  @override
+  Future<TunnelQuoteView> crateApiCelautDescendantsCelautQuoteDescendantTunnel({
+    required String instanceId,
+    required String instanceRef,
+    int? remainingHops,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(instanceId, serializer);
+          sse_encode_String(instanceRef, serializer);
+          sse_encode_opt_box_autoadd_u_32(remainingHops, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 140,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_tunnel_quote_view,
+          decodeErrorData: sse_decode_celaut_error,
+        ),
+        constMeta:
+            kCrateApiCelautDescendantsCelautQuoteDescendantTunnelConstMeta,
+        argValues: [instanceId, instanceRef, remainingHops],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiCelautDescendantsCelautQuoteDescendantTunnelConstMeta =>
+      const TaskConstMeta(
+        debugName: "celaut_quote_descendant_tunnel",
         argNames: ["instanceId", "instanceRef", "remainingHops"],
       );
 
@@ -6114,8 +6165,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   DescendantView dco_decode_descendant_view(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return DescendantView(
       instanceRef: dco_decode_String(arr[0]),
       serviceId: dco_decode_opt_String(arr[1]),
@@ -6128,6 +6179,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       fatherGone: dco_decode_bool(arr[8]),
       relayed: dco_decode_bool(arr[9]),
       lastRefusal: dco_decode_opt_String(arr[10]),
+      unreadRows: dco_decode_bool(arr[11]),
     );
   }
 
@@ -7013,6 +7065,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       node: dco_decode_String(arr[1]),
       remainingHops: dco_decode_u_32(arr[2]),
       maxMu: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  TunnelQuoteView dco_decode_tunnel_quote_view(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return TunnelQuoteView(
+      instanceRef: dco_decode_String(arr[0]),
+      node: dco_decode_String(arr[1]),
+      remainingHops: dco_decode_u_32(arr[2]),
+      openMu: dco_decode_String(arr[3]),
+      maxMuPerStream: dco_decode_String(arr[4]),
     );
   }
 
@@ -8044,6 +8111,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_fatherGone = sse_decode_bool(deserializer);
     var var_relayed = sse_decode_bool(deserializer);
     var var_lastRefusal = sse_decode_opt_String(deserializer);
+    var var_unreadRows = sse_decode_bool(deserializer);
     return DescendantView(
       instanceRef: var_instanceRef,
       serviceId: var_serviceId,
@@ -8056,6 +8124,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       fatherGone: var_fatherGone,
       relayed: var_relayed,
       lastRefusal: var_lastRefusal,
+      unreadRows: var_unreadRows,
     );
   }
 
@@ -9352,6 +9421,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TunnelQuoteView sse_decode_tunnel_quote_view(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_instanceRef = sse_decode_String(deserializer);
+    var var_node = sse_decode_String(deserializer);
+    var var_remainingHops = sse_decode_u_32(deserializer);
+    var var_openMu = sse_decode_String(deserializer);
+    var var_maxMuPerStream = sse_decode_String(deserializer);
+    return TunnelQuoteView(
+      instanceRef: var_instanceRef,
+      node: var_node,
+      remainingHops: var_remainingHops,
+      openMu: var_openMu,
+      maxMuPerStream: var_maxMuPerStream,
+    );
+  }
+
+  @protected
   ReceiptFaultKind sse_decode_receipt_fault_kind(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
@@ -10248,6 +10334,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.fatherGone, serializer);
     sse_encode_bool(self.relayed, serializer);
     sse_encode_opt_String(self.lastRefusal, serializer);
+    sse_encode_bool(self.unreadRows, serializer);
   }
 
   @protected
@@ -11325,6 +11412,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.node, serializer);
     sse_encode_u_32(self.remainingHops, serializer);
     sse_encode_String(self.maxMu, serializer);
+  }
+
+  @protected
+  void sse_encode_tunnel_quote_view(
+    TunnelQuoteView self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.instanceRef, serializer);
+    sse_encode_String(self.node, serializer);
+    sse_encode_u_32(self.remainingHops, serializer);
+    sse_encode_String(self.openMu, serializer);
+    sse_encode_String(self.maxMuPerStream, serializer);
   }
 
   @protected

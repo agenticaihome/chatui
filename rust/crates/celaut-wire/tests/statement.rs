@@ -38,6 +38,7 @@ const DIGEST_FULL: &str = "ba57e06097700132860ca253f405a2436a45642bbdae479cff2a8
 const DIGEST_FULL_RELAYED: &str =
     "2cc1dce4e4304f8902c3a2c03492ce357dcb77be34a184bca665f1dfc1b7f351";
 const DIGEST_RELAYED: &str = "33a235c568d0c346910a0e7044dea9733563e2ce561908eca84e90c3abddb9bb";
+const NOW: i64 = 1700001001;
 const SIGNATURE: &str = "a7af781d441f40e2ef248a39958d7bd1c363c934c1dcb254350060a8850c0906c374dfa991e833cf7d44159b1ee7be0c1b982a0291d8bd46779bd68efc77de0d";
 
 fn service() -> String {
@@ -69,8 +70,9 @@ fn movement(
     }
 }
 
-/// The four movements of the vectors, chained from the genesis hash.
-fn movements() -> Vec<BalanceMovement> {
+/// The four movements of the vectors, chained from the genesis hash. They are for the
+/// hash tests only: the first one does not start from 0, so the chain check refuses it.
+fn vector_movements() -> Vec<BalanceMovement> {
     let mut list = vec![
         movement(
             1,
@@ -117,13 +119,14 @@ fn movements() -> Vec<BalanceMovement> {
     list
 }
 
-/// The statement of the vectors, with `service_id` and `instance_ref`, not signed.
-fn unsigned() -> BalanceStatement {
+/// The statement of the vectors, with `service_id` and `instance_ref`, not signed. For the
+/// hash tests only (see `vector_movements`).
+fn vector_unsigned() -> BalanceStatement {
     BalanceStatement {
         account_ref: ACCOUNT.into(),
         from_seq: 1,
         to_seq: 4,
-        movements: movements(),
+        movements: vector_movements(),
         balance: amount("994970"),
         head_seq: 4,
         head_hash: HASHES[3].into(),
@@ -134,6 +137,37 @@ fn unsigned() -> BalanceStatement {
         relayed: false,
         service_id: service(),
         instance_ref: CHILD.into(),
+    }
+}
+
+/// The movements of a valid chain: as the vectors, but the first one is a `credit` that
+/// starts from 0, so that the chain check accepts it. Chained from the genesis hash.
+fn movements() -> Vec<BalanceMovement> {
+    let mut list = vector_movements();
+    list[0] = movement(1, 1700000000, "995000", "995000", "credit", "", "");
+    rechain(&mut list);
+    list
+}
+
+fn rechain(list: &mut [BalanceMovement]) {
+    let mut prev = GENESIS.to_string();
+    for m in list.iter_mut() {
+        m.prev_hash = prev;
+        prev = movement_hash(m);
+    }
+}
+
+/// The hash of movement `i` (0 to 3) of the valid chain.
+fn h(i: usize) -> String {
+    movement_hash(&movements()[i])
+}
+
+/// A statement that passes every check, not signed.
+fn unsigned() -> BalanceStatement {
+    BalanceStatement {
+        movements: movements(),
+        head_hash: h(3),
+        ..vector_unsigned()
     }
 }
 
@@ -164,19 +198,19 @@ fn the_hashes_match_the_vectors() {
     assert_eq!(instance_ref("child-token-1"), CHILD);
     assert_eq!(account_ref("parent-token-1"), ACCOUNT);
     assert_eq!(genesis_hash(ACCOUNT), GENESIS);
-    let hashes: Vec<String> = movements().iter().map(movement_hash).collect();
+    let hashes: Vec<String> = vector_movements().iter().map(movement_hash).collect();
     assert_eq!(hashes, HASHES);
 }
 
 #[test]
 fn the_digests_match_the_vectors() {
-    let mut s = unsigned();
+    let mut s = vector_unsigned();
     s.service_id.clear();
     s.instance_ref.clear();
     assert_eq!(statement_digest(&s), DIGEST_NONE);
     s.relayed = true;
     assert_eq!(statement_digest(&s), DIGEST_RELAYED);
-    let mut s = unsigned();
+    let mut s = vector_unsigned();
     assert_eq!(statement_digest(&s), DIGEST_FULL);
     s.relayed = true;
     assert_eq!(statement_digest(&s), DIGEST_FULL_RELAYED);
@@ -188,28 +222,22 @@ fn the_signature_matches_the_vector() {
         signed_text(PEER_ID, DIGEST_FULL),
         format!("celaut-balance-statement:{PEER_ID}|{DIGEST_FULL}")
     );
-    let s = signed(unsigned());
+    let s = signed(vector_unsigned());
     assert_eq!(s.signature, SIGNATURE);
     assert!(signature_verifies(&s, PEER_ID));
 }
 
 #[test]
 fn a_good_statement_is_verified_and_typed() {
-    let v = statement::verify(&request(), PEER_ID, signed(unsigned()), None).unwrap();
+    let v = statement::verify(&request(), PEER_ID, signed(unsigned()), None, NOW).unwrap();
     assert_eq!(v.movements.len(), 4);
     assert_eq!(v.balance, 994970);
     assert!(!v.relayed);
     assert_eq!(v.service_id, service());
-    assert_eq!(
-        v.head,
-        KeptHead {
-            seq: 4,
-            hash: HASHES[3].into()
-        }
-    );
+    assert_eq!(v.head, KeptHead { seq: 4, hash: h(3) });
     assert_eq!(v.next_from_seq, None);
-    assert_eq!(v.movements[0].amount, -5000);
-    assert_eq!(v.movements[0].kind, Kind::ChildStart);
+    assert_eq!(v.movements[0].amount, 995000);
+    assert_eq!(v.movements[0].kind, Kind::Credit);
     assert_eq!(v.movements[2].kind, Kind::StatementQuery);
     let children: Vec<_> = v.children().collect();
     assert_eq!(children.len(), 1);
@@ -230,7 +258,7 @@ fn a_good_statement_is_verified_and_typed() {
 fn a_relayed_statement_shows_relayed() {
     let mut s = unsigned();
     s.relayed = true;
-    let v = statement::verify(&request(), PEER_ID, signed(s), None).unwrap();
+    let v = statement::verify(&request(), PEER_ID, signed(s), None, NOW).unwrap();
     assert!(v.relayed);
 }
 
@@ -246,7 +274,7 @@ fn a_stop_with_a_tick_and_a_leftover_is_parsed() {
         prev = movement_hash(m);
     }
     s.head_hash = prev;
-    let v = statement::verify(&request(), PEER_ID, signed(s), None).unwrap();
+    let v = statement::verify(&request(), PEER_ID, signed(s), None, NOW).unwrap();
     let stop = v.stop().unwrap();
     assert_eq!(stop.reason, "out_of_balance");
     assert_eq!(stop.leftover, 12);
@@ -265,7 +293,7 @@ fn a_kind_that_is_not_known_is_kept() {
         prev = movement_hash(m);
     }
     s.head_hash = prev;
-    let v = statement::verify(&request(), PEER_ID, signed(s), None).unwrap();
+    let v = statement::verify(&request(), PEER_ID, signed(s), None, NOW).unwrap();
     assert_eq!(v.movements[2].kind, Kind::Unknown("something_new".into()));
 }
 
@@ -275,19 +303,19 @@ fn a_kind_that_is_not_known_is_kept() {
 fn a_bad_signature_is_refused() {
     let mut s = signed(unsigned());
     s.signature.replace_range(0..1, "b");
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("signature"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("signature"));
     // No signature.
     let mut s = signed(unsigned());
     s.signature.clear();
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("no signature"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("no signature"));
     // Upper case is another spelling.
     let mut s = signed(unsigned());
     s.signature = s.signature.to_uppercase();
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("signature"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("signature"));
     // Signed by another node than the node of the connection.
     let other = "00".repeat(32);
     let s = signed(unsigned());
-    assert!(invalid(statement::verify(&request(), &other, s, None)).contains("signature"));
+    assert!(invalid(statement::verify(&request(), &other, s, None, NOW)).contains("signature"));
 }
 
 #[test]
@@ -295,7 +323,7 @@ fn another_instance_ref_is_refused() {
     let mut s = unsigned();
     s.instance_ref = instance_ref("another-child");
     let s = signed(s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("instance_ref"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("instance_ref"));
 }
 
 #[test]
@@ -304,7 +332,7 @@ fn an_answer_with_no_instance_ref_means_that_the_node_ignores_the_field() {
     s.instance_ref.clear();
     s.service_id.clear();
     let s = signed(s);
-    let result = statement::verify(&request(), PEER_ID, s, None);
+    let result = statement::verify(&request(), PEER_ID, s, None, NOW);
     assert!(
         matches!(result, Err(StatementError::NoDescendants)),
         "{result:?}"
@@ -319,7 +347,7 @@ fn an_instance_ref_in_the_answer_to_a_read_without_one_is_refused() {
     let mut r = request();
     r.instance_ref.clear();
     let s = signed(unsigned());
-    assert!(invalid(statement::verify(&r, PEER_ID, s, None)).contains("instance_ref"));
+    assert!(invalid(statement::verify(&r, PEER_ID, s, None, NOW)).contains("instance_ref"));
 }
 
 #[test]
@@ -328,69 +356,71 @@ fn a_changed_instance_ref_after_the_signature_is_refused() {
     s.instance_ref = instance_ref("another-child");
     let mut r = request();
     r.instance_ref = s.instance_ref.clone();
-    assert!(invalid(statement::verify(&r, PEER_ID, s, None)).contains("signature"));
+    assert!(invalid(statement::verify(&r, PEER_ID, s, None, NOW)).contains("signature"));
 }
 
 #[test]
 fn a_flipped_relayed_breaks_the_signature() {
     let mut s = signed(unsigned());
     s.relayed = true;
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("signature"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("signature"));
     let mut s = unsigned();
     s.relayed = true;
     let mut s = signed(s);
     s.relayed = false;
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("signature"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("signature"));
 }
 
 #[test]
 fn a_changed_service_id_breaks_the_signature() {
     let mut s = signed(unsigned());
     s.service_id = "ab".repeat(32);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("signature"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("signature"));
 }
 
 #[test]
 fn a_changed_movement_breaks_the_signature() {
     let mut s = signed(unsigned());
     s.movements[0].amount = amount("-1");
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("signature"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("signature"));
 }
 
 #[test]
 fn a_broken_chain_that_is_signed_is_refused() {
     // The node signs a statement whose movement 3 does not hang from movement 2.
     let mut s = unsigned();
-    s.movements[2].prev_hash = HASHES[0].into();
+    s.movements[2].prev_hash = h(0);
     let s = signed(s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("hang"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("hang"));
     // A gap in the seq.
     let mut s = unsigned();
     s.movements.remove(2);
     let s = signed(s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("does not follow"));
+    assert!(
+        invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("does not follow")
+    );
     // The first movement of the account does not hang from the genesis hash.
     let mut s = unsigned();
-    s.movements[0].prev_hash = HASHES[3].into();
+    s.movements[0].prev_hash = h(3);
     let s = signed(s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("hang"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("hang"));
     // The head is not the hash of the last movement.
     let mut s = unsigned();
-    s.head_hash = HASHES[2].into();
+    s.head_hash = h(2);
     let s = signed(s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("head_hash"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("head_hash"));
     // The balance is not the balance after the last movement.
     let mut s = unsigned();
     s.balance = amount("1");
     let s = signed(s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("balance"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("balance"));
 }
 
 #[test]
 fn a_movement_after_a_stop_is_refused() {
     let mut s = unsigned();
-    let mut extra = movement(5, 1700002000, "-1", "994969", "statement_query", "", "");
-    extra.prev_hash = HASHES[3].into();
+    let mut extra = movement(5, 1700001001, "-1", "994969", "statement_query", "", "");
+    extra.prev_hash = h(3);
     s.movements.push(extra);
     s.head_seq = 5;
     s.head_hash = movement_hash(&s.movements[4]);
@@ -399,7 +429,7 @@ fn a_movement_after_a_stop_is_refused() {
     r.to_seq = 0;
     s.to_seq = 0;
     let s = signed(s);
-    assert!(invalid(statement::verify(&r, PEER_ID, s, None)).contains("after a stop"));
+    assert!(invalid(statement::verify(&r, PEER_ID, s, None, NOW)).contains("after a stop"));
 }
 
 #[test]
@@ -417,17 +447,20 @@ fn a_child_bound_that_moves_mu_or_has_no_ref_is_refused() {
     let mut s = unsigned();
     s.movements[1].amount = amount("-1");
     rehash(&mut s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, signed(s), None)).contains("moves MU"));
+    assert!(
+        invalid(statement::verify(&request(), PEER_ID, signed(s), None, NOW)).contains("moves MU")
+    );
     let mut s = unsigned();
     s.movements[1].instance_ref.clear();
     rehash(&mut s);
     assert!(
-        invalid(statement::verify(&request(), PEER_ID, signed(s), None)).contains("instance_ref")
+        invalid(statement::verify(&request(), PEER_ID, signed(s), None, NOW))
+            .contains("instance_ref")
     );
     let mut s = unsigned();
     s.movements[1].detail = "not json".into();
     rehash(&mut s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, signed(s), None)).contains("JSON"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, signed(s), None, NOW)).contains("JSON"));
 }
 
 #[test]
@@ -435,11 +468,11 @@ fn the_range_of_the_answer_must_be_the_range_of_the_request() {
     let mut s = unsigned();
     s.from_seq = 2;
     let s = signed(s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("range"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("range"));
     let mut s = unsigned();
     s.to_seq = 3;
     let s = signed(s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("range"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("range"));
 }
 
 #[test]
@@ -447,12 +480,12 @@ fn a_truncated_answer_is_refused() {
     // Movements dropped after the signature.
     let mut s = signed(unsigned());
     s.movements.truncate(2);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("signature"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("signature"));
     // An answer with no movement for a range that the head covers, even when signed.
     let mut s = unsigned();
     s.movements.clear();
     let s = signed(s);
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, None)).contains("no movement"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, None, NOW)).contains("no movement"));
 }
 
 #[test]
@@ -461,7 +494,7 @@ fn fewer_movements_than_the_range_is_paging_and_gives_the_next_seq() {
     let mut s = unsigned();
     s.movements.truncate(2);
     let s = signed(s);
-    let v = statement::verify(&request(), PEER_ID, s, None).unwrap();
+    let v = statement::verify(&request(), PEER_ID, s, None, NOW).unwrap();
     assert_eq!(v.movements.len(), 2);
     assert_eq!(v.next_from_seq, Some(3));
 }
@@ -469,11 +502,8 @@ fn fewer_movements_than_the_range_is_paging_and_gives_the_next_seq() {
 #[test]
 fn a_head_that_goes_back_or_changes_is_refused() {
     let s = signed(unsigned());
-    let ok = KeptHead {
-        seq: 2,
-        hash: HASHES[1].into(),
-    };
-    assert!(statement::verify(&request(), PEER_ID, s.clone(), Some(&ok)).is_ok());
+    let ok = KeptHead { seq: 2, hash: h(1) };
+    assert!(statement::verify(&request(), PEER_ID, s.clone(), Some(&ok), NOW).is_ok());
     let back = KeptHead {
         seq: 9,
         hash: "11".repeat(32),
@@ -482,7 +512,8 @@ fn a_head_that_goes_back_or_changes_is_refused() {
         &request(),
         PEER_ID,
         s.clone(),
-        Some(&back)
+        Some(&back),
+        NOW
     ))
     .contains("below"));
     let other = KeptHead {
@@ -493,14 +524,15 @@ fn a_head_that_goes_back_or_changes_is_refused() {
         &request(),
         PEER_ID,
         s.clone(),
-        Some(&other)
+        Some(&other),
+        NOW
     ))
     .contains("another hash"));
     let other = KeptHead {
         seq: 3,
         hash: "11".repeat(32),
     };
-    assert!(invalid(statement::verify(&request(), PEER_ID, s, Some(&other))).contains("3"));
+    assert!(invalid(statement::verify(&request(), PEER_ID, s, Some(&other), NOW)).contains("3"));
 }
 
 #[test]
@@ -515,9 +547,9 @@ fn a_head_only_read_checks_the_genesis_of_an_empty_account() {
     s.head_seq = 0;
     s.head_hash = GENESIS.into();
     s.balance = amount("0");
-    assert!(statement::verify(&r, PEER_ID, signed(s.clone()), None).is_ok());
-    s.head_hash = HASHES[0].into();
-    assert!(invalid(statement::verify(&r, PEER_ID, signed(s), None)).contains("genesis"));
+    assert!(statement::verify(&r, PEER_ID, signed(s.clone()), None, NOW).is_ok());
+    s.head_hash = h(0);
+    assert!(invalid(statement::verify(&r, PEER_ID, signed(s), None, NOW)).contains("genesis"));
     // A read for the head that comes with movements.
     let s = signed({
         let mut s = unsigned();
@@ -525,7 +557,7 @@ fn a_head_only_read_checks_the_genesis_of_an_empty_account() {
         s.to_seq = 0;
         s
     });
-    assert!(invalid(statement::verify(&r, PEER_ID, s, None)).contains("asked for none"));
+    assert!(invalid(statement::verify(&r, PEER_ID, s, None, NOW)).contains("asked for none"));
 }
 
 // ─── The request and its cost ─────────────────────────────────────────────
@@ -668,8 +700,17 @@ const RATES: Rates = Rates {
 async fn the_call_sends_nothing_over_the_budget() {
     let t = Fixed::new(vec![Part::new(1, signed(unsigned()).encode_to_vec())]);
     let needed = request().max_mu_needed(&RATES);
-    let result =
-        get_balance_statement(&t, PEER_ID, "client", &request(), &RATES, needed - 1, None).await;
+    let result = get_balance_statement(
+        &t,
+        PEER_ID,
+        "client",
+        &request(),
+        &RATES,
+        needed - 1,
+        None,
+        NOW,
+    )
+    .await;
     match result {
         Err(StatementError::OverBudget { needed: n, max }) => {
             assert_eq!((n, max), (needed, needed - 1))
@@ -681,7 +722,7 @@ async fn the_call_sends_nothing_over_the_budget() {
     let mut bad = request();
     bad.remaining_hops = 0;
     assert!(
-        get_balance_statement(&t, PEER_ID, "client", &bad, &RATES, u128::MAX, None)
+        get_balance_statement(&t, PEER_ID, "client", &bad, &RATES, u128::MAX, None, NOW)
             .await
             .is_err()
     );
@@ -692,7 +733,7 @@ async fn the_call_sends_nothing_over_the_budget() {
 async fn the_call_sends_one_request_and_gives_the_checked_statement() {
     let t = Fixed::new(vec![Part::new(1, signed(unsigned()).encode_to_vec())]);
     let needed = request().max_mu_needed(&RATES);
-    let v = get_balance_statement(&t, PEER_ID, "client", &request(), &RATES, needed, None)
+    let v = get_balance_statement(&t, PEER_ID, "client", &request(), &RATES, needed, None, NOW)
         .await
         .unwrap();
     assert_eq!(v.movements.len(), 4);
@@ -712,7 +753,8 @@ async fn the_call_refuses_a_bad_answer_and_does_not_repeat() {
     let mut s = signed(unsigned());
     s.instance_ref = instance_ref("other");
     let t = Fixed::new(vec![Part::new(1, s.encode_to_vec())]);
-    let result = get_balance_statement(&t, PEER_ID, "c", &request(), &RATES, u128::MAX, None).await;
+    let result =
+        get_balance_statement(&t, PEER_ID, "c", &request(), &RATES, u128::MAX, None, NOW).await;
     assert!(
         matches!(result, Err(StatementError::Invalid(_))),
         "{result:?}"
@@ -726,7 +768,8 @@ async fn the_call_refuses_an_answer_of_a_node_that_ignores_the_field() {
     s.instance_ref.clear();
     s.service_id.clear();
     let t = Fixed::new(vec![Part::new(1, signed(s).encode_to_vec())]);
-    let result = get_balance_statement(&t, PEER_ID, "c", &request(), &RATES, u128::MAX, None).await;
+    let result =
+        get_balance_statement(&t, PEER_ID, "c", &request(), &RATES, u128::MAX, None, NOW).await;
     assert!(
         matches!(result, Err(StatementError::NoDescendants)),
         "{result:?}"
@@ -737,7 +780,8 @@ async fn the_call_refuses_an_answer_of_a_node_that_ignores_the_field() {
 async fn the_call_refuses_a_truncated_or_missing_message() {
     let bytes = signed(unsigned()).encode_to_vec();
     let t = Fixed::new(vec![Part::new(1, bytes[..bytes.len() - 20].to_vec())]);
-    let result = get_balance_statement(&t, PEER_ID, "c", &request(), &RATES, u128::MAX, None).await;
+    let result =
+        get_balance_statement(&t, PEER_ID, "c", &request(), &RATES, u128::MAX, None, NOW).await;
     assert!(
         matches!(
             result,
@@ -746,9 +790,189 @@ async fn the_call_refuses_a_truncated_or_missing_message() {
         "{result:?}"
     );
     let t = Fixed::new(vec![]);
-    let result = get_balance_statement(&t, PEER_ID, "c", &request(), &RATES, u128::MAX, None).await;
+    let result =
+        get_balance_statement(&t, PEER_ID, "c", &request(), &RATES, u128::MAX, None, NOW).await;
     assert!(
         matches!(result, Err(StatementError::Wire(WireError::Protocol(_)))),
         "{result:?}"
     );
+}
+
+// ─── The checks that nodo makes, and that a node must not skip ─────────────
+
+/// Chain `s.movements` from `genesis`, and set the head to the last one.
+fn rechain_statement(s: &mut BalanceStatement, genesis: &str) {
+    let mut prev = genesis.to_string();
+    for m in &mut s.movements {
+        m.prev_hash = prev;
+        prev = movement_hash(m);
+    }
+    s.head_hash = prev;
+}
+
+#[test]
+fn an_answer_for_another_account_is_refused() {
+    // A read of the held instance: no instance_ref, the token of the instance.
+    let mut r = request();
+    r.instance_ref.clear();
+    // The right account is accepted.
+    let mut s = unsigned();
+    s.instance_ref.clear();
+    s.service_id.clear();
+    assert!(statement::verify(&r, PEER_ID, signed(s), None, NOW).is_ok());
+    // A signed statement of another account, with a stop row and its own genesis chain.
+    let other = account_ref("another-token");
+    let mut s = unsigned();
+    s.instance_ref.clear();
+    s.service_id.clear();
+    s.account_ref = other.clone();
+    rechain_statement(&mut s, &genesis_hash(&other));
+    let text = invalid(statement::verify(&r, PEER_ID, signed(s), None, NOW));
+    assert!(text.contains("account"), "{text}");
+}
+
+#[tokio::test]
+async fn an_answer_for_another_client_account_is_refused() {
+    // An empty token reads the account of the client. The gateway knows the client id.
+    let mut r = request();
+    r.instance_ref.clear();
+    r.token.clear();
+    let mut s = unsigned();
+    s.instance_ref.clear();
+    s.service_id.clear();
+    s.account_ref = account_ref("client-a");
+    let genesis = genesis_hash(&s.account_ref);
+    rechain_statement(&mut s, &genesis);
+    let t = Fixed::new(vec![Part::new(1, signed(s).encode_to_vec())]);
+    let result =
+        get_balance_statement(&t, PEER_ID, "client-a", &r, &RATES, u128::MAX, None, NOW).await;
+    assert!(result.is_ok(), "{result:?}");
+    let result =
+        get_balance_statement(&t, PEER_ID, "client-b", &r, &RATES, u128::MAX, None, NOW).await;
+    match result {
+        Err(StatementError::Invalid(text)) => assert!(text.contains("account"), "{text}"),
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn a_skipped_first_movement_is_refused() {
+    // The read asks from 1 up to the head. The node signs 2 to 4 and hides 1.
+    let mut r = request();
+    r.to_seq = 0;
+    let mut s = unsigned();
+    s.to_seq = 0;
+    s.movements.remove(0);
+    let text = invalid(statement::verify(&r, PEER_ID, signed(s), None, NOW));
+    assert!(text.contains("held and not shown"), "{text}");
+    // Only the stop row: the rows before it are hidden.
+    let mut s = unsigned();
+    s.to_seq = 0;
+    s.movements = vec![s.movements[3].clone()];
+    let text = invalid(statement::verify(&r, PEER_ID, signed(s), None, NOW));
+    assert!(text.contains("held and not shown"), "{text}");
+}
+
+#[test]
+fn a_retention_gap_that_the_node_declares_is_accepted_and_shown() {
+    // The node says that its oldest row is 2: it deleted row 1. This is a gap, and the
+    // verified statement says so.
+    let mut r = request();
+    r.to_seq = 0;
+    let mut s = unsigned();
+    s.to_seq = 0;
+    s.oldest_seq = 2;
+    s.movements.remove(0);
+    let v = statement::verify(&r, PEER_ID, signed(s), None, NOW).unwrap();
+    assert!(v.gap);
+    assert_eq!(v.movements[0].seq, 2);
+    // No gap for a read that starts at its first row.
+    let v = statement::verify(&request(), PEER_ID, signed(unsigned()), None, NOW).unwrap();
+    assert!(!v.gap);
+}
+
+#[test]
+fn the_first_movement_must_start_from_zero() {
+    // The movement 1 of the vectors takes 5000 from 1000000 that came from nowhere.
+    let result = statement::verify(&request(), PEER_ID, signed(vector_unsigned()), None, NOW);
+    let text = invalid(result);
+    assert!(text.contains("start from 0"), "{text}");
+}
+
+#[test]
+fn a_balance_that_does_not_add_up_is_refused() {
+    let mut s = unsigned();
+    s.movements[2].balance_after = amount("994971");
+    s.movements[3].balance_after = amount("994971");
+    s.balance = amount("994971");
+    rechain_statement(&mut s, GENESIS);
+    let text = invalid(statement::verify(&request(), PEER_ID, signed(s), None, NOW));
+    assert!(text.contains("add up"), "{text}");
+}
+
+#[test]
+fn a_number_that_is_not_canonical_is_refused() {
+    for bad in ["-0", "007", "+0", " 0", "0x0"] {
+        let mut s = unsigned();
+        s.movements[1].amount = amount(bad);
+        rechain_statement(&mut s, GENESIS);
+        let text = invalid(statement::verify(&request(), PEER_ID, signed(s), None, NOW));
+        assert!(
+            text.contains("canonical") || text.contains("decimal"),
+            "{bad}: {text}"
+        );
+    }
+    let mut s = unsigned();
+    s.balance = amount("0994970");
+    let text = invalid(statement::verify(&request(), PEER_ID, signed(s), None, NOW));
+    assert!(text.contains("canonical"), "{text}");
+}
+
+#[test]
+fn an_old_or_future_statement_is_refused() {
+    let s = signed(unsigned());
+    // The skew is 120 seconds, both ways.
+    assert!(statement::verify(&request(), PEER_ID, s.clone(), None, NOW + 120).is_ok());
+    assert!(statement::verify(&request(), PEER_ID, s.clone(), None, NOW - 120).is_ok());
+    let text = invalid(statement::verify(
+        &request(),
+        PEER_ID,
+        s.clone(),
+        None,
+        NOW + 121,
+    ));
+    assert!(text.contains("dated"), "{text}");
+    let text = invalid(statement::verify(&request(), PEER_ID, s, None, NOW - 121));
+    assert!(text.contains("dated"), "{text}");
+}
+
+#[test]
+fn a_movement_dated_after_the_statement_is_refused() {
+    let mut s = unsigned();
+    s.movements[3].ts = NOW + 1;
+    rechain_statement(&mut s, GENESIS);
+    let text = invalid(statement::verify(&request(), PEER_ID, signed(s), None, NOW));
+    assert!(text.contains("after the statement"), "{text}");
+}
+
+#[test]
+fn an_answer_with_more_movements_than_the_read_can_pay_for_is_refused() {
+    // The read asks for rows 1 and 2. The node gives 3.
+    let mut r = request();
+    r.to_seq = 2;
+    let mut s = unsigned();
+    s.to_seq = 2;
+    s.movements.truncate(3);
+    rechain_statement(&mut s, GENESIS);
+    s.head_seq = 3;
+    s.balance = amount("994970");
+    let text = invalid(statement::verify(&r, PEER_ID, signed(s), None, NOW));
+    assert!(text.contains("more movements"), "{text}");
+}
+
+#[test]
+fn the_debug_text_of_a_request_hides_the_token() {
+    let text = format!("{:?}", request());
+    assert!(!text.contains("parent-token-1"), "{text}");
+    assert!(text.contains(CHILD));
 }

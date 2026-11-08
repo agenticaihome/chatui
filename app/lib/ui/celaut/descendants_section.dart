@@ -24,6 +24,7 @@ class DescendantsApi {
     this.check = _check,
     this.receipts = _receipts,
     this.slots = _slots,
+    this.quoteTunnel = _quoteTunnel,
     this.openTunnel = _openTunnel,
     this.launch = _launch,
   });
@@ -41,7 +42,14 @@ class DescendantsApi {
 
   final ReceiptsView? Function(String instanceId, String instanceRef) receipts;
   final Future<DescendantSlotsView> Function(String instanceId, String instanceRef) slots;
-  final Future<int> Function(String instanceId, String instanceRef, int slot) openTunnel;
+
+  /// The most MU that the opening of one stream can cost. It sends nothing.
+  final Future<TunnelQuoteView> Function(String instanceId, String instanceRef) quoteTunnel;
+
+  /// Open the local port. It can cost MU. The last argument is the budget that the user
+  /// confirmed for the streams of this port.
+  final Future<int> Function(String instanceId, String instanceRef, int slot, String maxMu)
+  openTunnel;
   final Future<bool> Function(Uri uri) launch;
 }
 
@@ -70,8 +78,11 @@ ReceiptsView? _receipts(String id, String ref) {
 Future<DescendantSlotsView> _slots(String id, String ref) =>
     celautDescendantSlots(instanceId: id, instanceRef: ref);
 
-Future<int> _openTunnel(String id, String ref, int slot) =>
-    celautOpenDescendantTunnel(instanceId: id, instanceRef: ref, slot: slot);
+Future<TunnelQuoteView> _quoteTunnel(String id, String ref) =>
+    celautQuoteDescendantTunnel(instanceId: id, instanceRef: ref);
+
+Future<int> _openTunnel(String id, String ref, int slot, String maxMu) =>
+    celautOpenDescendantTunnel(instanceId: id, instanceRef: ref, slot: slot, maxMu: maxMu);
 
 Future<bool> _launch(Uri uri) => launchUrl(uri, mode: LaunchMode.externalApplication);
 
@@ -93,6 +104,101 @@ Future<String?> confirmDescendantCheck(BuildContext context, ReadQuoteView quote
     context: context,
     builder: (_) => _CheckDialog(quote: quote),
   );
+}
+
+/// Ask the user before a tunnel opens, with the most that one stream can cost and the
+/// number of streams that the budget pays for. The field starts with the cost of one
+/// stream, and the user can change it. Gives the budget as text, or null if the user
+/// cancelled. The port never opens without this answer, each time.
+Future<String?> confirmDescendantOpen(BuildContext context, TunnelQuoteView quote) {
+  return showDialog<String>(
+    context: context,
+    builder: (_) => _OpenDialog(quote: quote),
+  );
+}
+
+class _OpenDialog extends StatefulWidget {
+  const _OpenDialog({required this.quote});
+
+  final TunnelQuoteView quote;
+
+  @override
+  State<_OpenDialog> createState() => _OpenDialogState();
+}
+
+class _OpenDialogState extends State<_OpenDialog> {
+  late final TextEditingController _max = TextEditingController(text: widget.quote.maxMuPerStream);
+
+  @override
+  void dispose() {
+    _max.dispose();
+    super.dispose();
+  }
+
+  BigInt? get _budget =>
+      RegExp(r'^[0-9]+$').hasMatch(_max.text.trim()) ? BigInt.tryParse(_max.text.trim()) : null;
+
+  /// How many streams the budget pays for, at the most that each can cost.
+  BigInt? get _streams {
+    final budget = _budget;
+    final per = BigInt.tryParse(widget.quote.maxMuPerStream);
+    if (budget == null || per == null) return null;
+    return per == BigInt.zero ? budget : budget ~/ per;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final streams = _streams;
+    final pays = streams != null && streams > BigInt.zero;
+    return AlertDialog(
+      key: const Key('descendant-open-dialog'),
+      title: Text(l.descendantsOpenTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l.descendantsOpenBody(
+              widget.quote.node,
+              widget.quote.maxMuPerStream,
+              '${widget.quote.remainingHops}',
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const Key('descendant-open-max'),
+            controller: _max,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: l.descendantsMaxLabel,
+              suffixText: 'MU',
+              errorText: _budget == null ? l.descendantsMaxInvalid : null,
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            key: const Key('descendant-open-streams'),
+            pays ? l.descendantsOpenStreams('$streams') : l.descendantsOpenBudgetTooSmall,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          key: const Key('descendant-open-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.descendantsCancel),
+        ),
+        FilledButton(
+          key: const Key('descendant-open-confirm'),
+          onPressed: pays ? () => Navigator.of(context).pop(_max.text.trim()) : null,
+          child: Text(l.descendantsOpenConfirm),
+        ),
+      ],
+    );
+  }
 }
 
 class _CheckDialog extends StatefulWidget {
@@ -169,9 +275,10 @@ String findingText(AppLocalizations l, DescendantFindingView f) {
 }
 
 /// The Descendants part of the info page of an instance: each descendant with its
-/// service, node state and last check, a Check button that always asks first, an alert
-/// for an instance that a node ended with MU on it, its receipts, and Open for a page that
-/// the service declares.
+/// service, node state and last check, a Check button that always asks first, a note when
+/// another node wrote the statement (relayed) or when the check did not reach its end, an
+/// alert for an instance that a node ended with MU on it, its receipts, and Open for a
+/// page that the service declares. Open asks first too, with the cost of one stream.
 class InstanceDescendantsSection extends StatefulWidget {
   const InstanceDescendantsSection({
     super.key,
@@ -284,7 +391,8 @@ class _InstanceDescendantsSectionState extends State<InstanceDescendantsSection>
   }
 
   /// Open the first web page that the service declares, through the tunnel. A service
-  /// that declares none opens nothing.
+  /// that declares none opens nothing. The port opens only after the user confirmed the
+  /// budget in the dialog, each time.
   Future<void> _open(DescendantView d) async {
     final l = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
@@ -298,10 +406,15 @@ class _InstanceDescendantsSectionState extends State<InstanceDescendantsSection>
         );
         return;
       }
+      final quote = await widget.api.quoteTunnel(widget.instanceId, d.instanceRef);
+      if (!mounted) return;
+      final budget = await confirmDescendantOpen(context, quote);
+      if (budget == null || !mounted) return;
       final port = await widget.api.openTunnel(
         widget.instanceId,
         d.instanceRef,
         slots.webSlots.first,
+        budget,
       );
       if (!await widget.api.launch(Uri.parse('http://127.0.0.1:$port/'))) {
         messenger.showSnackBar(SnackBar(content: Text(l.chatsBrowserFailed)));
@@ -354,6 +467,18 @@ class _InstanceDescendantsSectionState extends State<InstanceDescendantsSection>
                 : t.primary,
           ),
           Text(checked, style: t.secondary),
+          if (d.unreadRows)
+            Padding(
+              key: Key('descendant-unread-${root ? 'root' : d.instanceRef}'),
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(l.descendantsUnreadRows, style: t.secondary.copyWith(color: red)),
+            ),
+          if (d.relayed)
+            Padding(
+              key: Key('descendant-relayed-${root ? 'root' : d.instanceRef}'),
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(l.descendantsRelayed, style: t.secondary),
+            ),
           if (_diedWithMu(d))
             Container(
               key: Key('descendant-alert-${d.instanceRef}'),

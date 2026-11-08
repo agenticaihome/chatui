@@ -5734,5 +5734,32 @@
         "type": "String"
       }
     }
-  }
+  },
+  "descendantsRelayed": "Relayed. Another node wrote this statement. The node of this instance signed it again, and the app cannot check the other node.",
+  "descendantsUnreadRows": "Partly checked. Some movements are not read, and one of them can be a stop. Check again.",
+  "descendantsOpenTitle": "Open with the node?",
+  "descendantsOpenBody": "The app opens one stream to the descendant for each connection of the page, through the node {node}. One stream can cost up to {perStream} MU to open ({hops} hops at most). The traffic costs more. The port stops after the streams that the budget below pays for.",
+  "@descendantsOpenBody": {
+    "placeholders": {
+      "node": {
+        "type": "String"
+      },
+      "perStream": {
+        "type": "String"
+      },
+      "hops": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsOpenStreams": "The budget pays for {count} streams.",
+  "@descendantsOpenStreams": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "descendantsOpenBudgetTooSmall": "The budget does not pay for one stream.",
+  "descendantsOpenConfirm": "Open and pay"
 }

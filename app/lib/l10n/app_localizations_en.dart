@@ -7903,4 +7903,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String descendantsDepth(String depth) {
     return 'Level $depth';
   }
+
+  @override
+  String get descendantsRelayed => 'Relayed. Another node wrote this statement. The node of this instance signed it again, and the app cannot check the other node.';
+
+  @override
+  String get descendantsUnreadRows => 'Partly checked. Some movements are not read, and one of them can be a stop. Check again.';
+
+  @override
+  String get descendantsOpenTitle => 'Open with the node?';
+
+  @override
+  String descendantsOpenBody(String node, String perStream, String hops) {
+    return 'The app opens one stream to the descendant for each connection of the page, through the node $node. One stream can cost up to $perStream MU to open ($hops hops at most). The traffic costs more. The port stops after the streams that the budget below pays for.';
+  }
+
+  @override
+  String descendantsOpenStreams(String count) {
+    return 'The budget pays for $count streams.';
+  }
+
+  @override
+  String get descendantsOpenBudgetTooSmall => 'The budget does not pay for one stream.';
+
+  @override
+  String get descendantsOpenConfirm => 'Open and pay';
 }

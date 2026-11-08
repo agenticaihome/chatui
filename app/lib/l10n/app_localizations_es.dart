@@ -7984,4 +7984,29 @@ class AppLocalizationsEs extends AppLocalizations {
   String descendantsDepth(String depth) {
     return 'Nivel $depth';
   }
+
+  @override
+  String get descendantsRelayed => 'Retransmitido. Otro nodo escribió este extracto. El nodo de esta instancia lo firmó de nuevo, y la app no puede comprobar al otro nodo.';
+
+  @override
+  String get descendantsUnreadRows => 'Comprobado en parte. Faltan movimientos por leer, y uno de ellos puede ser una parada. Comprueba otra vez.';
+
+  @override
+  String get descendantsOpenTitle => '¿Abrir con el nodo?';
+
+  @override
+  String descendantsOpenBody(String node, String perStream, String hops) {
+    return 'La app abre un flujo al descendiente por cada conexión de la página, a través del nodo $node. Abrir un flujo puede costar hasta $perStream MU (como máximo $hops saltos). El tráfico cuesta más. El puerto se detiene tras los flujos que paga el presupuesto de abajo.';
+  }
+
+  @override
+  String descendantsOpenStreams(String count) {
+    return 'El presupuesto paga $count flujos.';
+  }
+
+  @override
+  String get descendantsOpenBudgetTooSmall => 'El presupuesto no paga ni un flujo.';
+
+  @override
+  String get descendantsOpenConfirm => 'Abrir y pagar';
 }

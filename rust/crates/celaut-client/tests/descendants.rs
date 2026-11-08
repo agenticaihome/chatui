@@ -50,6 +50,20 @@ fn amount(n: &str) -> Option<Amount> {
     Some(Amount { n: n.into() })
 }
 
+/// The time of the test in Unix seconds. A statement must be dated near the clock of the
+/// app, and the session reads the real clock.
+///
+/// The value is read once, so that two statements of one test have the same dates.
+fn stamp() -> i64 {
+    static BASE: std::sync::OnceLock<i64> = std::sync::OnceLock::new();
+    *BASE.get_or_init(|| {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64
+    })
+}
+
 /// One row of a statement: kind, instance_ref, detail.
 type Row = (&'static str, String, String);
 
@@ -89,17 +103,14 @@ fn statement_of(
     for (i, (kind, mref, detail)) in rows.iter().enumerate() {
         let mut m = BalanceMovement {
             seq: from + i as u64,
-            ts: 1_700_000_000 + i as i64,
+            ts: stamp() - 500 + (from + i as u64) as i64,
             amount: amount("0"),
-            balance_after: amount("1000"),
+            balance_after: amount("0"),
             kind: (*kind).into(),
             instance_ref: mref.clone(),
             detail: detail.clone(),
             prev_hash: prev.clone(),
         };
-        if *kind == "refund" {
-            m.amount = amount("-1000");
-        }
         prev = movement_hash(&m);
         movements.push(m);
     }
@@ -109,12 +120,12 @@ fn statement_of(
         from_seq: from,
         to_seq: 0,
         movements,
-        balance: amount("1000"),
+        balance: amount("0"),
         head_seq,
         head_hash: prev,
         oldest_seq: 1,
         retention_days: 0,
-        ts: 1_700_001_000,
+        ts: stamp(),
         signature: String::new(),
         relayed: false,
         service_id: String::new(),
@@ -216,7 +227,7 @@ async fn read(
 ) -> Result<statement::VerifiedStatement, DescendantError> {
     let record = data.descendants[k].clone();
     let quote = quote_read(&record, Some(RATES), hops)?;
-    read_statement(t, &peer_id(), client(), &record, &quote, max_mu).await
+    read_statement(t, &peer_id(), client(), &record, &quote, max_mu, stamp()).await
 }
 
 fn child(n: u8) -> String {
@@ -235,7 +246,16 @@ async fn a_read_over_the_budget_sends_nothing() {
     assert_eq!(quote.max_mu_needed(), 2 * (100 + 1000));
     let needed = quote.max_mu_needed();
     let record = data.descendants[&root].clone();
-    let result = read_statement(&t, &peer_id(), client(), &record, &quote, needed - 1).await;
+    let result = read_statement(
+        &t,
+        &peer_id(),
+        client(),
+        &record,
+        &quote,
+        needed - 1,
+        stamp(),
+    )
+    .await;
     match result {
         Err(DescendantError::OverBudget { needed: n, max }) => {
             assert_eq!((n, max), (needed, needed - 1))
@@ -244,7 +264,7 @@ async fn a_read_over_the_budget_sends_nothing() {
     }
     assert_eq!(t.calls(), 0, "nothing went out");
     // The exact budget goes through, and it is one call, not more.
-    read_statement(&t, &peer_id(), client(), &record, &quote, needed)
+    read_statement(&t, &peer_id(), client(), &record, &quote, needed, stamp())
         .await
         .unwrap();
     assert_eq!(t.calls(), 1);
@@ -279,6 +299,7 @@ async fn the_request_names_the_ancestor_token_and_the_descendant() {
         &peer_id(),
         s,
         None,
+        stamp(),
     )
     .unwrap();
     apply_read(&mut data, &root, &v, 10).unwrap();
@@ -301,7 +322,7 @@ async fn a_descendant_of_another_node_is_not_read() {
     let record = data.descendants[&root].clone();
     let quote = quote_read(&record, Some(RATES), 2).unwrap();
     let other = "00".repeat(32);
-    let e = read_statement(&t, &other, client(), &record, &quote, u128::MAX)
+    let e = read_statement(&t, &other, client(), &record, &quote, u128::MAX, stamp())
         .await
         .unwrap_err();
     assert!(matches!(e, DescendantError::OtherNode));
@@ -409,6 +430,7 @@ fn the_depth_and_the_number_of_descendants_are_capped() {
             &peer_id(),
             statement_of(TOKEN, iref, 1, None, rows),
             None,
+            stamp(),
         )
         .unwrap()
     };
@@ -960,4 +982,220 @@ fn the_receipts_of_a_descendant_tunnel_are_kept_with_the_descendant() {
     assert!(matches!(other.faults[0], Fault::Invalid { .. }));
     let as_token = celaut_client::receipts::summarize(kept, &peer_id(), &child(1));
     assert!(!as_token.faults.is_empty());
+}
+
+// ─── Review findings ──────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn a_paged_read_is_not_a_proof_that_the_account_is_alive() {
+    let (mut data, root) = data_with_instance();
+    // The account has a stop at seq 3. The node gives only row 1 and signs the head.
+    let full = statement_of(
+        TOKEN,
+        "",
+        1,
+        None,
+        &[bound(&child(1)), bound(&child(2)), stop("stopped", 40)],
+    );
+    let mut paged = full.clone();
+    paged.movements.truncate(1);
+    let paged = resigned(paged);
+    let first_hash = movement_hash(&full.movements[0]);
+    let t = Fixed::with_statements(vec![paged]);
+    let v = read(&data, &root, &t, 2, u128::MAX).await.unwrap();
+    assert_eq!(v.next_from_seq, Some(2));
+    let report = apply_read(&mut data, &root, &v, 1).unwrap();
+    assert!(report.incomplete);
+    let r = &data.descendants[&root];
+    assert!(r.incomplete);
+    assert_eq!(r.rows_seq, 1);
+    assert_eq!(r.head_seq, 3, "the signed head is kept");
+    assert_ne!(r.state, DescendantState::Running, "the stop was not read");
+    assert_eq!(r.state, DescendantState::Bound);
+
+    // The next read goes on after row 1, reaches the head and finds the stop.
+    let rest = statement_of(
+        TOKEN,
+        "",
+        2,
+        Some(&first_hash),
+        &[bound(&child(2)), stop("stopped", 40)],
+    );
+    let t = Fixed::with_statements(vec![rest]);
+    let v = read(&data, &root, &t, 2, u128::MAX).await.unwrap();
+    assert_eq!(v.next_from_seq, None);
+    let report = apply_read(&mut data, &root, &v, 2).unwrap();
+    assert!(!report.incomplete);
+    let r = &data.descendants[&root];
+    assert!(!r.incomplete);
+    assert_eq!(r.state, DescendantState::Stopped);
+    assert!(matches!(
+        report.findings[0],
+        Finding::StoppedWithMu {
+            leftover_mu: 40,
+            ..
+        }
+    ));
+}
+
+#[tokio::test]
+async fn a_complete_read_with_no_stop_is_alive() {
+    let (mut data, root) = data_with_instance();
+    let t = Fixed::with_statements(vec![statement_of(TOKEN, "", 1, None, &[bound(&child(1))])]);
+    let v = read(&data, &root, &t, 2, u128::MAX).await.unwrap();
+    let report = apply_read(&mut data, &root, &v, 1).unwrap();
+    assert!(!report.incomplete && !data.descendants[&root].incomplete);
+    assert_eq!(data.descendants[&root].state, DescendantState::Running);
+}
+
+#[tokio::test]
+async fn another_service_than_the_known_one_is_refused() {
+    let (mut data, root) = data_with_instance();
+    // The held instance has the service `cd..cd`. A statement says `ab..ab`.
+    let mut s = statement_of(TOKEN, "", 1, None, &[bound(&child(1))]);
+    s.service_id = "ab".repeat(32);
+    let t = Fixed::with_statements(vec![resigned(s)]);
+    let e = read(&data, &root, &t, 2, u128::MAX).await.unwrap_err();
+    assert!(matches!(e, DescendantError::ServiceChanged { .. }), "{e:?}");
+    assert!(e.may_have_charged());
+    assert_eq!(data.descendants[&root].service_id, Some(service()));
+
+    // The same service is fine.
+    let mut s = statement_of(TOKEN, "", 1, None, &[bound(&child(1))]);
+    s.service_id = service();
+    let t = Fixed::with_statements(vec![resigned(s)]);
+    let v = read(&data, &root, &t, 2, u128::MAX).await.unwrap();
+    apply_read(&mut data, &root, &v, 1).unwrap();
+
+    // A caller that skips `read_statement` still keeps the first service in the record,
+    // and the report names the conflict.
+    let mut s = statement_of(TOKEN, "", 1, None, &[bound(&child(1))]);
+    s.service_id = "ab".repeat(32);
+    let mut request = quote_read(&data.descendants[&root], Some(RATES), 2)
+        .unwrap()
+        .request()
+        .clone();
+    request.from_seq = 1;
+    let v = statement::verify(&request, &peer_id(), resigned(s), None, stamp()).unwrap();
+    let report = apply_read(&mut data, &root, &v, 2).unwrap();
+    assert_eq!(
+        report.service_conflicts,
+        vec![data.descendants[&root].instance_ref.clone()]
+    );
+    assert_eq!(data.descendants[&root].service_id, Some(service()));
+}
+
+#[test]
+fn a_bound_row_with_another_service_does_not_change_a_known_descendant() {
+    let (mut data, root) = data_with_instance();
+    let request = quote_read(&data.descendants[&root], Some(RATES), 2)
+        .unwrap()
+        .request()
+        .clone();
+    let verified = |rows: &[Row]| {
+        statement::verify(
+            &request,
+            &peer_id(),
+            statement_of(TOKEN, "", 1, None, rows),
+            None,
+            stamp(),
+        )
+        .unwrap()
+    };
+    let v = verified(&[bound(&child(1))]);
+    apply_read(&mut data, &root, &v, 1).unwrap();
+    let c = key(INSTANCE_ID, &child(1));
+    assert_eq!(data.descendants[&c].service_id, Some(service()));
+    // The same child, bound again with another service.
+    let other = (
+        "child_bound",
+        child(1),
+        format!(r#"{{"service_id":"{}","starts_seq":"1"}}"#, "ab".repeat(32)),
+    );
+    let v = verified(&[other]);
+    let report = apply_read(&mut data, &root, &v, 2).unwrap();
+    assert_eq!(report.service_conflicts, vec![child(1)]);
+    assert_eq!(data.descendants[&c].service_id, Some(service()));
+}
+
+#[test]
+fn the_token_is_not_written_to_the_file_and_not_in_the_debug_text() {
+    let (data, root) = data_with_instance();
+    let record = data.descendants[&root].clone();
+    assert_eq!(record.parent_token, TOKEN);
+    let json = serde_json::to_string(&record).unwrap();
+    assert!(!json.contains(TOKEN), "{json}");
+    let debug = format!("{record:?}");
+    assert!(!debug.contains(TOKEN), "{debug}");
+    // The whole database holds no copy of the token of a descendant either.
+    let mut data = data;
+    let v = statement::verify(
+        quote_read(&record, Some(RATES), 2).unwrap().request(),
+        &peer_id(),
+        statement_of(TOKEN, "", 1, None, &[bound(&child(1))]),
+        None,
+        stamp(),
+    )
+    .unwrap();
+    apply_read(&mut data, &root, &v, 1).unwrap();
+    assert_eq!(data.descendants.len(), 2);
+    let count = serde_json::to_string(&data.descendants).unwrap();
+    assert!(!count.contains(TOKEN), "{count}");
+    // A quote hides the token in its Debug text too.
+    let quote = quote_read(&record, Some(RATES), 2).unwrap();
+    assert!(!format!("{quote:?}").contains(TOKEN));
+    // The record from the file has no token until the caller sets it.
+    let back: celaut_client::descendants::DescendantRecord = serde_json::from_str(&json).unwrap();
+    assert_eq!(back.parent_token, "");
+    assert_eq!(back.with_token(TOKEN).parent_token, TOKEN);
+}
+
+#[tokio::test]
+async fn the_tunnel_quote_gives_the_most_that_a_stream_can_cost_and_a_stream_count() {
+    let (mut data, root) = data_with_instance();
+    let v = {
+        let t = Fixed::with_statements(vec![statement_of(TOKEN, "", 1, None, &[bound(&child(1))])]);
+        read(&data, &root, &t, 2, u128::MAX).await.unwrap()
+    };
+    apply_read(&mut data, &root, &v, 1).unwrap();
+    let c = &data.descendants[&key(INSTANCE_ID, &child(1))];
+    let priced = [
+        ("statement_query_mu", "100"),
+        ("statement_row_mu", "1"),
+        ("tunnel_open_mu", "10000"),
+    ];
+    let s = session(&priced, vec![], true).await;
+    let q = s.quote_tunnel(c, 3).unwrap();
+    assert_eq!(q.remaining_hops(), 3);
+    assert_eq!(q.open_mu(), 10_000);
+    assert_eq!(q.max_mu_per_stream(), 30_000, "one fee for each leg");
+    assert!(q.is_for(c));
+    assert_eq!(q.streams_for(30_000).unwrap(), 1);
+    assert_eq!(q.streams_for(95_000).unwrap(), 3);
+    assert!(matches!(
+        q.streams_for(29_999),
+        Err(DescendantError::OverBudget {
+            needed: 30_000,
+            max: 29_999
+        })
+    ));
+    // The hops are always set and capped, and the held instance has no quote.
+    assert!(matches!(
+        s.quote_tunnel(c, 0),
+        Err(DescendantError::BadHops { .. })
+    ));
+    assert!(matches!(
+        s.quote_tunnel(c, MAX_REMAINING_HOPS + 1),
+        Err(DescendantError::BadHops { .. })
+    ));
+    assert!(matches!(
+        s.quote_tunnel(&data.descendants[&root], 2),
+        Err(DescendantError::NotADescendant)
+    ));
+    // A node that does not say its fee gives no quote: the tunnel stays closed.
+    let none = session(&PRICED, vec![], true).await;
+    assert!(matches!(
+        none.quote_tunnel(c, 2),
+        Err(DescendantError::NoRates)
+    ));
 }
