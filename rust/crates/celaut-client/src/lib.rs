@@ -115,6 +115,10 @@ pub enum ClientError {
     Resources(#[from] ResourcesError),
 }
 
+/// The longest message of the support chat, in bytes. It is the limit of nodo
+/// (`chat.MAX_MESSAGE_BYTES`).
+pub const MAX_SUPPORT_MESSAGE_BYTES: usize = 4096;
+
 /// The resources of an instance are not usable to hibernate or wake it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum ResourcesError {

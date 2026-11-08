@@ -8633,6 +8633,48 @@ abstract class AppLocalizations {
   /// **'Remove'**
   String get celautNodesRemove;
 
+  /// No description provided for @celautNodesSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Support chat'**
+  String get celautNodesSupport;
+
+  /// No description provided for @celautSupportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Support chat'**
+  String get celautSupportTitle;
+
+  /// No description provided for @celautSupportHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write to the operator of the node'**
+  String get celautSupportHint;
+
+  /// No description provided for @celautSupportSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get celautSupportSend;
+
+  /// No description provided for @celautSupportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet. If you have a problem with this node, write to its operator here. The operator reads the messages and can answer.'**
+  String get celautSupportEmpty;
+
+  /// No description provided for @celautSupportUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This node has no support chat.'**
+  String get celautSupportUnsupported;
+
+  /// No description provided for @celautSupportRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The node did not take the message: {reason}'**
+  String celautSupportRefused(String reason);
+
   /// No description provided for @celautNodesRemoved.
   ///
   /// In en, this message translates to:

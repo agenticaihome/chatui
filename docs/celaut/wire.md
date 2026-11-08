@@ -96,7 +96,8 @@ client). Auth "token" = possession of an instance token.
 | ServiceTunnel | 1 `TokenMessage{token, slot, receipts}` or 2 `DescendantTunnel{token, instance_ref, slot, receipts, remaining_hops}`, then 0 bytes | 0 bytes, 2 `ExecutionReceipt` | token |
 | GetBalanceStatement | 1 `BalanceStatementRequest`, 2 `Client` | 1 `BalanceStatement` | client |
 | Observe | 1 `ObserveRequest{instance_id = instance token}` | 1 `ObserveEvent` (stream) | token |
-| Chat | 1 `ChatMessage` | 1 `ChatAck` | peers only |
+| Chat | 1 `ChatMessage` | 1 `ChatAck` | client in the message (a binding to a peer is optional; [support-chat.md](support-chat.md)) |
+| GetChatThread | 1 `ChatThreadRequest`, 2 `Client` | 1 `ChatThread` (free) | client |
 
 Notes:
 
@@ -166,7 +167,9 @@ Notes:
   - A hibernated instance pays for its disk only. A top-up keeps it alive and does not
     wake it.
 - **Chat** answers `stored=false, "client_id … is not associated with any peer"` to a
-  light client (`nodo:src/manager/chat.py:164-184`).
+  light client on a node of `a97148dd` (`nodo:src/manager/chat.py:164-184`). A node with the
+  support chat keeps the message in the thread of the client instead. `GetChatThread` is
+  only on such a node.
 
 ## 4. Client lifecycle and Ergo deposit
 

@@ -1274,8 +1274,9 @@ pub struct PoWRequired {
 /// example to tell that a problem occurred.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ChatMessage {
-    /// The client_id of the sender on the node that receives the message. The node must
-    /// have a binding of this client to a peer. That peer is the sender.
+    /// The client_id of the sender on the node that receives the message. If the client
+    /// has a binding to a peer, that peer is the sender. If not, the sender is the client
+    /// itself and the node keeps the message in the thread of the client (GetChatThread).
     #[prost(string, tag = "1")]
     pub client_id: ::prost::alloc::string::String,
     /// The text of the message.
@@ -1291,6 +1292,42 @@ pub struct ChatMessage {
     /// the service, for a reader that does not know this field.
     #[prost(message, optional, tag = "4")]
     pub service: ::core::option::Option<Metadata>,
+}
+/// One message of the thread between a client and the operator of a node.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChatEntry {
+    /// The position in the thread. The first message has sequence 1. The node gives
+    /// the sequence; it never changes and it grows by 1.
+    #[prost(uint64, tag = "1")]
+    pub sequence: u64,
+    /// The time that the node stored the message, in Unix seconds.
+    #[prost(int64, tag = "2")]
+    pub ts: i64,
+    /// True if the operator wrote the message, false if the client did.
+    #[prost(bool, tag = "3")]
+    pub from_operator: bool,
+    /// The text of the message.
+    #[prost(string, tag = "4")]
+    pub body: ::prost::alloc::string::String,
+}
+/// The request of GetChatThread.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChatThreadRequest {
+    /// Send only the messages with a sequence more than this. 0 sends the whole thread
+    /// (up to the limit of the node).
+    #[prost(uint64, tag = "1")]
+    pub after_sequence: u64,
+}
+/// The answer of GetChatThread.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChatThread {
+    /// The messages in order of sequence.
+    #[prost(message, repeated, tag = "1")]
+    pub entries: ::prost::alloc::vec::Vec<ChatEntry>,
+    /// The sequence of the last message of the thread, also if entries is empty or the
+    /// node cut it. 0 if the thread is empty.
+    #[prost(uint64, tag = "2")]
+    pub latest: u64,
 }
 /// The answer of Chat.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
