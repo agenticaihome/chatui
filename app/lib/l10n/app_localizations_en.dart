@@ -7905,10 +7905,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get descendantsRelayed => 'Relayed. Another node wrote this statement. The node of this instance signed it again, and the app cannot check the other node.';
+  String get descendantsRelayed =>
+      'Relayed. Another node wrote this statement. The node of this instance signed it again, and the app cannot check the other node.';
 
   @override
-  String get descendantsUnreadRows => 'Partly checked. Some movements are not read, and one of them can be a stop. Check again.';
+  String get descendantsUnreadRows =>
+      'Partly checked. Some movements are not read, and one of them can be a stop. Check again.';
 
   @override
   String get descendantsOpenTitle => 'Open with the node?';
@@ -7924,7 +7926,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get descendantsOpenBudgetTooSmall => 'The budget does not pay for one stream.';
+  String get descendantsOpenBudgetTooSmall =>
+      'The budget does not pay for one stream.';
 
   @override
   String get descendantsOpenConfirm => 'Open and pay';

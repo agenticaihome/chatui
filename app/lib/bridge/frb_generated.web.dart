@@ -503,9 +503,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ReadQuoteView dco_decode_read_quote_view(dynamic raw);
 
   @protected
-  TunnelQuoteView dco_decode_tunnel_quote_view(dynamic raw);
-
-  @protected
   ReceiptFaultKind dco_decode_receipt_fault_kind(dynamic raw);
 
   @protected
@@ -549,6 +546,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TransferView dco_decode_transfer_view(dynamic raw);
+
+  @protected
+  TunnelQuoteView dco_decode_tunnel_quote_view(dynamic raw);
 
   @protected
   int dco_decode_u_16(dynamic raw);
@@ -1149,9 +1149,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ReadQuoteView sse_decode_read_quote_view(SseDeserializer deserializer);
 
   @protected
-  TunnelQuoteView sse_decode_tunnel_quote_view(SseDeserializer deserializer);
-
-  @protected
   ReceiptFaultKind sse_decode_receipt_fault_kind(SseDeserializer deserializer);
 
   @protected
@@ -1203,6 +1200,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TransferView sse_decode_transfer_view(SseDeserializer deserializer);
+
+  @protected
+  TunnelQuoteView sse_decode_tunnel_quote_view(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_16(SseDeserializer deserializer);
@@ -1991,12 +1991,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_read_quote_view(ReadQuoteView self, SseSerializer serializer);
 
   @protected
-  void sse_encode_tunnel_quote_view(
-    TunnelQuoteView self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_receipt_fault_kind(
     ReceiptFaultKind self,
     SseSerializer serializer,
@@ -2067,6 +2061,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_transfer_view(TransferView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_tunnel_quote_view(
+    TunnelQuoteView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_u_16(int self, SseSerializer serializer);

@@ -7986,10 +7986,12 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get descendantsRelayed => 'Retransmitido. Otro nodo escribió este extracto. El nodo de esta instancia lo firmó de nuevo, y la app no puede comprobar al otro nodo.';
+  String get descendantsRelayed =>
+      'Retransmitido. Otro nodo escribió este extracto. El nodo de esta instancia lo firmó de nuevo, y la app no puede comprobar al otro nodo.';
 
   @override
-  String get descendantsUnreadRows => 'Comprobado en parte. Faltan movimientos por leer, y uno de ellos puede ser una parada. Comprueba otra vez.';
+  String get descendantsUnreadRows =>
+      'Comprobado en parte. Faltan movimientos por leer, y uno de ellos puede ser una parada. Comprueba otra vez.';
 
   @override
   String get descendantsOpenTitle => '¿Abrir con el nodo?';
@@ -8005,7 +8007,8 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get descendantsOpenBudgetTooSmall => 'El presupuesto no paga ni un flujo.';
+  String get descendantsOpenBudgetTooSmall =>
+      'El presupuesto no paga ni un flujo.';
 
   @override
   String get descendantsOpenConfirm => 'Abrir y pagar';
