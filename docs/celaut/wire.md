@@ -93,7 +93,8 @@ client). Auth "token" = possession of an instance token.
 | GetClientMetrics | 1 `Client` | 1 `Metrics` (free) | client |
 | GetResourceAvailability | 1 `ArchitectureResources`, 2 `Client` | 1 `ResourceAvailability` | client |
 | GetService | 1 Hash, 2 Client (send Client first) | 4 Hash, 5 Metadata, 6 Service | client |
-| ServiceTunnel | 1 `TokenMessage{token, slot, receipts}`, then 0 bytes | 0 bytes, 2 `ExecutionReceipt` | token |
+| ServiceTunnel | 1 `TokenMessage{token, slot, receipts}` or 2 `DescendantTunnel{token, instance_ref, slot, receipts, remaining_hops}`, then 0 bytes | 0 bytes, 2 `ExecutionReceipt` | token |
+| GetBalanceStatement | 1 `BalanceStatementRequest`, 2 `Client` | 1 `BalanceStatement` | client |
 | Observe | 1 `ObserveRequest{instance_id = instance token}` | 1 `ObserveEvent` (stream) | token |
 | Chat | 1 `ChatMessage` | 1 `ChatAck` | peers only |
 
@@ -231,8 +232,14 @@ Notes:
    the deposit box. And a node wallet with many boxes can depend on the paging of the
    explorer answer.
 7. Balance: `GetClientMetrics(Client{client_id})`. It is free. `GetBalanceStatement` is not
-   the way to read it: each statement costs MU and writes a movement. The `client_id` is
-   the master secret: with it a caller can stop the instances of the client and move its
+   the way to read it: each statement costs MU and writes a `statement_query` movement on
+   the account. The app never reads a statement by itself. Each read needs the
+   confirmation of the user, with the maximum MU, and the API takes a `max_mu` budget. With
+   `BalanceStatementRequest.instance_ref` and `remaining_hops`, the read is of a descendant
+   of an instance that the app holds. The answer has `relayed`, `service_id` and
+   `instance_ref`. The digest, the signature, the hash chain, the `child_bound` and `stop`
+   movements, the cost and the checks are in [descendants.md](descendants.md). The `client_id`
+   is the master secret: with it a caller can stop the instances of the client and move its
    funds. A node with no `GetClientMetrics` is not supported.
 8. ServiceTunnel charges the instance: open fee 10 000 MU and 2 000 000 MU per GiB.
    StopService refunds the unused instance balance to the client.
@@ -247,6 +254,10 @@ Notes:
 - The client always asks for the receipts. It accepts index 2 also when it did not ask.
   See [receipts.md](receipts.md).
 - TCP: message boundaries carry no meaning. UDP: one message = one datagram.
+- To reach a descendant, send `DescendantTunnel` at index 2 in place of the `TokenMessage`
+  at index 1: the token of an ancestor, the `instance_ref` of the descendant, the slot, the
+  receipts flag and `remaining_hops`. The errors, the receipt naming and the answer of a
+  node that does not know index 2 are in [descendants.md](descendants.md).
 - Half-closing the request closes the write side of the TCP connection to the service.
 
 ## 6. Node address in a QR code
