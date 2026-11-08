@@ -1,4 +1,3 @@
-celaut-project/nodo a97148dd5916ce1c1d22ec9f225d764c73b0a284 protos/celaut.proto (dev, after nodo#625)
+celaut-project/nodo eda0a9b37ceea7b813bb3a113b1e9450e54b2998 protos/celaut.proto (the head of nodo#635, not merged yet; move it to the merge commit on dev when #635 merges)
 celaut-project/nodo b5c1e8a5ea43b43d0779c1a7613d5294f39c6745 protos/buffer.proto
 celaut-project/nodo f4dcb3b2 protos/invite.proto (the peer invitation of nodo#579; it is not part of celaut.proto)
-chatui (not in nodo a97148dd; the pull request of nodo adds it) protos/celaut.proto: ChatEntry, ChatThreadRequest, ChatThread, GetChatThread, and Chat for a client with no peer

@@ -57,6 +57,10 @@ InstancePlanView _plan({
   hibernated: hibernated,
   diskOnly: diskOnly,
   wakeFeeMu: wakeFee,
+  childrenInitialMu: '',
+  ownStartMu: '',
+  toppedUpMu: '',
+  startedAt: 0,
 );
 
 InstanceStatusView _balance(String mu) =>

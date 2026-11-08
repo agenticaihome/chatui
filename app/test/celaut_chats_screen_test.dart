@@ -278,6 +278,7 @@ void main() {
                 variance: 0,
                 comparedNanoErg: '1',
                 clientBalanceMu: '',
+                childrenInitialCostMu: '',
               ),
               instance: InstanceView(
                 instanceId: 'new-1',

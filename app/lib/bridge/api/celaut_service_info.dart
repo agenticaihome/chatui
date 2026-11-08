@@ -9,7 +9,7 @@ import 'celaut_env.dart';
 import 'celaut_service.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `amounts`, `network_view`, `protocol_view`, `read_info`, `resources_view`, `scores`, `slot_view`, `view_of`
+// These functions are ignored because they are not marked as `pub`: `amounts`, `network_view`, `protocol_view`, `read_info`, `resources_view`, `scores`, `slot_view`, `view_of`, `workload_views`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// What the service `service_id_hex` says about itself. The app reads it from the file of
@@ -190,7 +190,7 @@ class ServiceInfoView {
   final List<NetworkView> networks;
   final List<WorkloadView> workloads;
 
-  /// How many scenarios were too large to read, because they carry a whole service.
+  /// How many clauses were too large to read, because they carry a whole service.
   final int workloadsSkipped;
 
   /// How many other parts were too large to read. Each is unknown, not absent.
@@ -320,18 +320,36 @@ class SysresourcesView {
           benchmark == other.benchmark;
 }
 
-/// One group of identical instances that the service can start while it runs.
+/// Identical descendant instances that the service declares (nodo#538). The service
+/// needs every clause; in a clause it uses one group; a group runs all its workloads.
 class WorkloadView {
-  /// The scenario of the group (a scenario is a set of groups that run together).
-  final int scenario;
+  /// True for instances that the service starts at its start
+  /// (`initial_environment_workload`). The start funds them
+  /// (`EstimatedCost.children_initial_cost`). False for instances that it can start
+  /// later (`possible_environment_workload`).
+  final bool initial;
+
+  /// The clause, from 0, in its field.
+  final int clause;
+
+  /// The group, from 0, in its clause.
+  final int group;
+
+  /// How many groups the clause has. With more than 1, the service uses one of them.
+  final int groups;
   final int count;
+
+  /// The resources at the start of the service of the workload, if it gives them.
   final SysresourcesView? resources;
 
-  /// True if the group is for a service (with its hash or its specification).
+  /// True if the workload is for a service (with its hash or its specification).
   final bool hasDependency;
 
   const WorkloadView({
-    required this.scenario,
+    required this.initial,
+    required this.clause,
+    required this.group,
+    required this.groups,
     required this.count,
     this.resources,
     required this.hasDependency,
@@ -339,7 +357,10 @@ class WorkloadView {
 
   @override
   int get hashCode =>
-      scenario.hashCode ^
+      initial.hashCode ^
+      clause.hashCode ^
+      group.hashCode ^
+      groups.hashCode ^
       count.hashCode ^
       resources.hashCode ^
       hasDependency.hashCode;
@@ -349,7 +370,10 @@ class WorkloadView {
       identical(this, other) ||
       other is WorkloadView &&
           runtimeType == other.runtimeType &&
-          scenario == other.scenario &&
+          initial == other.initial &&
+          clause == other.clause &&
+          group == other.group &&
+          groups == other.groups &&
           count == other.count &&
           resources == other.resources &&
           hasDependency == other.hasDependency;

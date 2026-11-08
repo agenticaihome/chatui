@@ -34,6 +34,9 @@ InstancePlanView _plan({
   String budget = '',
   String spent = '',
   String price = '100',
+  String children = '',
+  String ownStart = '',
+  int startedAt = 0,
 }) => InstancePlanView(
   keepAlive: keep,
   budgetMu: budget,
@@ -44,6 +47,10 @@ InstancePlanView _plan({
   hibernated: false,
   diskOnly: false,
   wakeFeeMu: '',
+  childrenInitialMu: children,
+  ownStartMu: ownStart,
+  toppedUpMu: '',
+  startedAt: startedAt,
 );
 
 void main() {
@@ -104,6 +111,33 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('shows the MU for the first descendants, and not as time of the instance (nodo#538)', (tester) async {
+    // The start gave 1,100 MU to the instance and 2,000 MU for its children, which did not
+    // start yet. The start is in the future of the clock: no maintenance yet.
+    plan = _plan(
+      children: '2000',
+      ownStart: '1100',
+      startedAt: DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000,
+    );
+    await pump(tester);
+    expect(
+      tester.widget<SelectableText>(find.byKey(const Key('info-time-children'))).data,
+      '2,000 MU',
+    );
+    expect(find.text(appL10n.celautTimeChildren.toUpperCase()), findsOneWidget);
+    // 1,100 MU at 100 MU a minute: 10 periods, not the 30 of the whole balance.
+    expect(
+      tester.widget<SelectableText>(find.byKey(const Key('info-time-balance'))).data,
+      '3,100 MU (${appL10n.celautTimeAbout('10 min')})',
+    );
+  });
+
+  testWidgets('with no children, there is no line for them', (tester) async {
+    plan = _plan(children: '0', ownStart: '1100');
+    await pump(tester);
+    expect(find.byKey(const Key('info-time-children')), findsNothing);
+  });
 
   testWidgets('shows the balance and the credit, each with its time', (tester) async {
     await pump(tester);

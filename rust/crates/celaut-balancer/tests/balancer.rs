@@ -17,6 +17,7 @@ fn quote(cost: &str, init: &str, max: &str, seconds: i32, variance: f32) -> Esti
         max_maintenance_cost: mu(max),
         maintenance_seconds_loop: seconds,
         variance,
+        children_initial_cost: None,
     }
 }
 
@@ -67,6 +68,33 @@ fn cost_is_the_nodo_formula() {
     // mean 771.
     assert_eq!(cost_mu(&quote("7", "1", "2", 7, 0.1)), Ok(778.0));
     assert!(cost_mu(&quote("x", "0", "0", 0, 0.0)).is_err());
+}
+
+#[test]
+fn the_start_adds_children_initial_cost() {
+    // nodo#538: the parent pays the start of its initial children; `cost` excludes them.
+    let mut q = quote("1000", "100", "300", 60, 0.5);
+    q.children_initial_cost = mu("500");
+    assert_eq!(start_mu(&q), Ok(1500));
+    // vcnorm(1500, 0.5) = 2250, plus the mean of 9000 and 27000.
+    assert_eq!(cost_mu(&q), Ok(20_250.0));
+    // An old node does not send the field: 0.
+    q.children_initial_cost = None;
+    assert_eq!(start_mu(&q), Ok(1000));
+    q.children_initial_cost = mu("x");
+    assert!(start_mu(&q).is_err());
+}
+
+#[test]
+fn a_node_with_children_is_dearer_than_its_cost_says() {
+    // Same cost, but `a` also asks for the start of its children: `b` comes first.
+    let mut with_children = flat("1000");
+    with_children.children_initial_cost = mu("5000");
+    let ranked = rank(vec![
+        candidate("a", with_children, Some(1)),
+        candidate("b", flat("2000"), Some(1)),
+    ]);
+    assert_eq!(order(&ranked), ["b", "a"]);
 }
 
 #[test]

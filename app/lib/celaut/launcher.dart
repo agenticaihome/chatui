@@ -21,6 +21,13 @@ typedef PricingCall = void Function({
   required double variance,
 });
 
+/// Keep how the start funded an instance (`celautSetInstanceStart`, nodo#538).
+typedef StartFundingCall = void Function({
+  required String instanceId,
+  String? ownStartMu,
+  required String childrenInitialMu,
+});
+
 /// Turn "run until I stop it" on for a started instance (`celautSetKeepAlive`).
 typedef KeepAliveCall = void Function({
   required String instanceId,
@@ -176,21 +183,40 @@ MaintenancePrice? quotePrice(QuoteView quote) => MaintenancePrice.of(
       variance: quote.variance,
     );
 
+/// What the instance of [quote] pays to start its initial children
+/// (`EstimatedCost.children_initial_cost`, nodo#538). A node before nodo#538 does not
+/// send it: 0.
+BigInt childrenInitialCostOf(QuoteView quote) {
+  final children = BigInt.tryParse(quote.childrenInitialCostMu.trim());
+  return children == null || children < BigInt.zero ? BigInt.zero : children;
+}
+
+/// The `initial_mu` of a start on the node of [quote] (nodo#538):
+/// `cost + children_initial_cost`. `cost` is the build plus the balance that the quote
+/// was asked with (nodo#563), and the parent pays the start of its initial children out
+/// of its balance, so the start must add them. A node refuses a start with less
+/// (`ON_UNDERFUNDED`). Null if the quote gives no cost.
+BigInt? startMuOf(QuoteView quote) {
+  final cost = BigInt.tryParse(quote.costMu);
+  return cost == null ? null : cost + childrenInitialCostOf(quote);
+}
+
 /// The start cost of [quote] with the balance [balanceMu] instead of [quotedBalanceMu],
 /// the balance that the quote was asked with: the quote is the build plus that balance
-/// (nodo #563). Null if the quote is less than its balance (a node that does not follow
-/// #563).
+/// (nodo #563), and the start adds the initial children ([startMuOf]). Null if the quote
+/// is less than its balance (a node that does not follow #563).
 BigInt? startCostWith(QuoteView quote, BigInt quotedBalanceMu, BigInt balanceMu) {
   final cost = BigInt.tryParse(quote.costMu);
   if (cost == null || cost < quotedBalanceMu) return null;
-  return cost - quotedBalanceMu + balanceMu;
+  return cost - quotedBalanceMu + balanceMu + childrenInitialCostOf(quote);
 }
 
-/// False if the credit of the client on the node of [q] is less than the price: then
-/// [launchService] does not ask the node to start, and the node never reads the values.
+/// False if the credit of the client on the node of [q] is less than the price of the
+/// start ([startMuOf]): then [launchService] does not ask the node to start, and the node
+/// never reads the values.
 bool wouldAskToStart(QuoteView q) {
   final credit = BigInt.tryParse(q.clientBalanceMu);
-  final cost = BigInt.tryParse(q.costMu);
+  final cost = startMuOf(q);
   return !(credit != null && cost != null && credit < cost);
 }
 
@@ -270,6 +296,7 @@ Future<LaunchOutcome> launchService({
   QuoteCall quote = celautQuoteService,
   StartCall start = celautStartService,
   PricingCall setPricing = celautSetInstancePricing,
+  StartFundingCall setStart = celautSetInstanceStart,
   KeepAliveCall setKeepAlive = celautSetKeepAlive,
   List<KnownNodeView> Function() knownNodes = celautKnownNodes,
   List<NodeHealthView> Function() health = celautNodesHealth,
@@ -279,6 +306,8 @@ Future<LaunchOutcome> launchService({
   final chosen = chooseNodesToAsk(all, health());
   final leftOut = chosen.leftOut;
   var quotes = await quote(nodes: chosen.ask, serviceIdHex: serviceIdHex, initialMu: initialMu);
+  // The balance that the last quote was asked with: the instance gets it for itself.
+  var quotedMu = initialMu;
   if (minSurvival != null && quotes.quotes.isNotEmpty) {
     BigInt? need;
     for (final q in quotes.quotes) {
@@ -286,7 +315,8 @@ Future<LaunchOutcome> launchService({
       if (b != null && (need == null || b > need)) need = b;
     }
     if (need != null && need.toString() != initialMu) {
-      quotes = await quote(nodes: chosen.ask, serviceIdHex: serviceIdHex, initialMu: need.toString());
+      quotedMu = need.toString();
+      quotes = await quote(nodes: chosen.ask, serviceIdHex: serviceIdHex, initialMu: quotedMu);
     }
   }
   if (quotes.quotes.isEmpty) {
@@ -306,7 +336,7 @@ Future<LaunchOutcome> launchService({
           candidate,
           CelautError(
             kind: CelautErrorKind.insufficientCredit,
-            message: 'credit ${candidate.clientBalanceMu} MU, price ${candidate.costMu} MU',
+            message: 'credit ${candidate.clientBalanceMu} MU, price ${startMuOf(candidate) ?? candidate.costMu} MU',
           ),
         ),
       );
@@ -317,11 +347,21 @@ Future<LaunchOutcome> launchService({
         node: candidate.address,
         serviceIdHex: serviceIdHex,
         // The node takes the build out of initial_mu, and its quote is the build plus
-        // the balance asked for: the least that a start needs.
-        initialMu: candidate.costMu,
+        // the balance asked for. The instance also pays the start of its initial
+        // children out of its balance (nodo#538): the least that a start needs.
+        initialMu: '${startMuOf(candidate) ?? candidate.costMu}',
         environment: values,
       );
-      _keepPlan(instance.instanceId, candidate, keepAlive, budgetMu, setPricing, setKeepAlive);
+      _keepPlan(
+        instance.instanceId,
+        candidate,
+        quotedMu,
+        keepAlive,
+        budgetMu,
+        setPricing,
+        setStart,
+        setKeepAlive,
+      );
       return LaunchOutcome(
         quote: candidate,
         instance: instance,
@@ -340,14 +380,18 @@ Future<LaunchOutcome> launchService({
   );
 }
 
-/// Keep the price of the winning node with the new instance, and turn keep-alive on if the
-/// user asked for it. The instance already runs: an error here is dropped.
+/// Keep the price of the winning node with the new instance, and how the start funded it
+/// ([quotedMu] for the instance itself, if known, and its initial children), and turn
+/// keep-alive on if the user asked for it. The instance already runs: an error here is
+/// dropped.
 void _keepPlan(
   String instanceId,
   QuoteView quote,
+  String? quotedMu,
   bool keepAlive,
   String? budgetMu,
   PricingCall setPricing,
+  StartFundingCall setStart,
   KeepAliveCall setKeepAlive,
 ) {
   try {
@@ -362,5 +406,15 @@ void _keepPlan(
     if (keepAlive) setKeepAlive(instanceId: instanceId, enabled: true, budgetMu: budgetMu);
   } on Object {
     // The instance runs; the user can turn keep-alive on from its info page.
+  }
+  try {
+    final own = quotedMu == null ? null : BigInt.tryParse(quotedMu.trim());
+    setStart(
+      instanceId: instanceId,
+      ownStartMu: own?.toString(),
+      childrenInitialMu: '${childrenInitialCostOf(quote)}',
+    );
+  } on Object {
+    // Unknown: the keep-alive counts the whole balance, as for an old instance.
   }
 }

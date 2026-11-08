@@ -24,7 +24,11 @@ SysresourcesView _res({double? cores, int? mem, int? disk, List<NamedValueView> 
     );
 
 /// A service with every part, and a chat port.
-ServiceInfoView _full({ChatSupportView chat = ChatSupportView.supported, bool chatSlot = true}) => ServiceInfoView(
+ServiceInfoView _full({
+  ChatSupportView chat = ChatSupportView.supported,
+  bool chatSlot = true,
+  List<WorkloadView>? workloads,
+}) => ServiceInfoView(
   prose: 'An echo service for the tests',
   architecture: const ['linux/arm64'],
   filesystemBytes: BigInt.from(536 * 1024 * 1024),
@@ -56,7 +60,8 @@ ServiceInfoView _full({ChatSupportView chat = ChatSupportView.supported, bool ch
     NetworkView(tags: const ['api.example.org'], prose: 'The API', formal: 'pow.chain=ergo', protocolStack: [_p(['https'])]),
     const NetworkView(tags: ['*'], prose: '', formal: '', protocolStack: []),
   ],
-  workloads: [WorkloadView(scenario: 0, count: 3, resources: _res(cores: 2), hasDependency: true)],
+  workloads: workloads ??
+      [WorkloadView(initial: false, clause: 0, group: 0, groups: 1, count: 3, resources: _res(cores: 2), hasDependency: true)],
   workloadsSkipped: 2,
   partsSkipped: 0,
   apiSkipped: false,
@@ -145,6 +150,38 @@ void main() {
     expect(find.text(appL10n.serviceInfoChatUnsupported), findsOneWidget);
     expect(find.byKey(const Key('service-info-chat-supported')), findsNothing);
     expect(find.byKey(const Key('service-info-chat-8080')), findsNothing);
+  });
+
+  testWidgets('the first instances and the later ones are apart, and a choice says "or" (nodo#538)', (tester) async {
+    // (1 × A or 2 × B) and 1 × C at the start; 3 × D later.
+    WorkloadView w(bool initial, int clause, int group, int groups, int count) => WorkloadView(
+          initial: initial,
+          clause: clause,
+          group: group,
+          groups: groups,
+          count: count,
+          hasDependency: true,
+        );
+    await _pump(
+      tester,
+      _full(workloads: [w(true, 0, 0, 2, 1), w(true, 0, 1, 2, 2), w(true, 1, 0, 1, 1), w(false, 0, 0, 1, 3)]),
+    );
+    final l = appL10n;
+    expect(find.byKey(const Key('service-info-workloads-initial')), findsOneWidget);
+    expect(find.byKey(const Key('service-info-workloads')), findsOneWidget);
+    expect(find.text(l.serviceInfoWorkloadsInitial), findsOneWidget);
+    expect(find.text(l.serviceInfoWorkloads), findsOneWidget);
+    expect(find.text('${l.serviceInfoWorkload(1)} · ${l.serviceInfoWorkloadService}'), findsNWidgets(2));
+    expect(
+      find.text('${l.serviceInfoWorkloadOr} ${l.serviceInfoWorkload(2)} · ${l.serviceInfoWorkloadService}'),
+      findsOneWidget,
+    );
+    expect(find.text('${l.serviceInfoWorkload(3)} · ${l.serviceInfoWorkloadService}'), findsOneWidget);
+    // The first instances come before the later ones.
+    expect(
+      tester.getTopLeft(find.byKey(const Key('service-info-workloads-initial'))).dy,
+      lessThan(tester.getTopLeft(find.byKey(const Key('service-info-workloads'))).dy),
+    );
   });
 
   testWidgets('a service with nothing says what is missing, in each section', (tester) async {

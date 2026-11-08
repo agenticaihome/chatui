@@ -244,10 +244,22 @@ class _RunConfirmDialogState extends State<_RunConfirmDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      l.celautRunPreview('${best.address.host}:${best.address.port}', muOrUnknown(best.costMu)),
+                      l.celautRunPreview(
+                        '${best.address.host}:${best.address.port}',
+                        muOrUnknown('${startMuOf(best) ?? best.costMu}'),
+                      ),
                       key: const Key('run-confirm-quote'),
                       style: t.secondary,
                     ),
+                    // The start also pays the first descendants of the service (nodo#538).
+                    if (childrenInitialCostOf(best) > BigInt.zero) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        l.celautRunChildren(muOrUnknown('${childrenInitialCostOf(best)}')),
+                        key: const Key('run-confirm-children'),
+                        style: t.secondary,
+                      ),
+                    ],
                     if (_keepAlive) ...[
                       const SizedBox(height: 4),
                       Text(_keepEstimate(context, best), key: const Key('run-confirm-keep'), style: t.secondary),

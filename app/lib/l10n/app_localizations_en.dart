@@ -7955,4 +7955,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get descendantsOpenConfirm => 'Open and pay';
+
+  @override
+  String celautRunChildren(String cost) {
+    return 'The start also pays $cost for the first descendants of the service.';
+  }
+
+  @override
+  String get celautTimeChildren => 'For the first descendants';
+
+  @override
+  String get serviceInfoWorkloadsInitial => 'First instances that it starts';
+
+  @override
+  String get serviceInfoWorkloadOr => 'or';
 }

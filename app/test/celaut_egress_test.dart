@@ -16,6 +16,7 @@ QuoteView _quote(String peer, {String credit = '', String cost = '10'}) => Quote
   variance: 0,
   comparedNanoErg: '1',
   clientBalanceMu: credit,
+  childrenInitialCostMu: '',
 );
 
 void main() {

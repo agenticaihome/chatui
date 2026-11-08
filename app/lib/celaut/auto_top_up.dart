@@ -48,6 +48,10 @@ class TopUpNeed {
 /// a deposit. A deposit has its own confirmation and asks for the fingerprint or the screen
 /// lock, as always. So no transaction ever happens without the user.
 ///
+/// An instance that starts initial children (nodo#538) got their start with its first
+/// balance (`launchService`). The top-up does not count those MU as time of the instance
+/// while the children did not start ([ownBalance]).
+///
 /// The app checks when the list of conversations reads the instances ([observe]), and
 /// once a minute while the app runs ([start]); only instances that the user asked to keep
 /// are read from their nodes. After a top-up of an instance, it waits a minute before the
@@ -205,6 +209,30 @@ class AutoTopUp extends ChangeNotifier {
         variance: plan.variance,
       );
 
+  /// The part of [balance] that keeps the instance itself (nodo#538). The start also
+  /// gave the instance `children_initial_cost` to start its initial children, and the
+  /// node takes it from the balance only when the instance starts them. Until then the
+  /// app must not count it as time of the instance, or the top-up comes too late and the
+  /// instance spends the MU of its children on its own maintenance.
+  ///
+  /// The rule: while [balance] is at least the balance of the instance itself at the
+  /// start plus all the top-ups (`own_start_mu + topped_up_mu`), the children did not
+  /// start yet. Then the part of the instance is that sum less the maintenance since the
+  /// start, at the price of the node with its margin. When [balance] goes below the sum,
+  /// the children started (or the instance used their MU), and the whole balance is the
+  /// part of the instance, as before. With no children, or if the app does not know the
+  /// balance of the start, it is the whole balance.
+  static BigInt ownBalance(InstancePlanView plan, BigInt balance, MaintenancePrice? price, DateTime now) {
+    final children = BigInt.tryParse(plan.childrenInitialMu) ?? BigInt.zero;
+    final start = BigInt.tryParse(plan.ownStartMu);
+    if (children <= BigInt.zero || start == null) return balance;
+    final funded = start + (BigInt.tryParse(plan.toppedUpMu) ?? BigInt.zero);
+    if (balance < funded) return balance;
+    final since = now.difference(DateTime.fromMillisecondsSinceEpoch(plan.startedAt * 1000));
+    final used = price == null ? BigInt.zero : price.addFor(since);
+    return funded > used ? funded - used : BigInt.zero;
+  }
+
   /// The user saw the [need] and closed it.
   void dismissNeed() {
     if (_need == null) return;
@@ -284,7 +312,8 @@ class AutoTopUp extends ChangeNotifier {
     // wakes it: the keep-alive only keeps its disk (ui.md, section 4b).
     final price = priceOf(plan);
     final reserve = plan.hibernated ? (BigInt.tryParse(plan.wakeFeeMu) ?? BigInt.zero) : BigInt.zero;
-    final spare = balance > reserve ? balance - reserve : BigInt.zero;
+    final own = ownBalance(plan, balance, price, _now());
+    final spare = own > reserve ? own - reserve : BigInt.zero;
     final low = price == null ? spare < fallbackThresholdMu : price.lasts(spare) < _threshold;
     if (!low || _waiting(id) || !_busy.add(id)) return;
     try {

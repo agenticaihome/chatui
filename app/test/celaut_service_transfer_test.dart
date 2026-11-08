@@ -28,6 +28,7 @@ QuoteView _quote(NodeAddress a) => QuoteView(
   variance: 0,
   comparedNanoErg: '1',
   clientBalanceMu: '100',
+  childrenInitialCostMu: '',
 );
 
 LaunchSkip _skip(NodeAddress a, CelautErrorKind kind) =>

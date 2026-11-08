@@ -711,6 +711,8 @@ mod tests {
                     alias: None,
                     title: None,
                     topped_up_mu: None,
+                    children_initial_mu: None,
+                    own_start_mu: None,
                     stopped_at: None,
                     refund_mu: None,
                     pricing: None,

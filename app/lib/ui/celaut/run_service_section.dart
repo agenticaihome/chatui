@@ -592,7 +592,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
         content: Text(
           context.l10n.celautRunStarted(
             '${quote.address.host}:${quote.address.port}',
-            muOrUnknown(quote.costMu),
+            muOrUnknown('${startMuOf(quote) ?? quote.costMu}'),
           ),
         ),
       ),

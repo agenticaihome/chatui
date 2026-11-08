@@ -332,20 +332,38 @@ class ServiceInfoBody extends StatelessWidget {
       children: [
         if (info.nodeProtocols.isNotEmpty)
           _Line(l.serviceInfoNodeProtocols, _stack([for (final p in info.nodeProtocols) p.tags.join('/')])),
-        if (info.workloads.isNotEmpty || info.workloadsSkipped > 0)
+        // nodo#538: the first instances (the start pays them), then the ones that it can
+        // start later. The service needs each clause and uses one group of a clause.
+        for (final initial in [true, false])
+          if (info.workloads.any((w) => w.initial == initial)) ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                initial ? l.serviceInfoWorkloadsInitial : l.serviceInfoWorkloads,
+                key: Key(initial ? 'service-info-workloads-initial' : 'service-info-workloads'),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            for (final (i, w) in info.workloads.indexed)
+              if (w.initial == initial)
+                Text(
+                  [
+                    // The first workload of a group after the first: one group or the other.
+                    if (w.group > 0 && (i == 0 || !_sameGroup(info.workloads[i - 1], w)))
+                      '${l.serviceInfoWorkloadOr} ${l.serviceInfoWorkload(w.count)}'
+                    else
+                      l.serviceInfoWorkload(w.count),
+                    if (w.hasDependency) l.serviceInfoWorkloadService,
+                    if (w.resources?.cpuCores != null) CelautStrings.cores(w.resources!.cpuCores!),
+                    if (w.resources?.memBytes != null) CelautStrings.bytes(w.resources!.memBytes!.toInt()),
+                  ].join(' · '),
+                  style: TextStyle(fontSize: 12.5, color: muted),
+                ),
+          ],
+        if (info.workloads.isEmpty && info.workloadsSkipped > 0)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(l.serviceInfoWorkloads, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ),
-        for (final w in info.workloads)
-          Text(
-            [
-              l.serviceInfoWorkload(w.count),
-              if (w.hasDependency) l.serviceInfoWorkloadService,
-              if (w.resources?.cpuCores != null) CelautStrings.cores(w.resources!.cpuCores!),
-              if (w.resources?.memBytes != null) CelautStrings.bytes(w.resources!.memBytes!.toInt()),
-            ].join(' · '),
-            style: TextStyle(fontSize: 12.5, color: muted),
           ),
         if (info.workloadsSkipped > 0)
           Text(l.serviceInfoWorkloadsSkipped(info.workloadsSkipped), style: TextStyle(fontSize: 12.5, color: muted)),
@@ -353,6 +371,9 @@ class ServiceInfoBody extends StatelessWidget {
     );
   }
 }
+
+/// True if [a] and [b] are in the same group of the same clause of the same field.
+bool _sameGroup(WorkloadView a, WorkloadView b) => a.initial == b.initial && a.clause == b.clause && a.group == b.group;
 
 /// A protocol stack, bottom to top, as `tcp → http → chat`.
 String _stack(List<String> layers) => layers.where((s) => s.isNotEmpty).join(' → ');

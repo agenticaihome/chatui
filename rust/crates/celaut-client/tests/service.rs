@@ -160,6 +160,7 @@ fn quote(cost: &str) -> EstimatedCost {
         max_maintenance_cost: mu("0"),
         maintenance_seconds_loop: 0,
         variance: 0.0,
+        children_initial_cost: None,
     }
 }
 

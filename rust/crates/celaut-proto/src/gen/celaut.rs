@@ -205,11 +205,15 @@ pub struct Service {
     /// The domains where the instances of the service find their peers.
     #[prost(message, repeated, tag = "4")]
     pub network: ::prost::alloc::vec::Vec<service::Network>,
-    /// The scenarios of instances that the service can start while it runs.
+    /// The load that the service can ask for later, while it runs. Each clause must fit
+    /// on the node or on a peer that it knows. If not, the node can refuse to start the
+    /// service. It is in the admission only. It has no cost.
     #[prost(message, repeated, tag = "5")]
-    pub possible_environment_workload: ::prost::alloc::vec::Vec<
-        service::PossibleEnvironmentWorkload,
-    >,
+    pub possible_environment_workload: ::prost::alloc::vec::Vec<service::Clause>,
+    /// The load that the service needs to start. It is in the admission, as
+    /// possible_environment_workload, and in the cost: EstimatedCost.children_initial_cost.
+    #[prost(message, repeated, tag = "6")]
+    pub initial_environment_workload: ::prost::alloc::vec::Vec<service::Clause>,
 }
 /// Nested message and enum types in `Service`.
 pub mod service {
@@ -261,58 +265,55 @@ pub mod service {
             pub mu_per_call: ::prost::alloc::vec::Vec<super::super::AmountKeyValue>,
         }
     }
-    /// One scenario of instances that the service can start at the same time. Scenarios
-    /// are independent: they do not add up, and they have no sequence. Each workload of a
-    /// scenario must be able to run on the node or on a peer that it knows. If not, the
-    /// node can refuse to start the service. The node checks one instance of each workload. It does not
-    /// keep resources for the instances.
+    /// One group of identical instances that run at the same time.
     #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct PossibleEnvironmentWorkload {
-        /// The groups of the scenario.
-        #[prost(message, repeated, tag = "1")]
-        pub workloads: ::prost::alloc::vec::Vec<possible_environment_workload::Workload>,
+    pub struct Workload {
+        /// The number of instances that run at the same time.
+        #[prost(uint32, tag = "1")]
+        pub count: u32,
+        /// The service of the instances: a hash, a service, or both. A workload with no
+        /// resources in its service is always satisfiable.
+        #[prost(message, optional, tag = "2")]
+        pub dependency: ::core::option::Option<workload::Dependency>,
     }
-    /// Nested message and enum types in `PossibleEnvironmentWorkload`.
-    pub mod possible_environment_workload {
-        /// One group of identical instances that run at the same time.
+    /// Nested message and enum types in `Workload`.
+    pub mod workload {
+        /// The service of the workload.
         #[derive(Clone, PartialEq, ::prost::Message)]
-        pub struct Workload {
-            /// The number of instances that run at the same time.
-            #[prost(uint32, tag = "1")]
-            pub count: u32,
-            /// The most resources that each of these instances can use. Its benchmark
-            /// gives the minimum score for each core.
+        pub struct Dependency {
+            /// Known content hashes of the service.
+            #[prost(message, repeated, tag = "1")]
+            pub hash: ::prost::alloc::vec::Vec<super::super::metadata::hash_tag::Hash>,
+            /// The full or a partial specification of the service. The resources of the
+            /// workload are in service.container.resources: at_init for the start, and
+            /// at_most for the limit. A partial service can have only the resources and
+            /// the architecture.
             #[prost(message, optional, tag = "2")]
-            pub resources: ::core::option::Option<super::super::Sysresources>,
-            /// The service of the instances, if the workload is for one service. If the
-            /// field is absent, the workload gives only resources.
-            #[prost(message, optional, tag = "3")]
-            pub dependency: ::core::option::Option<workload::Dependency>,
+            pub service: ::core::option::Option<super::super::Service>,
+            /// True if the service field is complete, so a reader can calculate its
+            /// hashes and compare them with the hash field.
+            #[prost(bool, tag = "3")]
+            pub is_completed: bool,
+            /// True if the full service is in the filesystem of this service, for
+            /// example as a file that it sends later to StartService.
+            #[prost(bool, tag = "4")]
+            pub on_filesystem: bool,
         }
-        /// Nested message and enum types in `Workload`.
-        pub mod workload {
-            /// The service of the workload. A workload that gives only resources has no
-            /// Dependency.
-            #[derive(Clone, PartialEq, ::prost::Message)]
-            pub struct Dependency {
-                /// Known content hashes of the service.
-                #[prost(message, repeated, tag = "1")]
-                pub hash: ::prost::alloc::vec::Vec<
-                    super::super::super::metadata::hash_tag::Hash,
-                >,
-                /// The full or a partial specification of the service.
-                #[prost(message, optional, tag = "2")]
-                pub service: ::core::option::Option<super::super::super::Service>,
-                /// True if the service field is complete, so a reader can calculate its
-                /// hashes and compare them with the hash field.
-                #[prost(bool, tag = "3")]
-                pub is_completed: bool,
-                /// True if the full service is in the filesystem of this service, for
-                /// example as a file that it sends later to StartService.
-                #[prost(bool, tag = "4")]
-                pub on_filesystem: bool,
-            }
-        }
+    }
+    /// AND: all the workloads of the group run at the same time.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Group {
+        /// The workloads of the group.
+        #[prost(message, repeated, tag = "1")]
+        pub workloads: ::prost::alloc::vec::Vec<Workload>,
+    }
+    /// OR: one group of the clause is sufficient. The service chooses the group at run
+    /// time.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Clause {
+        /// The groups of the clause.
+        #[prost(message, repeated, tag = "1")]
+        pub any_of: ::prost::alloc::vec::Vec<Group>,
     }
     /// What the node runs: the architecture, the filesystem, the entry point and the
     /// resources.
@@ -622,8 +623,8 @@ pub struct Sysresources {
     /// second, over a working set of that size). Compare a bandwidth only with a
     /// bandwidth over the same size. If the node has no score for that size, it uses the
     /// score of the smallest larger size that it measured. If it has no such score, it
-    /// does not apply that minimum. In Service.Container.Resources.at_init, in
-    /// PossibleEnvironmentWorkload.Workload.resources and in a GetResourceAvailability
+    /// does not apply that minimum. In Service.Container.Resources.at_init (also in the
+    /// service of a Service.Workload) and in a GetResourceAvailability
     /// request, the values are the minimum. In Peer.resources, they are the scores that the node
     /// measured. In Service.Container.Resources.at_most, they have no meaning.
     #[prost(message, repeated, tag = "99")]
@@ -687,9 +688,11 @@ pub struct EstimatedCost {
     /// The least Configuration.initial_mu with which the node starts the service, in MU.
     /// It is the cost to build the service, plus the balance that the instance has after
     /// the build. This balance is the initial_mu of the request. If the request has no
-    /// initial_mu, the node uses its own default balance for the resources at the start.
-    /// A caller that sets initial_mu to this value pays no more than this value for the
-    /// start, because the node takes the cost of the build from initial_mu.
+    /// initial_mu, the node uses its own default balance for the resources at the start,
+    /// without children_initial_cost. A caller that sets initial_mu to this value pays no
+    /// more than this value for the start, because the node takes the cost of the build
+    /// from initial_mu. A service with initial children needs more: see
+    /// children_initial_cost.
     #[prost(message, optional, tag = "1")]
     pub cost: ::core::option::Option<Amount>,
     /// The cost of one maintenance period with the resources at the start, in MU.
@@ -715,6 +718,18 @@ pub struct EstimatedCost {
     /// max_maintenance_cost, and only when the node sets the bound.
     #[prost(float, tag = "5")]
     pub variance: f32,
+    /// The MU that the instance pays to start its initial children, in MU: the
+    /// children of Service.initial_environment_workload. Each start of a child takes its
+    /// initial_mu from the balance of the parent. For each workload: count times the
+    /// build of the child plus the default balance of the node for the at_init resources
+    /// of the child. The cost of a group is the sum of its workloads, the cost of a clause
+    /// is the highest cost of its groups, and the total is the sum of the clauses. It
+    /// uses the local price. It is not in cost. A client funds the parent with
+    /// cost + maintenance * (periods + 1) * (1 + variance) + children_initial_cost, where
+    /// maintenance is the cost of one period of the parent. If the request has no
+    /// initial_mu, the default balance of the node includes children_initial_cost.
+    #[prost(message, optional, tag = "6")]
+    pub children_initial_cost: ::core::option::Option<Amount>,
 }
 /// The resources for one architecture. In Peer.resources: the most that the node
 /// supports for that architecture, with its measured benchmark scores. In a

@@ -107,6 +107,7 @@ QuoteView _quote({String credit = '', String cost = '1000000'}) => QuoteView(
   variance: 0,
   comparedNanoErg: '1',
   clientBalanceMu: credit,
+  childrenInitialCostMu: '',
 );
 
 InstanceView _instance({List<int> chat = const []}) => InstanceView(
@@ -683,6 +684,62 @@ void main() {
     expect(launched, ['$_best 1000000']);
   });
 
+  testWidgets('the confirmation shows the start of the first descendants (nodo#538)', (tester) async {
+    // A quote of 1,000,300 MU (a build of 300 MU and the default balance), and 9,200,000
+    // MU for the initial children, which the cost of the node does not include.
+    final best = QuoteView(
+      address: const NodeAddress(host: '127.0.0.1', port: 18460),
+      peerId: 'aa' * 32,
+      costMu: '1000300',
+      initMaintenanceMu: '100',
+      maxMaintenanceMu: '100',
+      maintenanceSecondsLoop: 60,
+      variance: 0,
+      comparedNanoErg: '1',
+      clientBalanceMu: '',
+      childrenInitialCostMu: '9200000',
+    );
+    await open(tester, preview: best);
+    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.pumpAndSettle();
+    // The sheet of the skill shows the whole start too.
+    expect(
+      tester.widget<Text>(find.byKey(const Key('skill-sheet-preview'))).data,
+      appL10n.celautRunPreview('127.0.0.1:18460', '10,200,300 MU'),
+    );
+    await tester.tap(find.byKey(const Key('skill-sheet-run')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const Key('run-confirm-quote'))).data,
+      appL10n.celautRunPreview('127.0.0.1:18460', '10,200,300 MU'),
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const Key('run-confirm-children'))).data,
+      appL10n.celautRunChildren('9,200,000 MU'),
+    );
+    // 90 periods and one more, of 100 MU, plus the build, plus the children.
+    await tester.enterText(find.byKey(const Key('run-confirm-minutes')), '90');
+    await tester.pump();
+    expect(
+      tester.widget<Text>(find.byKey(const Key('run-confirm-survival'))).data,
+      appL10n.celautRunSurvivalEstimate('9,209,400 MU', '9,100 MU', '1 h 30 min'),
+    );
+    // The mode "until I stop it" shows the children too.
+    await tester.tap(find.text(appL10n.celautRunModeKeep));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('run-confirm-children')), findsOneWidget);
+  });
+
+  testWidgets('with no children (or an old node), the confirmation has no line for them', (tester) async {
+    await open(tester, preview: _quote());
+    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('skill-sheet-run')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('run-confirm-quote')), findsOneWidget);
+    expect(find.byKey(const Key('run-confirm-children')), findsNothing);
+  });
+
   testWidgets('the confirmation asks for the least time, and the launch uses it', (tester) async {
     // 100 MU each 60 s on the best node, and a quote of 1,000,300 MU with the default
     // balance of 1,000,000 MU: a build of 300 MU.
@@ -696,6 +753,7 @@ void main() {
       variance: 0,
       comparedNanoErg: '1',
       clientBalanceMu: '',
+      childrenInitialCostMu: '',
     );
     await open(tester, preview: best);
     await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
@@ -741,6 +799,7 @@ void main() {
       variance: 0,
       comparedNanoErg: '1',
       clientBalanceMu: '10000',
+      childrenInitialCostMu: '',
     );
 
     Future<void> confirm(WidgetTester tester) async {

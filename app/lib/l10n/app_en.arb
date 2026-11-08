@@ -5775,5 +5775,16 @@
     }
   },
   "descendantsOpenBudgetTooSmall": "The budget does not pay for one stream.",
-  "descendantsOpenConfirm": "Open and pay"
+  "descendantsOpenConfirm": "Open and pay",
+  "celautRunChildren": "The start also pays {cost} for the first descendants of the service.",
+  "@celautRunChildren": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "celautTimeChildren": "For the first descendants",
+  "serviceInfoWorkloadsInitial": "First instances that it starts",
+  "serviceInfoWorkloadOr": "or"
 }
