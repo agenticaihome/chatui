@@ -20,6 +20,7 @@ import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
 import 'client_unknown_dialog.dart';
 import 'node_status.dart';
+import 'support_chat_screen.dart';
 
 /// What the node list screen needs. The app uses [AppKnownNodes]; tests give their own.
 abstract class KnownNodes {
@@ -133,6 +134,23 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
       newClient: widget.newClient,
     );
   }
+
+  /// Open the support chat with the operator of the node.
+  void _support(KnownNodeView n) {
+    if (n.addresses.isEmpty) return;
+    final parsed = parseHostPort(n.addresses.first).value;
+    if (parsed == null) return;
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SupportChatScreen(
+          node: NodeAddress(host: parsed.host, port: parsed.port),
+          peerId: n.peerId,
+        ),
+      ),
+    );
+  }
+
   String? _addressError;
   bool _adding = false;
   String? _note;
@@ -487,10 +505,20 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                TextButton(
-                  key: Key('nodes-remove-${n.peerId}'),
-                  onPressed: () => _remove(n),
-                  child: Text(l.celautNodesRemove),
+                Column(
+                  children: [
+                    IconButton(
+                      key: Key('nodes-support-${n.peerId}'),
+                      tooltip: l.celautNodesSupport,
+                      onPressed: n.addresses.isEmpty ? null : () => _support(n),
+                      icon: const Icon(Icons.support_agent),
+                    ),
+                    TextButton(
+                      key: Key('nodes-remove-${n.peerId}'),
+                      onPressed: () => _remove(n),
+                      child: Text(l.celautNodesRemove),
+                    ),
+                  ],
                 ),
               ],
             ),

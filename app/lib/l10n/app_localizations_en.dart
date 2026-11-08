@@ -5423,6 +5423,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautNodesRemove => 'Remove';
 
   @override
+  String get celautNodesSupport => 'Support chat';
+
+  @override
+  String get celautSupportTitle => 'Support chat';
+
+  @override
+  String get celautSupportHint => 'Write to the operator of the node';
+
+  @override
+  String get celautSupportSend => 'Send';
+
+  @override
+  String get celautSupportEmpty =>
+      'No messages yet. If you have a problem with this node, write to its operator here. The operator reads the messages and can answer.';
+
+  @override
+  String get celautSupportUnsupported => 'This node has no support chat.';
+
+  @override
+  String celautSupportRefused(String reason) {
+    return 'The node did not take the message: $reason';
+  }
+
+  @override
   String get celautNodesRemoved =>
       'The node was removed. Its deposits stay in the app.';
 

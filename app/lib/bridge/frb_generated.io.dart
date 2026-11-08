@@ -20,6 +20,7 @@ import 'api/celaut_package.dart';
 import 'api/celaut_receipts.dart';
 import 'api/celaut_service.dart';
 import 'api/celaut_service_info.dart';
+import 'api/celaut_support.dart';
 import 'api/mempool.dart';
 import 'api/storage_rent.dart';
 import 'dart:async';
@@ -376,6 +377,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<SkillView> dco_decode_list_skill_view(dynamic raw);
 
   @protected
+  List<SupportMessageView> dco_decode_list_support_message_view(dynamic raw);
+
+  @protected
   List<WorkloadView> dco_decode_list_workload_view(dynamic raw);
 
   @protected
@@ -532,6 +536,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   StopView dco_decode_stop_view(dynamic raw);
+
+  @protected
+  SupportMessageView dco_decode_support_message_view(dynamic raw);
+
+  @protected
+  SupportSendView dco_decode_support_send_view(dynamic raw);
+
+  @protected
+  SupportThreadView dco_decode_support_thread_view(dynamic raw);
 
   @protected
   SysresourcesView dco_decode_sysresources_view(dynamic raw);
@@ -1006,6 +1019,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<SkillView> sse_decode_list_skill_view(SseDeserializer deserializer);
 
   @protected
+  List<SupportMessageView> sse_decode_list_support_message_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<WorkloadView> sse_decode_list_workload_view(
     SseDeserializer deserializer,
   );
@@ -1186,6 +1204,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   StopView sse_decode_stop_view(SseDeserializer deserializer);
+
+  @protected
+  SupportMessageView sse_decode_support_message_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SupportSendView sse_decode_support_send_view(SseDeserializer deserializer);
+
+  @protected
+  SupportThreadView sse_decode_support_thread_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   SysresourcesView sse_decode_sysresources_view(SseDeserializer deserializer);
@@ -1809,6 +1840,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_support_message_view(
+    List<SupportMessageView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_workload_view(
     List<WorkloadView> self,
     SseSerializer serializer,
@@ -2044,6 +2081,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_stop_view(StopView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_support_message_view(
+    SupportMessageView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_support_send_view(
+    SupportSendView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_support_thread_view(
+    SupportThreadView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_sysresources_view(

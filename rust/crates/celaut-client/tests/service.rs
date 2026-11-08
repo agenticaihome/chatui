@@ -958,3 +958,69 @@ mod hibernation_record {
         assert_eq!(record(&db).hibernated_at, None);
     }
 }
+
+#[tokio::test]
+async fn support_chat_sends_with_the_client_only_and_reads_the_thread() {
+    use celaut_proto::celaut::{ChatAck, ChatEntry, ChatMessage, ChatThread, ChatThreadRequest};
+    let thread = ChatThread {
+        entries: vec![
+            ChatEntry {
+                sequence: 1,
+                ts: 10,
+                from_operator: false,
+                body: "hello".into(),
+            },
+            ChatEntry {
+                sequence: 2,
+                ts: 20,
+                from_operator: true,
+                body: "hi".into(),
+            },
+        ],
+        latest: 2,
+    };
+    let s = session(vec![
+        stream_of(1, &ChatAck { stored: true, reason: String::new() }),
+        // A refusal has a reason.
+        stream_of(1, &ChatAck { stored: false, reason: "too long".into() }),
+        stream_of(1, &thread),
+        // An empty thread has no bytes.
+        vec![],
+    ])
+    .await;
+
+    let ack = s.support_send("hello").await.unwrap().unwrap();
+    assert!(ack.stored);
+    let (method, parts) = s.transport().request(2);
+    assert_eq!(method, "Chat");
+    assert_eq!(parts.len(), 1);
+    assert_eq!(parts[0].index, 1);
+    let sent = ChatMessage::decode(parts[0].data.as_slice()).unwrap();
+    assert_eq!(sent.client_id, s.client_id());
+    assert_eq!(sent.body, "hello");
+    assert_eq!(sent.conversation_id, None);
+
+    let ack = s.support_send("x").await.unwrap().unwrap();
+    assert!(!ack.stored);
+    assert_eq!(ack.reason, "too long");
+
+    let got = s.support_thread(0).await.unwrap().unwrap();
+    assert_eq!(got, thread);
+    let (method, parts) = s.transport().request(4);
+    assert_eq!(method, "GetChatThread");
+    assert_eq!(parts.len(), 2);
+    assert_eq!(parts[0].index, 1);
+    assert_eq!(
+        ChatThreadRequest::decode(parts[0].data.as_slice()).unwrap().after_sequence,
+        0
+    );
+    assert_eq!(parts[1].index, 2);
+    assert_eq!(
+        Client::decode(parts[1].data.as_slice()).unwrap().client_id,
+        s.client_id()
+    );
+
+    let empty = s.support_thread(2).await.unwrap().unwrap();
+    assert!(empty.entries.is_empty());
+    assert_eq!(empty.latest, 0);
+}

@@ -4076,6 +4076,20 @@
   "celautNodesAdd": "Add",
   "celautNodesEmpty": "The node list is empty.",
   "celautNodesRemove": "Remove",
+  "celautNodesSupport": "Support chat",
+  "celautSupportTitle": "Support chat",
+  "celautSupportHint": "Write to the operator of the node",
+  "celautSupportSend": "Send",
+  "celautSupportEmpty": "No messages yet. If you have a problem with this node, write to its operator here. The operator reads the messages and can answer.",
+  "celautSupportUnsupported": "This node has no support chat.",
+  "celautSupportRefused": "The node did not take the message: {reason}",
+  "@celautSupportRefused": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "celautNodesRemoved": "The node was removed. Its deposits stay in the app.",
   "celautNodesAdded": "The node was added.",
   "celautNodesDeposited": "Deposits of the app: {amount}",

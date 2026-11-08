@@ -7,7 +7,8 @@ use std::time::Duration;
 use bee_rpc::frame::Part;
 use celaut_proto::celaut::metadata::hash_tag::Hash;
 use celaut_proto::celaut::{
-    Amount, BalanceStatement, Client, Configuration, EstimatedCost, Metrics, ModifyDepositInput,
+    Amount, BalanceStatement, ChatAck, ChatMessage, ChatThread, ChatThreadRequest, Client,
+    Configuration, EstimatedCost, Metrics, ModifyDepositInput,
     ModifyDepositOutput, ModifyServiceSystemResourcesInput, ModifyServiceSystemResourcesOutput,
     Payment, Peer, PoWRequired, RecursionGuard, Refund, ServiceInstance, Sysresources,
     TokenMessage,
@@ -507,4 +508,52 @@ pub async fn get_balance_statement<T: Transport>(
         ));
     }
     statement::verify(request, peer_id, statement, kept, now)
+}
+
+/// `Chat`: send `body` to the operator of the node as the client `client_id`. The call
+/// has the `ChatMessage` (index 1) and the node gives a `ChatAck` (1). A node that did
+/// not store the message says why in `reason`; that is not a wire error.
+///
+/// The client does not need a binding to a peer. This is the support chat (see
+/// `docs/celaut/support-chat.md`). A node that keeps the older rule answers
+/// `stored=false` with a reason about the peer.
+pub async fn chat<T: Transport>(
+    transport: &T,
+    client_id: &str,
+    body: &str,
+) -> Result<ChatAck, WireError> {
+    let message = ChatMessage {
+        client_id: client_id.to_string(),
+        body: body.to_string(),
+        ..Default::default()
+    };
+    let answer = transport
+        .call("Chat", vec![Part::new(1, message.encode_to_vec())], &[1])
+        .await?;
+    // A ChatAck with `stored` false and no reason has no bytes.
+    match answer.iter().find(|p| p.index == 1) {
+        Some(part) => decode(part, "the ChatAck"),
+        None => Ok(ChatAck::default()),
+    }
+}
+
+/// `GetChatThread`: the thread of the client with the operator of the node, the
+/// messages with a sequence more than `after_sequence`. The call has the
+/// `ChatThreadRequest` (index 1) and the `Client` (2). The node gives a `ChatThread` (1).
+/// It is free. An empty thread has no bytes: that is the default value.
+pub async fn get_chat_thread<T: Transport>(
+    transport: &T,
+    client_id: &str,
+    after_sequence: u64,
+) -> Result<ChatThread, WireError> {
+    let request = ChatThreadRequest { after_sequence };
+    let parts = vec![
+        Part::new(1, request.encode_to_vec()),
+        client_part(2, client_id),
+    ];
+    let answer = transport.call("GetChatThread", parts, &[1]).await?;
+    match answer.iter().find(|p| p.index == 1) {
+        Some(part) => decode(part, "the ChatThread"),
+        None => Ok(ChatThread::default()),
+    }
 }

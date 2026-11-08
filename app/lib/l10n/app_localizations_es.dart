@@ -5491,6 +5491,30 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautNodesRemove => 'Quitar';
 
   @override
+  String get celautNodesSupport => 'Chat de soporte';
+
+  @override
+  String get celautSupportTitle => 'Chat de soporte';
+
+  @override
+  String get celautSupportHint => 'Escribe al operador del nodo';
+
+  @override
+  String get celautSupportSend => 'Enviar';
+
+  @override
+  String get celautSupportEmpty =>
+      'Aún no hay mensajes. Si tienes un problema con este nodo, escribe aquí a su operador. El operador lee los mensajes y puede responder.';
+
+  @override
+  String get celautSupportUnsupported => 'Este nodo no tiene chat de soporte.';
+
+  @override
+  String celautSupportRefused(String reason) {
+    return 'El nodo no aceptó el mensaje: $reason';
+  }
+
+  @override
   String get celautNodesRemoved =>
       'Se quitó el nodo. Sus depósitos quedan en la app.';
 

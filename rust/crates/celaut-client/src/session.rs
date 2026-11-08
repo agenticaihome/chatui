@@ -8,10 +8,10 @@
 use celaut_balancer::{amount, erg_rate};
 use celaut_proto::celaut::service::Api;
 use celaut_proto::celaut::{
-    Configuration, EstimatedCost, ExecutionReceipt, Instance, Payment, Sysresources,
+    ChatAck, ChatThread, Configuration, EstimatedCost, ExecutionReceipt, Instance, Payment, Sysresources,
 };
 use celaut_wire::gateway::{
-    generate_deposit_token, get_client_metrics, get_metrics, get_service_estimated_cost,
+    chat, generate_deposit_token, get_chat_thread, get_client_metrics, get_metrics, get_service_estimated_cost,
     get_service_estimated_cost_with_service, get_service_raw, get_service_skippable,
     modify_deposit, modify_system_resources, payable, start_service, stop_service, ServiceRequest,
 };
@@ -415,6 +415,30 @@ impl<T: Transport> NodeSession<T> {
         Ok(amount(metrics.balance.as_ref())?)
     }
 
+    /// `Chat`: send `body` to the operator of the node (the support chat). `None` if the
+    /// node has no such RPC. A message that the node did not store gives a `ChatAck` with
+    /// `stored` false and a reason.
+    pub async fn support_send(&self, body: &str) -> Result<Option<ChatAck>, ClientError> {
+        match chat(&self.transport, &self.client_id, body).await {
+            Ok(ack) => Ok(Some(ack)),
+            Err(e) if is_missing_rpc(&e) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// `GetChatThread`: the messages of the support chat with a sequence more than
+    /// `after_sequence`. `None` if the node has no such RPC.
+    pub async fn support_thread(
+        &self,
+        after_sequence: u64,
+    ) -> Result<Option<ChatThread>, ClientError> {
+        match get_chat_thread(&self.transport, &self.client_id, after_sequence).await {
+            Ok(thread) => Ok(Some(thread)),
+            Err(e) if is_missing_rpc(&e) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
     /// `GetMetrics` for an instance: its balance in MU of the node.
     pub async fn instance_balance(&self, token: &str) -> Result<u128, ClientError> {
         let metrics = get_metrics(&self.transport, token).await?;
@@ -728,12 +752,22 @@ mod chat_slot_tests {
 /// bee-rpc "method not found".
 const MISSING_RPC_TEXTS: [&str; 3] = ["unimplemented", "method not found", "unknown method"];
 
+/// True if the error says that the node does not know the RPC.
+fn is_missing_rpc(error: &WireError) -> bool {
+    match error {
+        WireError::Call(text) => {
+            let lower = text.to_ascii_lowercase();
+            MISSING_RPC_TEXTS.iter().any(|t| lower.contains(t))
+        }
+        _ => false,
+    }
+}
+
 /// Says what is wrong when the node has no `GetClientMetrics`. It does not tell the user
 /// to update the node.
 fn missing_client_metrics(error: WireError) -> ClientError {
-    if let WireError::Call(text) = &error {
-        let lower = text.to_ascii_lowercase();
-        if MISSING_RPC_TEXTS.iter().any(|t| lower.contains(t)) {
+    {
+        if is_missing_rpc(&error) {
             return ClientError::Protocol(
                 "the node interface is partially incompatible: it has no GetClientMetrics"
                     .to_string(),

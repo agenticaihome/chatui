@@ -56,6 +56,7 @@ pub mod celaut_network;
 
 /// Whether the nodes are available: the checks and their record (M4).
 pub mod celaut_health;
+pub mod celaut_support;
 
 /// Give a service to a node that does not have it (a package).
 pub mod celaut_package;
