@@ -58,7 +58,7 @@ What the port does, in the order of nodo (`request_misfit`):
 vcnorm(c, v)  = trunc(c * (1 + v * k))                 k = COST_AVERAGE_VARIATION = 1
 per_hour(a)   = 0 if s <= 0 else trunc(vcnorm(a, variance) * 3600 / s)
                 s = maintenance_seconds_loop
-cost_mu       = trunc(vcnorm(cost, variance)
+cost_mu       = trunc(vcnorm(cost + children_initial_cost, variance)
                       + mean(per_hour(init_maintenance_cost), per_hour(max_maintenance_cost)))
 
 score         = +inf if cost_mu <= 0
@@ -121,6 +121,33 @@ charges `init_maintenance_cost` once each `maintenance_seconds_loop`. So for a t
 
 The app keeps the last time that the user typed (`celaut_min_survival_minutes_v1`). It must
 be from 1 minute to 30 days.
+
+## The initial children of a service (2026-11-08, nodo#538)
+
+A service can declare the children that it starts at its start
+(`Service.initial_environment_workload`). The parent pays the start of each child from its own
+balance, so a node quotes that amount apart: `EstimatedCost.children_initial_cost`. The
+`cost` of the quote does not include it (nodo#635 reverses nodo#634, which put it in `cost`).
+
+- Every start of the app (`launchService`, and the start of the Celaut service screen) sends
+  `initial_mu = cost + children_initial_cost` (`launcher.dart`, `startMuOf`). With a time,
+  `cost` is the build plus balance(q, T), so this is
+  `build + maintenance × (periods + 1) × (1 + variance) + children_initial_cost`. A node with
+  `ON_UNDERFUNDED=reject` (the default) refuses a start whose balance after the build is less
+  than `children_initial_cost` plus one period of the parent.
+- The credit check before a start (`wouldAskToStart`), the estimate of the confirmation
+  (`startCostWith`) and the score (`cost_mu`, through `start_mu` in `celaut-balancer`) use
+  the same sum. nodo compares `cost` only; the client pays both, so the app compares both.
+- The confirmation shows the whole start and a line for the children. The info page of the
+  instance shows them under "Time and credit".
+- A node before nodo#538 does not send field 6: it reads as 0, and nothing changes.
+- A node on dev with nodo#634 and without nodo#635 sends no field 6 either. It puts the
+  children in its default balance only: a quote with `initial_mu` (the app always sends one
+  from the store) has no children in `cost`, and a quote without one has them in `cost`. The
+  app adds 0 in both cases, so nothing is counted twice. In the first case the children are
+  not funded, as before this change; nodo#635 is the target.
+- Children that the service starts later (`possible_environment_workload`) are not in the
+  quote. The time of the parent pays them, as before: a longer time, or keep running.
 
 ## Priority of the user (node reputation)
 

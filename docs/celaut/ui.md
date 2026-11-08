@@ -241,6 +241,19 @@ Details:
   the app kept it) uses 200 000 MU and 1 000 000 MU. That credit is already on the node:
   nothing goes on the blockchain and nothing is signed. The instance keeps the sum of its
   top-ups (`topped_up_mu`), and the cost so far counts it.
+- **Initial children (nodo#538).** The first balance of a kept instance also has
+  `children_initial_cost`, as every start. The instance keeps it (`children_initial_mu`) and
+  its own part of the start (`own_start_mu`: the balance that the quote was asked with). The
+  node takes the MU of the children only when the parent starts them, so the app does not
+  count them as time of the parent (`AutoTopUp.ownBalance`): while the balance is at least
+  `own_start_mu + topped_up_mu`, the children did not start, and the part of the parent is
+  that sum less the maintenance since the start (at the price with its margin). Below the sum,
+  the children started, and the whole balance is the parent's. So a top-up comes when the
+  parent itself runs low, and the parent never spends the MU of its children on its own
+  maintenance. The amount of a top-up is time of the parent only: the children already got
+  their start. With no children, or with no known own part (a start with the default of the
+  node, an old record), it is the whole balance, as before. The info page uses the same rule
+  for "about … left".
 - **The limit.** Optional, in MU, from the moment the user turned it on (`spent_mu`: what was
   moved since then). At the limit the app moves nothing and says so; the instance stops when
   its balance runs out. A new limit: turn the switch off and on.
