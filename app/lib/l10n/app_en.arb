@@ -5775,5 +5775,7 @@
     }
   },
   "descendantsOpenBudgetTooSmall": "The budget does not pay for one stream.",
-  "descendantsOpenConfirm": "Open and pay"
+  "descendantsOpenConfirm": "Open and pay",
+  "serviceInfoWorkloadsInitial": "First instances that it starts",
+  "serviceInfoWorkloadOr": "or"
 }

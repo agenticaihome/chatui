@@ -7912,13 +7912,19 @@ impl SseDecode for () {
 impl SseDecode for crate::api::celaut_service_info::WorkloadView {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_scenario = <u32>::sse_decode(deserializer);
+        let mut var_initial = <bool>::sse_decode(deserializer);
+        let mut var_clause = <u32>::sse_decode(deserializer);
+        let mut var_group = <u32>::sse_decode(deserializer);
+        let mut var_groups = <u32>::sse_decode(deserializer);
         let mut var_count = <u32>::sse_decode(deserializer);
         let mut var_resources =
             <Option<crate::api::celaut_service_info::SysresourcesView>>::sse_decode(deserializer);
         let mut var_hasDependency = <bool>::sse_decode(deserializer);
         return crate::api::celaut_service_info::WorkloadView {
-            scenario: var_scenario,
+            initial: var_initial,
+            clause: var_clause,
+            group: var_group,
+            groups: var_groups,
             count: var_count,
             resources: var_resources,
             has_dependency: var_hasDependency,
@@ -10762,7 +10768,10 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::celaut_descendants::TunnelQuo
 impl flutter_rust_bridge::IntoDart for crate::api::celaut_service_info::WorkloadView {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.scenario.into_into_dart().into_dart(),
+            self.initial.into_into_dart().into_dart(),
+            self.clause.into_into_dart().into_dart(),
+            self.group.into_into_dart().into_dart(),
+            self.groups.into_into_dart().into_dart(),
             self.count.into_into_dart().into_dart(),
             self.resources.into_into_dart().into_dart(),
             self.has_dependency.into_into_dart().into_dart(),
@@ -12676,7 +12685,10 @@ impl SseEncode for () {
 impl SseEncode for crate::api::celaut_service_info::WorkloadView {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <u32>::sse_encode(self.scenario, serializer);
+        <bool>::sse_encode(self.initial, serializer);
+        <u32>::sse_encode(self.clause, serializer);
+        <u32>::sse_encode(self.group, serializer);
+        <u32>::sse_encode(self.groups, serializer);
         <u32>::sse_encode(self.count, serializer);
         <Option<crate::api::celaut_service_info::SysresourcesView>>::sse_encode(
             self.resources,

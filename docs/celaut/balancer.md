@@ -122,6 +122,20 @@ charges `init_maintenance_cost` once each `maintenance_seconds_loop`. So for a t
 The app keeps the last time that the user typed (`celaut_min_survival_minutes_v1`). It must
 be from 1 minute to 30 days.
 
+## The initial children of a service (2026-11-09, nodo#538)
+
+A service can declare the children that it starts at its start
+(`Service.initial_environment_workload`). The parent pays the start of each child from its own
+balance, and the node puts that amount in the `cost` of its quote: `cost` is the build, the
+balance that the quote was asked with, and the starts of the initial children. There is no
+separate field (nodo#635, at Josemi's request: the client has nothing to do with the split).
+So the app has nothing to add: every start sends the `cost` of the winning quote, the score
+and the credit check use `cost`, and keep running counts the whole balance as before. A node
+with `ON_UNDERFUNDED=reject` (the default) refuses a start whose balance after the build cannot
+pay the children and one period of the parent; a start funded with the `cost` of a quote of
+that node passes. The info page of a service lists the first instances that it starts
+(`initial_environment_workload`) apart from the ones that it can start later.
+
 ## Priority of the user (node reputation)
 
 The user can give each node a reputation, a whole number from 0 to 100

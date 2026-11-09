@@ -22,7 +22,7 @@ use std::path::Path;
 
 use bee_rpc::buffer::Buffer;
 use celaut_proto::celaut::service::container::{Architecture, ConfigDeclaration, Init, Resources};
-use celaut_proto::celaut::service::{Api, Network, PossibleEnvironmentWorkload};
+use celaut_proto::celaut::service::{Api, Clause, Network};
 use celaut_proto::celaut::DataFormatKeyValue;
 use celaut_wire::gateway::SHA3_256_TYPE;
 use celaut_wire::{Buffers, Skipper};
@@ -343,9 +343,16 @@ pub struct ServiceInfo {
     pub api: Option<Api>,
     /// `Service.network`.
     pub networks: Vec<Network>,
-    /// The scenarios of descendant instances that the service declares.
-    pub workloads: Vec<PossibleEnvironmentWorkload>,
-    /// How many of those scenarios were too large to read (they carry a whole service).
+    /// The descendant instances that the service can start while it runs
+    /// (`Service.possible_environment_workload`). An AND of clauses; a clause is an OR of
+    /// groups; a group is an AND of workloads that run at the same time (nodo#538).
+    pub workloads: Vec<Clause>,
+    /// The descendant instances that the service starts at its start
+    /// (`Service.initial_environment_workload`), in the same form. The `cost` of a quote
+    /// includes their start (nodo#538).
+    pub initial_workloads: Vec<Clause>,
+    /// How many clauses of the two fields were too large to read (they carry a whole
+    /// service).
     pub workloads_skipped: u32,
     /// How many other parts (the architecture, the resources, a network, …) were larger than
     /// the reader decodes and were skipped. Each is unknown, not absent.
@@ -460,7 +467,7 @@ async fn scan_container(
 async fn scan(src: &mut ServiceBytes, info: &mut ServiceInfo) -> Result<(), PackageError> {
     while let Some(tag) = src.varint().await? {
         let (field, wire_type) = (tag >> 3, tag & 7);
-        if wire_type != 2 || !(1..=5).contains(&field) {
+        if wire_type != 2 || !(1..=6).contains(&field) {
             src.skip_value(wire_type).await?;
             continue;
         }
@@ -489,9 +496,10 @@ async fn scan(src: &mut ServiceBytes, info: &mut ServiceInfo) -> Result<(), Pack
                 }
             }
             _ => {
-                // A workload that is too large is counted apart: it carries a whole service.
+                // A clause that is too large is counted apart: it carries a whole service.
                 let before = src.skipped;
                 match part(src, len, "a workload").await? {
+                    Some(w) if field == 6 => keep(&mut info.initial_workloads, w)?,
                     Some(w) => keep(&mut info.workloads, w)?,
                     None => {
                         src.skipped = before;
@@ -549,7 +557,8 @@ mod tests {
     use bee_rpc::buffer::buffer::Head;
     use celaut_proto::celaut::service::api::{Protocol, Slot};
     use celaut_proto::celaut::service::container::Resources as ContainerResources;
-    use celaut_proto::celaut::service::possible_environment_workload::Workload;
+    use celaut_proto::celaut::service::workload::Dependency;
+    use celaut_proto::celaut::service::{Group, Workload};
     use celaut_proto::celaut::service::Container;
     use celaut_proto::celaut::{DataFormat, Service, Sysresources, Uint64KeyValue};
 
@@ -654,12 +663,47 @@ mod tests {
                     ..Default::default()
                 },
             ],
-            possible_environment_workload: vec![PossibleEnvironmentWorkload {
-                workloads: vec![Workload {
-                    count: 3,
-                    resources: Some(resources()),
-                    dependency: None,
+            possible_environment_workload: vec![Clause {
+                any_of: vec![Group {
+                    workloads: vec![Workload {
+                        count: 3,
+                        dependency: Some(Dependency {
+                            service: Some(Service {
+                                container: Some(Container {
+                                    resources: Some(ContainerResources {
+                                        at_init: Some(resources()),
+                                        at_most: None,
+                                    }),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        }),
+                    }],
                 }],
+            }],
+            initial_environment_workload: vec![Clause {
+                any_of: vec![
+                    Group {
+                        workloads: vec![Workload {
+                            count: 1,
+                            dependency: Some(Dependency {
+                                hash: vec![celaut_proto::celaut::metadata::hash_tag::Hash {
+                                    r#type: vec![1],
+                                    value: vec![7; 32],
+                                }],
+                                ..Default::default()
+                            }),
+                        }],
+                    },
+                    Group {
+                        workloads: vec![Workload {
+                            count: 2,
+                            dependency: None,
+                        }],
+                    },
+                ],
             }],
         }
     }
@@ -737,7 +781,12 @@ mod tests {
             assert_eq!(info.networks[0].tags, vec!["api.example.org".to_string()]);
             assert_eq!(info.networks[0].formal, b"pow.chain=ergo");
             assert_eq!(info.workloads.len(), 1);
-            assert_eq!(info.workloads[0].workloads[0].count, 3);
+            assert_eq!(info.workloads[0].any_of[0].workloads[0].count, 3);
+            assert_eq!(info.initial_workloads.len(), 1);
+            let groups = &info.initial_workloads[0].any_of;
+            assert_eq!(groups.len(), 2);
+            assert_eq!(groups[0].workloads[0].count, 1);
+            assert_eq!(groups[1].workloads[0].count, 2);
             assert_eq!(info.workloads_skipped, 0);
         }
     }
@@ -918,26 +967,27 @@ mod tests {
     #[tokio::test]
     async fn a_workload_that_carries_a_whole_service_is_counted_and_not_read() {
         let mut big = service(0, &[]);
-        let nested = PossibleEnvironmentWorkload {
-            workloads: vec![Workload {
-                count: 1,
-                resources: None,
-                dependency: Some(
-                    celaut_proto::celaut::service::possible_environment_workload::workload::Dependency {
+        let nested = Clause {
+            any_of: vec![Group {
+                workloads: vec![Workload {
+                    count: 1,
+                    dependency: Some(Dependency {
                         hash: Vec::new(),
                         service: Some(service((MAX_ENTRY as usize) + 1000, &["X"])),
                         is_completed: true,
                         on_filesystem: false,
-                    },
-                ),
+                    }),
+                }],
             }],
         };
-        big.possible_environment_workload.push(nested);
+        big.possible_environment_workload.push(nested.clone());
+        big.initial_environment_workload.push(nested);
         let info = read_service_info(package(&big.encode_to_vec(), 4096), None, None)
             .await
             .unwrap();
         assert_eq!(info.workloads.len(), 1);
-        assert_eq!(info.workloads_skipped, 1);
+        assert_eq!(info.initial_workloads.len(), 1);
+        assert_eq!(info.workloads_skipped, 2);
         assert_eq!(info.api.unwrap().slot.len(), 2);
     }
 

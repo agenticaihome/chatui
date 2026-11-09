@@ -12772,6 +12772,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open and pay'**
   String get descendantsOpenConfirm;
+
+  /// No description provided for @serviceInfoWorkloadsInitial.
+  ///
+  /// In en, this message translates to:
+  /// **'First instances that it starts'**
+  String get serviceInfoWorkloadsInitial;
+
+  /// No description provided for @serviceInfoWorkloadOr.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get serviceInfoWorkloadOr;
 }
 
 class _AppLocalizationsDelegate

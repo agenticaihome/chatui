@@ -7955,4 +7955,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get descendantsOpenConfirm => 'Open and pay';
+
+  @override
+  String get serviceInfoWorkloadsInitial => 'First instances that it starts';
+
+  @override
+  String get serviceInfoWorkloadOr => 'or';
 }

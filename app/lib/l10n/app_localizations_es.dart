@@ -8036,4 +8036,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get descendantsOpenConfirm => 'Abrir y pagar';
+
+  @override
+  String get serviceInfoWorkloadsInitial => 'Primeras instancias que arranca';
+
+  @override
+  String get serviceInfoWorkloadOr => 'o';
 }

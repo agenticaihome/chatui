@@ -11,7 +11,7 @@ use std::path::PathBuf;
 
 use celaut_client::service_info::{read_service_info, read_service_info_of_file, ServiceInfo};
 use celaut_proto::celaut::service::api::{Protocol, Slot};
-use celaut_proto::celaut::service::Network;
+use celaut_proto::celaut::service::{Clause, Network};
 use celaut_proto::celaut::{AmountKeyValue, Sysresources, Uint64KeyValue};
 
 use super::celaut::{error_of, invalid, CelautError};
@@ -85,15 +85,52 @@ pub struct NetworkView {
     pub protocol_stack: Vec<ProtocolView>,
 }
 
-/// One group of identical instances that the service can start while it runs.
+/// Identical descendant instances that the service declares (nodo#538). The service
+/// needs every clause; in a clause it uses one group; a group runs all its workloads.
 #[derive(Debug, Clone, PartialEq)]
 pub struct WorkloadView {
-    /// The scenario of the group (a scenario is a set of groups that run together).
-    pub scenario: u32,
+    /// True for instances that the service starts at its start
+    /// (`initial_environment_workload`). The start funds them: the `cost` of a quote
+    /// includes them. False for instances that it can start
+    /// later (`possible_environment_workload`).
+    pub initial: bool,
+    /// The clause, from 0, in its field.
+    pub clause: u32,
+    /// The group, from 0, in its clause.
+    pub group: u32,
+    /// How many groups the clause has. With more than 1, the service uses one of them.
+    pub groups: u32,
     pub count: u32,
+    /// The resources at the start of the service of the workload, if it gives them.
     pub resources: Option<SysresourcesView>,
-    /// True if the group is for a service (with its hash or its specification).
+    /// True if the workload is for a service (with its hash or its specification).
     pub has_dependency: bool,
+}
+
+/// The workloads of the clauses of one field, in order.
+fn workload_views(clauses: &[Clause], initial: bool) -> Vec<WorkloadView> {
+    let mut views = Vec::new();
+    for (c, clause) in clauses.iter().enumerate() {
+        for (g, group) in clause.any_of.iter().enumerate() {
+            for w in &group.workloads {
+                let service = w.dependency.as_ref().and_then(|d| d.service.as_ref());
+                let resources = service
+                    .and_then(|s| s.container.as_ref())
+                    .and_then(|c| c.resources.as_ref())
+                    .and_then(|r| r.at_init.as_ref());
+                views.push(WorkloadView {
+                    initial,
+                    clause: c as u32,
+                    group: g as u32,
+                    groups: clause.any_of.len() as u32,
+                    count: w.count,
+                    resources: resources.map(resources_view),
+                    has_dependency: w.dependency.is_some(),
+                });
+            }
+        }
+    }
+    views
 }
 
 /// Whether the interface of the service is the chat convention of the app.
@@ -131,7 +168,7 @@ pub struct ServiceInfoView {
     pub slots: Vec<ApiSlotView>,
     pub networks: Vec<NetworkView>,
     pub workloads: Vec<WorkloadView>,
-    /// How many scenarios were too large to read, because they carry a whole service.
+    /// How many clauses were too large to read, because they carry a whole service.
     pub workloads_skipped: u32,
     /// How many other parts were too large to read. Each is unknown, not absent.
     pub parts_skipped: u32,
@@ -258,18 +295,9 @@ pub(crate) fn view_of(info: ServiceInfo) -> ServiceInfoView {
             .map(|a| a.slot.iter().map(|s| slot_view(s, &chat_ports)).collect())
             .unwrap_or_default(),
         networks: info.networks.iter().map(network_view).collect(),
-        workloads: info
-            .workloads
-            .iter()
-            .enumerate()
-            .flat_map(|(i, scenario)| {
-                scenario.workloads.iter().map(move |w| WorkloadView {
-                    scenario: i as u32,
-                    count: w.count,
-                    resources: w.resources.as_ref().map(resources_view),
-                    has_dependency: w.dependency.is_some(),
-                })
-            })
+        workloads: workload_views(&info.initial_workloads, true)
+            .into_iter()
+            .chain(workload_views(&info.workloads, false))
             .collect(),
         workloads_skipped: info.workloads_skipped,
         parts_skipped: info.parts_skipped,
