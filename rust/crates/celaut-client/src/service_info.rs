@@ -348,8 +348,8 @@ pub struct ServiceInfo {
     /// groups; a group is an AND of workloads that run at the same time (nodo#538).
     pub workloads: Vec<Clause>,
     /// The descendant instances that the service starts at its start
-    /// (`Service.initial_environment_workload`), in the same form. The node prices their
-    /// start in `EstimatedCost.children_initial_cost` (nodo#538).
+    /// (`Service.initial_environment_workload`), in the same form. The `cost` of a quote
+    /// includes their start (nodo#538).
     pub initial_workloads: Vec<Clause>,
     /// How many clauses of the two fields were too large to read (they carry a whole
     /// service).

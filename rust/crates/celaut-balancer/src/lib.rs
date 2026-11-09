@@ -141,22 +141,10 @@ fn vcnorm(cost: u128, variance: f32) -> f64 {
     (cost as f64 * (1.0 + f64::from(variance) * COST_AVERAGE_VARIATION)).trunc()
 }
 
-/// What a start of the service takes from the client, in the unit of the amounts of
-/// `quote`: `cost` plus `children_initial_cost` (nodo#538). The parent pays the start of
-/// its initial children out of its balance, and `cost` does not include them. A node
-/// that does not send `children_initial_cost` gives 0.
-pub fn start_mu(quote: &EstimatedCost) -> Result<u128, BalancerError> {
-    amount(quote.cost.as_ref())?
-        .checked_add(amount(quote.children_initial_cost.as_ref())?)
-        .ok_or(BalancerError::TooLarge)
-}
-
 /// The cost of a quote for the comparison, in the unit of its amounts:
-/// `trunc(vcnorm(start) + mean(per_hour(init), per_hour(max)))`, where `start` is
-/// [`start_mu`] and `per_hour(a) = trunc(vcnorm(a) * 3600 / maintenance_seconds_loop)`, or
-/// 0 when the loop is 0 or less. As in nodo, the arithmetic is in floating point. nodo
-/// compares `cost` only; the app adds `children_initial_cost`, because the client pays it
-/// too.
+/// `trunc(vcnorm(cost) + mean(per_hour(init), per_hour(max)))`, where
+/// `per_hour(a) = trunc(vcnorm(a) * 3600 / maintenance_seconds_loop)`, or 0 when the loop
+/// is 0 or less. As in nodo, the arithmetic is in floating point.
 pub fn cost_mu(quote: &EstimatedCost) -> Result<f64, BalancerError> {
     let variance = quote.variance;
     let per_hour = |a: Option<&Amount>| -> Result<f64, BalancerError> {
@@ -168,7 +156,7 @@ pub fn cost_mu(quote: &EstimatedCost) -> Result<f64, BalancerError> {
     };
     let init = per_hour(quote.init_maintenance_cost.as_ref())?;
     let max = per_hour(quote.max_maintenance_cost.as_ref())?;
-    Ok((vcnorm(start_mu(quote)?, variance) + (init + max) / 2.0).trunc())
+    Ok((vcnorm(amount(quote.cost.as_ref())?, variance) + (init + max) / 2.0).trunc())
 }
 
 /// `x / (|x| + half)`.

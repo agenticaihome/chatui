@@ -211,16 +211,6 @@ pub struct InstanceRecord {
     /// in MU (the automatic top-up, `ModifyDeposit`). The cost so far counts it.
     #[serde(default)]
     pub topped_up_mu: Option<String>,
-    /// What the instance pays to start its initial children, in MU of the node, from the
-    /// quote that won the start (`EstimatedCost.children_initial_cost`, nodo#538). The
-    /// start added it to the balance of the instance. An old record has none.
-    #[serde(default)]
-    pub children_initial_mu: Option<String>,
-    /// The balance that the start gave the instance for itself, in MU: without the build
-    /// and without [`InstanceRecord::children_initial_mu`]. None if the app does not know
-    /// it (an old record, or a start with the default balance of the node).
-    #[serde(default)]
-    pub own_start_mu: Option<String>,
     /// The time of the stop, in Unix seconds. A stopped instance stays in the database
     /// until the user deletes it (`docs/celaut/ui-chat-first.md`). An old record has
     /// none: it runs.
@@ -993,8 +983,6 @@ mod tests {
                 alias: Some("My echo".into()),
                 title: Some("Trip to Lisbon".into()),
                 topped_up_mu: Some("50".into()),
-                children_initial_mu: Some("9200000".into()),
-                own_start_mu: Some("1000000".into()),
                 stopped_at: None,
                 refund_mu: None,
                 pricing: None,

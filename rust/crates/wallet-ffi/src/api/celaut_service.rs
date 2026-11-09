@@ -333,13 +333,8 @@ pub(crate) fn forget_if_broken_key(key: &str) {
 pub struct QuoteView {
     pub address: NodeAddress,
     pub peer_id: String,
-    /// The cost of the start (charged by StartService), in MU of the node: the build and
-    /// the balance of the instance. It does not include `children_initial_cost_mu`.
+    /// The cost of the start (charged by StartService), in MU of the node.
     pub cost_mu: String,
-    /// What the instance pays to start its initial children, in MU of the node
-    /// (`EstimatedCost.children_initial_cost`, nodo#538). The start must add it to
-    /// `cost_mu`. Empty if the node does not send it (a node before nodo#538): 0.
-    pub children_initial_cost_mu: String,
     pub init_maintenance_mu: String,
     pub max_maintenance_mu: String,
     pub maintenance_seconds_loop: i32,
@@ -378,7 +373,6 @@ pub(crate) fn quote_view(address: NodeAddress, peer_id: String, q: &EstimatedCos
         address,
         peer_id,
         cost_mu: n(&q.cost),
-        children_initial_cost_mu: n(&q.children_initial_cost),
         init_maintenance_mu: n(&q.init_maintenance_cost),
         max_maintenance_mu: n(&q.max_maintenance_cost),
         maintenance_seconds_loop: q.maintenance_seconds_loop,
@@ -564,8 +558,6 @@ pub async fn celaut_start_service(
         alias: None,
         title: None,
         topped_up_mu: None,
-        children_initial_mu: None,
-        own_start_mu: None,
         stopped_at: None,
         refund_mu: None,
         pricing: None,
@@ -1009,16 +1001,6 @@ pub struct InstancePlanView {
     /// The fee of the call that wakes the instance, in MU. The instance pays it, so a
     /// hibernated instance needs it in its balance (empty if the app does not know it).
     pub wake_fee_mu: String,
-    /// What the instance pays to start its initial children, in MU (nodo#538). Empty if
-    /// the app does not know it.
-    pub children_initial_mu: String,
-    /// The balance that the start gave the instance for itself, without the build and the
-    /// children, in MU. Empty if the app does not know it.
-    pub own_start_mu: String,
-    /// All that the app moved to the instance after the start, in MU (empty: none).
-    pub topped_up_mu: String,
-    /// The time of the start, in Unix seconds.
-    pub started_at: i64,
 }
 
 /// What the app moved to the instance since `keep_alive` started, in MU.
@@ -1064,41 +1046,8 @@ pub fn celaut_instance_plan(instance_id: String) -> Result<InstancePlanView, Cel
             hibernated,
             disk_only,
             wake_fee_mu: price.map(|p| p.wake_fee_mu.clone()).unwrap_or_default(),
-            children_initial_mu: r.children_initial_mu.clone().unwrap_or_default(),
-            own_start_mu: r.own_start_mu.clone().unwrap_or_default(),
-            topped_up_mu: r.topped_up_mu.clone().unwrap_or_default(),
-            started_at: r.started_at,
         })
     })
-}
-
-/// Keep how the start funded an instance (nodo#538): `children_initial_mu` for the start
-/// of its initial children, and `own_start_mu` for the instance itself (None if the app
-/// does not know it). The keep-alive reads them (`AutoTopUp`), and the info page shows
-/// the children. An amount that is not a number of MU is refused.
-#[flutter_rust_bridge::frb(sync)]
-pub fn celaut_set_instance_start(
-    instance_id: String,
-    own_start_mu: Option<String>,
-    children_initial_mu: String,
-) -> Result<(), CelautError> {
-    let number = |text: &str| -> Result<String, CelautError> {
-        text.trim()
-            .parse::<u128>()
-            .map(|n| n.to_string())
-            .map_err(|_| invalid("The amount is not a number of MU."))
-    };
-    let children = number(&children_initial_mu)?;
-    let own = own_start_mu.as_deref().map(number).transpose()?;
-    db().update(|d| match d.instances.get_mut(&instance_id) {
-        None => Err(unknown_instance()),
-        Some(r) => {
-            r.children_initial_mu = Some(children);
-            r.own_start_mu = own;
-            Ok(())
-        }
-    })
-    .map_err(storage_error)?
 }
 
 /// Keep the price of the node of an instance, from the quote that won its start, so that
@@ -1547,27 +1496,6 @@ pub async fn celaut_wake_instance(instance_id: String) -> Result<HibernationView
 #[cfg(test)]
 mod tests {
     #[test]
-    fn a_quote_gives_children_initial_cost_apart() {
-        let node = NodeAddress {
-            host: "node.example".into(),
-            port: 1,
-        };
-        let mut q = EstimatedCost {
-            cost: Some(Amount { n: "1000".into() }),
-            children_initial_cost: Some(Amount {
-                n: "9200000".into(),
-            }),
-            ..Default::default()
-        };
-        let view = quote_view(node.clone(), "p".into(), &q);
-        assert_eq!(view.cost_mu, "1000");
-        assert_eq!(view.children_initial_cost_mu, "9200000");
-        // A node before nodo#538 does not send field 6.
-        q.children_initial_cost = None;
-        assert_eq!(quote_view(node, "p".into(), &q).children_initial_cost_mu, "");
-    }
-
-    #[test]
     fn the_preferred_port_is_stable_and_in_range() {
         let a = preferred_port("instance-a", 80);
         assert_eq!(a, preferred_port("instance-a", 80));
@@ -1962,30 +1890,6 @@ mod tests {
 
         celaut_set_keep_alive(id.clone(), false, None).unwrap();
         assert!(!celaut_instance_plan(id.clone()).unwrap().keep_alive);
-
-        // How the start funded the instance (nodo#538).
-        let plan = celaut_instance_plan(id.clone()).unwrap();
-        assert_eq!(
-            (plan.children_initial_mu.as_str(), plan.own_start_mu.as_str()),
-            ("", "")
-        );
-        assert_eq!(plan.topped_up_mu, "1200");
-        celaut_set_instance_start(id.clone(), Some(" 1000000 ".into()), "9200000".into())
-            .unwrap();
-        let plan = celaut_instance_plan(id.clone()).unwrap();
-        assert_eq!(
-            (plan.children_initial_mu.as_str(), plan.own_start_mu.as_str()),
-            ("9200000", "1000000")
-        );
-        celaut_set_instance_start(id.clone(), None, "0".into()).unwrap();
-        let plan = celaut_instance_plan(id.clone()).unwrap();
-        assert_eq!(
-            (plan.children_initial_mu.as_str(), plan.own_start_mu.as_str()),
-            ("0", "")
-        );
-        assert!(celaut_set_instance_start(id.clone(), None, "x".into()).is_err());
-        assert!(celaut_set_instance_start(id.clone(), Some("-1".into()), "0".into()).is_err());
-        assert!(celaut_set_instance_start("no-such-instance".into(), None, "0".into()).is_err());
 
         // A stopped instance cannot be kept alive.
         db().update(|d| d.instances.get_mut(&id).unwrap().stopped_at = Some(5))

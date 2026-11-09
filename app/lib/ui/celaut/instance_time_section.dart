@@ -145,10 +145,7 @@ class _InstanceTimeSectionState extends State<InstanceTimeSection> {
     final l = context.l10n;
     final t = HomeText.of(context);
     final price = _price;
-    // The MU for the initial children are not time of the instance (nodo#538).
-    final left =
-        price == null || _balance == null ? null : price.lasts(AutoTopUp.ownBalance(plan, _balance!, price, DateTime.now()));
-    final children = BigInt.tryParse(plan.childrenInitialMu) ?? BigInt.zero;
+    final left = price == null || _balance == null ? null : price.lasts(_balance!);
     final creditTime = price == null || _credit == null ? null : price.lasts(_credit!);
     final keep = plan.keepAlive;
     final limit = plan.budgetMu;
@@ -177,8 +174,6 @@ class _InstanceTimeSectionState extends State<InstanceTimeSection> {
                 : '${muOrUnknown('$_balance')} (${l.celautTimeAbout(formatSurvival(left))})',
             const Key('info-time-balance'),
           ),
-        if (children > BigInt.zero)
-          row(l.celautTimeChildren, muOrUnknown('$children'), const Key('info-time-children')),
         row(
           l.celautTimeCredit,
           _credit == null

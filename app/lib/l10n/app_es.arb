@@ -2656,15 +2656,6 @@
   },
   "descendantsOpenBudgetTooSmall": "El presupuesto no paga ni un flujo.",
   "descendantsOpenConfirm": "Abrir y pagar",
-  "celautRunChildren": "El inicio también paga {cost} por los primeros descendientes del servicio.",
-  "@celautRunChildren": {
-    "placeholders": {
-      "cost": {
-        "type": "String"
-      }
-    }
-  },
-  "celautTimeChildren": "Para los primeros descendientes",
   "serviceInfoWorkloadsInitial": "Primeras instancias que arranca",
   "serviceInfoWorkloadOr": "o"
 }

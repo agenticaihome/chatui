@@ -8038,14 +8038,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get descendantsOpenConfirm => 'Abrir y pagar';
 
   @override
-  String celautRunChildren(String cost) {
-    return 'El inicio también paga $cost por los primeros descendientes del servicio.';
-  }
-
-  @override
-  String get celautTimeChildren => 'Para los primeros descendientes';
-
-  @override
   String get serviceInfoWorkloadsInitial => 'Primeras instancias que arranca';
 
   @override

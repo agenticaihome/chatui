@@ -10,8 +10,7 @@ import 'package:argus_wallet/celaut/launcher.dart';
 import 'package:argus_wallet/celaut/maintenance_price.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-QuoteView _quote(String peer, int port, {String credit = '', String cost = '1000', String children = ''}) =>
-    QuoteView(
+QuoteView _quote(String peer, int port, {String credit = '', String cost = '1000'}) => QuoteView(
   address: NodeAddress(host: 'node$port.example', port: port),
   peerId: peer,
   costMu: cost,
@@ -21,7 +20,6 @@ QuoteView _quote(String peer, int port, {String credit = '', String cost = '1000
   variance: 0,
   comparedNanoErg: '1',
   clientBalanceMu: credit,
-  childrenInitialCostMu: children,
 );
 
 NodeHealthView _health(
@@ -433,7 +431,6 @@ void main() {
           variance: variance,
           comparedNanoErg: '1',
           clientBalanceMu: '',
-          childrenInitialCostMu: '',
         );
 
     test('the balance is the periods of the time, plus one, with the margin of the node', () {
@@ -517,7 +514,6 @@ void main() {
           variance: variance,
           comparedNanoErg: '1',
           clientBalanceMu: '',
-          childrenInitialCostMu: '',
         );
 
     Future<LaunchOutcome> launch({
@@ -570,130 +566,6 @@ void main() {
       final calls = <String>[];
       await launch(quote: priced(init: '0'), calls: calls, keepAlive: true);
       expect(calls, ['keep i true null']);
-    });
-  });
-
-  group('children_initial_cost (nodo#538)', () {
-    QuoteView quote({String cost = '1000', String children = '', String init = '100', String credit = ''}) => QuoteView(
-          address: const NodeAddress(host: 'node1.example', port: 1),
-          peerId: 'p1',
-          costMu: cost,
-          initMaintenanceMu: init,
-          maxMaintenanceMu: init,
-          maintenanceSecondsLoop: 60,
-          variance: 0.5,
-          comparedNanoErg: '1',
-          clientBalanceMu: credit,
-          childrenInitialCostMu: children,
-        );
-
-    test('a service with no children starts with the cost of the quote', () {
-      expect(childrenInitialCostOf(quote(children: '0')), BigInt.zero);
-      expect(startMuOf(quote(children: '0')), BigInt.from(1000));
-    });
-
-    test('a service with children adds them to the start', () {
-      expect(childrenInitialCostOf(quote(children: '9200000')), BigInt.from(9200000));
-      expect(startMuOf(quote(children: '9200000')), BigInt.from(9201000));
-    });
-
-    test('an old node that does not send field 6 reads as 0', () {
-      expect(childrenInitialCostOf(quote()), BigInt.zero);
-      expect(startMuOf(quote()), BigInt.from(1000));
-      expect(childrenInitialCostOf(quote(children: 'x')), BigInt.zero);
-      expect(startMuOf(quote(cost: '')), isNull);
-    });
-
-    test('the start balance for a time is cost + maintenance * (periods + 1) * (1 + variance) + children', () {
-      // The quote was asked with 1000 MU: the build is 4000. 10 minutes at 150 MU a period
-      // with the margin are 11 periods = 1650 MU. Then the children.
-      final q = quote(cost: '5000', children: '700');
-      final balance = survivalBalanceMu(q, const Duration(minutes: 10))!;
-      expect(balance, BigInt.from(1650));
-      expect(startCostWith(q, BigInt.from(1000), balance), BigInt.from(4000 + 1650 + 700));
-    });
-
-    test('the credit must pay the children too', () {
-      expect(wouldAskToStart(quote(children: '500', credit: '1499')), isFalse);
-      expect(wouldAskToStart(quote(children: '500', credit: '1500')), isTrue);
-      expect(wouldAskToStart(quote(credit: '1000')), isTrue);
-    });
-
-    Future<({String? initial, List<String> calls})> launch(
-      QuoteView q, {
-      Duration? minSurvival,
-      bool keepAlive = false,
-      String? initialMu = '1000',
-    }) async {
-      String? initial;
-      final calls = <String>[];
-      await launchService(
-        serviceIdHex: _service,
-        initialMu: initialMu,
-        minSurvival: minSurvival,
-        keepAlive: keepAlive,
-        nodes: const [NodeAddress(host: 'node1.example', port: 1)],
-        health: () => const [],
-        quote: ({required nodes, required serviceIdHex, initialMu}) async {
-          calls.add('quote $initialMu');
-          return QuotesView(quotes: [q], failures: const []);
-        },
-        start: ({required node, required serviceIdHex, initialMu, required environment}) async {
-          initial = initialMu;
-          return _instance('i');
-        },
-        setPricing: ({required instanceId, required maintenanceMu, required maintenanceSeconds, required variance}) {},
-        setStart: ({required instanceId, ownStartMu, required childrenInitialMu}) {
-          calls.add('start $instanceId $ownStartMu $childrenInitialMu');
-        },
-        setKeepAlive: ({required instanceId, required enabled, budgetMu}) {
-          calls.add('keep $enabled');
-        },
-      );
-      return (initial: initial, calls: calls);
-    }
-
-    test('every start sends cost + children, and keeps the split', () async {
-      final r = await launch(quote(cost: '5000', children: '9200000'));
-      expect(r.initial, '9205000');
-      expect(r.calls, ['quote 1000', 'start i 1000 9200000']);
-    });
-
-    test('a start for a time quotes the balance of the parent and adds the children', () async {
-      final r = await launch(quote(cost: '5000', children: '700'), minSurvival: const Duration(minutes: 10));
-      // The second quote asks for the balance of the parent; its cost does not change here.
-      expect(r.calls, ['quote 1000', 'quote 1650', 'start i 1650 700']);
-      expect(r.initial, '5700');
-    });
-
-    test('auto top-up: the first funding includes the children', () async {
-      final r = await launch(quote(cost: '5000', children: '700'), keepAlive: true);
-      expect(r.initial, '5700');
-      expect(r.calls, ['quote 1000', 'keep true', 'start i 1000 700']);
-    });
-
-    test('an old node: the start is the cost, and the children are 0', () async {
-      final r = await launch(quote(cost: '5000'));
-      expect(r.initial, '5000');
-      expect(r.calls.last, 'start i 1000 0');
-    });
-
-    test('with no balance asked, the app does not know the balance of the parent', () async {
-      final r = await launch(quote(cost: '5000', children: '700'), initialMu: null);
-      expect(r.calls.last, 'start i null 700');
-    });
-
-    test('a node whose credit pays the cost but not the children is skipped', () async {
-      await expectLater(
-        launch(quote(cost: '5000', children: '700', credit: '5699')),
-        throwsA(
-          isA<LaunchFailure>().having(
-            (f) => f.skipped.single.error.kind,
-            'kind',
-            CelautErrorKind.insufficientCredit,
-          ),
-        ),
-      );
     });
   });
 

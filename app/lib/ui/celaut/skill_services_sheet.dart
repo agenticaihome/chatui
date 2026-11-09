@@ -5,7 +5,6 @@ import '../../bridge/api/celaut_catalog.dart';
 import '../../bridge/api/celaut_service.dart';
 import '../../celaut/celaut_format.dart';
 import '../../celaut/celaut_strings.dart';
-import '../../celaut/launcher.dart';
 import '../../celaut/payers.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
@@ -237,7 +236,7 @@ class _SkillServicesSheetState extends State<SkillServicesSheet> {
         return Text(
           l.celautRunPreview(
             '${quote.address.host}:${quote.address.port}',
-            muOrUnknown('${startMuOf(quote) ?? quote.costMu}'),
+            muOrUnknown(quote.costMu),
           ),
           key: const Key('skill-sheet-preview'),
           style: t.secondary,

@@ -211,7 +211,8 @@ pub struct Service {
     #[prost(message, repeated, tag = "5")]
     pub possible_environment_workload: ::prost::alloc::vec::Vec<service::Clause>,
     /// The load that the service needs to start. It is in the admission, as
-    /// possible_environment_workload, and in the cost: EstimatedCost.children_initial_cost.
+    /// possible_environment_workload, and in the cost: EstimatedCost.cost includes the
+    /// starts of these children.
     #[prost(message, repeated, tag = "6")]
     pub initial_environment_workload: ::prost::alloc::vec::Vec<service::Clause>,
 }
@@ -687,12 +688,20 @@ pub struct DescendantTunnel {
 pub struct EstimatedCost {
     /// The least Configuration.initial_mu with which the node starts the service, in MU.
     /// It is the cost to build the service, plus the balance that the instance has after
-    /// the build. This balance is the initial_mu of the request. If the request has no
-    /// initial_mu, the node uses its own default balance for the resources at the start,
-    /// without children_initial_cost. A caller that sets initial_mu to this value pays no
-    /// more than this value for the start, because the node takes the cost of the build
-    /// from initial_mu. A service with initial children needs more: see
-    /// children_initial_cost.
+    /// the build, plus what the instance pays to start its initial children. The balance
+    /// is the initial_mu of the request. If the request has no initial_mu, the node uses
+    /// its own default balance for the resources at the start. A caller that sets
+    /// initial_mu to this value pays no more than this value for the start, because the
+    /// node takes the cost of the build from initial_mu.
+    ///
+    /// The initial children are the children of Service.initial_environment_workload.
+    /// Each start of a child takes its initial_mu from the balance of the parent. For
+    /// each workload: count times the build of the child plus the default balance of the
+    /// node for the at_init resources of the child. The cost of a group is the sum of its
+    /// workloads, the cost of a clause is the highest cost of its groups, and the total is
+    /// the sum of the clauses. A client funds the parent with
+    /// cost + maintenance * (periods + 1) * (1 + variance), where maintenance is the cost
+    /// of one period of the parent.
     #[prost(message, optional, tag = "1")]
     pub cost: ::core::option::Option<Amount>,
     /// The cost of one maintenance period with the resources at the start, in MU.
@@ -718,18 +727,6 @@ pub struct EstimatedCost {
     /// max_maintenance_cost, and only when the node sets the bound.
     #[prost(float, tag = "5")]
     pub variance: f32,
-    /// The MU that the instance pays to start its initial children, in MU: the
-    /// children of Service.initial_environment_workload. Each start of a child takes its
-    /// initial_mu from the balance of the parent. For each workload: count times the
-    /// build of the child plus the default balance of the node for the at_init resources
-    /// of the child. The cost of a group is the sum of its workloads, the cost of a clause
-    /// is the highest cost of its groups, and the total is the sum of the clauses. It
-    /// uses the local price. It is not in cost. A client funds the parent with
-    /// cost + maintenance * (periods + 1) * (1 + variance) + children_initial_cost, where
-    /// maintenance is the cost of one period of the parent. If the request has no
-    /// initial_mu, the default balance of the node includes children_initial_cost.
-    #[prost(message, optional, tag = "6")]
-    pub children_initial_cost: ::core::option::Option<Amount>,
 }
 /// The resources for one architecture. In Peer.resources: the most that the node
 /// supports for that architecture, with its measured benchmark scores. In a

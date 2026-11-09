@@ -12773,18 +12773,6 @@ abstract class AppLocalizations {
   /// **'Open and pay'**
   String get descendantsOpenConfirm;
 
-  /// No description provided for @celautRunChildren.
-  ///
-  /// In en, this message translates to:
-  /// **'The start also pays {cost} for the first descendants of the service.'**
-  String celautRunChildren(String cost);
-
-  /// No description provided for @celautTimeChildren.
-  ///
-  /// In en, this message translates to:
-  /// **'For the first descendants'**
-  String get celautTimeChildren;
-
   /// No description provided for @serviceInfoWorkloadsInitial.
   ///
   /// In en, this message translates to:

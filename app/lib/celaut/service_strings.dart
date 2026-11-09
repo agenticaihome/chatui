@@ -39,7 +39,6 @@ class ServiceStrings {
   static const noQuotes = 'No node gave a quote.';
   static const failuresTitle = 'Nodes without a quote';
   static String cost(String mu) => 'Start: $mu';
-  static String children(String mu) => 'Of which the first descendants: $mu';
   static String maintenance(String mu, int seconds) => 'Then $mu every $seconds s';
   static String compared(String? nanoErg) => nanoErg == null
       ? 'No ERG rate: the price cannot be compared with other nodes.'

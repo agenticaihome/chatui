@@ -45,10 +45,6 @@ InstancePlanView _plan({
   bool hibernated = false,
   bool diskOnly = false,
   String wakeFee = '',
-  String children = '',
-  String ownStart = '',
-  String toppedUp = '',
-  int startedAt = 0,
 }) => InstancePlanView(
   keepAlive: keep,
   budgetMu: budget,
@@ -59,10 +55,6 @@ InstancePlanView _plan({
   hibernated: hibernated,
   diskOnly: diskOnly,
   wakeFeeMu: wakeFee,
-  childrenInitialMu: children,
-  ownStartMu: ownStart,
-  toppedUpMu: toppedUp,
-  startedAt: startedAt,
 );
 
 void main() {
@@ -103,68 +95,6 @@ void main() {
     keepCalls = [];
     topUpError = null;
     clock = DateTime(2026, 10, 29, 12);
-  });
-
-  group('initial children (nodo#538)', () {
-    final price = AutoTopUp.priceOf(_plan())!;
-    final start = DateTime(2026, 10, 29, 12);
-    final startedAt = start.millisecondsSinceEpoch ~/ 1000;
-
-    test('with no children, the whole balance is the instance', () {
-      final plan = _plan(children: '0', ownStart: '16000', startedAt: startedAt);
-      expect(AutoTopUp.ownBalance(plan, BigInt.from(50000), price, start), BigInt.from(50000));
-      // An old record knows neither.
-      expect(AutoTopUp.ownBalance(_plan(), BigInt.from(50000), price, start), BigInt.from(50000));
-    });
-
-    test('before the children start, their MU are not time of the instance', () {
-      // Start: 16,000 MU for the parent and 9,200,000 for its children.
-      final plan = _plan(children: '9200000', ownStart: '16000', startedAt: startedAt);
-      expect(AutoTopUp.ownBalance(plan, BigInt.from(9216000), price, start), BigInt.from(16000));
-      // Five minutes later the node took 5 periods; the children did not start yet.
-      final later = start.add(const Duration(minutes: 5));
-      expect(AutoTopUp.ownBalance(plan, BigInt.from(9211000), price, later), BigInt.from(11000));
-    });
-
-    test('after the children start, the balance is the instance again', () {
-      final plan = _plan(children: '9200000', ownStart: '16000', toppedUp: '30000', startedAt: startedAt);
-      final later = start.add(const Duration(minutes: 5));
-      // 16,000 + 30,000 - 5,000 of maintenance; the children took their MU.
-      expect(AutoTopUp.ownBalance(plan, BigInt.from(41000), price, later), BigInt.from(41000));
-    });
-
-    test('the app does not know the balance of the parent: the whole balance', () {
-      final plan = _plan(children: '9200000', startedAt: startedAt);
-      expect(AutoTopUp.ownBalance(plan, BigInt.from(9216000), price, start), BigInt.from(9216000));
-    });
-
-    test('a parent whose children did not start yet is topped up from its own part', () async {
-      clock = start.add(const Duration(minutes: 5));
-      final e = engine();
-      await e.save(threshold: const Duration(minutes: 15), chunk: const Duration(minutes: 30));
-      db = [_instance('p'), _instance('old')];
-      // Both have 9,211,000 MU: 9,000+ minutes of balance at 1,000 MU a minute. The
-      // parent has only 11,000 MU of its own, less than the 15 minutes of the threshold.
-      balances.addAll({'p': '9211000', 'old': '9211000'});
-      plans.addAll({
-        'p': _plan(children: '9200000', ownStart: '16000', startedAt: startedAt),
-        'old': _plan(),
-      });
-      await e.check();
-      expect(topUps, ['p 30000']);
-    });
-
-    test('a top-up does not take the MU of the children: they stay in the balance', () async {
-      clock = start.add(const Duration(minutes: 5));
-      final e = engine();
-      await e.save(threshold: const Duration(minutes: 15), chunk: const Duration(minutes: 30));
-      db = [_instance('p')];
-      // After the top-up of 30,000 MU, 41,000 MU are the parent's: 40 minutes. No top-up.
-      balances['p'] = '9241000';
-      plans['p'] = _plan(children: '9200000', ownStart: '16000', toppedUp: '30000', startedAt: startedAt);
-      await e.check();
-      expect(topUps, isEmpty);
-    });
   });
 
   group('the engine', () {
@@ -228,10 +158,6 @@ void main() {
         hibernated: false,
         diskOnly: false,
         wakeFeeMu: '',
-        childrenInitialMu: '',
-        ownStartMu: '',
-        toppedUpMu: '',
-        startedAt: 0,
       );
       await e.check();
       // 10 periods of 1500 MU.

@@ -293,9 +293,8 @@ class _ServiceScreenState extends State<ServiceScreen> {
       final instance = await celautStartService(
         node: quote.address,
         serviceIdHex: _serviceId,
-        // The quote is the build plus the balance asked for; the start adds the initial
-        // children of the service (nodo#538).
-        initialMu: '${startMuOf(quote) ?? quote.costMu}',
+        // The quote is the build plus the balance asked for, which is what a start takes.
+        initialMu: quote.costMu,
         environment: const [],
       );
       if (!mounted) return;
@@ -582,7 +581,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
             Text(
               ServiceStrings.launched(
                 '${HostPort(quote.address.host, quote.address.port)}',
-                muOrUnknown('${startMuOf(quote) ?? quote.costMu}'),
+                muOrUnknown(quote.costMu),
               ),
             ),
             if (outcome.skipped.isNotEmpty) _skippedLines(context, outcome.skipped),
@@ -636,9 +635,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
               ),
               SelectableText(q.peerId, style: TextStyle(fontSize: 12, color: muted)),
               const SizedBox(height: 6),
-              Text(ServiceStrings.cost(muOrUnknown('${startMuOf(q) ?? q.costMu}'))),
-              if (childrenInitialCostOf(q) > BigInt.zero)
-                Text(ServiceStrings.children(muOrUnknown('${childrenInitialCostOf(q)}'))),
+              Text(ServiceStrings.cost(muOrUnknown(q.costMu))),
               Text(
                 ServiceStrings.maintenance(
                   muOrUnknown(q.maxMaintenanceMu),

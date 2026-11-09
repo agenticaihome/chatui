@@ -324,8 +324,8 @@ class SysresourcesView {
 /// needs every clause; in a clause it uses one group; a group runs all its workloads.
 class WorkloadView {
   /// True for instances that the service starts at its start
-  /// (`initial_environment_workload`). The start funds them
-  /// (`EstimatedCost.children_initial_cost`). False for instances that it can start
+  /// (`initial_environment_workload`). The start funds them: the `cost` of a quote
+  /// includes them. False for instances that it can start
   /// later (`possible_environment_workload`).
   final bool initial;
 

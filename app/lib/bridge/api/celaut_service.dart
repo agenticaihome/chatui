@@ -116,20 +116,6 @@ InstancePlanView celautInstancePlan({required String instanceId}) => RustLib
     .api
     .crateApiCelautServiceCelautInstancePlan(instanceId: instanceId);
 
-/// Keep how the start funded an instance (nodo#538): `children_initial_mu` for the start
-/// of its initial children, and `own_start_mu` for the instance itself (None if the app
-/// does not know it). The keep-alive reads them (`AutoTopUp`), and the info page shows
-/// the children. An amount that is not a number of MU is refused.
-void celautSetInstanceStart({
-  required String instanceId,
-  String? ownStartMu,
-  required String childrenInitialMu,
-}) => RustLib.instance.api.crateApiCelautServiceCelautSetInstanceStart(
-  instanceId: instanceId,
-  ownStartMu: ownStartMu,
-  childrenInitialMu: childrenInitialMu,
-);
-
 /// Keep the price of the node of an instance, from the quote that won its start, so that
 /// the app can say how long a balance lasts and how much a time costs.
 void celautSetInstancePricing({
@@ -440,20 +426,6 @@ class InstancePlanView {
   /// hibernated instance needs it in its balance (empty if the app does not know it).
   final String wakeFeeMu;
 
-  /// What the instance pays to start its initial children, in MU (nodo#538). Empty if
-  /// the app does not know it.
-  final String childrenInitialMu;
-
-  /// The balance that the start gave the instance for itself, without the build and the
-  /// children, in MU. Empty if the app does not know it.
-  final String ownStartMu;
-
-  /// All that the app moved to the instance after the start, in MU (empty: none).
-  final String toppedUpMu;
-
-  /// The time of the start, in Unix seconds.
-  final PlatformInt64 startedAt;
-
   const InstancePlanView({
     required this.keepAlive,
     required this.budgetMu,
@@ -464,10 +436,6 @@ class InstancePlanView {
     required this.hibernated,
     required this.diskOnly,
     required this.wakeFeeMu,
-    required this.childrenInitialMu,
-    required this.ownStartMu,
-    required this.toppedUpMu,
-    required this.startedAt,
   });
 
   @override
@@ -480,11 +448,7 @@ class InstancePlanView {
       variance.hashCode ^
       hibernated.hashCode ^
       diskOnly.hashCode ^
-      wakeFeeMu.hashCode ^
-      childrenInitialMu.hashCode ^
-      ownStartMu.hashCode ^
-      toppedUpMu.hashCode ^
-      startedAt.hashCode;
+      wakeFeeMu.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -499,11 +463,7 @@ class InstancePlanView {
           variance == other.variance &&
           hibernated == other.hibernated &&
           diskOnly == other.diskOnly &&
-          wakeFeeMu == other.wakeFeeMu &&
-          childrenInitialMu == other.childrenInitialMu &&
-          ownStartMu == other.ownStartMu &&
-          toppedUpMu == other.toppedUpMu &&
-          startedAt == other.startedAt;
+          wakeFeeMu == other.wakeFeeMu;
 }
 
 /// The state of an instance that the app keeps (the node has no call that says
@@ -683,14 +643,8 @@ class QuoteView {
   final NodeAddress address;
   final String peerId;
 
-  /// The cost of the start (charged by StartService), in MU of the node: the build and
-  /// the balance of the instance. It does not include `children_initial_cost_mu`.
+  /// The cost of the start (charged by StartService), in MU of the node.
   final String costMu;
-
-  /// What the instance pays to start its initial children, in MU of the node
-  /// (`EstimatedCost.children_initial_cost`, nodo#538). The start must add it to
-  /// `cost_mu`. Empty if the node does not send it (a node before nodo#538): 0.
-  final String childrenInitialCostMu;
   final String initMaintenanceMu;
   final String maxMaintenanceMu;
   final int maintenanceSecondsLoop;
@@ -709,7 +663,6 @@ class QuoteView {
     required this.address,
     required this.peerId,
     required this.costMu,
-    required this.childrenInitialCostMu,
     required this.initMaintenanceMu,
     required this.maxMaintenanceMu,
     required this.maintenanceSecondsLoop,
@@ -723,7 +676,6 @@ class QuoteView {
       address.hashCode ^
       peerId.hashCode ^
       costMu.hashCode ^
-      childrenInitialCostMu.hashCode ^
       initMaintenanceMu.hashCode ^
       maxMaintenanceMu.hashCode ^
       maintenanceSecondsLoop.hashCode ^
@@ -739,7 +691,6 @@ class QuoteView {
           address == other.address &&
           peerId == other.peerId &&
           costMu == other.costMu &&
-          childrenInitialCostMu == other.childrenInitialCostMu &&
           initMaintenanceMu == other.initMaintenanceMu &&
           maxMaintenanceMu == other.maxMaintenanceMu &&
           maintenanceSecondsLoop == other.maintenanceSecondsLoop &&
