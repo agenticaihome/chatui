@@ -1971,6 +1971,7 @@ enum ContentPart_Kind {
   audio,
   structured,
   secretRequest,
+  slotLink,
   notSet
 }
 
@@ -1982,6 +1983,7 @@ class ContentPart extends $pb.GeneratedMessage {
     AudioContent? audio,
     StructuredContent? structured,
     SecretRequest? secretRequest,
+    SlotLink? slotLink,
   }) {
     final result = ContentPart._();
     if (text != null) result.text = text;
@@ -1990,6 +1992,7 @@ class ContentPart extends $pb.GeneratedMessage {
     if (audio != null) result.audio = audio;
     if (structured != null) result.structured = structured;
     if (secretRequest != null) result.secretRequest = secretRequest;
+    if (slotLink != null) result.slotLink = slotLink;
     return result;
   }
 
@@ -2009,12 +2012,13 @@ class ContentPart extends $pb.GeneratedMessage {
     4: ContentPart_Kind.audio,
     5: ContentPart_Kind.structured,
     6: ContentPart_Kind.secretRequest,
+    7: ContentPart_Kind.slotLink,
     0: ContentPart_Kind.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'ContentPart',
       createEmptyInstance: ContentPart.$_createMessage)
-    ..oo(0, [1, 2, 3, 4, 5, 6])
+    ..oo(0, [1, 2, 3, 4, 5, 6, 7])
     ..aOM<TextContent>(1, _omitFieldNames ? '' : 'text',
         subBuilder: TextContent.$_createMessage)
     ..aOM<FileReference>(2, _omitFieldNames ? '' : 'file',
@@ -2027,6 +2031,8 @@ class ContentPart extends $pb.GeneratedMessage {
         subBuilder: StructuredContent.$_createMessage)
     ..aOM<SecretRequest>(6, _omitFieldNames ? '' : 'secretRequest',
         subBuilder: SecretRequest.$_createMessage)
+    ..aOM<SlotLink>(7, _omitFieldNames ? '' : 'slotLink',
+        subBuilder: SlotLink.$_createMessage)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2057,6 +2063,7 @@ class ContentPart extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   @$pb.TagNumber(5)
   @$pb.TagNumber(6)
+  @$pb.TagNumber(7)
   ContentPart_Kind whichKind() => _ContentPart_KindByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
@@ -2064,6 +2071,7 @@ class ContentPart extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   @$pb.TagNumber(5)
   @$pb.TagNumber(6)
+  @$pb.TagNumber(7)
   void clearKind() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
@@ -2132,6 +2140,92 @@ class ContentPart extends $pb.GeneratedMessage {
   void clearSecretRequest() => $_clearField(6);
   @$pb.TagNumber(6)
   SecretRequest ensureSecretRequest() => $_ensure(5);
+
+  /// Revisión 6 (ronda 11, propuesta #120). Solo en un mensaje del asistente
+  /// COMPLETED. Apunta a otro slot de la misma instancia (chat.md, 5.8).
+  @$pb.TagNumber(7)
+  SlotLink get slotLink => $_getN(6);
+  @$pb.TagNumber(7)
+  set slotLink(SlotLink value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSlotLink() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSlotLink() => $_clearField(7);
+  @$pb.TagNumber(7)
+  SlotLink ensureSlotLink() => $_ensure(6);
+}
+
+/// Revisión 6 (ronda 11, propuesta #120). Un puntero a otro slot de la misma
+/// instancia, por ejemplo un mazo de cards.md. El cliente muestra un botón y
+/// abre el slot solo cuando el usuario lo toca (chat.md, 5.8).
+class SlotLink extends $pb.GeneratedMessage {
+  factory SlotLink({
+    $core.int? port,
+    $core.String? label,
+  }) {
+    final result = SlotLink._();
+    if (port != null) result.port = port;
+    if (label != null) result.label = label;
+    return result;
+  }
+
+  SlotLink._();
+
+  factory SlotLink.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      SlotLink()..mergeFromBuffer(data, registry);
+  factory SlotLink.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      SlotLink()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SlotLink',
+      createEmptyInstance: SlotLink.$_createMessage)
+    ..aI(1, _omitFieldNames ? '' : 'port', fieldType: $pb.PbFieldType.OU3)
+    ..aOS(2, _omitFieldNames ? '' : 'label')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SlotLink clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SlotLink copyWith(void Function(SlotLink) updates) =>
+      super.copyWith((message) => updates(message as SlotLink)) as SlotLink;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  @$core.Deprecated('Use SlotLink() / SlotLink.new instead')
+  static SlotLink create() => SlotLink._();
+  static $pb.GeneratedMessage $_createMessage() => SlotLink._();
+  @$core.override
+  SlotLink createEmptyInstance() => SlotLink._();
+  @$core.pragma('dart2js:noInline')
+  static SlotLink getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SlotLink>(SlotLink.$_createMessage);
+  static SlotLink? _defaultInstance;
+
+  /// El port de un Slot del Service.Api de la instancia. Nombra el slot, como
+  /// en ServiceTunnel. No es una dirección.
+  @$pb.TagNumber(1)
+  $core.int get port => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set port($core.int value) => $_setUnsignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPort() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPort() => $_clearField(1);
+
+  /// Texto del botón: 1 a 32 caracteres, una línea. Ausente: el cliente usa
+  /// su propio texto.
+  @$pb.TagNumber(2)
+  $core.String get label => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set label($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLabel() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLabel() => $_clearField(2);
 }
 
 /// Revisión 6 (ronda 8, borrador). Petición de un secreto por nombre (chat.md, 5.6).

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -21,7 +20,6 @@ import '../../bridge/api/celaut_package.dart';
 import '../../celaut/package_channel.dart';
 import '../../celaut/package_library.dart';
 import '../../celaut/payers.dart';
-import '../../celaut/service_strings.dart';
 import '../../celaut/service_transfer.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
@@ -43,7 +41,6 @@ import 'skill_store.dart';
 /// Start a service: the ids and the settings go to the launcher.
 typedef LaunchCall = Future<LaunchOutcome> Function({
   required String serviceIdHex,
-  String? initialMu,
   Duration? minSurvival,
   bool keepAlive,
   String? budgetMu,
@@ -93,12 +90,7 @@ class RunServiceSection extends StatefulWidget {
     this.envStore,
     this.trustedNodes,
     this.work,
-    this.runHistory,
   });
-
-  /// The instances that the user started, for the suggestions of the store. Tests give
-  /// their own.
-  final List<RanService> Function()? runHistory;
 
   /// The launch, the transfer and the import run as background work. Tests give their own.
   final BackgroundWork? work;
@@ -181,11 +173,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   final _scroll = ScrollController();
   List<SkillView>? _skills;
 
-  /// The instances that the user started ([RunServiceSection.runHistory]).
-  List<RanService> _ran = const [];
-
-  /// The field that the chips show ([skillCategory]); null for all.
-  String? _category;
+  /// The whole list is shown, not only the first [storeShortList] skills.
+  bool _showAll = false;
   bool _loading = true;
   bool _failed = false;
   bool _running = false;
@@ -206,7 +195,6 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   void initState() {
     super.initState();
     _readPackages();
-    _readHistory();
     _read();
     final file = widget.importFile;
     if (file != null) {
@@ -215,19 +203,6 @@ class _RunServiceSectionState extends State<RunServiceSection> {
       });
     }
   }
-
-  void _readHistory() {
-    try {
-      _ran = (widget.runHistory ?? _instancesRan)();
-    } catch (_) {
-      // No database yet: no history, so no suggestion.
-      _ran = const [];
-    }
-  }
-
-  static List<RanService> _instancesRan() => [
-        for (final i in celautInstances()) (serviceId: i.serviceId, name: i.name),
-      ];
 
   void _readPackages() {
     try {
@@ -269,11 +244,9 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     if (custom != null) return custom(serviceId);
     final nodes = knownNodeAddresses(celautKnownNodes());
     if (nodes.isEmpty) return null;
-    final quotes = await celautQuoteService(
-      nodes: nodes,
-      serviceIdHex: serviceId,
-      initialMu: ServiceStrings.initialDefault,
-    );
+    // No initial_mu: the cost of a quote is the builds (nodo#636), and the start adds
+    // the balance (issue #119).
+    final quotes = await celautQuoteService(nodes: nodes, serviceIdHex: serviceId);
     return quotes.quotes.isEmpty ? null : quotes.quotes.first;
   }
 
@@ -327,9 +300,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     _showRocket(serviceId);
     try {
       final launch = widget.launch ??
-          ({required serviceIdHex, initialMu, minSurvival, keepAlive = false, budgetMu, environment}) => launchService(
+          ({required serviceIdHex, minSurvival, keepAlive = false, budgetMu, environment}) => launchService(
                 serviceIdHex: serviceIdHex,
-                initialMu: initialMu,
                 minSurvival: minSurvival,
                 keepAlive: keepAlive,
                 budgetMu: budgetMu,
@@ -340,7 +312,6 @@ class _RunServiceSectionState extends State<RunServiceSection> {
       final outcome = await (widget.work ?? backgroundWork).run(context, KeepAliveReason.launch, () async {
         final outcome = await launch(
           serviceIdHex: serviceId,
-          initialMu: ServiceStrings.initialDefault,
           minSurvival: _lastSurvival,
           keepAlive: _lastKeepAlive,
           budgetMu: _lastBudget,
@@ -549,7 +520,6 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     final instance = outcome.instance;
     final name = _lastName;
     _name(instance.instanceId, name);
-    if (mounted) setState(_readHistory);
     widget.onChanged?.call();
     final onStarted = widget.onStarted;
     if (onStarted != null) {
@@ -836,8 +806,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
         context,
         transfer: transfer,
         work: () => offer.source == TransferSource.node
-            ? transfer.fromNode(offer, serviceId, ServiceStrings.initialDefault)
-            : transfer.fromLibrary(offer.to, serviceId, ServiceStrings.initialDefault, path!),
+            ? transfer.fromNode(offer, serviceId, null)
+            : transfer.fromLibrary(offer.to, serviceId, null, path!),
       ),
     );
     if (!mounted) return;
@@ -852,17 +822,13 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     await _run(serviceId);
   }
 
-  /// The skills of [category] (null for all) that match the search.
-  List<SkillView> _filtered(String? category) {
+  /// The skills that match the search, the most backed first ([rankSkills]).
+  List<SkillView> _filtered() {
     final query = _search.text.trim().toLowerCase();
-    final all = _skills ?? const <SkillView>[];
-    return [
-      for (final s in all)
-        if ((category == null || skillCategory(s) == category) && skillMatches(s, query)) s,
-    ];
+    return [for (final s in rankSkills(_skills ?? const <SkillView>[])) if (skillMatches(s, query)) s];
   }
 
-  /// A new search or field shows its skills from the start.
+  /// A new search shows its skills from the start.
   void _filter(VoidCallback change) {
     setState(change);
     if (_scroll.hasClients) _scroll.jumpTo(0);
@@ -892,19 +858,15 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final all = _skills ?? const <SkillView>[];
-    final categories = skillCategories(all);
-    // A field that the catalog no longer has shows all the skills.
-    final category = categories.any((c) => c.key == _category) ? _category : null;
-    final browsing = category == null && _search.text.trim().isEmpty;
-    final skills = _filtered(category);
+    final browsing = _search.text.trim().isEmpty;
+    final skills = _filtered();
     Widget gutter(Widget child) =>
         Padding(padding: const EdgeInsets.symmetric(horizontal: homeGutter), child: child);
     return Column(
       key: const Key('run-section'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // At the top at all times: the search, the two actions of this phone, the fields.
+        // At the top at all times: the search and the two actions of this phone.
         Padding(
           key: const Key('run-top'),
           padding: const EdgeInsets.fromLTRB(homeGutter, 8, homeGutter, 8),
@@ -916,15 +878,6 @@ class _RunServiceSectionState extends State<RunServiceSection> {
                 const SizedBox(height: 10),
               ],
               _topBar(context),
-              if (categories.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                SkillCategoryBar(
-                  categories: categories,
-                  selected: category,
-                  allLabel: l.celautRunCategoryAll,
-                  onSelected: (key) => _filter(() => _category = key),
-                ),
-              ],
             ],
           ),
         ),
@@ -956,10 +909,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
                   )
                 else if (skills.isEmpty)
                   gutter(Text(l.celautRunEmpty, key: const Key('run-empty'), style: t.secondary))
-                else if (browsing)
-                  ..._store(context, all, box.maxWidth)
                 else
-                  gutter(_cards(skills, box.maxWidth)),
+                  ..._store(context, skills, box.maxWidth, short: browsing && !_showAll),
                 // While a launch runs, its rocket is over the screen ([LaunchRocket]).
               ],
             ),
@@ -1042,87 +993,40 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     );
   }
 
-  /// The store with no search and no chip: the sections, the fields, then every skill.
-  List<Widget> _store(BuildContext context, List<SkillView> all, double width) {
+  /// The store: one list of [skills] in groups by field, the field as the title of its
+  /// group (issue #122). With [short], only the first [storeShortList] skills and a "Show
+  /// more" action; a search shows all the skills that match.
+  List<Widget> _store(BuildContext context, List<SkillView> skills, double width, {required bool short}) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final inner = width - 2 * homeGutter;
-    // The next card shows at the edge, so the user sees that the row scrolls.
-    final featureWidth = math.min(340.0, inner - 28);
-    final tileWidth = math.min(320.0, inner - 36);
-    VoidCallback? open(SkillView s) => _running ? null : () => _open(s);
-    Widget row(String id, String title, String hint, List<SkillView> skills) => Padding(
-          padding: const EdgeInsets.only(bottom: 20),
-          child: StoreRow(
-            key: Key('store-$id'),
-            title: title,
-            hint: hint,
-            cardWidth: tileWidth,
-            children: [
-              for (final s in skills)
-                SkillTile(
-                  key: Key('store-$id-${s.boxId}'),
-                  runKey: Key('store-$id-run-${s.boxId}'),
-                  skill: s,
-                  onTap: open(s),
-                  onRun: open(s),
-                ),
-            ],
-          ),
-        );
-    final featured = featuredSkills(all);
-    final suggested = suggestedSkills(all, _ran);
-    final fresh = newSkills(all);
-    final popular = popularSkills(all);
-    final categories = skillCategories(all);
+    final cut = short && skills.length > storeShortList;
+    final shown = cut ? skills.take(storeShortList).toList() : skills;
     return [
-      if (featured.isNotEmpty)
+      for (final g in skillGroups(shown))
         Padding(
-          padding: const EdgeInsets.only(bottom: 20),
-          child: StoreRow(
-            key: const Key('store-featured'),
-            title: l.celautStoreFeatured,
-            hint: l.celautStoreFeaturedHint,
-            cardWidth: featureWidth,
-            children: [
-              for (final s in featured)
-                SkillFeatureCard(
-                  key: Key('store-featured-${s.boxId}'),
-                  runKey: Key('store-featured-run-${s.boxId}'),
-                  skill: s,
-                  onTap: open(s),
-                  onRun: open(s),
-                ),
-            ],
-          ),
-        ),
-      if (suggested.isNotEmpty) row('suggested', l.celautStoreSuggested, l.celautStoreSuggestedHint, suggested),
-      if (fresh.isNotEmpty) row('new', l.celautStoreNew, l.celautStoreNewHint, fresh),
-      if (popular.isNotEmpty) row('popular', l.celautStorePopular, l.celautStorePopularHint, popular),
-      if (categories.isNotEmpty)
-        Padding(
-          key: const Key('store-categories'),
-          padding: const EdgeInsets.fromLTRB(homeGutter, 0, homeGutter, 20),
+          key: Key('store-group-${g.key}'),
+          padding: const EdgeInsets.fromLTRB(homeGutter, 0, homeGutter, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l.celautStoreCategories.toUpperCase(), style: t.label),
+              Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
               const SizedBox(height: 8),
-              SkillCategoryGrid(skills: all, onSelected: (key) => _filter(() => _category = key)),
+              _cards(g.skills, width),
             ],
           ),
         ),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: homeGutter),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l.celautStoreAll.toUpperCase(), key: const Key('store-all'), style: t.label),
-            const SizedBox(height: 8),
-            _cards(all, width),
-          ],
+      if (_search.text.trim().isEmpty && skills.length > storeShortList)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: homeGutter),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              key: const Key('store-more'),
+              onPressed: () => setState(() => _showAll = !_showAll),
+              child: Text(_showAll ? l.celautStoreShowFewer : l.celautStoreShowMore(skills.length - storeShortList)),
+            ),
+          ),
         ),
-      ),
     ];
   }
 

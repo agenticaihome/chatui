@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:argus_wallet/bridge/api/celaut_service.dart';
@@ -20,6 +21,7 @@ import 'package:argus_wallet/ui/celaut/chat_screen.dart';
 import 'package:argus_wallet/ui/celaut/instance_info_screen.dart';
 import 'package:argus_wallet/ui/layout.dart';
 import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -282,6 +284,7 @@ final _echo = InstanceListView(
   serviceId: '65' * 32,
   slots: Uint16List.fromList([8080]),
   chatSlots: Uint16List.fromList([8080]),
+  cardsSlots: Uint16List(0),
   webSlots: Uint16List(0),
   startedAt: 1760000000,
   startChargeMu: '1000',
@@ -1480,6 +1483,28 @@ void main() {
       expect(tester.widget<TextField>(find.byKey(const Key('chat-input'))).controller!.text, 'Hi');
     });
 
+    testWidgets('fast typing on the keyboard of the app loses no key (#121)', (tester) async {
+      await open(tester);
+      // Two thumbs: the next finger is down before the last one is up, no frame between
+      // the keys, and a finger can land in the space between two caps.
+      const text = 'hello there, this is fast typing with two thumbs.';
+      final random = Random(121);
+      TestGesture? last;
+      var pointer = 70;
+      for (final c in text.characters) {
+        final cap = tester.getRect(find.byKey(Key(c == ' ' ? 'vk-space' : 'vk-char-$c'))).inflate(2.5);
+        final g = await tester.createGesture(pointer: pointer++, kind: PointerDeviceKind.touch);
+        await g.down(Offset(cap.left + random.nextDouble() * cap.width, cap.top + random.nextDouble() * cap.height));
+        await last?.up();
+        last = g;
+      }
+      await last?.up();
+      await tester.pump();
+      // The first letter of a sentence is a capital; every other key is there.
+      expect(tester.widget<TextField>(find.byKey(const Key('chat-input'))).controller!.text, 'H${text.substring(1)}');
+      expect(notes.draft(_echo.instanceId), 'H${text.substring(1)}');
+    });
+
     testWidgets('a form shows under the input, instead of the keyboard of the app', (tester) async {
       chat = _FakeChat(history: [const ChatMessage(seq: 0, role: 'user', text: 'hi'), form]);
       await open(tester);
@@ -2264,6 +2289,42 @@ void main() {
       expect(field.textInputAction, TextInputAction.newline);
       expect(field.keyboardType, TextInputType.multiline);
       expect(field.textCapitalization, TextCapitalization.sentences);
+    });
+
+    testWidgets('a fast stream of the input method, with composing words, is kept whole (#121)', (
+      tester,
+    ) async {
+      await open(tester);
+      await tester.showKeyboard(find.byKey(const Key('chat-input')));
+      tester.testTextInput.log.clear();
+      // As a keyboard of the system sends it when the user types fast: each word is composed
+      // (underlined) letter by letter, then committed with a space. No frame between the
+      // updates: they come faster than the screen.
+      const words = ['typing', 'fast', 'keeps', 'every', 'key'];
+      var done = '';
+      for (final w in words) {
+        for (var i = 1; i <= w.length; i++) {
+          final text = done + w.substring(0, i);
+          tester.testTextInput.updateEditingValue(TextEditingValue(
+            text: text,
+            selection: TextSelection.collapsed(offset: text.length),
+            composing: TextRange(start: done.length, end: text.length),
+          ));
+        }
+        done = '$done$w ';
+        tester.testTextInput.updateEditingValue(
+          TextEditingValue(text: done, selection: TextSelection.collapsed(offset: done.length)),
+        );
+      }
+      await tester.pump();
+      expect(tester.widget<TextField>(find.byKey(const Key('chat-input'))).controller!.text, done);
+      expect(notes.draft(_echo.instanceId), done);
+      // The screen never writes a value back to the input method: an older value sent back
+      // would take the place of the keys typed after it.
+      expect(
+        tester.testTextInput.log.where((c) => c.method == 'TextInput.setEditingState'),
+        isEmpty,
+      );
     });
 
     testWidgets('the text that was not sent is there again when the chat opens again', (

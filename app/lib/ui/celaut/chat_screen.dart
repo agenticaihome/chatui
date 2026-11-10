@@ -38,6 +38,7 @@ import 'env_questions_screen.dart';
 import 'html_widget.dart';
 import 'instance_actions.dart';
 import 'instance_info_screen.dart';
+import 'cards_screen.dart';
 import 'keyboard_widget.dart';
 import 'open_web.dart';
 import 'service_info_screen.dart' show readServiceInfo;
@@ -88,7 +89,12 @@ class ChatScreen extends StatefulWidget {
     this.envStore,
     this.secretAnswers,
     this.saveTitle,
+    this.openTunnel,
   });
+
+  /// Opens the tunnel to another slot of the instance, for a `slot_link` and for the
+  /// deck of cards. Null: `celautOpenTunnel`. Tests give their own.
+  final Future<int> Function(String instanceId, int slot)? openTunnel;
 
   /// Keeps the title that the service gave the conversation in the database. Null:
   /// `celautSetInstanceTitle`. Tests give their own.
@@ -1003,7 +1009,11 @@ class _ChatScreenState extends State<ChatScreen>
 
   /// The message has something to show: text, reasoning or a file.
   static bool _hasContent(ChatMessage m) =>
-      m.text.isNotEmpty || m.reasoning.isNotEmpty || m.attachments.isNotEmpty || m.secretRequests.isNotEmpty;
+      m.text.isNotEmpty ||
+      m.reasoning.isNotEmpty ||
+      m.attachments.isNotEmpty ||
+      m.secretRequests.isNotEmpty ||
+      m.slotLinks.isNotEmpty;
 
   /// Pin or unpin [m]. The client changes the message at once and gives it back if the
   /// call fails: the user sees the reason.
@@ -1060,6 +1070,11 @@ class _ChatScreenState extends State<ChatScreen>
   /// questions of a launch for one variable, with the warnings of a sensitive value, then
   /// `AnswerSecretRequest`. Closing the questions, or Deny, sends nothing. The value is read
   /// only here, and is not kept.
+  /// Open the deck of the cards slot [slot] of the instance (`docs/celaut/cards.md`). The
+  /// conversation stays open under it.
+  Future<void> _openCards(int slot) =>
+      openCards(context, _instance, slot, title: instanceTitle(_instance), openTunnel: widget.openTunnel);
+
   Future<void> _answerSecret(ChatMessage m, ChatSecretRequest r) async {
     if (!_answering.add(r.requestId)) return;
     setState(() {});
@@ -1300,6 +1315,7 @@ class _ChatScreenState extends State<ChatScreen>
                     'stop' => _stop(),
                     'mute' => _toggleMute(),
                     'browser' => openWebInBrowser(context, _instance),
+                    'cards' => _openCards(_instance.cardsSlots.first),
                     _ => _info(),
                   },
                   itemBuilder: (context) => [
@@ -1308,6 +1324,12 @@ class _ChatScreenState extends State<ChatScreen>
                       value: 'info',
                       child: Text(l10n.chatsActionInfo),
                     ),
+                    if (_instance.cardsSlots.isNotEmpty)
+                      PopupMenuItem(
+                        key: const Key('chat-menu-cards'),
+                        value: 'cards',
+                        child: Text(l10n.chatOpenCards),
+                      ),
                     if (_instance.webSlots.isNotEmpty)
                       PopupMenuItem(
                         key: const Key('chat-menu-browser'),
@@ -1677,6 +1699,14 @@ class _ChatScreenState extends State<ChatScreen>
                                         secretAnswer: _secretAnswers.of,
                                         answering: _answering,
                                         onSecret: (r) => _answerSecret(m, r),
+                                        slotLinkKind: (link) => slotLinkButtonKind(_instance, link),
+                                        onSlotLink: (link) => openSlotLink(
+                                          context,
+                                          _instance,
+                                          link,
+                                          title: instanceTitle(_instance),
+                                          openTunnel: widget.openTunnel,
+                                        ),
                                         onReopenKeyboard:
                                             (m.seq == _keyboardClosedSeq || _keyboardHidden) && i == messages.length - 1
                                                 ? () => setState(() {
@@ -1981,6 +2011,8 @@ class _Bubble extends StatelessWidget {
     this.secretAnswer,
     this.answering = const {},
     this.onSecret,
+    this.slotLinkKind,
+    this.onSlotLink,
   });
 
   final ChatMessage message;
@@ -2018,6 +2050,12 @@ class _Bubble extends StatelessWidget {
 
   /// Opens the questions for a secret request of the message.
   final void Function(ChatSecretRequest request)? onSecret;
+
+  /// What a `slot_link` of the message opens, or null for no button (section 5.8).
+  final SlotKind? Function(ChatSlotLink link)? slotLinkKind;
+
+  /// Opens the slot of a link, after a tap on its button.
+  final void Function(ChatSlotLink link)? onSlotLink;
 
   /// The menu of a long press on the message, anywhere on it: copy, select the text, and
   /// pin or unpin. The text of a bubble is not selectable by itself, so that a long press
@@ -2170,6 +2208,26 @@ class _Bubble extends StatelessWidget {
                     onTap: onSecret == null ? null : () => onSecret!(r),
                     scheme: scheme,
                   ),
+                // A link shows once the message is done, and opens only on a tap (section 5.8).
+                if (!message.isOpen && !mine)
+                  for (final link in message.slotLinks)
+                    if (slotLinkKind?.call(link) case final kind?)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: FilledButton.tonalIcon(
+                          key: Key('chat-slot-link-${message.seq}-${link.port}'),
+                          style: FilledButton.styleFrom(minimumSize: const Size(88, 44)),
+                          onPressed: onSlotLink == null ? null : () => onSlotLink!(link),
+                          icon: Icon(kind == SlotKind.cards ? Icons.style_outlined : Icons.open_in_browser),
+                          label: Text(
+                            link.label.isNotEmpty
+                                ? link.label
+                                : kind == SlotKind.cards
+                                    ? context.l10n.chatOpenCards
+                                    : context.l10n.chatsOpenInBrowser,
+                          ),
+                        ),
+                      ),
                 if (message.isFailed || message.isCancelled)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),

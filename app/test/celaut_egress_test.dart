@@ -13,7 +13,9 @@ QuoteView _quote(String peer, {String credit = '', String cost = '10'}) => Quote
   initMaintenanceMu: '1',
   maxMaintenanceMu: '1',
   maintenanceSecondsLoop: 10,
-  variance: 0,
+  priceBounded: false,
+  priceVolatility: 0,
+  volatilityPeriodSeconds: 0,
   comparedNanoErg: '1',
   clientBalanceMu: credit,
 );

@@ -57,7 +57,8 @@ class ServiceScreen extends StatefulWidget {
 class _ServiceScreenState extends State<ServiceScreen> {
   final _nodesCtrl = TextEditingController();
   final _serviceCtrl = TextEditingController();
-  final _initialCtrl = TextEditingController(text: ServiceStrings.initialDefault);
+  // Empty: no balance is typed, and the node chooses it (issue #119).
+  final _initialCtrl = TextEditingController();
   final _pathCtrl = TextEditingController(text: '/');
   late final TunnelHttp _http = widget.http ?? TunnelHttp();
 
@@ -224,7 +225,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
     try {
       final outcome = await launchService(
         serviceIdHex: form.service,
-        initialMu: form.initial,
+        balanceMu: form.initial,
         nodes: form.nodes,
       );
       if (!mounted) return;
@@ -268,7 +269,6 @@ class _ServiceScreenState extends State<ServiceScreen> {
       final quotes = await celautQuoteService(
         nodes: nodes,
         serviceIdHex: service,
-        initialMu: form.initial,
       );
       if (!mounted) return;
       setState(() {
@@ -282,6 +282,13 @@ class _ServiceScreenState extends State<ServiceScreen> {
     }
   }
 
+  /// The `initial_mu` of a start from [quote] with the balance typed, or null when none
+  /// is typed (the node chooses).
+  String? _typedStartMu(QuoteView quote) {
+    final typed = BigInt.tryParse(_initialCtrl.text.trim());
+    return typed == null ? null : startMuFor(quote, null, balanceMu: typed)?.toString();
+  }
+
   Future<void> _start(QuoteView quote) async {
     if (!await _walletOpen() || !mounted) return;
     setState(() {
@@ -293,8 +300,9 @@ class _ServiceScreenState extends State<ServiceScreen> {
       final instance = await celautStartService(
         node: quote.address,
         serviceIdHex: _serviceId,
-        // The quote is the build plus the balance asked for, which is what a start takes.
-        initialMu: quote.costMu,
+        // The cost of the quote (the builds) plus the balance typed; none typed: no
+        // initial_mu, and the node adds its default balance (nodo#636).
+        initialMu: _typedStartMu(quote),
         environment: const [],
       );
       if (!mounted) return;
@@ -355,6 +363,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
       serviceId: _serviceCtrl.text.trim().toLowerCase(),
       slots: instance.slots,
       chatSlots: instance.chatSlots,
+      cardsSlots: instance.cardsSlots,
       webSlots: instance.webSlots,
       startedAt: 0,
       startChargeMu: '',

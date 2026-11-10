@@ -17,7 +17,9 @@ QuoteView _quote(String peer, int port, {String credit = '', String cost = '1000
   initMaintenanceMu: '1',
   maxMaintenanceMu: '1',
   maintenanceSecondsLoop: 10,
-  variance: 0,
+  priceBounded: false,
+  priceVolatility: 0,
+  volatilityPeriodSeconds: 0,
   comparedNanoErg: '1',
   clientBalanceMu: credit,
 );
@@ -45,6 +47,7 @@ InstanceView _instance(String id) => InstanceView(
   peerId: 'p',
   slots: Uint16List.fromList([8080]),
   chatSlots: Uint16List.fromList([8080]),
+  cardsSlots: Uint16List(0),
   webSlots: Uint16List(0),
   clientBalanceMu: '5',
 );
@@ -71,19 +74,19 @@ void main() {
   Future<LaunchOutcome> launch({List<NodeAddress>? nodes, List<KnownNodeView> known = const []}) =>
       launchService(
         serviceIdHex: _service,
-        initialMu: '7',
         nodes: nodes,
         knownNodes: () => known,
         health: () => healthRecords,
         quote: ({required nodes, required serviceIdHex, initialMu}) async {
           asked.add(nodes);
-          expect(initialMu, '7');
+          // A quote never carries a balance: its cost is the builds (nodo#636).
+          expect(initialMu, isNull);
           return answer;
         },
         start: ({required node, required serviceIdHex, initialMu, required environment}) async {
           started.add(node.port);
-          // The quote of the node, which has the build in it, is the start balance.
-          expect(initialMu, answer.quotes.firstWhere((q) => q.address.port == node.port).costMu);
+          // No time: no initial_mu, and the node chooses the balance (issue #119).
+          expect(initialMu, isNull);
           final failure = failures[node.port];
           if (failure != null) throw failure;
           return _instance('i${node.port}');
@@ -420,7 +423,16 @@ void main() {
   });
 
   group('the least time of a launch', () {
-    QuoteView priced(int port, {required String init, required int loop, double variance = 0, String cost = '1000'}) =>
+    QuoteView priced(
+      int port, {
+      required String init,
+      required int loop,
+      double volatility = 0,
+      bool bounded = true,
+      int period = 0,
+      String cost = '1000',
+      String credit = '',
+    }) =>
         QuoteView(
           address: NodeAddress(host: 'node$port.example', port: port),
           peerId: 'p$port',
@@ -428,39 +440,70 @@ void main() {
           initMaintenanceMu: init,
           maxMaintenanceMu: init,
           maintenanceSecondsLoop: loop,
-          variance: variance,
+          priceBounded: bounded,
+          priceVolatility: volatility,
+          volatilityPeriodSeconds: period,
           comparedNanoErg: '1',
-          clientBalanceMu: '',
+          clientBalanceMu: credit,
         );
 
-    test('the balance is the periods of the time, plus one, with the margin of the node', () {
+    test('the balance is the funding of the periods of the time, plus one', () {
       // 10 minutes of 60-second periods at 1000 MU: 10 periods and the one at the end.
       expect(survivalBalanceMu(priced(1, init: '1000', loop: 60), const Duration(minutes: 10)), BigInt.from(11000));
       // A part of a period counts as a whole one.
       expect(survivalBalanceMu(priced(1, init: '1000', loop: 60), const Duration(seconds: 61)), BigInt.from(3000));
-      // A variance of 0.5: 1500 MU a period.
+      // A volatility of 0.5 with one volatility period for the whole life: 1500 MU a period.
       expect(
-        survivalBalanceMu(priced(1, init: '1000', loop: 60, variance: 0.5), const Duration(minutes: 2)),
+        survivalBalanceMu(priced(1, init: '1000', loop: 60, volatility: 0.5), const Duration(minutes: 2)),
         BigInt.from(4500),
+      );
+      // A quote that is not bounded promises nothing: its volatility does not count.
+      expect(
+        survivalBalanceMu(priced(1, init: '1000', loop: 60, volatility: 0.5, bounded: false), const Duration(minutes: 2)),
+        BigInt.from(3000),
       );
       // No price per period: no balance.
       expect(survivalBalanceMu(priced(1, init: '', loop: 60), const Duration(minutes: 1)), isNull);
       expect(survivalBalanceMu(priced(1, init: '5', loop: 0), const Duration(minutes: 1)), isNull);
     });
 
+    test('each period counts its volatility period, as funding_sum_mu of nodo', () {
+      // v = 0.1, T = 120 s, loop 60 s: k(i) = floor(60 i / 120) + 1 = 1, 2, 2, 3, ...
+      // 3 minutes are 3 periods plus 1: 1000 * (1.1 + 1.21 + 1.21 + 1.331) = 4851.
+      expect(
+        survivalBalanceMu(priced(1, init: '1000', loop: 60, volatility: 0.1, period: 120), const Duration(minutes: 3)),
+        BigInt.from(4851),
+      );
+      // A float32 0.1 is read as 0.1, as nodo's `_rounded`: 1000 * 1.1 = 1100, not 1101.
+      expect(
+        survivalBalanceMu(priced(1, init: '1000', loop: 60, volatility: 0.10000000149011612), Duration.zero),
+        BigInt.from(1100),
+      );
+    });
+
     test('the time of a balance is the inverse', () {
       final q = priced(1, init: '1000', loop: 60);
       expect(survivalOf(q, BigInt.from(11000)), const Duration(minutes: 10));
       expect(survivalOf(q, BigInt.from(500)), Duration.zero);
-      expect(startCostWith(priced(1, init: '1', loop: 1, cost: '1000300'), BigInt.from(1000000), BigInt.from(5000)),
-          BigInt.from(5300));
+      final v = priced(1, init: '1000', loop: 60, volatility: 0.1, period: 120);
+      expect(survivalOf(v, BigInt.from(4851)), const Duration(minutes: 3));
+      expect(survivalOf(v, BigInt.from(4850)), const Duration(minutes: 2));
     });
 
-    test('the nodes are asked again with the balance for the most expensive one', () async {
+    test('the start is the cost of the quote plus the balance; no time is no initial_mu', () {
+      final q = priced(1, init: '1000', loop: 60, cost: '300');
+      expect(startMuFor(q, const Duration(minutes: 10)), BigInt.from(11300));
+      expect(startMuFor(q, null), isNull);
+      // A typed balance wins over the time.
+      expect(startMuFor(q, const Duration(minutes: 10), balanceMu: BigInt.from(500)), BigInt.from(800));
+      // No price: the node chooses.
+      expect(startMuFor(priced(1, init: '', loop: 60), const Duration(minutes: 10)), isNull);
+    });
+
+    test('each node starts with its cost plus the balance at its own price', () async {
       final initials = <String?>[];
       final outcome = await launchService(
         serviceIdHex: _service,
-        initialMu: '1000000',
         minSurvival: const Duration(minutes: 10),
         nodes: const [NodeAddress(host: 'node1.example', port: 1), NodeAddress(host: 'node2.example', port: 2)],
         health: () => const [],
@@ -468,50 +511,73 @@ void main() {
           initials.add(initialMu);
           return QuotesView(
             quotes: [
-              priced(1, init: '1000', loop: 60, cost: '${300 + int.parse(initialMu!)}'),
-              priced(2, init: '2000', loop: 60, cost: '${400 + int.parse(initialMu)}'),
+              priced(1, init: '1000', loop: 60, cost: '300'),
+              priced(2, init: '2000', loop: 60, cost: '400'),
             ],
             failures: const [],
           );
         },
         start: ({required node, required serviceIdHex, initialMu, required environment}) async {
           started.add(node.port);
-          // The start pays the quote of the second round: build plus the balance.
-          expect(initialMu, '22300');
+          if (node.port == 1) throw _error;
+          // 400 of builds and 11 periods of 2000 MU.
+          expect(initialMu, '22400');
           return _instance('i');
         },
       );
-      // The first round prices the time; the second asks with 11 periods of 2000 MU.
-      expect(initials, ['1000000', '22000']);
-      expect(outcome.quote.address.port, 1);
-      expect(started, [1]);
+      // One round of quotes, with no balance.
+      expect(initials, [null]);
+      expect(started, [1, 2]);
+      expect(outcome.sentMu, '22400');
     });
 
-    test('without a time, the nodes are asked once, as before', () async {
-      final initials = <String?>[];
-      await launchService(
+    test('without a time the app sends no initial_mu, and the node chooses the balance', () async {
+      String? sent = 'unset';
+      final outcome = await launchService(
         serviceIdHex: _service,
-        initialMu: '1000000',
         nodes: const [NodeAddress(host: 'node1.example', port: 1)],
         health: () => const [],
-        quote: ({required nodes, required serviceIdHex, initialMu}) async {
-          initials.add(initialMu);
-          return QuotesView(quotes: [priced(1, init: '1000', loop: 60)], failures: const []);
+        quote: ({required nodes, required serviceIdHex, initialMu}) async =>
+            QuotesView(quotes: [priced(1, init: '1000', loop: 60)], failures: const []),
+        start: ({required node, required serviceIdHex, initialMu, required environment}) async {
+          sent = initialMu;
+          return _instance('i');
         },
-        start: ({required node, required serviceIdHex, initialMu, required environment}) async => _instance('i'),
       );
-      expect(initials, ['1000000']);
+      expect(sent, isNull);
+      expect(outcome.sentMu, isNull);
+    });
+
+    test('a credit below the cost plus the balance is not asked to start', () async {
+      final outcome = launchService(
+        serviceIdHex: _service,
+        minSurvival: const Duration(minutes: 10),
+        nodes: const [NodeAddress(host: 'node1.example', port: 1)],
+        health: () => const [],
+        quote: ({required nodes, required serviceIdHex, initialMu}) async => QuotesView(
+          quotes: [priced(1, init: '1000', loop: 60, cost: '300', credit: '11299')],
+          failures: const [],
+        ),
+        start: ({required node, required serviceIdHex, initialMu, required environment}) async =>
+            fail('not asked'),
+      );
+      await expectLater(
+        outcome,
+        throwsA(isA<LaunchFailure>().having((f) => f.skipped.single.error.message, 'message', contains('11300'))),
+      );
     });
   });
   group('keep running', () {
-    QuoteView priced({String init = '1000', int loop = 60, double variance = 0.25}) => QuoteView(
+    QuoteView priced({String init = '1000', int loop = 60, double volatility = 0.25, bool bounded = true}) => QuoteView(
           address: const NodeAddress(host: 'node1.example', port: 1),
           peerId: 'p1',
           costMu: '5000',
           initMaintenanceMu: init,
           maxMaintenanceMu: init,
           maintenanceSecondsLoop: loop,
-          variance: variance,
+          priceBounded: bounded,
+          priceVolatility: volatility,
+          volatilityPeriodSeconds: 86400,
           comparedNanoErg: '1',
           clientBalanceMu: '',
         );
@@ -531,9 +597,19 @@ void main() {
           health: () => const [],
           quote: ({required nodes, required serviceIdHex, initialMu}) async =>
               QuotesView(quotes: [quote], failures: const []),
-          start: ({required node, required serviceIdHex, initialMu, required environment}) async => _instance('i'),
-          setPricing: ({required instanceId, required maintenanceMu, required maintenanceSeconds, required variance}) {
-            calls.add('price $instanceId $maintenanceMu $maintenanceSeconds $variance');
+          start: ({required node, required serviceIdHex, initialMu, required environment}) async {
+            // "Until I stop it" has no time: the node chooses the start balance.
+            calls.add('start $initialMu');
+            return _instance('i');
+          },
+          setPricing: ({
+            required instanceId,
+            required maintenanceMu,
+            required maintenanceSeconds,
+            required volatility,
+            required volatilityPeriodSeconds,
+          }) {
+            calls.add('price $instanceId $maintenanceMu $maintenanceSeconds $volatility $volatilityPeriodSeconds');
             if (failing) throw StateError('no core');
           },
           setKeepAlive: ({required instanceId, required enabled, budgetMu}) {
@@ -544,13 +620,19 @@ void main() {
     test('the price of the node is kept with the instance, and keep-alive stays off', () async {
       final calls = <String>[];
       await launch(quote: priced(), calls: calls);
-      expect(calls, ['price i 1000 60 0.25']);
+      expect(calls, ['start null', 'price i 1000 60 0.25 86400']);
+    });
+
+    test('a quote that is not bounded keeps a volatility of 0', () async {
+      final calls = <String>[];
+      await launch(quote: priced(bounded: false), calls: calls);
+      expect(calls, ['start null', 'price i 1000 60 0.0 86400']);
     });
 
     test('keep-alive turns on after the start, with its limit', () async {
       final calls = <String>[];
       await launch(quote: priced(), calls: calls, keepAlive: true, budgetMu: '90000');
-      expect(calls, ['price i 1000 60 0.25', 'keep i true 90000']);
+      expect(calls, ['start null', 'price i 1000 60 0.25 86400', 'keep i true 90000']);
       calls.clear();
       await launch(quote: priced(), calls: calls, keepAlive: true);
       expect(calls.last, 'keep i true null');
@@ -565,14 +647,14 @@ void main() {
     test('a quote with no price keeps no price, but still turns keep-alive on', () async {
       final calls = <String>[];
       await launch(quote: priced(init: '0'), calls: calls, keepAlive: true);
-      expect(calls, ['keep i true null']);
+      expect(calls, ['start null', 'keep i true null']);
     });
   });
 
   group('the price of keeping an instance', () {
     test('turns time into MU and back', () {
-      final p = MaintenancePrice.of(perPeriodMu: '1000', periodSeconds: 60, variance: 0.5)!;
-      // 1500 MU with the margin each minute.
+      final p = MaintenancePrice.of(perPeriodMu: '1000', periodSeconds: 60, volatility: 0.5)!;
+      // 1500 MU with the volatility each minute (one volatility period for the whole life).
       expect(p.addFor(const Duration(minutes: 10)), BigInt.from(15000));
       // A start balance has one more period, for the one that runs at the end.
       expect(p.balanceFor(const Duration(minutes: 10)), BigInt.from(16500));
@@ -583,10 +665,41 @@ void main() {
       expect(p.lasts(BigInt.zero), Duration.zero);
     });
 
-    test('gives nothing for a missing or wrong price', () {
-      expect(MaintenancePrice.of(perPeriodMu: '', periodSeconds: 60, variance: 0), isNull);
-      expect(MaintenancePrice.of(perPeriodMu: '0', periodSeconds: 60, variance: 0), isNull);
-      expect(MaintenancePrice.of(perPeriodMu: '5', periodSeconds: 0, variance: 0), isNull);
+    test('a running instance pays the volatility period that it is in', () {
+      // v = 0.1, T = 120 s, loop 60 s. Launched 5 minutes ago: 5 ticks are done, and the
+      // next two are k(6) = 4 and k(7) = 4: 2 * 1000 * 1.1^4 = 2928.2, rounded up.
+      final p = MaintenancePrice.of(
+        perPeriodMu: '1000',
+        periodSeconds: 60,
+        volatility: 0.1,
+        volatilityPeriodSeconds: 120,
+        elapsed: const Duration(minutes: 5),
+      )!;
+      expect(p.addFor(const Duration(minutes: 2)), BigInt.from(2929));
+      expect(p.after(Duration.zero).addFor(const Duration(minutes: 2)), BigInt.from(2310));
+      // 2929 MU is 2 periods; the last one runs at the end.
+      expect(p.lasts(BigInt.from(2929)), const Duration(minutes: 1));
+    });
+
+    test('a factor too large to fund gives no amount', () {
+      // (1 + 10)^k passes 1e30 at k = 29.
+      final p = MaintenancePrice.of(
+        perPeriodMu: '1',
+        periodSeconds: 60,
+        volatility: 10,
+        volatilityPeriodSeconds: 60,
+      )!;
+      expect(p.addFor(const Duration(minutes: 5)), isNotNull);
+      expect(p.addFor(const Duration(minutes: 40)), isNull);
+    });
+
+    test('gives nothing for a missing or wrong price, and reads a wrong volatility as 0', () {
+      expect(MaintenancePrice.of(perPeriodMu: '', periodSeconds: 60), isNull);
+      expect(MaintenancePrice.of(perPeriodMu: '0', periodSeconds: 60), isNull);
+      expect(MaintenancePrice.of(perPeriodMu: '5', periodSeconds: 0), isNull);
+      for (final v in [-0.5, double.nan, double.infinity]) {
+        expect(MaintenancePrice.of(perPeriodMu: '1000', periodSeconds: 60, volatility: v)!.volatility, 0);
+      }
     });
   });
 }

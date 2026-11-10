@@ -117,17 +117,20 @@ InstancePlanView celautInstancePlan({required String instanceId}) => RustLib
     .crateApiCelautServiceCelautInstancePlan(instanceId: instanceId);
 
 /// Keep the price of the node of an instance, from the quote that won its start, so that
-/// the app can say how long a balance lasts and how much a time costs.
+/// the app can say how long a balance lasts and how much a time costs. `volatility` is the
+/// `price_volatility` of a bounded quote, 0 for one that is not bounded (nodo#636).
 void celautSetInstancePricing({
   required String instanceId,
   required String maintenanceMu,
   required int maintenanceSeconds,
-  required double variance,
+  required double volatility,
+  required int volatilityPeriodSeconds,
 }) => RustLib.instance.api.crateApiCelautServiceCelautSetInstancePricing(
   instanceId: instanceId,
   maintenanceMu: maintenanceMu,
   maintenanceSeconds: maintenanceSeconds,
-  variance: variance,
+  volatility: volatility,
+  volatilityPeriodSeconds: volatilityPeriodSeconds,
 );
 
 /// Turn "run until I stop it" on or off for a running instance (Josemi, 2026-10-29).
@@ -298,6 +301,9 @@ class InstanceListView {
   /// The ports that follow the chat convention, a part of `slots`.
   final Uint16List chatSlots;
 
+  /// The ports that follow the cards interface, a part of `slots`.
+  final Uint16List cardsSlots;
+
   /// The ports that a browser can open, a part of `slots`.
   final Uint16List webSlots;
 
@@ -338,6 +344,7 @@ class InstanceListView {
     required this.serviceId,
     required this.slots,
     required this.chatSlots,
+    required this.cardsSlots,
     required this.webSlots,
     required this.startedAt,
     required this.startChargeMu,
@@ -358,6 +365,7 @@ class InstanceListView {
       serviceId.hashCode ^
       slots.hashCode ^
       chatSlots.hashCode ^
+      cardsSlots.hashCode ^
       webSlots.hashCode ^
       startedAt.hashCode ^
       startChargeMu.hashCode ^
@@ -380,6 +388,7 @@ class InstanceListView {
           serviceId == other.serviceId &&
           slots == other.slots &&
           chatSlots == other.chatSlots &&
+          cardsSlots == other.cardsSlots &&
           webSlots == other.webSlots &&
           startedAt == other.startedAt &&
           startChargeMu == other.startChargeMu &&
@@ -410,8 +419,15 @@ class InstancePlanView {
   /// The seconds of one period (0 if unknown).
   final int maintenanceSeconds;
 
-  /// The margin of the node for the difference of the real cost.
-  final double variance;
+  /// The most that the price can rise in one volatility period (0: not bounded).
+  final double volatility;
+
+  /// The seconds of one volatility period (0: one period for the whole life).
+  final int volatilityPeriodSeconds;
+
+  /// When the instance started, in seconds since 1970 (`InstanceRecord.started_at`): the
+  /// volatility period of its next maintenance periods comes from it.
+  final PlatformInt64 startedAt;
 
   /// The app keeps the instance hibernated. A top-up does not wake it, and the node
   /// charges it for its disk only.
@@ -432,7 +448,9 @@ class InstancePlanView {
     required this.spentMu,
     required this.maintenanceMu,
     required this.maintenanceSeconds,
-    required this.variance,
+    required this.volatility,
+    required this.volatilityPeriodSeconds,
+    required this.startedAt,
     required this.hibernated,
     required this.diskOnly,
     required this.wakeFeeMu,
@@ -445,7 +463,9 @@ class InstancePlanView {
       spentMu.hashCode ^
       maintenanceMu.hashCode ^
       maintenanceSeconds.hashCode ^
-      variance.hashCode ^
+      volatility.hashCode ^
+      volatilityPeriodSeconds.hashCode ^
+      startedAt.hashCode ^
       hibernated.hashCode ^
       diskOnly.hashCode ^
       wakeFeeMu.hashCode;
@@ -460,7 +480,9 @@ class InstancePlanView {
           spentMu == other.spentMu &&
           maintenanceMu == other.maintenanceMu &&
           maintenanceSeconds == other.maintenanceSeconds &&
-          variance == other.variance &&
+          volatility == other.volatility &&
+          volatilityPeriodSeconds == other.volatilityPeriodSeconds &&
+          startedAt == other.startedAt &&
           hibernated == other.hibernated &&
           diskOnly == other.diskOnly &&
           wakeFeeMu == other.wakeFeeMu;
@@ -523,6 +545,10 @@ class InstanceView {
   /// `slots`. The chat screen uses the first one.
   final Uint16List chatSlots;
 
+  /// The ports that follow the cards interface (`docs/celaut/cards.md`), a part of
+  /// `slots`. A `slot_link` of the chat opens them (`docs/celaut/chat.md`, 5.8).
+  final Uint16List cardsSlots;
+
   /// The ports that a browser can open (`tcp` and `http`, no chat), a part of `slots`.
   final Uint16List webSlots;
 
@@ -535,6 +561,7 @@ class InstanceView {
     required this.peerId,
     required this.slots,
     required this.chatSlots,
+    required this.cardsSlots,
     required this.webSlots,
     required this.clientBalanceMu,
   });
@@ -545,6 +572,7 @@ class InstanceView {
       peerId.hashCode ^
       slots.hashCode ^
       chatSlots.hashCode ^
+      cardsSlots.hashCode ^
       webSlots.hashCode ^
       clientBalanceMu.hashCode;
 
@@ -557,6 +585,7 @@ class InstanceView {
           peerId == other.peerId &&
           slots == other.slots &&
           chatSlots == other.chatSlots &&
+          cardsSlots == other.cardsSlots &&
           webSlots == other.webSlots &&
           clientBalanceMu == other.clientBalanceMu;
 }
@@ -643,12 +672,18 @@ class QuoteView {
   final NodeAddress address;
   final String peerId;
 
-  /// The cost of the start (charged by StartService), in MU of the node.
+  /// The builds of the start, in MU of the node (nodo#636: no balance). A start adds the
+  /// balance of the instance to it; with no `initial_mu`, the node adds its default.
   final String costMu;
   final String initMaintenanceMu;
   final String maxMaintenanceMu;
   final int maintenanceSecondsLoop;
-  final double variance;
+
+  /// The node promises that the price of an instance rises at most by
+  /// `price_volatility` in each `volatility_period_seconds` (nodo#636).
+  final bool priceBounded;
+  final double priceVolatility;
+  final int volatilityPeriodSeconds;
 
   /// The cost for the comparison in nanoERG, or `None` if the node gives no ERG rate
   /// (then its price is not compared, and it comes last).
@@ -666,7 +701,9 @@ class QuoteView {
     required this.initMaintenanceMu,
     required this.maxMaintenanceMu,
     required this.maintenanceSecondsLoop,
-    required this.variance,
+    required this.priceBounded,
+    required this.priceVolatility,
+    required this.volatilityPeriodSeconds,
     this.comparedNanoErg,
     required this.clientBalanceMu,
   });
@@ -679,7 +716,9 @@ class QuoteView {
       initMaintenanceMu.hashCode ^
       maxMaintenanceMu.hashCode ^
       maintenanceSecondsLoop.hashCode ^
-      variance.hashCode ^
+      priceBounded.hashCode ^
+      priceVolatility.hashCode ^
+      volatilityPeriodSeconds.hashCode ^
       comparedNanoErg.hashCode ^
       clientBalanceMu.hashCode;
 
@@ -694,7 +733,9 @@ class QuoteView {
           initMaintenanceMu == other.initMaintenanceMu &&
           maxMaintenanceMu == other.maxMaintenanceMu &&
           maintenanceSecondsLoop == other.maintenanceSecondsLoop &&
-          variance == other.variance &&
+          priceBounded == other.priceBounded &&
+          priceVolatility == other.priceVolatility &&
+          volatilityPeriodSeconds == other.volatilityPeriodSeconds &&
           comparedNanoErg == other.comparedNanoErg &&
           clientBalanceMu == other.clientBalanceMu;
 }

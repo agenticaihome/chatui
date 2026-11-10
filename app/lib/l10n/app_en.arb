@@ -4344,17 +4344,7 @@
   "celautRunEmpty": "No skill matches.",
   "celautRunCatalogError": "The skill catalog is not available now.",
   "celautRunRetry": "Try again",
-  "celautRunServicesTitle": "Services with this skill",
   "celautRunNoServices": "No service has this skill yet.",
-  "celautRunBest": "Best",
-  "celautRunScore": "Score {score}",
-  "@celautRunScore": {
-    "placeholders": {
-      "score": {
-        "type": "String"
-      }
-    }
-  },
   "celautRunButton": "Run",
   "celautRunLaunching": "Launching {name}…",
   "celautRunLaunchingNote": "The app asks the nodes, then starts the service on the best one.",
@@ -4483,11 +4473,10 @@
   "celautRunConfirmBody": "The service runs on a node and uses your credit there until it stops. Stop it from its conversation, its info page or the list of conversations.",
   "celautRunConfirmNoQuote": "No node gave a price yet. Run asks every node of the list.",
   "celautRunSurvivalLabel": "Keep it running at least",
-  "celautRunSurvivalHint": "Empty: the default start balance",
+  "celautRunSurvivalHint": "Empty: the node decides",
   "celautRunSurvivalWrong": "From 1 minute to 30 days.",
-  "celautRunDefaultBalance": "Start balance {balance} (the default).",
-  "celautRunDefaultBalanceLasts": "Start balance {balance} (the default): about {time} on this node.",
-  "celautRunSurvivalNoPrice": "This node gives no price for its time. The app uses the default start balance.",
+  "celautRunNodeBalance": "Build {cost}. The node adds its default start balance, which keeps the instance for the time that the node sets. The node gives back what the instance does not use.",
+  "celautRunSurvivalNoPrice": "This node gives no price for its time. The node chooses the start balance.",
   "celautRunSurvivalEstimate": "Start cost about {cost}, with a balance of {balance} for at least {time} at the price of the node now. A busy node, and the traffic of the conversation, cost more. The node gives back what the instance does not use.",
   "celautTopUpTitle": "Keep running",
   "celautTopUpThreshold": "When an instance would last less than",
@@ -4519,19 +4508,9 @@
       }
     }
   },
-  "@celautRunDefaultBalanceLasts": {
+  "@celautRunNodeBalance": {
     "placeholders": {
-      "balance": {
-        "type": "String"
-      },
-      "time": {
-        "type": "String"
-      }
-    }
-  },
-  "@celautRunDefaultBalance": {
-    "placeholders": {
-      "balance": {
+      "cost": {
         "type": "String"
       }
     }
@@ -4856,39 +4835,11 @@
   "walletSummaryLatest": "Latest transactions",
   "walletSummaryNoTransactions": "No transactions yet",
   "chatSelectText": "Select text",
-  "celautRunMoreOptions": "Show {count} more options",
-  "@celautRunMoreOptions": {
-    "placeholders": {
-      "count": {
-        "type": "String"
-      }
-    }
-  },
-  "celautRunFewerOptions": "Show fewer options",
-  "celautRunCategoryAll": "All",
   "celautRunOnPhone": "On this phone",
   "celautRunImport": "Import",
   "celautRunPhoneServices": "Run the services on this phone",
-  "celautStoreFeatured": "Featured",
-  "celautStoreFeaturedHint": "One skill of each field, from the publisher with the most reputation",
-  "celautStoreSuggested": "Suggested for you",
-  "celautStoreSuggestedHint": "In the fields of the skills that you ran",
-  "celautStoreNew": "New",
-  "celautStoreNewHint": "The last skills published on Ergo",
-  "celautStorePopular": "Popular",
-  "celautStorePopularHint": "The skills with the most services",
-  "celautStoreCategories": "Categories",
-  "celautStoreAll": "All skills",
   "celautStoreServices": "{count, plural, =1{1 service} other{{count} services}}",
   "@celautStoreServices": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "celautStoreSkills": "{count, plural, =1{1 skill} other{{count} skills}}",
-  "@celautStoreSkills": {
     "placeholders": {
       "count": {
         "type": "int"
@@ -5465,7 +5416,9 @@
   "celautEnvShareTitle": "Share {name}",
   "@celautEnvShareTitle": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "celautEnvShareWarn": "Whoever scans this code gets the value in plain text. Show it only to people you trust.",
@@ -5778,6 +5731,152 @@
   "descendantsOpenConfirm": "Open and pay",
   "serviceInfoWorkloadsInitial": "First instances that it starts",
   "serviceInfoWorkloadOr": "or",
+  "celautSkillsIntro": "Pick a skill to see the services that do it.",
+  "celautStoreOtherField": "Other",
+  "celautStoreShowMore": "Show more ({count})",
+  "@celautStoreShowMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautStoreShowFewer": "Show fewer",
+  "celautSkillAbout": "About this skill",
+  "celautSkillField": "Field: {field}",
+  "@celautSkillField": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillTestBanner": "Most results are tests. Check before you trust them.",
+  "celautSkillRecommended": "Recommended",
+  "celautSkillOtherOptions": "Other options ({count})",
+  "@celautSkillOtherOptions": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillRating": "Rating: {level}",
+  "@celautSkillRating": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillRatingHigh": "High",
+  "celautSkillRatingMedium": "Medium",
+  "celautSkillRatingLow": "Low",
+  "celautSkillRatingExact": "Exact rating: {score} of 1",
+  "@celautSkillRatingExact": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillDeclared": "Declared by the publisher",
+  "celautSkillFromResults": "Seen only in test results, not declared by a publisher",
+  "celautSkillUnverified": "Unverified",
+  "celautSkillServiceId": "Service id {id}",
+  "@celautSkillServiceId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillIdCopied": "Service id copied",
+  "celautSkillUse": "Use this service",
+  "celautRunServicesTitle": "Services with this skill",
+  "celautRunBest": "Best",
+  "celautRunScore": "Score {score}",
+  "@celautRunScore": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "celautRunDefaultBalance": "Start balance {balance} (the default).",
+  "celautRunDefaultBalanceLasts": "Start balance {balance} (the default): about {time} on this node.",
+  "@celautRunDefaultBalanceLasts": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@celautRunDefaultBalance": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "celautRunMoreOptions": "Show {count} more options",
+  "@celautRunMoreOptions": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "celautRunFewerOptions": "Show fewer options",
+  "celautRunCategoryAll": "All",
+  "celautStoreFeatured": "Featured",
+  "celautStoreFeaturedHint": "One skill of each field, from the publisher with the most reputation",
+  "celautStoreSuggested": "Suggested for you",
+  "celautStoreSuggestedHint": "In the fields of the skills that you ran",
+  "celautStoreNew": "New",
+  "celautStoreNewHint": "The last skills published on Ergo",
+  "celautStorePopular": "Popular",
+  "celautStorePopularHint": "The skills with the most services",
+  "celautStoreCategories": "Categories",
+  "celautStoreAll": "All skills",
+  "celautStoreSkills": "{count, plural, =1{1 skill} other{{count} skills}}",
+  "@celautStoreSkills": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cardsLoading": "Loading the cards…",
+  "cardsNoDeck": "The service has no cards now.",
+  "cardsEnd": "No more cards.",
+  "cardsBackToChat": "Back to the chat",
+  "cardsUndo": "Undo",
+  "cardsProgress": "{position} of {total}",
+  "@cardsProgress": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "cardsWaiting": "{count, plural, =1{1 move waits to be sent} other{{count} moves wait to be sent}}",
+  "@cardsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cardsConnecting": "Connecting…",
+  "cardsTapForDetail": "Tap the card for details",
+  "chatOpenCards": "Open the cards",
   "celautIdCopied": "Id copied",
   "celautIdShowFull": "Show full id",
   "celautIdShowShort": "Show short id",

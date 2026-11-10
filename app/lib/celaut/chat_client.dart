@@ -101,6 +101,36 @@ class OutgoingAttachment {
 }
 
 /// One message of a conversation (`docs/celaut/chat.md`, section 5).
+/// A pointer of an assistant message to another slot of the same instance
+/// (`docs/celaut/chat.md`, section 5.8), for example a deck of cards. The app shows a
+/// button and opens the slot only when the user taps it.
+@immutable
+class ChatSlotLink {
+  const ChatSlotLink({required this.port, this.label = ''});
+
+  /// The `port` of the slot in the `Service.Api` of the instance. It is not an address.
+  final int port;
+
+  /// The text of the button. Empty: the app uses its own text.
+  final String label;
+
+  /// The most links of one message.
+  static const maxPerMessage = 4;
+
+  /// The link of [part], or null if its port cannot be a slot.
+  static ChatSlotLink? of(pb.SlotLink part) {
+    if (part.port < 1 || part.port > 65535) return null;
+    final label = part.label.replaceAll(RegExp(r'[\x00-\x1f\x7f\u202a-\u202e\u2066-\u2069]'), ' ').trim();
+    return ChatSlotLink(port: part.port, label: label.length <= 32 ? label : label.substring(0, 32).trimRight());
+  }
+
+  @override
+  bool operator ==(Object other) => other is ChatSlotLink && other.port == port && other.label == label;
+
+  @override
+  int get hashCode => Object.hash(port, label);
+}
+
 class ChatMessage {
   const ChatMessage({
     required this.seq,
@@ -118,6 +148,7 @@ class ChatMessage {
     this.error,
     this.secretRequests = const [],
     this.suggestions = const [],
+    this.slotLinks = const [],
   });
 
   /// The values of [status] (`docs/celaut/chat.md`, section 5.2). `streaming` is a message
@@ -177,6 +208,10 @@ class ChatMessage {
   /// a done assistant message has them.
   final List<String> suggestions;
 
+  /// The pointers of this assistant message to other slots of the instance (section 5.8).
+  /// The app shows them only once the message is done.
+  final List<ChatSlotLink> slotLinks;
+
   bool get fromUser => role == 'user';
 
   /// An answer that grows: its [text] and [reasoning] are not final yet.
@@ -209,6 +244,7 @@ class ChatMessage {
         error: error ?? this.error,
         secretRequests: secretRequests,
         suggestions: suggestions ?? this.suggestions,
+        slotLinks: slotLinks,
       );
 }
 
@@ -757,6 +793,7 @@ class ChatClient extends ChangeNotifier {
     final text = StringBuffer();
     final attachments = <ChatAttachment>[];
     final secrets = <ChatSecretRequest>[];
+    final links = <ChatSlotLink>[];
     for (final part in m.content) {
       switch (part.whichKind()) {
         case pb.ContentPart_Kind.text:
@@ -770,6 +807,11 @@ class ChatClient extends ChangeNotifier {
             when m.fromService && m.status == pb.MessageStatus.MESSAGE_STATUS_COMPLETED:
           final request = ChatSecretRequest.of(part.secretRequest);
           if (request != null) secrets.add(request);
+        // Only an assistant message points to a slot (section 5.8). It is kept while the
+        // message is open, and shown once it is done.
+        case pb.ContentPart_Kind.slotLink when m.fromService && links.length < ChatSlotLink.maxPerMessage:
+          final link = ChatSlotLink.of(part.slotLink);
+          if (link != null && !links.contains(link)) links.add(link);
         default:
           break;
       }
@@ -791,6 +833,7 @@ class ChatClient extends ChangeNotifier {
       createdAt: m.createdAt.toInt(),
       error: _errorOf(m.error),
       secretRequests: secrets,
+      slotLinks: links,
       suggestions: m.fromService && m.status == pb.MessageStatus.MESSAGE_STATUS_COMPLETED
           ? suggestionsOf(m.suggestions)
           : const [],

@@ -15,6 +15,7 @@ InstanceListView _web() => InstanceListView(
       serviceId: '65' * 32,
       slots: Uint16List.fromList([80]),
       chatSlots: Uint16List(0),
+      cardsSlots: Uint16List(0),
       webSlots: Uint16List.fromList([80]),
       startedAt: 1,
       startChargeMu: '1000',

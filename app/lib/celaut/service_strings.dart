@@ -19,9 +19,8 @@ class ServiceStrings {
   static const nodesHint = 'One host:port on each line. Empty: the nodes of the Nodes list';
   static const serviceLabel = 'Service id';
   static const serviceHint = '64 hexadecimal characters';
-  static const initialLabel = 'Start balance in MU (optional)';
-  static const initialHint = 'Empty: the default of the node, one hour of resources';
-  static const initialDefault = '1000000';
+  static const initialLabel = 'Balance in MU, added to the cost (optional)';
+  static const initialHint = 'Empty: the node chooses the balance (its default periods)';
   static const quote = 'Get quotes';
   static const launch = 'Launch on the best node';
   static const launching = 'Launching…';
@@ -49,23 +48,12 @@ class ServiceStrings {
   // Pick a skill (the catalog)
   static const pickSkill = 'Pick a skill';
   static const skillsTitle = 'Skills';
-  static const skillsIntro =
-      'The skills that publishers put on Ergo. Pick one: the app ranks the services that '
-      'cover it by what they measured and by the reputation of who published them.';
   static const skillsLoading = 'Reading the catalog…';
   static const skillsEmpty = 'The catalog has no skills.';
   static const servicesLoading = 'Reading the services of this skill…';
   static const servicesEmpty = 'No service covers this skill yet.';
-  static const servicesTitle = 'Services, best first';
-  static const bestService = 'Best';
-  static String serviceScore(String score) => 'Score $score';
-  static const serviceDeclared = 'A publisher declared that it covers the skill';
-  static const serviceFromResults = 'Only in the results of a benchmark of the skill';
-  static const useService = 'Use this service';
   static const otherSkill = 'Other skills';
   static const retry = 'Try again';
-  static const testDataNote =
-      'Most results on Ergo today are tests. A high score is not a proof that the service works.';
 
   // Launch (the balancer picks the node)
   static String launched(String address, String cost) =>

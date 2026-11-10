@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../bridge/api/celaut_service.dart';
 import '../../celaut/celaut_format.dart';
 import '../../celaut/launcher.dart';
-import '../../celaut/service_strings.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
 
@@ -38,8 +37,8 @@ String formatSurvival(Duration d) {
 /// Ask before a launch: an instance uses credit until it stops. The dialog shows the node
 /// that the balancer would use now, with its start cost, and a field for the least time
 /// that the instance must run (Josemi, 2026-10-23). With a time, the estimate is the start
-/// cost with the balance for that time on that node ([survivalBalanceMu]); without one,
-/// the app uses its default start balance, and the dialog says how long it lasts there.
+/// cost with the balance for that time on that node ([startMuFor]); without one, the app
+/// sends no balance and the node chooses it (issue #119), so the dialog shows the build.
 /// A second mode, "until I stop it" (Josemi, 2026-10-29), has no time: the app tops the
 /// instance up while the user does not stop it. The dialog warns that this uses the credit
 /// of the user on the node, and has an optional limit. Never remembered: each launch starts
@@ -140,6 +139,7 @@ class _RunConfirmDialogState extends State<_RunConfirmDialog> {
     final credit = BigInt.tryParse(best.clientBalanceMu);
     if (price == null) return l.celautKeepCredit(muOrUnknown(best.clientBalanceMu));
     final perHour = price.addFor(const Duration(hours: 1));
+    if (perHour == null) return l.celautKeepCredit(muOrUnknown(best.clientBalanceMu));
     final lasts = credit == null ? null : price.lasts(credit);
     if (lasts == null) return l.celautKeepRateOnly(muOrUnknown('$perHour'));
     final low = lasts < const Duration(hours: 6);
@@ -150,16 +150,11 @@ class _RunConfirmDialogState extends State<_RunConfirmDialog> {
   String _estimate(BuildContext context, QuoteView best) {
     final l = context.l10n;
     final survival = _survival;
-    final defaultBalance = BigInt.parse(ServiceStrings.initialDefault);
-    if (survival == null) {
-      final lasts = survivalOf(best, defaultBalance);
-      return lasts == null
-          ? l.celautRunDefaultBalance(muOrUnknown(ServiceStrings.initialDefault))
-          : l.celautRunDefaultBalanceLasts(muOrUnknown(ServiceStrings.initialDefault), formatSurvival(lasts));
-    }
+    // No time: the app sends no balance, and the node adds its default one to the cost.
+    if (survival == null) return l.celautRunNodeBalance(muOrUnknown(best.costMu));
     final need = survivalBalanceMu(best, survival);
     if (need == null) return l.celautRunSurvivalNoPrice;
-    final cost = startCostWith(best, defaultBalance, need);
+    final cost = startMuFor(best, survival);
     return l.celautRunSurvivalEstimate(
       muOrUnknown(cost?.toString()),
       muOrUnknown(need.toString()),

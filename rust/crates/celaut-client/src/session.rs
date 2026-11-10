@@ -57,6 +57,12 @@ impl StartedInstance {
         chat_slots(&self.instance)
     }
 
+    /// The slots that follow the cards interface (`docs/celaut/cards.md`, section 3), in
+    /// the order of `Service.Api`.
+    pub fn cards_slots(&self) -> Vec<u16> {
+        cards_slots(&self.instance)
+    }
+
     /// The slots that a browser can open (see [`web_slots`]), in the order of `Service.Api`.
     pub fn web_slots(&self) -> Vec<u16> {
         web_slots(&self.instance)
@@ -96,11 +102,26 @@ const CHAT_STACK: [&str; 3] = ["http2", "grpc", "chat"];
 /// section 3). A slot with the stack `http`, `chat` does not count. The reachability of a
 /// port is not checked here: for a service that is not running, there is no instance yet.
 pub fn api_chat_ports(api: &Api) -> Vec<u16> {
+    api_stack_ports(api, &CHAT_STACK)
+}
+
+/// The tags of the cards slot, from bottom to top: `http2`, `grpc`, `cards`.
+const CARDS_STACK: [&str; 3] = ["http2", "grpc", "cards"];
+
+/// The ports of `api` that follow the cards interface (`docs/celaut/cards.md`, section
+/// 3): as [`api_chat_ports`], with `cards` in place of `chat`.
+pub fn api_cards_ports(api: &Api) -> Vec<u16> {
+    api_stack_ports(api, &CARDS_STACK)
+}
+
+/// The `tcp` ports of `api` whose protocol stack has the tags of `stack`, in that order
+/// from bottom to top, in the order of the interface, each port once.
+fn api_stack_ports(api: &Api, stack: &[&str]) -> Vec<u16> {
     let has = |tags: &[String], tag: &str| tags.iter().any(|t| t == tag);
     let mut found = Vec::new();
     for slot in &api.slot {
         let tcp = slot.transport.as_ref().is_some_and(|t| has(&t.tags, "tcp"));
-        let mut wanted = CHAT_STACK.iter().peekable();
+        let mut wanted = stack.iter().peekable();
         for p in &slot.protocol_stack {
             if wanted.peek().is_some_and(|tag| has(&p.tags, tag)) {
                 wanted.next();
@@ -124,7 +145,21 @@ pub fn chat_slots(instance: &Instance) -> Vec<u16> {
     let Some(api) = instance.api.as_ref() else {
         return Vec::new();
     };
-    api_chat_ports(api)
+    on_instance(instance, api_chat_ports(api))
+}
+
+/// The slots of `instance` that follow the cards interface (see [`api_cards_ports`]). As
+/// for the chat, a slot counts only if the instance has that port.
+pub fn cards_slots(instance: &Instance) -> Vec<u16> {
+    let Some(api) = instance.api.as_ref() else {
+        return Vec::new();
+    };
+    on_instance(instance, api_cards_ports(api))
+}
+
+/// The `ports` that the instance has in `Instance.uri_slot`.
+fn on_instance(instance: &Instance, ports: Vec<u16>) -> Vec<u16> {
+    ports
         .into_iter()
         .filter(|port| {
             instance
@@ -165,15 +200,7 @@ pub fn web_slots(instance: &Instance) -> Vec<u16> {
     let Some(api) = instance.api.as_ref() else {
         return Vec::new();
     };
-    api_web_ports(api)
-        .into_iter()
-        .filter(|port| {
-            instance
-                .uri_slot
-                .iter()
-                .any(|u| u16::try_from(u.internal_port) == Ok(*port))
-        })
-        .collect()
+    on_instance(instance, api_web_ports(api))
 }
 
 /// A client on one node.
@@ -745,6 +772,35 @@ mod chat_slot_tests {
         };
         assert_eq!(started.chat_slots(), vec![8080]);
         assert_eq!(started.slots(), vec![8080]);
+    }
+
+    #[test]
+    fn a_cards_slot_is_neither_a_chat_slot_nor_a_web_slot() {
+        // docs/celaut/cards.md, section 3: the stack http2, grpc, cards.
+        let started = StartedInstance {
+            token: "t".into(),
+            instance: instance(vec![
+                slot(8080, "tcp", &[&["http2"], &["grpc"], &["chat"]]),
+                slot(8081, "tcp", &[&["http2"], &["grpc"], &["cards"]]),
+            ]),
+            receipt: None,
+        };
+        assert_eq!(started.cards_slots(), vec![8081]);
+        assert_eq!(started.chat_slots(), vec![8080]);
+        assert!(started.web_slots().is_empty());
+        // Not on tcp, a stack in another order, or a port that the instance does not have.
+        for (s, has_port) in [
+            (slot(8081, "udp", &[&["http2"], &["grpc"], &["cards"]]), true),
+            (slot(8081, "tcp", &[&["cards"], &["grpc"], &["http2"]]), true),
+            (slot(8081, "tcp", &[&["http"], &["cards"]]), true),
+            (slot(8081, "tcp", &[&["http2"], &["grpc"], &["cards"]]), false),
+        ] {
+            let mut i = instance(vec![s]);
+            if !has_port {
+                i.uri_slot.clear();
+            }
+            assert!(cards_slots(&i).is_empty());
+        }
     }
 }
 

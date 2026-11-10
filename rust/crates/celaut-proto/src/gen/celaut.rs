@@ -212,7 +212,7 @@ pub struct Service {
     pub possible_environment_workload: ::prost::alloc::vec::Vec<service::Clause>,
     /// The load that the service needs to start. It is in the admission, as
     /// possible_environment_workload, and in the cost: EstimatedCost.cost includes the
-    /// starts of these children.
+    /// builds of these children. Each child gets its balance in its own start.
     #[prost(message, repeated, tag = "6")]
     pub initial_environment_workload: ::prost::alloc::vec::Vec<service::Clause>,
 }
@@ -553,8 +553,9 @@ pub struct Configuration {
     /// does not spend. If the build does not fit in the amount, or if the balance that
     /// is left is less than one maintenance period with the resources at the start, the
     /// node rejects the start and charges nothing. If it is absent or zero, the node uses
-    /// the cost of the build plus a default balance that it calculates from the resources
-    /// at the start.
+    /// EstimatedCost.cost plus a default balance. The node calculates the default balance
+    /// from the resources at the start, for its own default number of maintenance
+    /// periods.
     #[prost(message, optional, tag = "3")]
     pub initial_mu: ::core::option::Option<Amount>,
 }
@@ -686,47 +687,68 @@ pub struct DescendantTunnel {
 /// The cost to run a service on the node. The node that answers sets it.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EstimatedCost {
-    /// The least Configuration.initial_mu with which the node starts the service, in MU.
-    /// It is the cost to build the service, plus the balance that the instance has after
-    /// the build, plus what the instance pays to start its initial children. The balance
-    /// is the initial_mu of the request. If the request has no initial_mu, the node uses
-    /// its own default balance for the resources at the start. A caller that sets
-    /// initial_mu to this value pays no more than this value for the start, because the
-    /// node takes the cost of the build from initial_mu.
+    /// The cost that the start spends, in MU. It is the cost to build the service, plus
+    /// the cost to build its initial children. It does not include a balance, for the
+    /// service or for its children. If the service is already built, its build cost is
+    /// 0. The node takes the cost of the builds from Configuration.initial_mu, and the
+    /// remainder is the balance of the instance.
     ///
     /// The initial children are the children of Service.initial_environment_workload.
-    /// Each start of a child takes its initial_mu from the balance of the parent. For
-    /// each workload: count times the build of the child plus the default balance of the
-    /// node for the at_init resources of the child. The cost of a group is the sum of its
-    /// workloads, the cost of a clause is the highest cost of its groups, and the total is
-    /// the sum of the clauses. A client funds the parent with
-    /// cost + maintenance * (periods + 1) * (1 + variance), where maintenance is the cost
-    /// of one period of the parent.
+    /// For each workload: count times the cost to build the child. The cost of a group is
+    /// the sum of its workloads, the cost of a clause is the highest cost of its groups,
+    /// and the total is the sum of the clauses. Each child gets its balance in its own
+    /// StartService. The parent pays that start from its own balance.
+    ///
+    /// To fund the instance for N maintenance periods, a client sends an initial_mu that
+    /// is this cost plus a sum. The client chooses N. The sum is: for each maintenance
+    /// period i, from 1 to N, the init_maintenance_cost times (1 + price_volatility) to
+    /// the power k(i). The value k(i) is
+    /// floor(i * maintenance_seconds_loop / volatility_period_seconds) + 1. If
+    /// volatility_period_seconds is 0, k(i) is 1. The node uses the same k(i) for the
+    /// charge of the period i. The balance must pay at least one period (N = 1), or the
+    /// node does not start the service. This sum applies only when price_bounded is
+    /// true. If price_bounded is false, the node makes no promise, and the client chooses
+    /// the amount itself. If the request has no initial_mu, the node uses this cost plus
+    /// the sum for its own default number of periods.
     #[prost(message, optional, tag = "1")]
     pub cost: ::core::option::Option<Amount>,
-    /// The cost of one maintenance period with the resources at the start, in MU.
+    /// The cost of one maintenance period with the resources at_init, in MU. The resources
+    /// at_init are the resources that the instance has when it starts. The figure is the
+    /// price at the time of the estimate. The price of a later period can be higher. See
+    /// price_volatility.
     #[prost(message, optional, tag = "2")]
     pub init_maintenance_cost: ::core::option::Option<Amount>,
-    /// The cost of one maintenance period with the maximum resources, in MU. This is the
-    /// statement that the node signs about the price. If the node sets
-    /// `pricing.MAX_PRICE_VOLATILITY`, the figure is a hard ceiling: it is priced at the
-    /// worst-case price multiplier that the bound allows, and no maintenance period of the
-    /// instance charges more. A client that sees a charge above this figure has proof
-    /// that the node broke its quote. If the node does not set the bound, the figure is
-    /// only the charge at the current load of the node, and a later period can charge
-    /// more. In that case the figure is not a ceiling.
+    /// The cost of one maintenance period with the resources at_most, in MU. The resources
+    /// at_most are the most that the instance declares that it can ask for. The figure is
+    /// the price at the time of the estimate. It is not a limit on the charge of a
+    /// period. The price of a running instance can rise above it. The limit of the price
+    /// is set by price_volatility and volatility_period_seconds, and only if price_bounded
+    /// is true.
     #[prost(message, optional, tag = "3")]
     pub max_maintenance_cost: ::core::option::Option<Amount>,
     /// The length of one maintenance period, in seconds.
     #[prost(int32, tag = "4")]
     pub maintenance_seconds_loop: i32,
-    /// How much the real costs can be different from the estimate, with no unit. A
-    /// reader multiplies each cost by (1 + variance * k). The reader selects the factor
-    /// k. A node that cannot estimate the difference sends 0. The variance does not
-    /// limit the price of a running instance. The ceiling of the price is in
-    /// max_maintenance_cost, and only when the node sets the bound.
-    #[prost(float, tag = "5")]
-    pub variance: f32,
+    /// True if the node promises a limit on the price. The limit is set by
+    /// price_volatility and volatility_period_seconds. A maintenance period of the
+    /// instance must not charge more than that limit. A client that sees a larger charge
+    /// can report the node. False means that the node makes no promise. The other two
+    /// fields have no meaning then. False is the default value of this field.
+    #[prost(bool, tag = "5")]
+    pub price_bounded: bool,
+    /// The highest relative rise of the price in one volatility period. For example, 0.10
+    /// means that the price can rise by 10 percent in each period. The price at the time
+    /// t is at most the launch price times (1 + price_volatility) to the power k, where k
+    /// is the number of the period of t, counted from the launch of the instance. The
+    /// price can fall without limit. A reader that gets a value that is not a finite
+    /// number, or a value below 0, reads it as 0.
+    #[prost(float, tag = "6")]
+    pub price_volatility: f32,
+    /// The length of one volatility period, in seconds. The first period starts at the
+    /// launch of the instance. If the value is 0, the whole life of the instance is one
+    /// period. A reader that gets a value below 0 reads it as 0.
+    #[prost(int32, tag = "7")]
+    pub volatility_period_seconds: i32,
 }
 /// The resources for one architecture. In Peer.resources: the most that the node
 /// supports for that architecture, with its measured benchmark scores. In a

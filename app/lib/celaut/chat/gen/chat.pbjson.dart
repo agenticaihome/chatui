@@ -741,6 +741,15 @@ const ContentPart$json = {
       '9': 0,
       '10': 'secretRequest'
     },
+    {
+      '1': 'slot_link',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.SlotLink',
+      '9': 0,
+      '10': 'slotLink'
+    },
   ],
   '8': [
     {'1': 'kind'},
@@ -753,8 +762,25 @@ final $typed_data.Uint8List contentPartDescriptor = $convert.base64Decode(
     'xlGAIgASgLMg4uRmlsZVJlZmVyZW5jZUgAUgRmaWxlEiUKBWltYWdlGAMgASgLMg0uSW1hZ2VD'
     'b250ZW50SABSBWltYWdlEiUKBWF1ZGlvGAQgASgLMg0uQXVkaW9Db250ZW50SABSBWF1ZGlvEj'
     'QKCnN0cnVjdHVyZWQYBSABKAsyEi5TdHJ1Y3R1cmVkQ29udGVudEgAUgpzdHJ1Y3R1cmVkEjcK'
-    'DnNlY3JldF9yZXF1ZXN0GAYgASgLMg4uU2VjcmV0UmVxdWVzdEgAUg1zZWNyZXRSZXF1ZXN0Qg'
-    'YKBGtpbmQ=');
+    'DnNlY3JldF9yZXF1ZXN0GAYgASgLMg4uU2VjcmV0UmVxdWVzdEgAUg1zZWNyZXRSZXF1ZXN0Ei'
+    'gKCXNsb3RfbGluaxgHIAEoCzIJLlNsb3RMaW5rSABSCHNsb3RMaW5rQgYKBGtpbmQ=');
+
+@$core.Deprecated('Use slotLinkDescriptor instead')
+const SlotLink$json = {
+  '1': 'SlotLink',
+  '2': [
+    {'1': 'port', '3': 1, '4': 1, '5': 13, '10': 'port'},
+    {'1': 'label', '3': 2, '4': 1, '5': 9, '9': 0, '10': 'label', '17': true},
+  ],
+  '8': [
+    {'1': '_label'},
+  ],
+};
+
+/// Descriptor for `SlotLink`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List slotLinkDescriptor = $convert.base64Decode(
+    'CghTbG90TGluaxISCgRwb3J0GAEgASgNUgRwb3J0EhkKBWxhYmVsGAIgASgJSABSBWxhYmVsiA'
+    'EBQggKBl9sYWJlbA==');
 
 @$core.Deprecated('Use secretRequestDescriptor instead')
 const SecretRequest$json = {

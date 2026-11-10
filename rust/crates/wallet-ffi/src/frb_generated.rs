@@ -3098,14 +3098,16 @@ fn wire__crate__api__celaut_service__celaut_set_instance_pricing_impl(
             let api_instance_id = <String>::sse_decode(&mut deserializer);
             let api_maintenance_mu = <String>::sse_decode(&mut deserializer);
             let api_maintenance_seconds = <u32>::sse_decode(&mut deserializer);
-            let api_variance = <f64>::sse_decode(&mut deserializer);
+            let api_volatility = <f64>::sse_decode(&mut deserializer);
+            let api_volatility_period_seconds = <u32>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, crate::api::celaut::CelautError>((move || {
                 let output_ok = crate::api::celaut_service::celaut_set_instance_pricing(
                     api_instance_id,
                     api_maintenance_mu,
                     api_maintenance_seconds,
-                    api_variance,
+                    api_volatility,
+                    api_volatility_period_seconds,
                 )?;
                 std::result::Result::Ok(output_ok)
             })())
@@ -6277,6 +6279,7 @@ impl SseDecode for crate::api::celaut_service::InstanceListView {
         let mut var_serviceId = <String>::sse_decode(deserializer);
         let mut var_slots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_chatSlots = <Vec<u16>>::sse_decode(deserializer);
+        let mut var_cardsSlots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_webSlots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_startedAt = <i64>::sse_decode(deserializer);
         let mut var_startChargeMu = <String>::sse_decode(deserializer);
@@ -6295,6 +6298,7 @@ impl SseDecode for crate::api::celaut_service::InstanceListView {
             service_id: var_serviceId,
             slots: var_slots,
             chat_slots: var_chatSlots,
+            cards_slots: var_cardsSlots,
             web_slots: var_webSlots,
             started_at: var_startedAt,
             start_charge_mu: var_startChargeMu,
@@ -6317,7 +6321,9 @@ impl SseDecode for crate::api::celaut_service::InstancePlanView {
         let mut var_spentMu = <String>::sse_decode(deserializer);
         let mut var_maintenanceMu = <String>::sse_decode(deserializer);
         let mut var_maintenanceSeconds = <u32>::sse_decode(deserializer);
-        let mut var_variance = <f64>::sse_decode(deserializer);
+        let mut var_volatility = <f64>::sse_decode(deserializer);
+        let mut var_volatilityPeriodSeconds = <u32>::sse_decode(deserializer);
+        let mut var_startedAt = <i64>::sse_decode(deserializer);
         let mut var_hibernated = <bool>::sse_decode(deserializer);
         let mut var_diskOnly = <bool>::sse_decode(deserializer);
         let mut var_wakeFeeMu = <String>::sse_decode(deserializer);
@@ -6327,7 +6333,9 @@ impl SseDecode for crate::api::celaut_service::InstancePlanView {
             spent_mu: var_spentMu,
             maintenance_mu: var_maintenanceMu,
             maintenance_seconds: var_maintenanceSeconds,
-            variance: var_variance,
+            volatility: var_volatility,
+            volatility_period_seconds: var_volatilityPeriodSeconds,
+            started_at: var_startedAt,
             hibernated: var_hibernated,
             disk_only: var_diskOnly,
             wake_fee_mu: var_wakeFeeMu,
@@ -6370,6 +6378,7 @@ impl SseDecode for crate::api::celaut_service::InstanceView {
         let mut var_peerId = <String>::sse_decode(deserializer);
         let mut var_slots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_chatSlots = <Vec<u16>>::sse_decode(deserializer);
+        let mut var_cardsSlots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_webSlots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_clientBalanceMu = <String>::sse_decode(deserializer);
         return crate::api::celaut_service::InstanceView {
@@ -6377,6 +6386,7 @@ impl SseDecode for crate::api::celaut_service::InstanceView {
             peer_id: var_peerId,
             slots: var_slots,
             chat_slots: var_chatSlots,
+            cards_slots: var_cardsSlots,
             web_slots: var_webSlots,
             client_balance_mu: var_clientBalanceMu,
         };
@@ -7512,7 +7522,9 @@ impl SseDecode for crate::api::celaut_service::QuoteView {
         let mut var_initMaintenanceMu = <String>::sse_decode(deserializer);
         let mut var_maxMaintenanceMu = <String>::sse_decode(deserializer);
         let mut var_maintenanceSecondsLoop = <i32>::sse_decode(deserializer);
-        let mut var_variance = <f32>::sse_decode(deserializer);
+        let mut var_priceBounded = <bool>::sse_decode(deserializer);
+        let mut var_priceVolatility = <f32>::sse_decode(deserializer);
+        let mut var_volatilityPeriodSeconds = <i32>::sse_decode(deserializer);
         let mut var_comparedNanoErg = <Option<String>>::sse_decode(deserializer);
         let mut var_clientBalanceMu = <String>::sse_decode(deserializer);
         return crate::api::celaut_service::QuoteView {
@@ -7522,7 +7534,9 @@ impl SseDecode for crate::api::celaut_service::QuoteView {
             init_maintenance_mu: var_initMaintenanceMu,
             max_maintenance_mu: var_maxMaintenanceMu,
             maintenance_seconds_loop: var_maintenanceSecondsLoop,
-            variance: var_variance,
+            price_bounded: var_priceBounded,
+            price_volatility: var_priceVolatility,
+            volatility_period_seconds: var_volatilityPeriodSeconds,
             compared_nano_erg: var_comparedNanoErg,
             client_balance_mu: var_clientBalanceMu,
         };
@@ -9527,6 +9541,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_service::InstanceListV
             self.service_id.into_into_dart().into_dart(),
             self.slots.into_into_dart().into_dart(),
             self.chat_slots.into_into_dart().into_dart(),
+            self.cards_slots.into_into_dart().into_dart(),
             self.web_slots.into_into_dart().into_dart(),
             self.started_at.into_into_dart().into_dart(),
             self.start_charge_mu.into_into_dart().into_dart(),
@@ -9561,7 +9576,9 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_service::InstancePlanV
             self.spent_mu.into_into_dart().into_dart(),
             self.maintenance_mu.into_into_dart().into_dart(),
             self.maintenance_seconds.into_into_dart().into_dart(),
-            self.variance.into_into_dart().into_dart(),
+            self.volatility.into_into_dart().into_dart(),
+            self.volatility_period_seconds.into_into_dart().into_dart(),
+            self.started_at.into_into_dart().into_dart(),
             self.hibernated.into_into_dart().into_dart(),
             self.disk_only.into_into_dart().into_dart(),
             self.wake_fee_mu.into_into_dart().into_dart(),
@@ -9632,6 +9649,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_service::InstanceView 
             self.peer_id.into_into_dart().into_dart(),
             self.slots.into_into_dart().into_dart(),
             self.chat_slots.into_into_dart().into_dart(),
+            self.cards_slots.into_into_dart().into_dart(),
             self.web_slots.into_into_dart().into_dart(),
             self.client_balance_mu.into_into_dart().into_dart(),
         ]
@@ -10273,7 +10291,9 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_service::QuoteView {
             self.init_maintenance_mu.into_into_dart().into_dart(),
             self.max_maintenance_mu.into_into_dart().into_dart(),
             self.maintenance_seconds_loop.into_into_dart().into_dart(),
-            self.variance.into_into_dart().into_dart(),
+            self.price_bounded.into_into_dart().into_dart(),
+            self.price_volatility.into_into_dart().into_dart(),
+            self.volatility_period_seconds.into_into_dart().into_dart(),
             self.compared_nano_erg.into_into_dart().into_dart(),
             self.client_balance_mu.into_into_dart().into_dart(),
         ]
@@ -11462,6 +11482,7 @@ impl SseEncode for crate::api::celaut_service::InstanceListView {
         <String>::sse_encode(self.service_id, serializer);
         <Vec<u16>>::sse_encode(self.slots, serializer);
         <Vec<u16>>::sse_encode(self.chat_slots, serializer);
+        <Vec<u16>>::sse_encode(self.cards_slots, serializer);
         <Vec<u16>>::sse_encode(self.web_slots, serializer);
         <i64>::sse_encode(self.started_at, serializer);
         <String>::sse_encode(self.start_charge_mu, serializer);
@@ -11486,7 +11507,9 @@ impl SseEncode for crate::api::celaut_service::InstancePlanView {
         <String>::sse_encode(self.spent_mu, serializer);
         <String>::sse_encode(self.maintenance_mu, serializer);
         <u32>::sse_encode(self.maintenance_seconds, serializer);
-        <f64>::sse_encode(self.variance, serializer);
+        <f64>::sse_encode(self.volatility, serializer);
+        <u32>::sse_encode(self.volatility_period_seconds, serializer);
+        <i64>::sse_encode(self.started_at, serializer);
         <bool>::sse_encode(self.hibernated, serializer);
         <bool>::sse_encode(self.disk_only, serializer);
         <String>::sse_encode(self.wake_fee_mu, serializer);
@@ -11526,6 +11549,7 @@ impl SseEncode for crate::api::celaut_service::InstanceView {
         <String>::sse_encode(self.peer_id, serializer);
         <Vec<u16>>::sse_encode(self.slots, serializer);
         <Vec<u16>>::sse_encode(self.chat_slots, serializer);
+        <Vec<u16>>::sse_encode(self.cards_slots, serializer);
         <Vec<u16>>::sse_encode(self.web_slots, serializer);
         <String>::sse_encode(self.client_balance_mu, serializer);
     }
@@ -12382,7 +12406,9 @@ impl SseEncode for crate::api::celaut_service::QuoteView {
         <String>::sse_encode(self.init_maintenance_mu, serializer);
         <String>::sse_encode(self.max_maintenance_mu, serializer);
         <i32>::sse_encode(self.maintenance_seconds_loop, serializer);
-        <f32>::sse_encode(self.variance, serializer);
+        <bool>::sse_encode(self.price_bounded, serializer);
+        <f32>::sse_encode(self.price_volatility, serializer);
+        <i32>::sse_encode(self.volatility_period_seconds, serializer);
         <Option<String>>::sse_encode(self.compared_nano_erg, serializer);
         <String>::sse_encode(self.client_balance_mu, serializer);
     }
