@@ -5,16 +5,16 @@ A node also announces most of this at runtime in `Peer.uri[].protocol_stack` (la
 `nodo:src/identity/transport_stack.py`. The per-RPC tables are in
 `nodo:protos/gateway_bee.py`.
 
-The `nodo:` line numbers are from nodo dev `e3d12301`. Section 4 (the deposit) was
-checked against nodo dev `ee5af5bc` and names functions, not lines. The protos and `gateway_bee.py`
-are the same as at `b5c1e8a5`, the commit that `celaut-proto` pins.
+The `nodo:` line numbers are from nodo dev `76dcac3b` (2026-11-10, issue #129), the commit
+whose `celaut.proto` `celaut-proto` pins (`protos/SOURCE`). Section 4 (the deposit) was
+checked against nodo dev `ee5af5bc` and names functions, not lines.
 
 ## 1. Transport
 
 - **Port:** no fixed default. `network.GATEWAY_PORT: auto` picks a free port on the first
   start. Clients learn it from `Peer.uri[].port`.
 - **TLS only for a remote client.** The TLS port binds `[::]`. The plaintext port
-  (`GATEWAY_PORT + 1`) binds only the guest bridge or loopback (`nodo:src/serve.py:376-401`).
+  (`GATEWAY_PORT + 1`) binds only the guest bridge or loopback (`nodo:src/serve.py:457-486`).
 - **gRPC:** path `/celaut.Gateway/<Method>`, `application/grpc`, no custom metadata.
   Every method is `stream buffer.Buffer -> stream buffer.Buffer`. Errors are non-OK
   statuses with readable text.
@@ -34,8 +34,9 @@ are the same as at `b5c1e8a5`, the commit that `celaut-proto` pins.
 `buffer.Buffer` (`nodo:protos/buffer.proto`): `chunk=1`, `separator=2`, `signal=3`,
 `head=4 {index}`, `block=5`, `skip=6`. All are proto3 `optional`.
 
-nodo pins bee-rpc-over-grpc-py **v0.0.2** (`nodo:bash/requirements.txt:15`). The
-`bee_rpc:client.py` line numbers below are from v0.0.2.
+nodo pinned bee-rpc-over-grpc-py **v0.0.2** when this section was written; dev
+`76dcac3b` pins **v0.0.3** (`nodo:bash/requirements.txt:18`). The `bee_rpc:client.py` line
+numbers below are from v0.0.2.
 
 **Send one object** (`bee_rpc:client.py:967-1156`, `serialize_to_buffer`):
 
@@ -108,14 +109,18 @@ Notes:
   `blake2b-512(utf8(challenge) || utf8(solution))` must end with `difficulty` zeros. A
   new client gets free credit (`free_tier.CREDIT_MU_PER_NEW_CLIENT`, default 4 500 000 MU).
 - **GetPeerInfo** needs a client, so call GenerateClient first. Verify the `Peer`
-  before you use it (`nodo:protos/celaut.proto:722-731` and `:777-779`):
+  before you use it (`nodo:protos/celaut.proto:1117-1126` and `:1179-1181`):
   - `public_key` is 64 lowercase hex characters and is equal to the peer_id of the TLS
     certificate.
   - `signature` is Ed25519 by `public_key` over UTF-8
-    `"<public_key>|<ts>|<content_digest>"` (`nodo:src/identity/node_identity.py:651-660`).
+    `"<public_key>|<ts>|<content_digest>"` (`nodo:src/identity/node_identity.py:668-677`).
   - `content_digest` is the lowercase hex of blake2b-256 over the canonical text of all
     the other fields of the Peer (`canonical_peer_content_digest`,
-    `nodo:src/identity/node_identity.py:570-648`).
+    `nodo:src/identity/node_identity.py:578-665`). Since nodo `7533a177` (#344) the text
+    has a seventh part, the `activity_window`: `-` when the Peer has no window, else
+    `w:<on_close>:<spans>`, with each span as `start-end`, sorted as text and joined by `,`
+    (an empty window, "always open", is `w:0:`). A client without it rejects the Peer of
+    every node from `7533a177` on, with or without a window.
   - `signature_scheme` has one component that names Ed25519 as nodo defines it
     (`speaks_our_signature_scheme`, `nodo:src/identity/node_identity.py`). nodo checks
     this before the key.
@@ -132,19 +137,22 @@ Notes:
   node asks (no signal). The node starts the work on the message that makes the
   service known (a Hash or the Metadata when the node has the service, else the
   Service). Then it sends the signal, and after it the reply. It ignores a
-  Configuration or a RecursionGuard that comes later (lines 93-106 and 157-194). For a
+  Configuration or a RecursionGuard that comes later (lines 118-138 and 194-231). For a
   quote, nodo sends only Client, Configuration and the hashes. StartService charges
-  `EstimatedCost.cost` from the client balance. After the reply, half-close.
+  `Configuration.initial_mu` from the client balance: the `cost` of the quote (the builds,
+  nodo#636) plus the balance of the instance, at least one maintenance period. With no
+  `initial_mu`, it charges `cost` plus its default balance
+  (`deposits.DEFAULT_INITIAL_PERIODS` periods; [balancer.md](balancer.md)). After the reply, half-close.
 - **RecursionGuard:** `remaining_hops: 1` makes the node run the service itself. It
   does not delegate it. A light client must send it: a delegated instance has no path
   for a phone (see the next item).
 - **ServiceInstance.instance.uri_slot[].uri** can be empty (no host ports). Then use
   ServiceTunnel. ServiceTunnel accepts only the token of an instance that runs on that
-  node (`nodo:src/tunneling/rpc_tunnel.py:346-351`). For a delegated instance the node
+  node (`nodo:src/tunneling/rpc_tunnel.py:589-595`). For a delegated instance the node
   gives an alias token, and ServiceTunnel refuses it. A delegated instance is not
   reachable from the app.
 - **Observe** takes the instance token in `ObserveRequest.instance_id`
-  (`nodo:protos/gateway_bee.py:153-157`, `nodo:src/gateway/iterables/observe_iterable.py`).
+  (`nodo:protos/gateway_bee.py:185-189`, `nodo:src/gateway/iterables/observe_iterable.py`).
 - **ModifyServiceSystemResources** (`nodo:src/gateway/gateway.py`, `nodo:src/manager/hibernation.py`):
   hibernate and wake use this call. There is no other RPC. Send part 1 with `service_token`
   (the instance token) and `max_sysreq`, and part 2 with the `Client` of the father. The
@@ -167,7 +175,7 @@ Notes:
   - A hibernated instance pays for its disk only. A top-up keeps it alive and does not
     wake it.
 - **Chat** answers `stored=false, "client_id … is not associated with any peer"` to a
-  light client on a node of `a97148dd` (`nodo:src/manager/chat.py:164-184`). A node with the
+  light client on a node of `a97148dd` (`nodo:src/manager/chat.py:164-184` at `a97148dd`). A node with the
   support chat keeps the message in the thread of the client instead. `GetChatThread` is
   only on such a node.
 

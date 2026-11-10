@@ -308,6 +308,16 @@ Details:
   top-up of an instance the app waits a minute before the next one for it; after a failure, ten
   minutes. The app does not run when it is closed: then nothing tops up, and the node stops the
   instance when its balance runs out. A foreground service for that is not done.
+- **A node that closes** (issue #129, nodo#344; [balancer.md](balancer.md), The activity
+  window of a node). The confirmation of a launch says when the best node closes and what it
+  does with the instance then: "stops the instance and gives back the balance that is left",
+  or "hibernates the instance, and wakes it when it opens again". It is red when the close
+  comes before the instance would end. With "until I stop it" on a node that stops it, it
+  says that keep running cannot keep the instance after that time; the info page of a kept
+  instance says the same under the switch, and so does the question that turns keep running
+  on. The settings screen of keep running has a general note. A node that leaves running
+  instances alone at its close (REFUSE) says nothing. A launch that fails because a node is
+  closed says when its schedule opens again.
 
 ## 5. Open items
 
