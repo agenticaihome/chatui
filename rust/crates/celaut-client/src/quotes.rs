@@ -2,11 +2,11 @@
 
 use std::collections::HashMap;
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use celaut_balancer::{
-    cost_mu, rank_with, Candidate, Misfit, QuoteCache, QuoteKey, Ranked, ServiceAsk, Standing,
-    Weights,
+    cost_mu, next_open, rank_at, schedule_closed, Candidate, Misfit, QuoteCache, QuoteKey,
+    Ranked, ServiceAsk, Standing, Weights,
 };
 use celaut_proto::celaut::Configuration;
 use celaut_proto::Message;
@@ -35,6 +35,18 @@ pub struct QuoteSkip {
     pub misfits: Vec<Misfit>,
 }
 
+/// A node that was not asked, because the activity window that it announced
+/// (`Peer.activity_window`, nodo#344) says that it is closed now, as nodo's balancer skips
+/// a closed peer. The schedule is a hint: a node that gives none, or one that cannot be
+/// read, is asked.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuoteClosed {
+    /// The identity of the node.
+    pub peer_id: String,
+    /// The unix time, in seconds, at which its schedule opens next.
+    pub opens_at: Option<i64>,
+}
+
 /// The answer of [`quotes`].
 #[derive(Debug, Default)]
 pub struct Quotes {
@@ -46,6 +58,15 @@ pub struct Quotes {
     /// The nodes that were not asked, because their announced resources are below what
     /// the service asks. Always empty without a [`ServiceAsk`] ([`quotes_for`]).
     pub skipped: Vec<QuoteSkip>,
+    /// The nodes that were not asked, because their schedule says that they are closed.
+    pub closed: Vec<QuoteClosed>,
+}
+
+/// The unix time now, in seconds.
+fn unix_now() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
 }
 
 /// Ask each node for the price of the service, all at the same time, and rank the
@@ -121,8 +142,18 @@ pub async fn quotes_weighted<T: Transport>(
     weights: &Weights,
 ) -> Quotes {
     let mut skipped = Vec::new();
+    let mut closed = Vec::new();
     let mut to_ask = Vec::new();
+    let now = unix_now();
     for session in sessions {
+        let window = session.info().peer.activity_window.as_ref();
+        if schedule_closed(window, now) {
+            closed.push(QuoteClosed {
+                peer_id: session.peer_id().to_string(),
+                opens_at: next_open(window, now),
+            });
+            continue;
+        }
         let misfits = ask
             .map(|a| a.misfits(&session.info().peer.resources))
             .unwrap_or_default();
@@ -190,9 +221,17 @@ pub async fn quotes_weighted<T: Transport>(
             }),
         }
     }
+    // The balance of the start, if the quote carries one: with it the order knows the
+    // funded life of each quote (nodo#344). None: each node funds its default periods.
+    let initial_mu = configuration
+        .initial_mu
+        .as_ref()
+        .and_then(|a| a.n.parse::<u128>().ok())
+        .filter(|m| *m > 0);
     Quotes {
-        ranked: rank_with(candidates, weights),
+        ranked: rank_at(candidates, weights, initial_mu, now),
         failures,
         skipped,
+        closed,
     }
 }

@@ -817,6 +817,7 @@ name = "celaut-balancer"
 version = "0.1.0"
 dependencies = [
  "celaut-proto",
+ "serde_json",
  "thiserror 2.0.21",
 ]
 

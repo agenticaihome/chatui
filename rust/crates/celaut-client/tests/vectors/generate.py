@@ -1,6 +1,6 @@
 """Known-answer vectors for celaut-client, made with the nodo code.
 
-Run from a nodo checkout (nodo dev e3d12301 was used):
+Run from a nodo checkout (nodo dev 76dcac3b was used):
 
     PYTHONPATH=<nodo> python3 generate.py > vectors.json
 
@@ -151,9 +151,19 @@ def peer_vector(name, peer, key):
 def main():
     key, pub = identity(IDENTITY_SEED)
     _, other_pub = identity(OTHER_SEED)
+    # The activity window (#344, nodo 7533a177): spans in an order that the digest must
+    # sort as text ("1320-60" before "600-720"), a span over midnight, and HIBERNATE; an
+    # empty window ("always open"), which is not the same claim as no window at all.
+    windowed = full_peer(pub)
+    for start, end in ((600, 720), (1320, 60), (0, 30)):
+        windowed.activity_window.spans.add(start_minute=start, end_minute=end)
+    windowed.activity_window.on_close = celaut_pb2.ON_CLOSE_HIBERNATE
+    edge = edge_peer(pub)
+    edge.activity_window.SetInParent()
     peers = [
         peer_vector("full", full_peer(pub), key),
-        peer_vector("edge", edge_peer(pub), key),
+        peer_vector("edge", edge, key),
+        peer_vector("window", windowed, key),
     ]
     scheme = ni.node_signature_scheme().components[0]
     print(json.dumps({

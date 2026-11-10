@@ -645,6 +645,53 @@ async fn quotes_for_skips_the_nodes_that_can_never_run_the_service_and_does_not_
 }
 
 #[tokio::test]
+async fn quotes_skip_a_node_whose_announced_schedule_says_that_it_is_closed() {
+    // nodo#344: a node whose Peer.activity_window says that it is closed now gets no
+    // call, as nodo's balancer skips it; the answer says when its schedule opens. A
+    // schedule that says it is open, or none at all, is asked.
+    use celaut_proto::celaut::{activity_window::Span, ActivityWindow};
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    let minute = ((now / 60) % 1440) as i32;
+    let span = |from: i32, to: i32| ActivityWindow {
+        spans: vec![Span {
+            start_minute: (minute + from).rem_euclid(1440),
+            end_minute: (minute + to).rem_euclid(1440),
+        }],
+        on_close: 1,
+        ..Default::default()
+    };
+    let windowed = |seed: u8, window: Option<ActivityWindow>| {
+        let (mut peer, _) = peer_with(seed, Some("1"), None);
+        peer.activity_window = window;
+        sign_peer(peer, seed)
+    };
+    let (peer, id) = windowed(1, Some(span(10, 20)));
+    let closed = open_with(peer, id, vec![after_signal(&quote("100"))]).await;
+    let (peer, id) = windowed(2, Some(span(-10, 10)));
+    let open = open_with(peer, id, vec![after_signal(&quote("100"))]).await;
+    let (peer, id) = windowed(3, None);
+    let silent = open_with(peer, id, vec![after_signal(&quote("100"))]).await;
+    let cache = Mutex::new(QuoteCache::new());
+
+    let answer = quotes(&[&closed, &open, &silent], SERVICE, &Configuration::default(), &cache).await;
+
+    let mut asked: Vec<&str> = answer.ranked.iter().map(|r| r.candidate.peer_id.as_str()).collect();
+    asked.sort();
+    let mut expected = vec![open.peer_id(), silent.peer_id()];
+    expected.sort();
+    assert_eq!(asked, expected);
+    assert_eq!(answer.closed.len(), 1);
+    assert_eq!(answer.closed[0].peer_id, closed.peer_id());
+    let opens_at = answer.closed[0].opens_at.unwrap();
+    assert!(opens_at > now && opens_at <= now + 11 * 60, "{opens_at} {now}");
+    assert_eq!(closed.transport().calls(), 2);
+    assert_eq!(open.transport().calls(), 3);
+}
+
+#[tokio::test]
 async fn quotes_for_with_no_ask_or_no_known_architecture_skips_no_node() {
     let answer = || vec![after_signal(&quote("100"))];
     let small = session_with(2, Some("1"), Some(vec![announced("amd64", 1)]), answer()).await;
@@ -889,6 +936,7 @@ mod hibernation_record {
                 maintenance_seconds: 60,
                 volatility: "0".into(),
                 volatility_period_seconds: 0,
+                ..Default::default()
             }),
             ..running(Some(LAUNCH))
         }

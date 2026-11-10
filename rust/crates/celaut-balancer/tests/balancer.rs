@@ -20,6 +20,7 @@ fn quote(cost: &str, init: &str, max: &str, seconds: i32, volatility: f32) -> Es
         price_bounded: true,
         price_volatility: volatility,
         volatility_period_seconds: 86400,
+        ..Default::default()
     }
 }
 
@@ -360,4 +361,44 @@ fn the_weights_of_the_user_change_what_counts() {
     };
     assert_eq!(Weights::from_milli(w.to_milli()), w);
     let _ = rank_with(vec![], &w);
+}
+
+#[test]
+fn rank_puts_the_better_interruption_class_before_the_score() {
+    // nodo#344: price bound, then the interruption class, then the score. A cheap node
+    // that stops the instance inside its funded life goes after a dearer node that never
+    // closes, and a hibernation goes before a stop in the same position.
+    use celaut_balancer::rank_at;
+    let now = 1_800_000_000;
+    let closing = |cost: &str, on_close: i32, closes_at: i64| EstimatedCost {
+        on_close,
+        closes_at,
+        ..quote(cost, "1000", "1000", 60, 0.0)
+    };
+    let candidates = vec![
+        candidate("stops-soon", closing("1", 1, now + 60), Some(1)),
+        candidate("sleeps-soon", closing("2", 2, now + 60), Some(1)),
+        candidate("stops-later", closing("3", 1, now + 10 * 86_400), Some(1)),
+        candidate("never", closing("900000", 0, 0), Some(1)),
+        candidate("refuses", closing("4", 0, now + 60), Some(1)),
+    ];
+    let order: Vec<String> = rank_at(candidates, &Weights::default(), None, now)
+        .into_iter()
+        .map(|r| r.candidate.peer_id)
+        .collect();
+    assert_eq!(
+        order,
+        ["refuses", "never", "stops-later", "sleeps-soon", "stops-soon"]
+    );
+    // A start funded for less than the minute before the close: both closes are outside
+    // its life, so the hibernation (class 1) beats the stop (class 2).
+    let candidates = vec![
+        candidate("stops-soon", closing("1", 1, now + 3600), Some(1)),
+        candidate("sleeps-soon", closing("2", 2, now + 3600), Some(1)),
+    ];
+    let order: Vec<String> = rank_at(candidates, &Weights::default(), Some(2001), now)
+        .into_iter()
+        .map(|r| r.candidate.peer_id)
+        .collect();
+    assert_eq!(order, ["sleeps-soon", "stops-soon"]);
 }

@@ -749,6 +749,45 @@ pub struct EstimatedCost {
     /// period. A reader that gets a value below 0 reads it as 0.
     #[prost(int32, tag = "7")]
     pub volatility_period_seconds: i32,
+    /// The unix time of the next scheduled close of the activity window of the node, in
+    /// seconds. 0 means that no close is scheduled. It is an absolute time, so it does
+    /// not change while the answer travels. It is not a promise that the instance lives
+    /// until this time: the node can stop for a cause that is not in its schedule. It is
+    /// also not a promise of a long life when it is 0.
+    #[prost(int64, tag = "8")]
+    pub closes_at: i64,
+    /// What the node does with a running instance when the window closes. A node that
+    /// does not set this field reads as ON_CLOSE_REFUSE.
+    #[prost(enumeration = "OnClose", tag = "9")]
+    pub on_close: i32,
+}
+/// The hours in which a node takes new work, and what it does with a running instance
+/// when it closes. It describes one repeating day: the same spans every day.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ActivityWindow {
+    /// The node is open when the time is in any span.
+    #[prost(message, repeated, tag = "1")]
+    pub spans: ::prost::alloc::vec::Vec<activity_window::Span>,
+    /// What the node does with a running instance when it closes.
+    #[prost(enumeration = "OnClose", tag = "2")]
+    pub on_close: i32,
+}
+/// Nested message and enum types in `ActivityWindow`.
+pub mod activity_window {
+    /// One open span, in minutes from 00:00 UTC, from 0 to 1439. The span starts at
+    /// start_minute (included) and ends at end_minute (not included). If end_minute is
+    /// less than start_minute, the span passes midnight UTC.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Span {
+        /// The first minute of the span, from 0 to 1439, in minutes from 00:00 UTC. It is
+        /// in the span.
+        #[prost(int32, tag = "1")]
+        pub start_minute: i32,
+        /// The end of the span, from 0 to 1439, in minutes from 00:00 UTC. It is not in
+        /// the span. If it is less than start_minute, the span passes midnight UTC.
+        #[prost(int32, tag = "2")]
+        pub end_minute: i32,
+    }
 }
 /// The resources for one architecture. In Peer.resources: the most that the node
 /// supports for that architecture, with its measured benchmark scores. In a
@@ -774,6 +813,11 @@ pub struct ResourceAvailability {
     /// Why the node cannot. Empty if can_execute is true. For a person: do not parse it.
     #[prost(string, tag = "2")]
     pub reason: ::prost::alloc::string::String,
+    /// The unix time of the next opening of the activity window, in seconds. The node sets
+    /// it when it answers can_execute = false because it is closed. It is 0 if there is
+    /// no opening to give, or if the cause is not the window.
+    #[prost(int64, tag = "3")]
+    pub opens_at: i64,
 }
 /// The request of LocateShare.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -1178,6 +1222,14 @@ pub struct Peer {
     /// not fit the request.
     #[prost(message, repeated, tag = "8")]
     pub resources: ::prost::alloc::vec::Vec<ArchitectureResources>,
+    /// The hours in which the node takes new work. If the message is absent, the node
+    /// gives no schedule: a reader does not assume that the node is open or closed. An
+    /// empty list of spans means that the node is always open. It is the schedule that
+    /// the node has now: it can change, and the node then announces a new Peer with a
+    /// higher ts. It is not a promise. The quote (EstimatedCost.closes_at and on_close)
+    /// is the authority for one instance.
+    #[prost(message, optional, tag = "9")]
+    pub activity_window: ::core::option::Option<ActivityWindow>,
     /// The unix time of the announcement, in seconds. A reader accepts a Peer only if its
     /// ts is more than the ts of the last Peer that it accepted for the same public_key.
     #[prost(int64, tag = "99")]
@@ -1670,5 +1722,40 @@ pub mod observe_event {
         /// if the request has include_receipts.
         #[prost(message, tag = "14")]
         Receipt(super::ExecutionReceipt),
+    }
+}
+/// What a node does with a running instance when its activity window closes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum OnClose {
+    /// The node does not touch the instance. It refuses a new child and a resource
+    /// increase until the window opens. This is the default value, so an older node reads
+    /// as ON_CLOSE_REFUSE.
+    Refuse = 0,
+    /// The node stops the instance and refunds the balance.
+    Stop = 1,
+    /// The node hibernates the instance, and wakes it when the window opens.
+    Hibernate = 2,
+}
+impl OnClose {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Refuse => "ON_CLOSE_REFUSE",
+            Self::Stop => "ON_CLOSE_STOP",
+            Self::Hibernate => "ON_CLOSE_HIBERNATE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ON_CLOSE_REFUSE" => Some(Self::Refuse),
+            "ON_CLOSE_STOP" => Some(Self::Stop),
+            "ON_CLOSE_HIBERNATE" => Some(Self::Hibernate),
+            _ => None,
+        }
     }
 }

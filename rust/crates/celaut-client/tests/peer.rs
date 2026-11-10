@@ -60,6 +60,25 @@ fn the_vector_peers_cover_the_edge_cases() {
 }
 
 #[test]
+fn the_vector_peers_cover_the_activity_window() {
+    // A guard for the vectors (nodo#344): no window ("full"), an empty window ("edge",
+    // always open) and spans out of text order with HIBERNATE ("window") are three
+    // different claims, so the three digests differ.
+    let vectors = common::vectors();
+    let peer = |name: &str| vectors.peers.iter().find(|p| p.name == name).unwrap().peer();
+    assert!(peer("full").activity_window.is_none());
+    let edge = peer("edge").activity_window.unwrap();
+    assert!(edge.spans.is_empty());
+    let window = peer("window").activity_window.unwrap();
+    assert_eq!(window.spans.len(), 3);
+    assert_eq!(window.spans[0].start_minute, 600);
+    assert_eq!(window.on_close, 2);
+    let mut without = peer("window");
+    without.activity_window = None;
+    assert_ne!(content_digest(&without), content_digest(&peer("window")));
+}
+
+#[test]
 fn scheme_of_nodo_has_the_expected_formal() {
     let vectors = common::vectors();
     let peer = vectors.peers[0].peer();

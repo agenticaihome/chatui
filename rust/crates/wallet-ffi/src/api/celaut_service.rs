@@ -23,7 +23,7 @@ use celaut_client::receipts::{check_start, InstanceReceipts, StoredReceipt};
 use celaut_client::session::parse_service_id;
 use celaut_client::ResourceRefusal;
 use celaut_client::{new_client_id, quotes_weighted, ClientError, LocalPort, NodeSession};
-use celaut_proto::celaut::{Amount, Configuration, EstimatedCost};
+use celaut_proto::celaut::{Amount, Configuration, EstimatedCost, OnClose};
 use celaut_wire::{ConnectOptions, Connection, TunnelOpener, WireError};
 use once_cell::sync::Lazy;
 
@@ -327,6 +327,24 @@ pub(crate) fn forget_if_broken_key(key: &str) {
     }
 }
 
+/// The unix time, in seconds, at which the schedule that the node of `address` announced
+/// (`Peer.activity_window`, nodo#344) opens next, if it says that the node is closed now.
+/// From the open connection; `None` with no connection, no schedule, or an open node.
+pub(crate) fn opens_at_of(address: &NodeAddress) -> Option<i64> {
+    let session = STATE.lock().ok()?.sessions.get(&key(address))?.clone();
+    let window = session.info().peer.activity_window.clone();
+    celaut_balancer::next_open(window.as_ref(), now_seconds())
+}
+
+/// When the node of `node` opens again, by the activity window that it announced
+/// (nodo#344): the unix time in seconds, or 0 if the app does not know (no connection,
+/// no schedule, or the schedule says that it is open). For a start that the node refused
+/// because it is closed.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_node_opens_at(node: NodeAddress) -> i64 {
+    opens_at_of(&node).unwrap_or(0)
+}
+
 /// One quote, in the MU of the node and, if the node gives an ERG rate, in nanoERG. An
 /// amount that the node did not give is empty (the screen shows "unknown", not 0).
 #[derive(Debug, Clone, PartialEq)]
@@ -344,6 +362,11 @@ pub struct QuoteView {
     pub price_bounded: bool,
     pub price_volatility: f32,
     pub volatility_period_seconds: i32,
+    /// The unix time of the next close of the activity window of the node, in seconds; 0
+    /// if none is scheduled (nodo#344). Not a promise of a long life when it is 0.
+    pub closes_at: i64,
+    /// What the node does with a running instance when the window closes.
+    pub on_close: OnCloseView,
     /// The cost for the comparison in nanoERG, or `None` if the node gives no ERG rate
     /// (then its price is not compared, and it comes last).
     pub compared_nano_erg: Option<String>,
@@ -353,12 +376,55 @@ pub struct QuoteView {
     pub client_balance_mu: String,
 }
 
+/// What a node does with a running instance when its activity window closes
+/// (`EstimatedCost.on_close`, nodo#344).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OnCloseView {
+    /// It leaves the instance running, and refuses new work until it opens. Also the
+    /// value of an older node, and of a value that the app does not know.
+    Refuse,
+    /// It stops the instance and refunds the balance.
+    Stop,
+    /// It hibernates the instance, and wakes it when it opens.
+    Hibernate,
+}
+
+impl OnCloseView {
+    pub(crate) fn of(quote: &EstimatedCost) -> Self {
+        match celaut_balancer::on_close(quote) {
+            OnClose::Stop => OnCloseView::Stop,
+            OnClose::Hibernate => OnCloseView::Hibernate,
+            OnClose::Refuse => OnCloseView::Refuse,
+        }
+    }
+
+    /// The name that the database keeps ("refuse", "stop", "hibernate"), as nodo's.
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            OnCloseView::Refuse => "refuse",
+            OnCloseView::Stop => "stop",
+            OnCloseView::Hibernate => "hibernate",
+        }
+    }
+
+    pub(crate) fn from_name(name: &str) -> Self {
+        match name {
+            "stop" => OnCloseView::Stop,
+            "hibernate" => OnCloseView::Hibernate,
+            _ => OnCloseView::Refuse,
+        }
+    }
+}
+
 /// A node that gave no quote.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QuoteFailureView {
     pub address: NodeAddress,
     pub kind: CelautErrorKind,
     pub message: String,
+    /// With [`CelautErrorKind::NodeClosed`]: the unix time, in seconds, at which the
+    /// schedule that the node announced opens next; 0 if it is not known (nodo#344).
+    pub opens_at: i64,
 }
 
 /// The quotes, best first, and the nodes that failed.
@@ -384,6 +450,8 @@ pub(crate) fn quote_view(address: NodeAddress, peer_id: String, q: &EstimatedCos
         price_bounded: q.price_bounded,
         price_volatility: q.price_volatility,
         volatility_period_seconds: q.volatility_period_seconds,
+        closes_at: q.closes_at.max(0),
+        on_close: OnCloseView::of(q),
         compared_nano_erg: None,
         client_balance_mu: String::new(),
     }
@@ -417,6 +485,7 @@ pub async fn celaut_quote_service(
                 address,
                 kind: e.kind,
                 message: e.message,
+                opens_at: 0,
             }),
         }
     }
@@ -447,10 +516,27 @@ pub async fn celaut_quote_service(
         let address = address_of(&failure.peer_id);
         forget_if_broken(&address, &failure.error);
         let e = error_of(failure.error);
+        // A node that refused because it is closed: its schedule may say when it opens.
+        let opens_at = if e.kind == CelautErrorKind::NodeClosed {
+            opens_at_of(&address).unwrap_or(0)
+        } else {
+            0
+        };
         failures.push(QuoteFailureView {
             address,
             kind: e.kind,
             message: e.message,
+            opens_at,
+        });
+    }
+    // The nodes that were not asked, because their announced schedule says that they are
+    // closed now (nodo#344): a failure "closed", with the time at which it opens.
+    for closed in answer.closed {
+        failures.push(QuoteFailureView {
+            address: address_of(&closed.peer_id),
+            kind: CelautErrorKind::NodeClosed,
+            message: "Its announced activity window says that it is closed now.".to_string(),
+            opens_at: closed.opens_at.unwrap_or(0),
         });
     }
     let at = now_seconds();
@@ -1021,6 +1107,11 @@ pub struct InstancePlanView {
     /// The fee of the call that wakes the instance, in MU. The instance pays it, so a
     /// hibernated instance needs it in its balance (empty if the app does not know it).
     pub wake_fee_mu: String,
+    /// The next close of the activity window of the node, in unix seconds, from the quote
+    /// of the start (nodo#344); 0 if none was scheduled, or the app does not know.
+    pub closes_at: i64,
+    /// What the node said that it does with the instance when its window closes.
+    pub on_close: OnCloseView,
 }
 
 /// What the app moved to the instance since `keep_alive` started, in MU.
@@ -1047,6 +1138,10 @@ pub fn celaut_instance_plan(instance_id: String) -> Result<InstancePlanView, Cel
                 ),
                 None => (String::new(), 0, 0.0, 0),
             };
+        let (closes_at, on_close) = match &r.pricing {
+            Some(p) => (p.closes_at, OnCloseView::from_name(&p.on_close)),
+            None => (0, OnCloseView::Refuse),
+        };
         // A hibernated instance costs its disk only: the keep-alive aims at that.
         let hibernated = r.hibernated_at.is_some();
         let price = r.hibernated_price.as_ref().filter(|_| hibernated);
@@ -1070,6 +1165,8 @@ pub fn celaut_instance_plan(instance_id: String) -> Result<InstancePlanView, Cel
             hibernated,
             disk_only,
             wake_fee_mu: price.map(|p| p.wake_fee_mu.clone()).unwrap_or_default(),
+            closes_at,
+            on_close,
         })
     })
 }
@@ -1077,6 +1174,8 @@ pub fn celaut_instance_plan(instance_id: String) -> Result<InstancePlanView, Cel
 /// Keep the price of the node of an instance, from the quote that won its start, so that
 /// the app can say how long a balance lasts and how much a time costs. `volatility` is the
 /// `price_volatility` of a bounded quote, 0 for one that is not bounded (nodo#636).
+/// `closes_at` and `on_close` are what the quote said about the activity window of the
+/// node (nodo#344): the app warns when the node stops the instance at its next close.
 #[flutter_rust_bridge::frb(sync)]
 pub fn celaut_set_instance_pricing(
     instance_id: String,
@@ -1084,6 +1183,8 @@ pub fn celaut_set_instance_pricing(
     maintenance_seconds: u32,
     volatility: f64,
     volatility_period_seconds: u32,
+    closes_at: i64,
+    on_close: OnCloseView,
 ) -> Result<(), CelautError> {
     if maintenance_mu.parse::<u128>().map_or(true, |m| m == 0) || maintenance_seconds == 0 {
         return Err(invalid("The price of the maintenance is not valid."));
@@ -1097,6 +1198,8 @@ pub fn celaut_set_instance_pricing(
                     volatility: if volatility.is_finite() { volatility.max(0.0) } else { 0.0 }
                         .to_string(),
                     volatility_period_seconds,
+                    closes_at: closes_at.max(0),
+                    on_close: on_close.name().to_string(),
                 });
                 true
             }
@@ -1631,7 +1734,7 @@ mod tests {
         use celaut_client::db::HibernatedPrice;
         let id = "plan-hibernated-test".to_string();
         hibernation_record(&id, true);
-        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, 0.0, 0).unwrap();
+        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, 0.0, 0, 0, OnCloseView::Refuse).unwrap();
         // The app has no price of the disk: it uses the awake price and says so.
         let plan = celaut_instance_plan(id.clone()).unwrap();
         assert!(plan.hibernated);
@@ -1891,17 +1994,21 @@ mod tests {
             ("", 0)
         );
 
-        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, 0.25, 86400).unwrap();
+        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, 0.25, 86400, 0, OnCloseView::Refuse).unwrap();
         let plan = celaut_instance_plan(id.clone()).unwrap();
         assert_eq!(plan.maintenance_mu, "1000");
         assert_eq!(plan.maintenance_seconds, 60);
         assert_eq!(plan.volatility, 0.25);
         assert_eq!(plan.volatility_period_seconds, 86400);
         assert_eq!(plan.started_at, 1_700_000_000);
-        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, f64::NAN, 0).unwrap();
+        assert_eq!((plan.closes_at, plan.on_close), (0, OnCloseView::Refuse));
+        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, 0.25, 86400, 1_800_000_000, OnCloseView::Stop).unwrap();
+        let plan = celaut_instance_plan(id.clone()).unwrap();
+        assert_eq!((plan.closes_at, plan.on_close), (1_800_000_000, OnCloseView::Stop));
+        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, f64::NAN, 0, 0, OnCloseView::Refuse).unwrap();
         assert_eq!(celaut_instance_plan(id.clone()).unwrap().volatility, 0.0);
-        assert!(celaut_set_instance_pricing(id.clone(), "0".into(), 60, 0.0, 0).is_err());
-        assert!(celaut_set_instance_pricing(id.clone(), "5".into(), 0, 0.0, 0).is_err());
+        assert!(celaut_set_instance_pricing(id.clone(), "0".into(), 60, 0.0, 0, 0, OnCloseView::Refuse).is_err());
+        assert!(celaut_set_instance_pricing(id.clone(), "5".into(), 0, 0.0, 0, 0, OnCloseView::Refuse).is_err());
 
         // The count starts at the 700 MU that were already moved.
         celaut_set_keep_alive(id.clone(), true, Some(" 5000 ".into())).unwrap();
