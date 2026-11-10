@@ -2645,5 +2645,48 @@
   "celautSkillUnverified": "Sin verificar",
   "celautSkillServiceId": "Id del servicio {id}",
   "celautSkillIdCopied": "Id del servicio copiado",
-  "celautSkillUse": "Usar este servicio"
+  "celautSkillUse": "Usar este servicio",
+  "celautRunServicesTitle": "Servicios con esta habilidad",
+  "celautRunBest": "Mejor",
+  "celautRunScore": "Puntuación {score}",
+  "@celautRunScore": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "celautRunDefaultBalance": "Saldo inicial de {balance} (por defecto).",
+  "celautRunDefaultBalanceLasts": "Saldo inicial de {balance} (por defecto): unos {time} en este nodo.",
+  "celautRunMoreOptions": "Mostrar {count} opciones más",
+  "@celautRunMoreOptions": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "celautRunFewerOptions": "Mostrar menos opciones",
+  "celautRunCategoryAll": "Todas",
+  "celautStoreFeatured": "Destacadas",
+  "celautStoreFeaturedHint": "Una habilidad de cada campo, del publicador con más reputación",
+  "celautStoreSuggested": "Sugeridas para ti",
+  "celautStoreSuggestedHint": "En los campos de las habilidades que ejecutaste",
+  "celautStoreNew": "Nuevas",
+  "celautStoreNewHint": "Las últimas habilidades publicadas en Ergo",
+  "celautStorePopular": "Populares",
+  "celautStorePopularHint": "Las habilidades con más servicios",
+  "celautStoreCategories": "Categorías",
+  "celautStoreAll": "Todas las habilidades",
+  "celautStoreSkills": "{count, plural, =1{1 habilidad} other{{count} habilidades}}",
+  "cardsLoading": "Cargando las cartas…",
+  "cardsNoDeck": "El servicio no tiene cartas ahora.",
+  "cardsEnd": "No quedan más cartas.",
+  "cardsBackToChat": "Volver al chat",
+  "cardsUndo": "Deshacer",
+  "cardsProgress": "{position} de {total}",
+  "cardsWaiting": "{count, plural, =1{1 movimiento espera para enviarse} other{{count} movimientos esperan para enviarse}}",
+  "cardsConnecting": "Conectando…",
+  "cardsTapForDetail": "Toca la carta para ver los detalles",
+  "chatOpenCards": "Abrir las cartas"
 }

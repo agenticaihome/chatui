@@ -116,6 +116,7 @@ InstanceView _instance({List<int> chat = const []}) => InstanceView(
   peerId: 'aa' * 32,
   slots: Uint16List.fromList([8080]),
   chatSlots: Uint16List.fromList(chat),
+  cardsSlots: Uint16List(0),
   webSlots: Uint16List(0),
   clientBalanceMu: '5',
 );

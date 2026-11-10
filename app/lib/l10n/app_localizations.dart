@@ -12677,6 +12677,66 @@ abstract class AppLocalizations {
   /// **'or'**
   String get serviceInfoWorkloadOr;
 
+  /// No description provided for @cardsLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the cards…'**
+  String get cardsLoading;
+
+  /// No description provided for @cardsNoDeck.
+  ///
+  /// In en, this message translates to:
+  /// **'The service has no cards now.'**
+  String get cardsNoDeck;
+
+  /// No description provided for @cardsEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'No more cards.'**
+  String get cardsEnd;
+
+  /// No description provided for @cardsBackToChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the chat'**
+  String get cardsBackToChat;
+
+  /// No description provided for @cardsUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get cardsUndo;
+
+  /// No description provided for @cardsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{position} of {total}'**
+  String cardsProgress(int position, int total);
+
+  /// No description provided for @cardsWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 move waits to be sent} other{{count} moves wait to be sent}}'**
+  String cardsWaiting(int count);
+
+  /// No description provided for @cardsConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get cardsConnecting;
+
+  /// No description provided for @cardsTapForDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the card for details'**
+  String get cardsTapForDetail;
+
+  /// No description provided for @chatOpenCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the cards'**
+  String get chatOpenCards;
+
   /// No description provided for @celautSkillsIntro.
   ///
   /// In en, this message translates to:

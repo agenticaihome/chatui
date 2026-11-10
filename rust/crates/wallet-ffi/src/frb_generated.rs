@@ -6248,6 +6248,7 @@ impl SseDecode for crate::api::celaut_service::InstanceListView {
         let mut var_serviceId = <String>::sse_decode(deserializer);
         let mut var_slots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_chatSlots = <Vec<u16>>::sse_decode(deserializer);
+        let mut var_cardsSlots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_webSlots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_startedAt = <i64>::sse_decode(deserializer);
         let mut var_startChargeMu = <String>::sse_decode(deserializer);
@@ -6266,6 +6267,7 @@ impl SseDecode for crate::api::celaut_service::InstanceListView {
             service_id: var_serviceId,
             slots: var_slots,
             chat_slots: var_chatSlots,
+            cards_slots: var_cardsSlots,
             web_slots: var_webSlots,
             started_at: var_startedAt,
             start_charge_mu: var_startChargeMu,
@@ -6345,6 +6347,7 @@ impl SseDecode for crate::api::celaut_service::InstanceView {
         let mut var_peerId = <String>::sse_decode(deserializer);
         let mut var_slots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_chatSlots = <Vec<u16>>::sse_decode(deserializer);
+        let mut var_cardsSlots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_webSlots = <Vec<u16>>::sse_decode(deserializer);
         let mut var_clientBalanceMu = <String>::sse_decode(deserializer);
         return crate::api::celaut_service::InstanceView {
@@ -6352,6 +6355,7 @@ impl SseDecode for crate::api::celaut_service::InstanceView {
             peer_id: var_peerId,
             slots: var_slots,
             chat_slots: var_chatSlots,
+            cards_slots: var_cardsSlots,
             web_slots: var_webSlots,
             client_balance_mu: var_clientBalanceMu,
         };
@@ -9505,6 +9509,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_service::InstanceListV
             self.service_id.into_into_dart().into_dart(),
             self.slots.into_into_dart().into_dart(),
             self.chat_slots.into_into_dart().into_dart(),
+            self.cards_slots.into_into_dart().into_dart(),
             self.web_slots.into_into_dart().into_dart(),
             self.started_at.into_into_dart().into_dart(),
             self.start_charge_mu.into_into_dart().into_dart(),
@@ -9612,6 +9617,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_service::InstanceView 
             self.peer_id.into_into_dart().into_dart(),
             self.slots.into_into_dart().into_dart(),
             self.chat_slots.into_into_dart().into_dart(),
+            self.cards_slots.into_into_dart().into_dart(),
             self.web_slots.into_into_dart().into_dart(),
             self.client_balance_mu.into_into_dart().into_dart(),
         ]
@@ -11444,6 +11450,7 @@ impl SseEncode for crate::api::celaut_service::InstanceListView {
         <String>::sse_encode(self.service_id, serializer);
         <Vec<u16>>::sse_encode(self.slots, serializer);
         <Vec<u16>>::sse_encode(self.chat_slots, serializer);
+        <Vec<u16>>::sse_encode(self.cards_slots, serializer);
         <Vec<u16>>::sse_encode(self.web_slots, serializer);
         <i64>::sse_encode(self.started_at, serializer);
         <String>::sse_encode(self.start_charge_mu, serializer);
@@ -11510,6 +11517,7 @@ impl SseEncode for crate::api::celaut_service::InstanceView {
         <String>::sse_encode(self.peer_id, serializer);
         <Vec<u16>>::sse_encode(self.slots, serializer);
         <Vec<u16>>::sse_encode(self.chat_slots, serializer);
+        <Vec<u16>>::sse_encode(self.cards_slots, serializer);
         <Vec<u16>>::sse_encode(self.web_slots, serializer);
         <String>::sse_encode(self.client_balance_mu, serializer);
     }

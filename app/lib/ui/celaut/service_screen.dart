@@ -363,6 +363,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
       serviceId: _serviceCtrl.text.trim().toLowerCase(),
       slots: instance.slots,
       chatSlots: instance.chatSlots,
+      cardsSlots: instance.cardsSlots,
       webSlots: instance.webSlots,
       startedAt: 0,
       startChargeMu: '',

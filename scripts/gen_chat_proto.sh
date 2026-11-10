@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Make the Dart code of docs/celaut/chat.proto in app/lib/celaut/chat/gen.
+# Make the Dart code of docs/celaut/chat.proto and docs/celaut/cards.proto (which
+# imports chat.proto) in app/lib/celaut/chat/gen.
 # CI runs this script and then `git diff --exit-code`: the generated files must be
 # the output of the pinned tools. It needs protoc (PROTOC_VERSION) on the PATH.
 # Run it from any directory. It can run again with no change.
@@ -22,4 +23,5 @@ export PATH="$PATH:$HOME/.pub-cache/bin"
 
 rm -rf "$out"
 mkdir -p "$out"
-protoc -I "$root/docs/celaut" --dart_out=grpc:"$out" "$root/docs/celaut/chat.proto"
+protoc -I "$root/docs/celaut" --dart_out=grpc:"$out" \
+  "$root/docs/celaut/chat.proto" "$root/docs/celaut/cards.proto"

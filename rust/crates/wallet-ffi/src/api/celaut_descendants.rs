@@ -704,6 +704,7 @@ mod tests {
                     service_id: "2".repeat(64),
                     slots: vec![8080],
                     chat_slots: vec![],
+                    cards_slots: vec![],
                     web_slots: vec![],
                     started_at: 1,
                     start_charge_mu: None,

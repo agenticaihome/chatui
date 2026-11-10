@@ -29,6 +29,7 @@ InstanceListView _instance(String id, {int? stoppedAt, int? hibernatedAt}) => In
   serviceId: '65' * 32,
   slots: Uint16List.fromList([8080]),
   chatSlots: Uint16List.fromList([8080]),
+  cardsSlots: Uint16List(0),
   webSlots: Uint16List(0),
   startedAt: 100,
   startChargeMu: '1000',

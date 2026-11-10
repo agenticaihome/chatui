@@ -65,6 +65,7 @@ Text in a table or in a list that does not use these words is a fact or an examp
 | title | A short text that the service gives the conversation, to tell what it is about (section 6.10) |
 | suggestion | A short reply that the service proposes to the user after an answer. The user can put it in the input with one tap (section 5.7) |
 | corrector | The part of a client that proposes words while the user writes, and changes a word when the user taps one (section 5.7) |
+| slot link | A pointer of an assistant message to another slot of the same instance, for example a deck of `cards.md`. The user opens it with a tap (section 5.8) |
 | absent | An optional field that is not set. For a string field of this document, an empty string has the same meaning as an absent field (section 5) |
 
 ## 2. Decisions
@@ -108,6 +109,7 @@ if the text of the row is not in conflict with a newer row.
 | Secret requests | 2026-11-01 | The service can ask the user for a secret by name, for example an API key. The app shows the selector of environment variables (`env-variables.md`, section 3), with a typed value and **Skip**. The user can save a typed value in the container. The service waits until the user answers. The value goes to the service in `AnswerSecretRequest`, and never in a message, an event or the history. The app warns before a sensitive value goes out (sections 5.6 and 6.9) |
 | Title (proposal, issue #89) | 2026-11-04 | To review. The service can give the main conversation a title. The title is in `GetConversation`, in `SubscriptionReady` and in the new event `ConversationTitleChanged`. A name that the user gives the conversation in the app is stronger: the title of the service does not replace it, and the app does not send the name of the user to the service. The app keeps the last title, so the list of conversations shows it after a restart (section 6.10) |
 | Suggestions and corrector (proposal, issue #88) | 2026-11-04 | To review. An assistant message can have up to 3 `suggestions`: short replies that the client shows above its keyboard. They come with the final status `COMPLETED`, once for each message, and not while the user writes: the text that the user writes does not go to the service before Send. The corrector of the client is local. Each send can have `corrector`: if the corrector was on, and which words it changed (`original` and `replacement`). The text of the message is still the text that the user sends (section 5.7) |
+| Pointer to another slot (proposal, issue #120) | 2026-11-10 | To review. An assistant message can point to another slot of the same instance with the new part `slot_link` (the `port` of the slot and a `label`). The client shows a button. It opens the slot only when the user taps it: a `cards` slot opens the deck (`cards.md`), an `http` slot opens the browser, a `chat` slot opens the conversation. A port that is not a slot of the instance, or a slot that the client does not support, shows the text of the message only (section 5.8) |
 | Version | 2026-10-14 | The tag has no version. The interface only grows with new optional fields (section 11) |
 
 ## 3. Declaration in the service interface
@@ -253,6 +255,7 @@ Rules:
 | `file` (`FileReference`) | Another file. A client of revision 6 does not send it. A service can send it. A client can show it as a file to share |
 | `structured` (`StructuredContent`) | Data with a media type. A client that does not know the media type ignores the part. Revision 6 defines no use for it |
 | `secret_request` (`SecretRequest`) | A request for a secret value, by name. Only an assistant message with `status` `COMPLETED` has it (section 5.6). A client that does not know it ignores it |
+| `slot_link` (`SlotLink`) | A pointer to another slot of the instance, for example a deck of cards. Only an assistant message with `status` `COMPLETED` has it (section 5.8). A client that does not know it ignores it |
 | (not set) | A part of a newer revision. The client ignores it |
 
 A `FileReference` in a message must have:
@@ -633,6 +636,51 @@ conversation can be correct. With the keyboard of the system, only the suggestio
 service show, and `enabled` is `false`. While a form of a keyboard block is under the input,
 the chips do not show. A setting of the chat (**Word suggestions**, on by default) turns the
 corrector off.
+
+### 5.8 Pointer to another slot
+
+This section is revision 6, round 11. It is a proposal for issue #120, and Josemi must review
+it. A service that sends no `slot_link` keeps the wire of revision 6, and a client that does
+not know the part ignores it (section 4): the user sees the text of the message only.
+
+An assistant message can tell the client that the next step is in **another slot** of the same
+instance, for example a full-screen deck of cards (`cards.md`). The part is `slot_link`
+(`SlotLink`):
+
+| Field | Type | Rule |
+|---|---|---|
+| `port` | uint32 | The `port` of a `Slot` of the `Service.Api` of the instance (section 3). It names the slot, as for `ServiceTunnel`. It is not an address |
+| `label` | string, optional | The text of the button, 1 to 32 characters, one line. Absent: the client uses its own text for the kind of the slot, for example "Open" |
+
+Rules for the service:
+
+- The service puts the part in an assistant message with `status` `COMPLETED`, after a text
+  that tells the user what the slot is for. It must not put it in an open message or in a user
+  message.
+- The `port` must be a slot of the instance that sent the message. The service must not use the
+  part to send the user to an address that is not a slot of the instance: the part has no
+  field for an address.
+- A message can have up to 4 `slot_link` parts.
+
+Rules for the client:
+
+- The slot counts only if the instance has that port in `Instance.uri_slot` (section 3). The
+  client reads the kind of the slot from its `protocol_stack`:
+
+  | Stack of the slot | What the client opens |
+  |---|---|
+  | `http2`, `grpc`, `cards` | The deck of cards (`cards.md`) |
+  | `http` (a slot that a browser can open) | The browser, as for the web slots of the instance |
+  | `http2`, `grpc`, `chat` | The conversation. If it is the slot of this conversation, the client shows no button |
+
+- A port that is not a slot of the instance, a slot that does not count, and a slot of a kind
+  that the client does not support are ignored: the client shows the text of the message only.
+- **The link is a request, not an order.** The client shows a button under the message, with
+  the `label`. It opens the slot only when the user taps the button. It never opens a slot, a
+  page or a screen by itself when the message comes. The tap is the consent of the user.
+- The button stays on the message. The user can tap it again later, for example to open the
+  deck again after it was closed.
+- The client does not send anything to the service for a tap.
 
 ## 6. Calls
 
@@ -1394,6 +1442,7 @@ storage of the app are not part of this document ([ui-chat-first.md](ui-chat-fir
 - If `AnswerSecretRequest` ends with an error, the client tells the user. It does not send the
   answer again by itself.
 - The client must ignore a message, an event and a `ContentPart` that it does not know.
+- The client shows a button for each `slot_link` of a `COMPLETED` assistant message whose `port` is a slot that counts and that it supports. It opens the slot only after a tap on the button (section 5.8).
 
 ## 11. Conformance
 
@@ -1531,6 +1580,10 @@ has it empty.
 | 88 | Read the answer of test 87 again, with `GetMessages` and with a new `Connect` | The same `suggestions`, in the same order |
 | 89 | Send with `corrector` (`enabled` `true`, one `Correction` `teh` to `the`) and the text `the cat` | `OK`. The text of the user message is `the cat`. If the service keeps `corrector`, the user message has it as it was sent |
 | 90 | Send with `corrector` that has 40 corrections, and a `replacement` that is not in the text | `OK`. The send does not fail because of `corrector` |
+| 91 | Send `/cards` (or the command of the service that makes a link) to a service that sends `slot_link` | The answer is `COMPLETED`, and has a `slot_link` with the `port` of a slot of the instance |
+| 92 | Read the answer of test 91 again, with `GetMessages` and with a new `Connect` | The same `slot_link` |
+| 93 | (Client) A `slot_link` with a port that is not a slot of the instance | No button. The text of the message shows |
+| 94 | (Client) A `slot_link` to a `cards` slot | A button under the message. The deck opens only after a tap |
 
 Tests 20, 21, 23 and 38 apply to a service that streams or takes time to answer. A service
 that does not do these things can skip them. For a service that sends the whole answer, test
@@ -1546,6 +1599,7 @@ Tests 75 to 82 apply to a service that sends secret requests. A service that doe
 
 Tests 84 to 86 apply to a service that gives a title. A service that does not give a title runs test 83 only.
 Tests 87 and 88 apply to a service that sends suggestions. Each service runs tests 89 and 90.
+Tests 91 and 92 apply to a service that sends `slot_link`. Tests 93 and 94 are for a client.
 
 ## 12. Changes to the interface
 
@@ -1773,3 +1827,4 @@ more than 30 seconds. The service must follow these rules:
 | 6 (round 8) | 2026-11-01 | Draft: secret requests. New part `secret_request` (sections 5.1 and 5.6), new call `AnswerSecretRequest` (section 6.9), new reasons in section 9, new rules for the client (section 10), and tests 75 to 82. Decided on the same day: typed values and saving in the container, a wait with no time limit, requests only in `COMPLETED` messages, and the warnings for sensitive values. A service that does not send secret requests keeps the wire of revision 6. `chat.proto` has the new messages, and chatui implements them from version 0.1.30 |
 | 6 (round 9) | 2026-11-04 | Proposal (issue #89): the title of the conversation. New field `title` of `SubscriptionReady` (2), new event `ConversationTitleChanged` (9 of `ServerEvent`), and `Conversation.title` of `GetConversation` for the main conversation (section 6.10). The name that the user gives in the app is stronger than the title. New tests 83 to 86. A service that does not give a title keeps the wire of revision 6 |
 | 6 (round 10) | 2026-11-04 | Proposal (issue #88): suggestions and the state of the corrector. New fields `Message.suggestions` (15), `MessageStatusChanged.suggestions` (6), `SendMessageRequest.corrector` (5) and `Message.corrector` (16), and the messages `CorrectorState` and `Correction` (section 5.7). The suggestions are for each message, not live. New tests 87 to 90. A service that does not know the new fields keeps the wire of revision 6 |
+| 6 (round 11) | 2026-11-10 | Proposal (issue #120): a pointer to another slot. New part `slot_link` (7 of `ContentPart`) and the message `SlotLink` (`port`, `label`), section 5.8. The client shows a button and opens the slot (a deck of `cards.md`, the browser, or the conversation) only after a tap. New tests 91 to 94. A service that sends no `slot_link` keeps the wire of revision 6 |

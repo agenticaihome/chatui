@@ -184,6 +184,10 @@ pub struct InstanceRecord {
     /// `slots`. An old record has none.
     #[serde(default)]
     pub chat_slots: Vec<u16>,
+    /// The slots that follow the cards interface (`docs/celaut/cards.md`), a part of
+    /// `slots`. An old record has none.
+    #[serde(default)]
+    pub cards_slots: Vec<u16>,
     /// The slots that a browser can open (`tcp` and `http`, no chat), a part of `slots`.
     /// An old record has none.
     #[serde(default)]
@@ -982,8 +986,9 @@ mod tests {
                 address: "node.example:53460".into(),
                 token: "secret-token".into(),
                 service_id: "bb".repeat(32),
-                slots: vec![3030],
+                slots: vec![3030, 3031],
                 chat_slots: vec![3030],
+                cards_slots: vec![3031],
                 web_slots: Vec::new(),
                 started_at: 1,
                 start_charge_mu: Some("100".into()),
