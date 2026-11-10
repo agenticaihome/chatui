@@ -1,3 +1,3 @@
-celaut-project/nodo 1104c163fe588d4bced5f16dfd38642338b69861 protos/celaut.proto (the merge of nodo#637 on dev)
+celaut-project/nodo 76dcac3bc2fc81758c405341aa0808156f65b537 protos/celaut.proto (nodo dev; the file last changed in 7533a177, the activity window of nodo#344)
 celaut-project/nodo b5c1e8a5ea43b43d0779c1a7613d5294f39c6745 protos/buffer.proto
 celaut-project/nodo f4dcb3b2 protos/invite.proto (the peer invitation of nodo#579; it is not part of celaut.proto)

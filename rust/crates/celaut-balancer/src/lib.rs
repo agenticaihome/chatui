@@ -9,7 +9,12 @@
 //! - [`cost_mu`] and [`score`]: the port of `nodo:src/balancers/estimated_cost_sorter`
 //!   and `nodo:src/balancers/scoring.py`.
 //! - [`rank`]: the order: the quotes that promise a price bound first (nodo#636), then
-//!   the score. A stable sort, so equal scores keep the order of the input.
+//!   the better interruption class ([`closing::interruption_class`], nodo#344), then the
+//!   score. A stable sort, so equal scores keep the order of the input.
+//! - [`funding`]: the funding sum of a start (`balance_for_periods`, nodo#636) and the
+//!   funded life of an instance.
+//! - [`closing`]: the activity window of a node (nodo#344): the interruption class of a
+//!   quote, and whether the announced schedule says that the node is closed now.
 //! - [`QuoteCache`]: the cache of `nodo:src/utils/tools/query_cache.py` (10 s, 4096
 //!   entries).
 //!
@@ -34,12 +39,16 @@
     deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)
 )]
 
+pub mod closing;
 pub mod filter;
+pub mod funding;
 
+pub use closing::{interruption_class, next_open, on_close, schedule_closed, Interruption};
 pub use filter::{arch_from_tags, ask_of, request_misfit, Misfit, ServiceAsk};
+pub use funding::{balance_for_periods, funded_life_seconds, funding_sum_mu, PriceBound};
 
 use std::collections::{HashMap, VecDeque};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use celaut_proto::celaut::{Amount, EstimatedCost, Peer};
 
@@ -342,6 +351,22 @@ pub fn rank(candidates: Vec<Candidate>) -> Vec<Ranked> {
 
 /// [`rank`] with the weights of the user.
 pub fn rank_with(candidates: Vec<Candidate>, weights: &Weights) -> Vec<Ranked> {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX));
+    rank_at(candidates, weights, None, now)
+}
+
+/// [`rank_with`] for a start funded with `initial_mu` (`None`: the quotes were asked with
+/// no `initial_mu`, so each node funds its default periods), at the unix time `now`. The
+/// interruption class compares the next close of each quote with that funded life.
+pub fn rank_at(
+    candidates: Vec<Candidate>,
+    weights: &Weights,
+    initial_mu: Option<u128>,
+    now: i64,
+) -> Vec<Ranked> {
+    let class = |r: &Ranked| interruption_class(&r.candidate.quote, initial_mu, now);
     let mut priced = Vec::new();
     let mut unpriced = Vec::new();
     for candidate in candidates {
@@ -365,19 +390,26 @@ pub fn rank_with(candidates: Vec<Candidate>, weights: &Weights) -> Vec<Ranked> {
             }),
         }
     }
-    // The quotes that promise a price bound go first, as in nodo (#636, G); inside each
-    // group, the order of the score. Stable: equal scores keep the input order. NaN
+    // The quotes that promise a price bound go first, as in nodo (#636, G); then the
+    // better interruption class (nodo#344: a class, never a term of the score); inside
+    // each group, the order of the score. Stable: equal scores keep the input order. NaN
     // cannot come from the arithmetic above, but it would sort last.
     priced.sort_by(|a, b| {
         let bounded = b.candidate.quote.price_bounded.cmp(&a.candidate.quote.price_bounded);
+        let closing = class(a).cmp(&class(b));
         let (a, b) = (a.score.unwrap_or(f64::NAN), b.score.unwrap_or(f64::NAN));
-        bounded.then_with(|| {
+        bounded.then(closing).then_with(|| {
             b.partial_cmp(&a)
                 .unwrap_or_else(|| a.is_nan().cmp(&b.is_nan()))
         })
     });
-    // The same for the quotes that cannot be compared: bounded first, in the input order.
-    unpriced.sort_by(|a, b| b.candidate.quote.price_bounded.cmp(&a.candidate.quote.price_bounded));
+    // The same for the quotes that cannot be compared: bounded first, then the class, in
+    // the input order.
+    unpriced.sort_by(|a, b| {
+        b.candidate.quote.price_bounded
+            .cmp(&a.candidate.quote.price_bounded)
+            .then(class(a).cmp(&class(b)))
+    });
     priced.extend(unpriced);
     priced
 }

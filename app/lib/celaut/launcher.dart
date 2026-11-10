@@ -20,7 +20,13 @@ typedef PricingCall = void Function({
   required int maintenanceSeconds,
   required double volatility,
   required int volatilityPeriodSeconds,
+  required int closesAt,
+  required OnCloseView onClose,
 });
+
+/// When a closed node opens again, by its announced schedule (`celautNodeOpensAt`,
+/// nodo#344): unix seconds, 0 if unknown.
+typedef OpensAtCall = Future<int> Function({required NodeAddress node});
 
 /// Turn "run until I stop it" on for a started instance (`celautSetKeepAlive`).
 typedef KeepAliveCall = void Function({
@@ -53,13 +59,17 @@ class LaunchCancelled implements Exception {
 
 /// A node that gave a quote but did not start the service.
 class LaunchSkip {
-  const LaunchSkip(this.quote, this.error);
+  const LaunchSkip(this.quote, this.error, {this.opensAt = 0});
 
   final QuoteView quote;
 
   /// Why. The `message` is the text of the node (without the wrapper of the transport),
   /// or, for [CelautErrorKind.insufficientCredit], the numbers.
   final CelautError error;
+
+  /// With [CelautErrorKind.nodeClosed]: when the node opens again, by the schedule that
+  /// it announces (nodo#344), in unix seconds; 0 if the app does not know it.
+  final int opensAt;
 
   /// True if the app did not ask the node to start: the balance of the client on the node
   /// is less than the price. [quote] has both numbers.
@@ -160,6 +170,10 @@ List<NodeAddress> knownNodeAddresses(List<KnownNodeView> known) {
   return nodes;
 }
 
+/// `deposits.DEFAULT_INITIAL_PERIODS` of nodo (default 360): the maintenance periods that
+/// a node funds for a start with no `initial_mu`. A node can set another number.
+const nodeDefaultPeriods = 360;
+
 /// The longest minimum time of a launch: 30 days.
 const maxMinSurvival = Duration(days: 30);
 
@@ -207,12 +221,23 @@ BigInt? startMuFor(QuoteView quote, Duration? minSurvival, {BigInt? balanceMu}) 
 
 /// False if the credit of the client on the node of [q] is less than what the start
 /// takes: [startMu], or, when the node chooses the balance, at least the `cost` of the
-/// quote. Then [launchService] does not ask the node to start, and the node never reads
-/// the values.
+/// quote plus one maintenance period: the least balance with which a node starts a
+/// service (nodo#636, `start_funding.minimum_runtime_mu`). The node then adds its default
+/// balance (`deposits.DEFAULT_INITIAL_PERIODS` periods, which the app cannot know), so a
+/// node may still refuse a credit above this. Then [launchService] does not ask the node
+/// to start, and the node never reads the values.
 bool wouldAskToStart(QuoteView q, {BigInt? startMu}) {
   final credit = BigInt.tryParse(q.clientBalanceMu);
-  final need = startMu ?? BigInt.tryParse(q.costMu);
+  final need = startMu ?? _leastStartMu(q);
   return !(credit != null && need != null && credit < need);
+}
+
+/// The `cost` of [q] plus the funding of one maintenance period, or the `cost` alone if
+/// the quote gives no maintenance price.
+BigInt? _leastStartMu(QuoteView q) {
+  final cost = BigInt.tryParse(q.costMu);
+  if (cost == null) return null;
+  return cost + (survivalBalanceMu(q, Duration.zero) ?? BigInt.zero);
 }
 
 /// A node whose last checks failed this many times in a row is left out of the quotes.
@@ -298,6 +323,7 @@ Future<LaunchOutcome> launchService({
   StartCall start = celautStartService,
   PricingCall setPricing = celautSetInstancePricing,
   KeepAliveCall setKeepAlive = celautSetKeepAlive,
+  OpensAtCall opensAt = celautNodeOpensAt,
   List<KnownNodeView> Function() knownNodes = celautKnownNodes,
   List<NodeHealthView> Function() health = celautNodesHealth,
 }) async {
@@ -349,7 +375,9 @@ Future<LaunchOutcome> launchService({
         sentMu: startMu?.toString(),
       );
     } on CelautError catch (e) {
-      skipped.add(LaunchSkip(candidate, e));
+      // A node that is closed (nodo#344): say when its schedule opens again.
+      final opens = e.kind == CelautErrorKind.nodeClosed ? await _opensAt(opensAt, candidate.address) : 0;
+      skipped.add(LaunchSkip(candidate, e, opensAt: opens));
     }
   }
   throw LaunchFailure(
@@ -358,6 +386,15 @@ Future<LaunchOutcome> launchService({
     skipped: skipped,
     leftOut: leftOut,
   );
+}
+
+/// [opensAt] for [node], or 0 if the app cannot read it: it never fails a launch.
+Future<int> _opensAt(OpensAtCall opensAt, NodeAddress node) async {
+  try {
+    return await opensAt(node: node);
+  } on Object {
+    return 0;
+  }
 }
 
 /// Keep the price of the winning node with the new instance, and turn keep-alive on if the
@@ -378,6 +415,10 @@ void _keepPlan(
         maintenanceSeconds: quote.maintenanceSecondsLoop,
         volatility: quoteVolatility(quote),
         volatilityPeriodSeconds: quote.volatilityPeriodSeconds,
+        // What the node said about its activity window (nodo#344): the info page warns
+        // when the node stops the instance at its next close.
+        closesAt: quote.closesAt,
+        onClose: quote.onClose,
       );
     }
     if (keepAlive) setKeepAlive(instanceId: instanceId, enabled: true, budgetMu: budgetMu);

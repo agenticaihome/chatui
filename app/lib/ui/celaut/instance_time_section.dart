@@ -13,6 +13,7 @@ import '../../celaut/payers.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
+import 'closing_text.dart';
 import 'deposit_screen.dart';
 import 'run_confirm_dialog.dart' show formatSurvival;
 
@@ -102,7 +103,11 @@ class _InstanceTimeSectionState extends State<InstanceTimeSection> {
       await _reload();
       return;
     }
-    final limit = await showDialog<_Limit>(context: context, builder: (_) => const _KeepDialog());
+    // A node that stops the instance at its next close (nodo#344): keep-alive cannot keep
+    // it past that time, and the question says so.
+    final plan = _plan;
+    final stop = plan == null ? null : keepStopNote(context, plan.closesAt, plan.onClose);
+    final limit = await showDialog<_Limit>(context: context, builder: (_) => _KeepDialog(stopNote: stop));
     if (limit == null || !mounted) return;
     if (!await ensureOpenFullWallet(context, widget.wallets) || !mounted) {
       if (mounted) {
@@ -149,6 +154,10 @@ class _InstanceTimeSectionState extends State<InstanceTimeSection> {
     final creditTime = price == null || _credit == null ? null : price.lasts(_credit!);
     final keep = plan.keepAlive;
     final limit = plan.budgetMu;
+    // nodo#344: what the node does at its next close. Keep-alive cannot keep an instance
+    // past a close that stops it.
+    final stopNote = keep ? keepStopNote(context, plan.closesAt, plan.onClose) : null;
+    final closeNote = keep ? null : closingNote(context, plan.closesAt, plan.onClose);
     Widget row(String label, String value, Key key) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Column(
@@ -198,6 +207,22 @@ class _InstanceTimeSectionState extends State<InstanceTimeSection> {
           value: keep,
           onChanged: _toggle,
         ),
+        // nodo#344: the node stops the instance at its next close, and keep-alive cannot
+        // keep it past that time.
+        if (stopNote != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              stopNote,
+              key: const Key('info-keep-stop'),
+              style: t.secondary.copyWith(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        if (closeNote != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(closeNote, key: const Key('info-closing'), style: t.secondary),
+          ),
         if (!keep && price != null)
           Align(
             alignment: Alignment.centerLeft,
@@ -221,7 +246,10 @@ class _Limit {
 
 /// The warning and the optional limit, before keep-alive turns on.
 class _KeepDialog extends StatefulWidget {
-  const _KeepDialog();
+  const _KeepDialog({this.stopNote});
+
+  /// The warning of a node that stops the instance at its next close; null if it does not.
+  final String? stopNote;
 
   @override
   State<_KeepDialog> createState() => _KeepDialogState();
@@ -266,7 +294,7 @@ class _KeepDialogState extends State<_KeepDialog> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      l.celautKeepWarning,
+                      [l.celautKeepWarning, ?widget.stopNote].join('\n\n'),
                       key: const Key('keep-dialog-warning'),
                       style: TextStyle(color: scheme.onErrorContainer),
                     ),

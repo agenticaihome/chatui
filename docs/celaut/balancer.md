@@ -7,11 +7,15 @@ Source: `nodo:src/balancers/execution_balancer/execution_balancer.py`,
 
 1. Candidates: every known node. (nodo also adds `local`; the light client does not run
    services, so it has no local candidate.)
-2. Skip a node if its announcement says it cannot run the request (filter below).
+2. Skip a node if its announcement says it cannot run the request (filter below), or if the
+   activity window that it announced says that it is closed now (nodo#344; see "The
+   activity window of a node" below).
 3. Ask each remaining node `GetServiceEstimatedCost` (timeout 10 s). Convert the
    configuration to the node's MU before, and the quote to local MU after. A node with no
    shared payment method, an error or a refusal is not a candidate.
-4. Score each quote and sort, best first (stable sort: equal scores keep insertion order).
+4. Score each quote and sort, best first: the quotes that promise a price bound, then the
+   better interruption class, then the score (stable sort: equal scores keep insertion
+   order).
 5. The caller tries the candidates in order and uses the first that launches.
 
 ## Filter (`nodo:src/utils/cost_functions/architecture_resources.py`)
@@ -95,8 +99,9 @@ TTL 10 s, at most 4096 entries, LRU. Key = sha256 over namespace `"peer-quote"`,
 peer id, the configuration in the node's MU and the metadata with sorted hashes
 (each part: length as 8-byte big endian, then bytes).
 
-The quotes that promise a price bound (`price_bounded`) come first, then the score, as in
-nodo (#636, G); the same for the quotes that cannot be compared.
+The quotes that promise a price bound (`price_bounded`) come first, then the better
+interruption class (nodo#344, below), then the score, as in nodo (#636, G;
+`estimated_cost_sorter.py`); the same for the quotes that cannot be compared.
 
 ## The start balance of a launch (2026-11-10, issue #119, nodo#636)
 
@@ -124,7 +129,16 @@ initial children; nodo#636), and a node charges `init_maintenance_cost` once eac
 - A node that gives no price per period (loop 0, or no amount) gets no `initial_mu`: the
   node chooses its default balance. This is the fallback balance of issue #119.
 - The credit check before a start compares the credit of the client with
-  `cost + balance(q, T)`, or with `cost` when the node chooses.
+  `cost + balance(q, T)`, or, when the node chooses, with `cost` plus one period
+  (`funding_sum(1)`): the least start of a node (`start_funding.minimum_runtime_mu`). The
+  node then adds its own default, which the app cannot know, so a node can still refuse a
+  credit above it (issue #129).
+- The Rust port of the sum is `celaut_balancer::funding` (`balance_for_periods`,
+  `funding_sum_mu`), with vectors made by the nodo code
+  (`celaut-balancer/tests/vectors/generate.py`); the app sums in Dart
+  (`MaintenancePrice`), and a Dart test checks it against the same vectors. Both sum in
+  floating point: the same whole MU as nodo's exact fractions below 2^53 MU, within a
+  relative 1e-12 above.
 - The service debug screen keeps a balance field, empty by default; a typed balance is added
   to the `cost` of each node (`balanceMu`).
 - A node gives back what the instance did not use at the stop.
@@ -134,6 +148,61 @@ price, but it starts each initial child with the default of the child, which can
 (nodo#637 e2e, 2026-11-09: parent 5 586 372 MU, child default 5 747 148 MU → "Insufficient
 balance", the child does not start). The app cannot fix this: the quote does not say what
 the children take after their builds. A time long enough funds the child.
+
+## The activity window of a node (2026-11-10, issue #129, nodo#344)
+
+A node can take new work only at certain hours (nodo `activity_window` in `config.yaml`).
+The protocol says it in three places (nodo `7533a177`):
+
+- **The quote** is the authority for one instance: `EstimatedCost.closes_at` is the unix time
+  of the next close, in seconds (0: none scheduled; not a promise of a long life), and
+  `on_close` is what the node then does with a running instance: `ON_CLOSE_REFUSE` (0, the
+  default and the value of an older node) leaves it running and refuses new work,
+  `ON_CLOSE_STOP` stops it and refunds the balance, `ON_CLOSE_HIBERNATE` hibernates it and
+  wakes it when the window opens. With no window, a node says REFUSE and 0.
+- **`Peer.activity_window`** is a hint: the open spans of one repeating day, in minutes from
+  00:00 UTC (0 to 1439; the start is in the span, the end is not; an end before the start
+  passes midnight). No message: the node gives no schedule. No spans: always open. The node
+  announces a new Peer when it changes. It is part of the signed content digest
+  ([wire.md](wire.md)).
+- **`CanExecuteReply.opens_at`**, in the answer of `GetResourceAvailability`: the next
+  opening when the cause of `can_execute = false` is the window. The app does not call
+  `GetResourceAvailability` (nodo calls it between peers), so it reads the opening from
+  the schedule of the Peer instead.
+
+What the app does (`celaut_balancer::closing`, a port of nodo's `interruption.py` and of
+`schedule_closed_reason` in `architecture_resources.py`):
+
+- **Skip a closed node.** A node whose announced schedule says that it is closed now gets no
+  quote call, as nodo's balancer skips it; it is a failure "closed" in the list, with the
+  time at which its schedule opens (`QuoteFailureView.opens_at`). A schedule that cannot be
+  read (a minute out of range, two equal edges) or no schedule at all is no reason to skip.
+  A quote or a start that a node refuses because it is closed also says when it opens
+  (`celaut_node_opens_at`): the app asks the node for its current `Peer` (`GetPeerInfo`,
+  signature checked), because the `Peer` of the connection can be older than a change of
+  the schedule; if that fails, it uses the one of the connection. For the same reason, a
+  node whose `Peer` of the connection says closed is skipped only if its current `Peer` says
+  closed too (one `GetPeerInfo`, no quote): a node that opened again is asked.
+- **Interruption class.** `funded_life` is how long the balance of the start pays (the quote
+  round has no `initial_mu`, so each node funds its default 360 periods, up to 4 days):
+
+  | Class | `on_close` | The close |
+  |---|---|---|
+  | 0 | REFUSE, or no close | any |
+  | 1 | HIBERNATE | at or after the end of the funded life |
+  | 2 | STOP | at or after the end of the funded life |
+  | 3 | HIBERNATE | before the end of the funded life |
+  | 4 | STOP | before the end of the funded life |
+
+  The order is the price bound, then the class (lower first), then the score. The class is
+  never a term of the score, and it removes no node.
+- **Say it.** The confirmation of a launch says when the best node closes and what it does
+  then (STOP or HIBERNATE; nothing for REFUSE), in the color of an error when the close comes
+  before the instance would end: the time that the user chose, the default periods of the
+  node, or never with "until I stop it". The app keeps `closes_at` and `on_close` with the
+  instance (`InstancePricing`); the info page says them, and with keep running on a node that
+  stops it, it warns that keep running cannot keep the instance past that time
+  ([ui.md](ui.md), Keep running).
 
 ## The least time of a launch (2026-10-23, Josemi)
 

@@ -11,6 +11,8 @@ import 'package:argus_wallet/celaut/maintenance_price.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 QuoteView _quote(String peer, int port, {String credit = '', String cost = '1000'}) => QuoteView(
+  closesAt: 0,
+  onClose: OnCloseView.refuse,
   address: NodeAddress(host: 'node$port.example', port: port),
   peerId: peer,
   costMu: cost,
@@ -129,6 +131,7 @@ void main() {
       quotes: const [],
       failures: [
         QuoteFailureView(
+          opensAt: 0,
           address: const NodeAddress(host: 'x', port: 1),
           kind: CelautErrorKind.timeout,
           message: 't',
@@ -302,6 +305,7 @@ void main() {
         LaunchFailureKind.allFailed,
         quoteFailures: [
           QuoteFailureView(
+            opensAt: 0,
             address: const NodeAddress(host: 'q.example', port: 9),
             kind: CelautErrorKind.serviceMissing,
             message: 'This node does not have the service ab',
@@ -434,6 +438,8 @@ void main() {
       String credit = '',
     }) =>
         QuoteView(
+          closesAt: 0,
+          onClose: OnCloseView.refuse,
           address: NodeAddress(host: 'node$port.example', port: port),
           peerId: 'p$port',
           costMu: cost,
@@ -569,6 +575,8 @@ void main() {
   });
   group('keep running', () {
     QuoteView priced({String init = '1000', int loop = 60, double volatility = 0.25, bool bounded = true}) => QuoteView(
+          closesAt: 0,
+          onClose: OnCloseView.refuse,
           address: const NodeAddress(host: 'node1.example', port: 1),
           peerId: 'p1',
           costMu: '5000',
@@ -608,8 +616,10 @@ void main() {
             required maintenanceSeconds,
             required volatility,
             required volatilityPeriodSeconds,
+            required closesAt,
+            required onClose,
           }) {
-            calls.add('price $instanceId $maintenanceMu $maintenanceSeconds $volatility $volatilityPeriodSeconds');
+            calls.add('price $instanceId $maintenanceMu $maintenanceSeconds $volatility $volatilityPeriodSeconds $closesAt ${onClose.name}');
             if (failing) throw StateError('no core');
           },
           setKeepAlive: ({required instanceId, required enabled, budgetMu}) {
@@ -620,19 +630,19 @@ void main() {
     test('the price of the node is kept with the instance, and keep-alive stays off', () async {
       final calls = <String>[];
       await launch(quote: priced(), calls: calls);
-      expect(calls, ['start null', 'price i 1000 60 0.25 86400']);
+      expect(calls, ['start null', 'price i 1000 60 0.25 86400 0 refuse']);
     });
 
     test('a quote that is not bounded keeps a volatility of 0', () async {
       final calls = <String>[];
       await launch(quote: priced(bounded: false), calls: calls);
-      expect(calls, ['start null', 'price i 1000 60 0.0 86400']);
+      expect(calls, ['start null', 'price i 1000 60 0.0 86400 0 refuse']);
     });
 
     test('keep-alive turns on after the start, with its limit', () async {
       final calls = <String>[];
       await launch(quote: priced(), calls: calls, keepAlive: true, budgetMu: '90000');
-      expect(calls, ['start null', 'price i 1000 60 0.25 86400', 'keep i true 90000']);
+      expect(calls, ['start null', 'price i 1000 60 0.25 86400 0 refuse', 'keep i true 90000']);
       calls.clear();
       await launch(quote: priced(), calls: calls, keepAlive: true);
       expect(calls.last, 'keep i true null');

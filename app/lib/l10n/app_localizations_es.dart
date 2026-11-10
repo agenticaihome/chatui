@@ -8226,4 +8226,36 @@ class AppLocalizationsEs extends AppLocalizations {
   String celautResourcesShareHint(int count) {
     return 'La parte de este nodo en el total de los $count nodos que respondieron';
   }
+
+  @override
+  String celautCloseStop(String time) {
+    return 'Este nodo cierra a las $time. Entonces detiene la instancia y devuelve el saldo que queda.';
+  }
+
+  @override
+  String celautCloseHibernate(String time) {
+    return 'Este nodo cierra a las $time. Entonces hiberna la instancia, y la despierta cuando vuelve a abrir.';
+  }
+
+  @override
+  String get celautCloseBeforeTime =>
+      'Cierra antes de que termine la instancia.';
+
+  @override
+  String celautKeepStopsAtClose(String time) {
+    return 'Mantener en marcha no puede mantener esta instancia después de las $time: el nodo la detiene cuando cierra.';
+  }
+
+  @override
+  String celautNodeOpensAt(String time) {
+    return 'Según su horario, vuelve a abrir a las $time.';
+  }
+
+  @override
+  String get celautTopUpWindowNote =>
+      'Algunos nodos trabajan solo a ciertas horas. Un nodo que detiene sus instancias cuando cierra también detiene una instancia que mantienes en marcha: la página de información de la instancia dice cuándo.';
+
+  @override
+  String get celautRunNotBounded =>
+      'Este nodo no promete un límite a su precio: las cifras son a su precio de ahora, y puede cobrar más después.';
 }

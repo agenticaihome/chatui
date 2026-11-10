@@ -34,7 +34,11 @@ InstancePlanView _plan({
   String budget = '',
   String spent = '',
   String price = '100',
+  int closesAt = 0,
+  OnCloseView onClose = OnCloseView.refuse,
 }) => InstancePlanView(
+  closesAt: closesAt,
+  onClose: onClose,
   keepAlive: keep,
   budgetMu: budget,
   spentMu: spent,
@@ -121,6 +125,29 @@ void main() {
     expect(tester.widget<SwitchListTile>(find.byKey(const Key('info-keep-switch'))).value, isFalse);
     expect(find.text(appL10n.celautKeepOff), findsOneWidget);
     expect(find.byKey(const Key('info-add-time')), findsOneWidget);
+  });
+
+  int inTwoHours() => DateTime.now().add(const Duration(hours: 2)).millisecondsSinceEpoch ~/ 1000;
+
+  testWidgets('says what the node does at its next close (nodo#344)', (tester) async {
+    plan = _plan(closesAt: inTwoHours(), onClose: OnCloseView.hibernate);
+    await pump(tester);
+    expect(find.byKey(const Key('info-closing')), findsOneWidget);
+    expect(find.byKey(const Key('info-keep-stop')), findsNothing);
+  });
+
+  testWidgets('warns that keep-alive ends at a close that stops the instance', (tester) async {
+    plan = _plan(keep: true, closesAt: inTwoHours(), onClose: OnCloseView.stop);
+    await pump(tester);
+    expect(find.byKey(const Key('info-keep-stop')), findsOneWidget);
+    expect(find.byKey(const Key('info-closing')), findsNothing);
+  });
+
+  testWidgets('says nothing of a node that leaves running instances alone', (tester) async {
+    plan = _plan(keep: true, closesAt: inTwoHours());
+    await pump(tester);
+    expect(find.byKey(const Key('info-keep-stop')), findsNothing);
+    expect(find.byKey(const Key('info-closing')), findsNothing);
   });
 
   testWidgets('shows nothing for an instance that the app does not know', (tester) async {

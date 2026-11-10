@@ -13060,6 +13060,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The part of this node in the total of the {count} nodes that answered'**
   String celautResourcesShareHint(int count);
+
+  /// No description provided for @celautCloseStop.
+  ///
+  /// In en, this message translates to:
+  /// **'This node closes at {time}. Then it stops the instance and gives back the balance that is left.'**
+  String celautCloseStop(String time);
+
+  /// No description provided for @celautCloseHibernate.
+  ///
+  /// In en, this message translates to:
+  /// **'This node closes at {time}. Then it hibernates the instance, and wakes it when it opens again.'**
+  String celautCloseHibernate(String time);
+
+  /// No description provided for @celautCloseBeforeTime.
+  ///
+  /// In en, this message translates to:
+  /// **'It closes before the instance would end.'**
+  String get celautCloseBeforeTime;
+
+  /// No description provided for @celautKeepStopsAtClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep running cannot keep this instance after {time}: the node stops it when it closes.'**
+  String celautKeepStopsAtClose(String time);
+
+  /// No description provided for @celautNodeOpensAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Its schedule says that it opens again at {time}.'**
+  String celautNodeOpensAt(String time);
+
+  /// No description provided for @celautTopUpWindowNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Some nodes work only at certain hours. A node that stops its instances when it closes stops a kept instance too: the info page of the instance says when.'**
+  String get celautTopUpWindowNote;
+
+  /// No description provided for @celautRunNotBounded.
+  ///
+  /// In en, this message translates to:
+  /// **'This node promises no limit to its price: the figures are at its price now, and it can charge more later.'**
+  String get celautRunNotBounded;
 }
 
 class _AppLocalizationsDelegate

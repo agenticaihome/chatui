@@ -9,6 +9,7 @@ import '../../celaut/launcher.dart';
 import '../../celaut/service_transfer.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
+import 'closing_text.dart';
 
 /// Show why a launch failed: one line for each node, with the reason, what to do, and the
 /// text of the node under "Details" (`docs/celaut/ui.md`).
@@ -183,6 +184,7 @@ class _ProblemTile extends StatelessWidget {
         l.celautRunNeedsCredit(muOrUnknown(p.creditMu), muOrUnknown(p.costMu))
       else
         CelautStrings.errorText(p.kind),
+      if (p.kind == CelautErrorKind.nodeClosed) ?openingNote(context, p.opensAt),
     ];
     return Column(
       key: Key('launch-problem-${p.address}'),

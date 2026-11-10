@@ -53,6 +53,7 @@ class LaunchProblem {
     this.creditMu,
     this.costMu,
     this.leftOut = false,
+    this.opensAt = 0,
   });
 
   /// The address of the node (`host:port`).
@@ -72,13 +73,21 @@ class LaunchProblem {
 
   /// True if the app did not ask the node, because its last checks failed.
   final bool leftOut;
+
+  /// With [CelautErrorKind.nodeClosed]: when the node opens again, by the schedule that it
+  /// announced (nodo#344), in unix seconds; 0 if the app does not know it.
+  final int opensAt;
 }
+
 
 String _address(NodeAddress address) => '${address.host}:${address.port}';
 
 /// The problems of a failed launch, one for each node: the nodes that gave no quote, the
 /// nodes that gave a quote and did not start, and the nodes left out. Nodes that failed
 /// after a quote come in the order in which the app tried them.
+///
+/// A node that is closed (nodo#344) says when it opens again: a quote failure and a
+/// refused start carry it.
 List<LaunchProblem> problemsOf(LaunchFailure failure) => [
   for (final f in failure.quoteFailures)
     LaunchProblem(
@@ -86,6 +95,7 @@ List<LaunchProblem> problemsOf(LaunchFailure failure) => [
       kind: f.kind,
       message: f.message,
       action: actionFor(f.kind),
+      opensAt: f.kind == CelautErrorKind.nodeClosed ? f.opensAt : 0,
     ),
   for (final s in failure.skipped)
     LaunchProblem(
@@ -95,6 +105,7 @@ List<LaunchProblem> problemsOf(LaunchFailure failure) => [
       action: actionFor(s.error.kind),
       creditMu: s.isCreditProblem ? s.quote.clientBalanceMu : null,
       costMu: s.isCreditProblem ? s.quote.costMu : null,
+      opensAt: s.error.kind == CelautErrorKind.nodeClosed ? s.opensAt : 0,
     ),
   for (final n in failure.leftOut)
     LaunchProblem(

@@ -5918,5 +5918,40 @@
         "type": "int"
       }
     }
-  }
+  },
+  "celautCloseStop": "This node closes at {time}. Then it stops the instance and gives back the balance that is left.",
+  "@celautCloseStop": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "celautCloseHibernate": "This node closes at {time}. Then it hibernates the instance, and wakes it when it opens again.",
+  "@celautCloseHibernate": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "celautCloseBeforeTime": "It closes before the instance would end.",
+  "celautKeepStopsAtClose": "Keep running cannot keep this instance after {time}: the node stops it when it closes.",
+  "@celautKeepStopsAtClose": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "celautNodeOpensAt": "Its schedule says that it opens again at {time}.",
+  "@celautNodeOpensAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "celautTopUpWindowNote": "Some nodes work only at certain hours. A node that stops its instances when it closes stops a kept instance too: the info page of the instance says when.",
+  "celautRunNotBounded": "This node promises no limit to its price: the figures are at its price now, and it can charge more later."
 }

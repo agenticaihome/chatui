@@ -321,7 +321,7 @@ pub enum ResourcesSource {
 }
 
 /// The price of keeping an instance on its node, as the quote gave it.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct InstancePricing {
     /// The maintenance of one period, in MU.
     pub maintenance_mu: String,
@@ -337,6 +337,14 @@ pub struct InstancePricing {
     /// for the whole life.
     #[serde(default)]
     pub volatility_period_seconds: u32,
+    /// The next close of the activity window of the node, in unix seconds, as the quote of
+    /// the start said (nodo#344); 0 if none was scheduled. A record from before #344 has 0.
+    #[serde(default)]
+    pub closes_at: i64,
+    /// What the node said that it does with the instance at that close: "refuse", "stop"
+    /// or "hibernate", as nodo names them. Empty in a record from before #344: "refuse".
+    #[serde(default)]
+    pub on_close: String,
 }
 
 /// The settings of an instance that runs until the user stops it.
@@ -1534,6 +1542,9 @@ mod tests {
         .unwrap();
         assert_eq!(old.volatility, "0.25");
         assert_eq!(old.volatility_period_seconds, 0);
+        // nodo#344: a record from before the activity window reads as no close, "refuse".
+        assert_eq!(old.closes_at, 0);
+        assert_eq!(old.on_close, "");
         let new: InstancePricing =
             serde_json::from_str(&serde_json::to_string(&old).unwrap()).unwrap();
         assert_eq!(new, old);

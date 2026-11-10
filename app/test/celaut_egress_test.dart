@@ -7,6 +7,8 @@ NetworkView _net(List<String> tags, [String formal = '']) =>
     NetworkView(tags: tags, prose: '', formal: formal, protocolStack: const []);
 
 QuoteView _quote(String peer, {String credit = '', String cost = '10'}) => QuoteView(
+  closesAt: 0,
+  onClose: OnCloseView.refuse,
   address: NodeAddress(host: '$peer.example', port: 1),
   peerId: peer,
   costMu: cost,
@@ -77,7 +79,9 @@ void main() {
     test('a node where the credit is less than the price is never asked', () {
       final nodes = envTargetNodes([
         _quote('aa', credit: '5', cost: '10'),
-        _quote('bb', credit: '10', cost: '10'),
+        // nodo#636: the least start is the cost plus one maintenance period (1 MU).
+        _quote('bb', credit: '11', cost: '10'),
+        _quote('dd', credit: '10', cost: '10'),
         _quote('cc'),
       ], {'cc'});
       expect(nodes.map((n) => (n.address, n.trusted)), [('bb.example:1', false), ('cc.example:1', true)]);

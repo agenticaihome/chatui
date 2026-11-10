@@ -12,7 +12,7 @@ use blake2::{Blake2b, Digest};
 use celaut_proto::celaut::peer::signature_scheme::Protocol as SchemeProtocol;
 use celaut_proto::celaut::peer::uri::Protocol;
 use celaut_proto::celaut::{
-    AmountKeyValue, ArchitectureResources, Contract, ContractRate, Peer, Sysresources,
+    ActivityWindow, AmountKeyValue, ArchitectureResources, Contract, ContractRate, Peer, Sysresources,
 };
 use ring::signature::{UnparsedPublicKey, ED25519};
 
@@ -177,6 +177,23 @@ fn canonical_rates(entries: &[AmountKeyValue]) -> String {
     .join(";")
 }
 
+/// The `activity_window` part of the digest (nodo#344): `-` when the Peer has no window
+/// (it gives no schedule), else `w:<on_close>:<spans>`, with the spans as
+/// `start-end` texts sorted as text and joined by `,` (empty: always open).
+fn canonical_activity_window(window: Option<&ActivityWindow>) -> String {
+    let Some(window) = window else {
+        return "-".to_string();
+    };
+    let spans = sorted(
+        window
+            .spans
+            .iter()
+            .map(|s| format!("{}-{}", s.start_minute, s.end_minute))
+            .collect(),
+    );
+    format!("w:{}:{}", window.on_close, spans.join(","))
+}
+
 /// `canonical_peer_content_digest`: blake2b-256 over the canonical text of every
 /// field of the Peer except the key, the signature and the `ts`. Lowercase hex.
 pub fn content_digest(peer: &Peer) -> String {
@@ -216,6 +233,7 @@ pub fn content_digest(peer: &Peer) -> String {
         canonical_rates(&peer.mu_per_call),
         scheme,
         resources.join("/"),
+        canonical_activity_window(peer.activity_window.as_ref()),
     ]
     .join("|");
     let mut hasher = Blake2b::<U32>::new();

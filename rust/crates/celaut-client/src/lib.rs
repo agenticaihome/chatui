@@ -73,7 +73,7 @@ pub use health::{Availability, Health};
 pub use local_port::LocalPort;
 pub use peer::PeerError;
 pub use quotes::{
-    quotes, quotes_for, quotes_weighted, quotes_with, QuoteFailure, QuoteSkip, Quotes,
+    quotes, quotes_for, quotes_weighted, quotes_with, QuoteClosed, QuoteFailure, QuoteSkip, Quotes,
 };
 pub use refusal::{Refusal, ResourceRefusal};
 pub use session::{NodeSession, StartedInstance};
