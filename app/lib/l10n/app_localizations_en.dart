@@ -7961,4 +7961,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serviceInfoWorkloadOr => 'or';
+
+  @override
+  String get cardsLoading => 'Loading the cards…';
+
+  @override
+  String get cardsNoDeck => 'The service has no cards now.';
+
+  @override
+  String get cardsEnd => 'No more cards.';
+
+  @override
+  String get cardsBackToChat => 'Back to the chat';
+
+  @override
+  String get cardsUndo => 'Undo';
+
+  @override
+  String cardsProgress(int position, int total) {
+    return '$position of $total';
+  }
+
+  @override
+  String cardsWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count moves wait to be sent',
+      one: '1 move waits to be sent',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cardsConnecting => 'Connecting…';
+
+  @override
+  String get cardsTapForDetail => 'Tap the card for details';
+
+  @override
+  String get chatOpenCards => 'Open the cards';
 }

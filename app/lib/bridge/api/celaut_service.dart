@@ -298,6 +298,9 @@ class InstanceListView {
   /// The ports that follow the chat convention, a part of `slots`.
   final Uint16List chatSlots;
 
+  /// The ports that follow the cards interface, a part of `slots`.
+  final Uint16List cardsSlots;
+
   /// The ports that a browser can open, a part of `slots`.
   final Uint16List webSlots;
 
@@ -338,6 +341,7 @@ class InstanceListView {
     required this.serviceId,
     required this.slots,
     required this.chatSlots,
+    required this.cardsSlots,
     required this.webSlots,
     required this.startedAt,
     required this.startChargeMu,
@@ -358,6 +362,7 @@ class InstanceListView {
       serviceId.hashCode ^
       slots.hashCode ^
       chatSlots.hashCode ^
+      cardsSlots.hashCode ^
       webSlots.hashCode ^
       startedAt.hashCode ^
       startChargeMu.hashCode ^
@@ -380,6 +385,7 @@ class InstanceListView {
           serviceId == other.serviceId &&
           slots == other.slots &&
           chatSlots == other.chatSlots &&
+          cardsSlots == other.cardsSlots &&
           webSlots == other.webSlots &&
           startedAt == other.startedAt &&
           startChargeMu == other.startChargeMu &&
@@ -523,6 +529,10 @@ class InstanceView {
   /// `slots`. The chat screen uses the first one.
   final Uint16List chatSlots;
 
+  /// The ports that follow the cards interface (`docs/celaut/cards.md`), a part of
+  /// `slots`. A `slot_link` of the chat opens them (`docs/celaut/chat.md`, 5.8).
+  final Uint16List cardsSlots;
+
   /// The ports that a browser can open (`tcp` and `http`, no chat), a part of `slots`.
   final Uint16List webSlots;
 
@@ -535,6 +545,7 @@ class InstanceView {
     required this.peerId,
     required this.slots,
     required this.chatSlots,
+    required this.cardsSlots,
     required this.webSlots,
     required this.clientBalanceMu,
   });
@@ -545,6 +556,7 @@ class InstanceView {
       peerId.hashCode ^
       slots.hashCode ^
       chatSlots.hashCode ^
+      cardsSlots.hashCode ^
       webSlots.hashCode ^
       clientBalanceMu.hashCode;
 
@@ -557,6 +569,7 @@ class InstanceView {
           peerId == other.peerId &&
           slots == other.slots &&
           chatSlots == other.chatSlots &&
+          cardsSlots == other.cardsSlots &&
           webSlots == other.webSlots &&
           clientBalanceMu == other.clientBalanceMu;
 }

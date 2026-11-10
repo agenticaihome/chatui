@@ -5777,5 +5777,32 @@
   "descendantsOpenBudgetTooSmall": "The budget does not pay for one stream.",
   "descendantsOpenConfirm": "Open and pay",
   "serviceInfoWorkloadsInitial": "First instances that it starts",
-  "serviceInfoWorkloadOr": "or"
+  "serviceInfoWorkloadOr": "or",
+  "cardsLoading": "Loading the cards…",
+  "cardsNoDeck": "The service has no cards now.",
+  "cardsEnd": "No more cards.",
+  "cardsBackToChat": "Back to the chat",
+  "cardsUndo": "Undo",
+  "cardsProgress": "{position} of {total}",
+  "@cardsProgress": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "cardsWaiting": "{count, plural, =1{1 move waits to be sent} other{{count} moves wait to be sent}}",
+  "@cardsWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cardsConnecting": "Connecting…",
+  "cardsTapForDetail": "Tap the card for details",
+  "chatOpenCards": "Open the cards"
 }

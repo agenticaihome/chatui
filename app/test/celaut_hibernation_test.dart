@@ -35,6 +35,7 @@ InstanceListView _instance(
   serviceId: _service,
   slots: Uint16List.fromList([8080]),
   chatSlots: Uint16List.fromList([8080]),
+  cardsSlots: Uint16List(0),
   webSlots: Uint16List(0),
   startedAt: 100,
   startChargeMu: '1000',

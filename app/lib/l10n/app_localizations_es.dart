@@ -8042,4 +8042,44 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get serviceInfoWorkloadOr => 'o';
+
+  @override
+  String get cardsLoading => 'Cargando las cartas…';
+
+  @override
+  String get cardsNoDeck => 'El servicio no tiene cartas ahora.';
+
+  @override
+  String get cardsEnd => 'No quedan más cartas.';
+
+  @override
+  String get cardsBackToChat => 'Volver al chat';
+
+  @override
+  String get cardsUndo => 'Deshacer';
+
+  @override
+  String cardsProgress(int position, int total) {
+    return '$position de $total';
+  }
+
+  @override
+  String cardsWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count movimientos esperan para enviarse',
+      one: '1 movimiento espera para enviarse',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cardsConnecting => 'Conectando…';
+
+  @override
+  String get cardsTapForDetail => 'Toca la carta para ver los detalles';
+
+  @override
+  String get chatOpenCards => 'Abrir las cartas';
 }

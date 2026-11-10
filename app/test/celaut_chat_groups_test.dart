@@ -19,6 +19,7 @@ InstanceListView _instance(String id, String name, {int startedAt = 100}) => Ins
       serviceId: '65' * 32,
       slots: Uint16List.fromList([8080]),
       chatSlots: Uint16List.fromList([8080]),
+      cardsSlots: Uint16List(0),
       webSlots: Uint16List.fromList([]),
       startedAt: startedAt,
       startChargeMu: '1000',

@@ -45,6 +45,7 @@ InstanceListView instanceOfLaunch(LaunchOutcome outcome, String serviceId, Strin
     serviceId: serviceId.toLowerCase(),
     slots: i.slots,
     chatSlots: i.chatSlots,
+    cardsSlots: i.cardsSlots,
     webSlots: i.webSlots,
     startedAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     startChargeMu: '',

@@ -42,7 +42,8 @@ Future<void> releaseBrowserHold() async {
   if (release != null) await release();
 }
 
-/// Open the first web slot of [instance] in the browser of the phone.
+/// Open the first web slot of [instance] in the browser of the phone, or the web slot
+/// [slot] (a `slot_link` of the chat, `docs/celaut/chat.md`, section 5.8).
 ///
 /// The slot gets a local port (`celautOpenTunnel`) on 127.0.0.1, and the browser goes to
 /// it. Each TCP connection of the browser is one tunnel stream, and the node charges each
@@ -52,13 +53,14 @@ Future<void> releaseBrowserHold() async {
 Future<void> openWebInBrowser(
   BuildContext context,
   InstanceListView instance, {
+  int? slot,
   Future<int> Function(String instanceId, int slot)? openTunnel,
   Future<bool> Function(Uri uri)? launch,
   ForegroundHolds? holds,
 }) async {
   final messenger = ScaffoldMessenger.of(context);
   final l = context.l10n;
-  if (instance.webSlots.isEmpty) {
+  if (instance.webSlots.isEmpty || (slot != null && !instance.webSlots.contains(slot))) {
     messenger.showSnackBar(SnackBar(content: Text(l.chatsNoInterface)));
     return;
   }
@@ -67,7 +69,7 @@ Future<void> openWebInBrowser(
         await (openTunnel ??
             (id, s) => celautOpenTunnel(instanceId: id, slot: s))(
           instance.instanceId,
-          instance.webSlots.first,
+          slot ?? instance.webSlots.first,
         );
     // Before the browser takes the screen: the app goes to the background right after.
     if (holds != null || Platform.isAndroid) {
