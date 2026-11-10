@@ -1,10 +1,35 @@
+import 'dart:math';
+
 import 'package:argus_wallet/l10n/app_localizations.dart';
 import 'package:argus_wallet/ui/celaut/virtual_keyboard.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 TextEditingValue _v(String text, int start, [int? end]) =>
     TextEditingValue(text: text, selection: TextSelection(baseOffset: start, extentOffset: end ?? start));
+
+/// The key of the keyboard of the app that types [c].
+Finder _keyOf(String c) => find.byKey(Key(c == ' ' ? 'vk-space' : 'vk-char-$c'));
+
+/// Types [text] as a fast typist with two thumbs (issue #121): the next finger goes down
+/// before the last one is up, with no frame between the keys, and a finger lands anywhere
+/// in the place of the key, also in the space between two caps (up to [reach] outside the
+/// cap). [seed] makes the points the same at each run.
+Future<void> typeFast(WidgetTester t, String text, {double reach = 2.5, int seed = 121}) async {
+  final random = Random(seed);
+  TestGesture? last;
+  var pointer = 50;
+  for (final c in text.characters) {
+    final cap = t.getRect(_keyOf(c)).inflate(reach);
+    final at = Offset(cap.left + random.nextDouble() * cap.width, cap.top + random.nextDouble() * cap.height);
+    final g = await t.createGesture(pointer: pointer++, kind: PointerDeviceKind.touch);
+    await g.down(at);
+    await last?.up();
+    last = g;
+  }
+  await last?.up();
+}
 
 void main() {
   group('editing', () {
@@ -72,6 +97,34 @@ void main() {
       await t.pump();
       expect(t.getSize(find.byKey(const Key('vk-char-a'))).height, 36);
       expect(t.getSize(find.byKey(const Key('chat-virtual-keyboard'))).height, tall - 4 * 12);
+    });
+
+    testWidgets('a tap in the space between two caps types the nearest key (#121)', (t) async {
+      await pump(t);
+      final q = t.getRect(find.byKey(const Key('vk-char-q')));
+      final w = t.getRect(find.byKey(const Key('vk-char-w')));
+      final a = t.getRect(find.byKey(const Key('vk-char-a')));
+      // Just right of the cap of q, just left of the cap of w, and between the rows.
+      await t.tapAt(Offset(q.right + 1, q.center.dy));
+      await t.tapAt(Offset(w.left - 1, w.center.dy));
+      await t.tapAt(Offset(a.center.dx, a.top - 1));
+      // The edge of the keyboard: left of q.
+      await t.tapAt(Offset(q.left - 1, q.center.dy));
+      expect(controller.text, 'qwaq');
+    });
+
+    testWidgets('fast typing with two thumbs loses no key (#121)', (t) async {
+      addTearDown(t.view.reset);
+      t.view.devicePixelRatio = 1;
+      t.view.physicalSize = const Size(360, 640);
+      await pump(t);
+      const text = 'the quick brown fox jumps over the lazy dog and types fast, with both thumbs.';
+      await typeFast(t, text);
+      expect(controller.text, text);
+      // A run with other points.
+      controller.clear();
+      await typeFast(t, text, seed: 7);
+      expect(controller.text, text);
     });
 
     testWidgets('the symbols layer has digits, and ABC goes back', (t) async {
