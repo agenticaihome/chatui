@@ -9788,7 +9788,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunSurvivalHint.
   ///
   /// In en, this message translates to:
-  /// **'Empty: the node chooses the start balance'**
+  /// **'Empty: the node decides'**
   String get celautRunSurvivalHint;
 
   /// No description provided for @celautRunSurvivalWrong.

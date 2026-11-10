@@ -6129,8 +6129,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunSurvivalLabel => 'Keep it running at least';
 
   @override
-  String get celautRunSurvivalHint =>
-      'Empty: the node chooses the start balance';
+  String get celautRunSurvivalHint => 'Empty: the node decides';
 
   @override
   String get celautRunSurvivalWrong => 'From 1 minute to 30 days.';

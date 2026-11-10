@@ -6204,7 +6204,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautRunSurvivalLabel => 'Mantenerla en marcha al menos';
 
   @override
-  String get celautRunSurvivalHint => 'Vacío: el nodo elige el saldo inicial';
+  String get celautRunSurvivalHint => 'Vacío: lo decide el nodo';
 
   @override
   String get celautRunSurvivalWrong => 'De 1 minuto a 30 días.';

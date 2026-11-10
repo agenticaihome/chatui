@@ -4483,7 +4483,7 @@
   "celautRunConfirmBody": "The service runs on a node and uses your credit there until it stops. Stop it from its conversation, its info page or the list of conversations.",
   "celautRunConfirmNoQuote": "No node gave a price yet. Run asks every node of the list.",
   "celautRunSurvivalLabel": "Keep it running at least",
-  "celautRunSurvivalHint": "Empty: the node chooses the start balance",
+  "celautRunSurvivalHint": "Empty: the node decides",
   "celautRunSurvivalWrong": "From 1 minute to 30 days.",
   "celautRunNodeBalance": "Build {cost}. The node adds its default start balance, which keeps the instance for the time that the node sets. The node gives back what the instance does not use.",
   "celautRunSurvivalNoPrice": "This node gives no price for its time. The node chooses the start balance.",

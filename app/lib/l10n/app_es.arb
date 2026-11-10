@@ -1778,7 +1778,7 @@
   "celautRunConfirmBody": "El servicio se ejecuta en un nodo y usa tu crédito allí hasta que se detiene. Detenlo desde su conversación, su página de información o la lista de conversaciones.",
   "celautRunConfirmNoQuote": "Ningún nodo ha dado un precio todavía. Ejecutar pregunta a todos los nodos de la lista.",
   "celautRunSurvivalLabel": "Mantenerla en marcha al menos",
-  "celautRunSurvivalHint": "Vacío: el nodo elige el saldo inicial",
+  "celautRunSurvivalHint": "Vacío: lo decide el nodo",
   "celautRunSurvivalWrong": "De 1 minuto a 30 días.",
   "celautRunNodeBalance": "Construcción {cost}. El nodo añade su saldo inicial por defecto, que mantiene la instancia el tiempo que fija el nodo. El nodo devuelve lo que la instancia no usa.",
   "celautRunSurvivalNoPrice": "Este nodo no da un precio por su tiempo. El nodo elige el saldo inicial.",
