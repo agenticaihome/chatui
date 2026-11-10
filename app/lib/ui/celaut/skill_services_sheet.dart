@@ -8,11 +8,14 @@ import '../../celaut/celaut_strings.dart';
 import '../../celaut/payers.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
+import 'skill_service_choice.dart';
+import 'skill_store.dart';
 
-/// The services of one skill, best first, as a bottom sheet. The best is chosen at first.
-/// For the chosen service it shows the node that the balancer would use and the start
-/// cost, if a node gives a quote. It returns the id of the service when the user taps Run,
-/// or nothing if the sheet is closed. Running is done by the caller.
+/// The services of one skill as a bottom sheet: one recommended service (the best of the
+/// ranking, chosen at first), the others under "Other options", and Run ([SkillServiceChoice],
+/// issue #122). For the chosen service it shows the node that the balancer would use and the
+/// start cost, if a node gives a quote. It returns the id of the service when the user taps
+/// Run, or nothing if the sheet is closed. Running is done by the caller.
 class SkillServicesSheet extends StatefulWidget {
   const SkillServicesSheet({
     super.key,
@@ -42,9 +45,6 @@ class _SkillServicesSheetState extends State<SkillServicesSheet> {
   bool _loading = true;
   CelautError? _error;
   String? _chosen;
-
-  /// The other services, beyond the best, are folded until the user asks for them.
-  bool _showAll = false;
   FullWalletGate _gate = FullWalletGate.open;
   final _previews = <String, Future<QuoteView?>>{};
 
@@ -101,9 +101,8 @@ class _SkillServicesSheetState extends State<SkillServicesSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(widget.skill.name, key: const Key('skill-sheet-name'), style: t.title),
-            const SizedBox(height: 4),
-            Text(l.celautRunServicesTitle.toUpperCase(), style: t.label),
-            const SizedBox(height: 10),
+            SkillAbout(skill: widget.skill),
+            const SizedBox(height: 6),
             if (_loading)
               Text(l.celautRunLoading, key: const Key('skill-sheet-loading'), style: t.secondary)
             else if (_error != null) ...[
@@ -120,26 +119,16 @@ class _SkillServicesSheetState extends State<SkillServicesSheet> {
               ),
             ] else if (services != null && services.isEmpty)
               Text(l.celautRunNoServices, key: const Key('skill-sheet-empty'), style: t.secondary),
-            // The best service, chosen already, is what most users take: the others are one
-            // tap away, and stay in view if the user chose one of them.
-            for (var i = 0; i < (services?.length ?? 0); i++)
-              if (i == 0 || _showAll || services![i].serviceId == _chosen) ...[
-                _serviceRow(context, services![i], best: i == 0),
-                const SizedBox(height: 4),
-              ],
-            if (services != null && services.length > 1)
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: TextButton(
-                  key: const Key('skill-sheet-more'),
-                  onPressed: () => setState(() => _showAll = !_showAll),
-                  child: Text(
-                    _showAll
-                        ? l.celautRunFewerOptions
-                        : l.celautRunMoreOptions('${services.length - 1}'),
-                  ),
-                ),
+            if (services != null && services.isNotEmpty) ...[
+              const SkillTestDataBanner(),
+              const SizedBox(height: 10),
+              SkillServiceChoice(
+                services: services,
+                chosen: _chosen,
+                onChoose: (id) => setState(() => _chosen = id),
+                keyPrefix: 'skill-service',
               ),
+            ],
             if (_chosen != null) ...[
               const SizedBox(height: 4),
               _preview(context, _chosen!),
@@ -161,56 +150,6 @@ class _SkillServicesSheetState extends State<SkillServicesSheet> {
                 child: Text(l.celautRunButton),
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _serviceRow(BuildContext context, SkillServiceView service, {required bool best}) {
-    final l = context.l10n;
-    final t = HomeText.of(context);
-    final chosen = _chosen == service.serviceId;
-    return InkWell(
-      key: Key('skill-service-${service.serviceId}'),
-      onTap: () => setState(() => _chosen = service.serviceId),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              chosen ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              size: 20,
-              key: Key(chosen ? 'skill-service-chosen' : 'skill-service-not-chosen'),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        l.celautRunScore('${(service.score * 100).round()}%'),
-                        style: t.primary,
-                      ),
-                      if (best) ...[
-                        const SizedBox(width: 8),
-                        Text(l.celautRunBest, key: const Key('skill-service-best'), style: t.label),
-                      ],
-                    ],
-                  ),
-                  // The start of the id is enough to tell two services apart; the whole id is in
-                  // the info of the service. Not selectable: a selectable text takes the tap
-                  // that chooses the row.
-                  Text(
-                    '${service.serviceId.substring(0, 8)}…',
-                    style: t.secondary.copyWith(fontFamily: 'monospace', fontSize: 11.5),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),

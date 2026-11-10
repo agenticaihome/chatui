@@ -6053,19 +6053,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautRunRetry => 'Reintentar';
 
   @override
-  String get celautRunServicesTitle => 'Servicios con esta habilidad';
-
-  @override
   String get celautRunNoServices =>
       'Ningún servicio tiene esta habilidad todavía.';
-
-  @override
-  String get celautRunBest => 'Mejor';
-
-  @override
-  String celautRunScore(String score) {
-    return 'Puntuación $score';
-  }
 
   @override
   String get celautRunButton => 'Ejecutar';
@@ -6757,17 +6746,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chatSelectText => 'Seleccionar texto';
 
   @override
-  String celautRunMoreOptions(String count) {
-    return 'Mostrar $count opciones más';
-  }
-
-  @override
-  String get celautRunFewerOptions => 'Mostrar menos opciones';
-
-  @override
-  String get celautRunCategoryAll => 'Todas';
-
-  @override
   String get celautRunOnPhone => 'En el móvil';
 
   @override
@@ -6777,55 +6755,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautRunPhoneServices => 'Ejecutar los servicios del móvil';
 
   @override
-  String get celautStoreFeatured => 'Destacadas';
-
-  @override
-  String get celautStoreFeaturedHint =>
-      'Una habilidad de cada campo, del publicador con más reputación';
-
-  @override
-  String get celautStoreSuggested => 'Sugeridas para ti';
-
-  @override
-  String get celautStoreSuggestedHint =>
-      'En los campos de las habilidades que ejecutaste';
-
-  @override
-  String get celautStoreNew => 'Nuevas';
-
-  @override
-  String get celautStoreNewHint => 'Las últimas habilidades publicadas en Ergo';
-
-  @override
-  String get celautStorePopular => 'Populares';
-
-  @override
-  String get celautStorePopularHint => 'Las habilidades con más servicios';
-
-  @override
-  String get celautStoreCategories => 'Categorías';
-
-  @override
-  String get celautStoreAll => 'Todas las habilidades';
-
-  @override
   String celautStoreServices(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count servicios',
       one: '1 servicio',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String celautStoreSkills(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count habilidades',
-      one: '1 habilidad',
     );
     return '$_temp0';
   }
@@ -8042,4 +7977,79 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get serviceInfoWorkloadOr => 'o';
+
+  @override
+  String get celautSkillsIntro =>
+      'Elige una habilidad para ver los servicios que la hacen.';
+
+  @override
+  String get celautStoreOtherField => 'Otros';
+
+  @override
+  String celautStoreShowMore(int count) {
+    return 'Mostrar más ($count)';
+  }
+
+  @override
+  String get celautStoreShowFewer => 'Mostrar menos';
+
+  @override
+  String get celautSkillAbout => 'Sobre esta habilidad';
+
+  @override
+  String celautSkillField(String field) {
+    return 'Campo: $field';
+  }
+
+  @override
+  String get celautSkillTestBanner =>
+      'La mayoría de los resultados son pruebas. Compruébalos antes de confiar en ellos.';
+
+  @override
+  String get celautSkillRecommended => 'Recomendado';
+
+  @override
+  String celautSkillOtherOptions(String count) {
+    return 'Otras opciones ($count)';
+  }
+
+  @override
+  String celautSkillRating(String level) {
+    return 'Valoración: $level';
+  }
+
+  @override
+  String get celautSkillRatingHigh => 'Alta';
+
+  @override
+  String get celautSkillRatingMedium => 'Media';
+
+  @override
+  String get celautSkillRatingLow => 'Baja';
+
+  @override
+  String celautSkillRatingExact(String score) {
+    return 'Valoración exacta: $score de 1';
+  }
+
+  @override
+  String get celautSkillDeclared => 'Declarado por el publicador';
+
+  @override
+  String get celautSkillFromResults =>
+      'Visto solo en resultados de pruebas, sin declarar por un publicador';
+
+  @override
+  String get celautSkillUnverified => 'Sin verificar';
+
+  @override
+  String celautSkillServiceId(String id) {
+    return 'Id del servicio $id';
+  }
+
+  @override
+  String get celautSkillIdCopied => 'Id del servicio copiado';
+
+  @override
+  String get celautSkillUse => 'Usar este servicio';
 }
