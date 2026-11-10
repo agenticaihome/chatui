@@ -329,20 +329,26 @@ pub(crate) fn forget_if_broken_key(key: &str) {
 
 /// The unix time, in seconds, at which the schedule that the node of `address` announced
 /// (`Peer.activity_window`, nodo#344) opens next, if it says that the node is closed now.
-/// From the open connection; `None` with no connection, no schedule, or an open node.
-pub(crate) fn opens_at_of(address: &NodeAddress) -> Option<i64> {
+/// The node is asked for its current `Peer` first: the one of the connection can be older
+/// than a change of the schedule. If that fails, the window of the connection is used.
+/// `None` with no connection, no schedule, or an open node.
+pub(crate) async fn opens_at_of(address: &NodeAddress) -> Option<i64> {
     let session = STATE.lock().ok()?.sessions.get(&key(address))?.clone();
-    let window = session.info().peer.activity_window.clone();
+    let fresh = tokio::time::timeout(BALANCE_TIMEOUT, session.fresh_activity_window()).await;
+    let window = match fresh {
+        Ok(Ok(window)) => window,
+        _ => session.info().peer.activity_window.clone(),
+    };
     celaut_balancer::next_open(window.as_ref(), now_seconds())
 }
 
-/// When the node of `node` opens again, by the activity window that it announced
+/// When the node of `node` opens again, by the activity window that it announces
 /// (nodo#344): the unix time in seconds, or 0 if the app does not know (no connection,
 /// no schedule, or the schedule says that it is open). For a start that the node refused
 /// because it is closed.
-#[flutter_rust_bridge::frb(sync)]
-pub fn celaut_node_opens_at(node: NodeAddress) -> i64 {
-    opens_at_of(&node).unwrap_or(0)
+#[flutter_rust_bridge::frb]
+pub async fn celaut_node_opens_at(node: NodeAddress) -> i64 {
+    opens_at_of(&node).await.unwrap_or(0)
 }
 
 /// One quote, in the MU of the node and, if the node gives an ERG rate, in nanoERG. An
@@ -518,7 +524,7 @@ pub async fn celaut_quote_service(
         let e = error_of(failure.error);
         // A node that refused because it is closed: its schedule may say when it opens.
         let opens_at = if e.kind == CelautErrorKind::NodeClosed {
-            opens_at_of(&address).unwrap_or(0)
+            opens_at_of(&address).await.unwrap_or(0)
         } else {
             0
         };

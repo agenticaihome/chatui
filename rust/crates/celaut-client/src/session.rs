@@ -260,6 +260,18 @@ impl<T: Transport> NodeSession<T> {
         &self.client_id
     }
 
+    /// The activity window that the node announces now (`Peer.activity_window`, nodo#344),
+    /// read again with `GetPeerInfo` and checked against the identity of the node: the
+    /// window of [`Self::info`] is the one of the connection, and a node can change its
+    /// schedule while the connection lives. `None`: the node gives no schedule.
+    pub async fn fresh_activity_window(
+        &self,
+    ) -> Result<Option<celaut_proto::celaut::ActivityWindow>, ClientError> {
+        let peer = celaut_wire::gateway::get_peer_info(&self.transport, &self.client_id).await?;
+        crate::peer::verify_signature(&peer, &self.info.peer_id)?;
+        Ok(peer.activity_window)
+    }
+
     /// The transport to the node.
     pub fn transport(&self) -> &T {
         &self.transport

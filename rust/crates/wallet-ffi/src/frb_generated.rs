@@ -2423,15 +2423,16 @@ fn wire__crate__api__celaut_db__celaut_new_database_key_impl(
     )
 }
 fn wire__crate__api__celaut_service__celaut_node_opens_at_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
-) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "celaut_node_opens_at",
-            port: None,
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
             let message = unsafe {
@@ -2445,11 +2446,17 @@ fn wire__crate__api__celaut_service__celaut_node_opens_at_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_node = <crate::api::celaut_service::NodeAddress>::sse_decode(&mut deserializer);
             deserializer.end();
-            transform_result_sse::<_, ()>((move || {
-                let output_ok =
-                    Ok::<_, ()>(crate::api::celaut_service::celaut_node_opens_at(api_node))?;
-                std::result::Result::Ok(output_ok)
-            })())
+            move |context| async move {
+                transform_result_sse::<_, ()>(
+                    (move || async move {
+                        let output_ok = Ok::<_, ()>(
+                            crate::api::celaut_service::celaut_node_opens_at(api_node).await,
+                        )?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
         },
     )
 }
@@ -8207,6 +8214,12 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
+        69 => wire__crate__api__celaut_service__celaut_node_opens_at_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
         71 => wire__crate__api__celaut_db__celaut_open_database_impl(
             port,
             ptr,
@@ -8463,9 +8476,6 @@ fn pde_ffi_dispatcher_sync_impl(
         ),
         68 => {
             wire__crate__api__celaut_db__celaut_new_database_key_impl(ptr, rust_vec_len, data_len)
-        }
-        69 => {
-            wire__crate__api__celaut_service__celaut_node_opens_at_impl(ptr, rust_vec_len, data_len)
         }
         70 => {
             wire__crate__api__celaut_health__celaut_nodes_health_impl(ptr, rust_vec_len, data_len)

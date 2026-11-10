@@ -19,11 +19,11 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 Future<NewClientView> celautNewClient({required NodeAddress node}) =>
     RustLib.instance.api.crateApiCelautServiceCelautNewClient(node: node);
 
-/// When the node of `node` opens again, by the activity window that it announced
+/// When the node of `node` opens again, by the activity window that it announces
 /// (nodo#344): the unix time in seconds, or 0 if the app does not know (no connection,
 /// no schedule, or the schedule says that it is open). For a start that the node refused
 /// because it is closed.
-PlatformInt64 celautNodeOpensAt({required NodeAddress node}) =>
+Future<PlatformInt64> celautNodeOpensAt({required NodeAddress node}) =>
     RustLib.instance.api.crateApiCelautServiceCelautNodeOpensAt(node: node);
 
 /// Ask each node for the price of the service, and give the quotes best first

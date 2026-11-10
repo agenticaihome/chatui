@@ -113,8 +113,8 @@ void main() {
   });
 
   group('a closed node says when it opens', () {
+    const node = NodeAddress(host: 'node.example', port: 1);
     test('problemsOf carries opens_at of a quote failure and of a refused start', () {
-      const node = NodeAddress(host: 'node.example', port: 1);
       final failure = LaunchFailure(
         LaunchFailureKind.allFailed,
         quoteFailures: const [
@@ -122,14 +122,35 @@ void main() {
           QuoteFailureView(address: node, kind: CelautErrorKind.timeout, message: '', opensAt: 1800000000),
         ],
         skipped: [
-          LaunchSkip(_quote(), const CelautError(kind: CelautErrorKind.nodeClosed, message: 'closed')),
+          LaunchSkip(_quote(), const CelautError(kind: CelautErrorKind.nodeClosed, message: 'closed'), opensAt: 1800003600),
           LaunchSkip(_quote(), const CelautError(kind: CelautErrorKind.noRoom, message: 'full')),
         ],
       );
-      final problems = problemsOf(failure, opensAt: (_) => 1800003600);
+      final problems = problemsOf(failure);
       expect(problems.map((p) => p.opensAt), [1800000000, 0, 1800003600, 0]);
-      // With no bridge (a widget test), the app does not know it.
-      expect(nodeOpensAt(node), 0);
+    });
+
+    test('a start that a closed node refuses reads when it opens; a failure of that is 0', () async {
+      Future<LaunchOutcome> launch(OpensAtCall opensAt) => launchService(
+            serviceIdHex: 'ab' * 32,
+            nodes: const [node],
+            health: () => const [],
+            quote: ({required nodes, required serviceIdHex, initialMu}) async =>
+                QuotesView(quotes: [_quote()], failures: const []),
+            start: ({required node, required serviceIdHex, initialMu, required environment}) async =>
+                throw const CelautError(kind: CelautErrorKind.nodeClosed, message: 'outside its activity window'),
+            opensAt: opensAt,
+          );
+      Future<int> opensOf(OpensAtCall opensAt) async {
+        try {
+          await launch(opensAt);
+        } on LaunchFailure catch (f) {
+          return f.skipped.single.opensAt;
+        }
+        fail('the launch must fail');
+      }
+      expect(await opensOf(({required node}) async => 1800007200), 1800007200);
+      expect(await opensOf(({required node}) async => throw StateError('no bridge')), 0);
     });
   });
 

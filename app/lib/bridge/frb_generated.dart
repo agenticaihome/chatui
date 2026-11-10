@@ -362,7 +362,7 @@ abstract class RustLibApi extends BaseApi {
 
   String crateApiCelautDbCelautNewDatabaseKey();
 
-  PlatformInt64 crateApiCelautServiceCelautNodeOpensAt({
+  Future<PlatformInt64> crateApiCelautServiceCelautNodeOpensAt({
     required NodeAddress node,
   });
 
@@ -2842,15 +2842,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "celaut_new_database_key", argNames: []);
 
   @override
-  PlatformInt64 crateApiCelautServiceCelautNodeOpensAt({
+  Future<PlatformInt64> crateApiCelautServiceCelautNodeOpensAt({
     required NodeAddress node,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_node_address(node, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69)!;
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 69,
+            port: port_,
+          );
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_i_64,

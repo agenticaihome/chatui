@@ -79,15 +79,6 @@ class LaunchProblem {
   final int opensAt;
 }
 
-/// When the node of [address] opens again, by its announced schedule; 0 if unknown. 0
-/// too when the bridge is not loaded (widget tests).
-int nodeOpensAt(NodeAddress address) {
-  try {
-    return celautNodeOpensAt(node: address);
-  } on Object {
-    return 0;
-  }
-}
 
 String _address(NodeAddress address) => '${address.host}:${address.port}';
 
@@ -95,12 +86,9 @@ String _address(NodeAddress address) => '${address.host}:${address.port}';
 /// nodes that gave a quote and did not start, and the nodes left out. Nodes that failed
 /// after a quote come in the order in which the app tried them.
 ///
-/// A node that is closed (nodo#344) says when it opens again: a quote failure carries it,
-/// and for a start that the node refused, [opensAt] reads it from the node's schedule.
-List<LaunchProblem> problemsOf(
-  LaunchFailure failure, {
-  int Function(NodeAddress) opensAt = nodeOpensAt,
-}) => [
+/// A node that is closed (nodo#344) says when it opens again: a quote failure and a
+/// refused start carry it.
+List<LaunchProblem> problemsOf(LaunchFailure failure) => [
   for (final f in failure.quoteFailures)
     LaunchProblem(
       address: _address(f.address),
@@ -117,7 +105,7 @@ List<LaunchProblem> problemsOf(
       action: actionFor(s.error.kind),
       creditMu: s.isCreditProblem ? s.quote.clientBalanceMu : null,
       costMu: s.isCreditProblem ? s.quote.costMu : null,
-      opensAt: s.error.kind == CelautErrorKind.nodeClosed ? opensAt(s.quote.address) : 0,
+      opensAt: s.error.kind == CelautErrorKind.nodeClosed ? s.opensAt : 0,
     ),
   for (final n in failure.leftOut)
     LaunchProblem(

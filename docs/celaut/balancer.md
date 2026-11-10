@@ -177,8 +177,11 @@ What the app does (`celaut_balancer::closing`, a port of nodo's `interruption.py
   quote call, as nodo's balancer skips it; it is a failure "closed" in the list, with the
   time at which its schedule opens (`QuoteFailureView.opens_at`). A schedule that cannot be
   read (a minute out of range, two equal edges) or no schedule at all is no reason to skip.
-  A start that a node refuses because it is closed also says when it opens
-  (`celaut_node_opens_at`, from the schedule of the open connection).
+  A quote or a start that a node refuses because it is closed also says when it opens
+  (`celaut_node_opens_at`): the app asks the node for its current `Peer` (`GetPeerInfo`,
+  signature checked), because the `Peer` of the connection can be older than a change of
+  the schedule; if that fails, it uses the one of the connection. The skip itself uses the
+  `Peer` of the connection.
 - **Interruption class.** `funded_life` is how long the balance of the start pays (the quote
   round has no `initial_mu`, so each node funds its default 360 periods, up to 4 days):
 

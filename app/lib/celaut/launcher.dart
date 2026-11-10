@@ -24,6 +24,10 @@ typedef PricingCall = void Function({
   required OnCloseView onClose,
 });
 
+/// When a closed node opens again, by its announced schedule (`celautNodeOpensAt`,
+/// nodo#344): unix seconds, 0 if unknown.
+typedef OpensAtCall = Future<int> Function({required NodeAddress node});
+
 /// Turn "run until I stop it" on for a started instance (`celautSetKeepAlive`).
 typedef KeepAliveCall = void Function({
   required String instanceId,
@@ -55,13 +59,17 @@ class LaunchCancelled implements Exception {
 
 /// A node that gave a quote but did not start the service.
 class LaunchSkip {
-  const LaunchSkip(this.quote, this.error);
+  const LaunchSkip(this.quote, this.error, {this.opensAt = 0});
 
   final QuoteView quote;
 
   /// Why. The `message` is the text of the node (without the wrapper of the transport),
   /// or, for [CelautErrorKind.insufficientCredit], the numbers.
   final CelautError error;
+
+  /// With [CelautErrorKind.nodeClosed]: when the node opens again, by the schedule that
+  /// it announces (nodo#344), in unix seconds; 0 if the app does not know it.
+  final int opensAt;
 
   /// True if the app did not ask the node to start: the balance of the client on the node
   /// is less than the price. [quote] has both numbers.
@@ -315,6 +323,7 @@ Future<LaunchOutcome> launchService({
   StartCall start = celautStartService,
   PricingCall setPricing = celautSetInstancePricing,
   KeepAliveCall setKeepAlive = celautSetKeepAlive,
+  OpensAtCall opensAt = celautNodeOpensAt,
   List<KnownNodeView> Function() knownNodes = celautKnownNodes,
   List<NodeHealthView> Function() health = celautNodesHealth,
 }) async {
@@ -366,7 +375,9 @@ Future<LaunchOutcome> launchService({
         sentMu: startMu?.toString(),
       );
     } on CelautError catch (e) {
-      skipped.add(LaunchSkip(candidate, e));
+      // A node that is closed (nodo#344): say when its schedule opens again.
+      final opens = e.kind == CelautErrorKind.nodeClosed ? await _opensAt(opensAt, candidate.address) : 0;
+      skipped.add(LaunchSkip(candidate, e, opensAt: opens));
     }
   }
   throw LaunchFailure(
@@ -375,6 +386,15 @@ Future<LaunchOutcome> launchService({
     skipped: skipped,
     leftOut: leftOut,
   );
+}
+
+/// [opensAt] for [node], or 0 if the app cannot read it: it never fails a launch.
+Future<int> _opensAt(OpensAtCall opensAt, NodeAddress node) async {
+  try {
+    return await opensAt(node: node);
+  } on Object {
+    return 0;
+  }
 }
 
 /// Keep the price of the winning node with the new instance, and turn keep-alive on if the
