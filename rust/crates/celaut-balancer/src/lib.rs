@@ -8,7 +8,8 @@
 //!   the default of nodo), rounded up.
 //! - [`cost_mu`] and [`score`]: the port of `nodo:src/balancers/estimated_cost_sorter`
 //!   and `nodo:src/balancers/scoring.py`.
-//! - [`rank`]: the order. A stable sort, so equal scores keep the order of the input.
+//! - [`rank`]: the order: the quotes that promise a price bound first (nodo#636), then
+//!   the score. A stable sort, so equal scores keep the order of the input.
 //! - [`QuoteCache`]: the cache of `nodo:src/utils/tools/query_cache.py` (10 s, 4096
 //!   entries).
 //!
@@ -136,9 +137,21 @@ pub fn to_node_mu(nano_erg: u128, mu_per_nano_erg: u128) -> Result<u128, Balance
         .ok_or(BalancerError::TooLarge)
 }
 
-/// `trunc(cost * (1 + variance * k))`, as `variance_cost_normalization` of nodo.
-fn vcnorm(cost: u128, variance: f32) -> f64 {
-    (cost as f64 * (1.0 + f64::from(variance) * COST_AVERAGE_VARIATION)).trunc()
+/// `trunc(cost * (1 + volatility * k))`, as `volatility_cost_normalization` of nodo.
+fn vcnorm(cost: u128, volatility: f64) -> f64 {
+    (cost as f64 * (1.0 + volatility * COST_AVERAGE_VARIATION)).trunc()
+}
+
+/// The volatility of a quote, read strictly as nodo's `price_bound.strict` (nodo#636): the
+/// `price_volatility` of a bounded quote, and 0 for one that is not bounded or that is not
+/// a finite number of at least 0.
+pub fn volatility(quote: &EstimatedCost) -> f64 {
+    let v = f64::from(quote.price_volatility);
+    if quote.price_bounded && v.is_finite() && v > 0.0 {
+        v
+    } else {
+        0.0
+    }
 }
 
 /// The cost of a quote for the comparison, in the unit of its amounts:
@@ -146,17 +159,17 @@ fn vcnorm(cost: u128, variance: f32) -> f64 {
 /// `per_hour(a) = trunc(vcnorm(a) * 3600 / maintenance_seconds_loop)`, or 0 when the loop
 /// is 0 or less. As in nodo, the arithmetic is in floating point.
 pub fn cost_mu(quote: &EstimatedCost) -> Result<f64, BalancerError> {
-    let variance = quote.variance;
+    let volatility = volatility(quote);
     let per_hour = |a: Option<&Amount>| -> Result<f64, BalancerError> {
         let seconds = quote.maintenance_seconds_loop;
         if seconds <= 0 {
             return Ok(0.0);
         }
-        Ok((vcnorm(amount(a)?, variance) * HOUR_SECONDS / f64::from(seconds)).trunc())
+        Ok((vcnorm(amount(a)?, volatility) * HOUR_SECONDS / f64::from(seconds)).trunc())
     };
     let init = per_hour(quote.init_maintenance_cost.as_ref())?;
     let max = per_hour(quote.max_maintenance_cost.as_ref())?;
-    Ok((vcnorm(amount(quote.cost.as_ref())?, variance) + (init + max) / 2.0).trunc())
+    Ok((vcnorm(amount(quote.cost.as_ref())?, volatility) + (init + max) / 2.0).trunc())
 }
 
 /// `x / (|x| + half)`.
@@ -352,13 +365,19 @@ pub fn rank_with(candidates: Vec<Candidate>, weights: &Weights) -> Vec<Ranked> {
             }),
         }
     }
-    // Stable: equal scores keep the input order. NaN cannot come from the arithmetic
-    // above, but it would sort last.
+    // The quotes that promise a price bound go first, as in nodo (#636, G); inside each
+    // group, the order of the score. Stable: equal scores keep the input order. NaN
+    // cannot come from the arithmetic above, but it would sort last.
     priced.sort_by(|a, b| {
+        let bounded = b.candidate.quote.price_bounded.cmp(&a.candidate.quote.price_bounded);
         let (a, b) = (a.score.unwrap_or(f64::NAN), b.score.unwrap_or(f64::NAN));
-        b.partial_cmp(&a)
-            .unwrap_or_else(|| a.is_nan().cmp(&b.is_nan()))
+        bounded.then_with(|| {
+            b.partial_cmp(&a)
+                .unwrap_or_else(|| a.is_nan().cmp(&b.is_nan()))
+        })
     });
+    // The same for the quotes that cannot be compared: bounded first, in the input order.
+    unpriced.sort_by(|a, b| b.candidate.quote.price_bounded.cmp(&a.candidate.quote.price_bounded));
     priced.extend(unpriced);
     priced
 }

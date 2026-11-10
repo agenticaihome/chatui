@@ -21,7 +21,6 @@ import '../../bridge/api/celaut_package.dart';
 import '../../celaut/package_channel.dart';
 import '../../celaut/package_library.dart';
 import '../../celaut/payers.dart';
-import '../../celaut/service_strings.dart';
 import '../../celaut/service_transfer.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
@@ -43,7 +42,6 @@ import 'skill_store.dart';
 /// Start a service: the ids and the settings go to the launcher.
 typedef LaunchCall = Future<LaunchOutcome> Function({
   required String serviceIdHex,
-  String? initialMu,
   Duration? minSurvival,
   bool keepAlive,
   String? budgetMu,
@@ -269,11 +267,9 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     if (custom != null) return custom(serviceId);
     final nodes = knownNodeAddresses(celautKnownNodes());
     if (nodes.isEmpty) return null;
-    final quotes = await celautQuoteService(
-      nodes: nodes,
-      serviceIdHex: serviceId,
-      initialMu: ServiceStrings.initialDefault,
-    );
+    // No initial_mu: the cost of a quote is the builds (nodo#636), and the start adds
+    // the balance (issue #119).
+    final quotes = await celautQuoteService(nodes: nodes, serviceIdHex: serviceId);
     return quotes.quotes.isEmpty ? null : quotes.quotes.first;
   }
 
@@ -327,9 +323,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     _showRocket(serviceId);
     try {
       final launch = widget.launch ??
-          ({required serviceIdHex, initialMu, minSurvival, keepAlive = false, budgetMu, environment}) => launchService(
+          ({required serviceIdHex, minSurvival, keepAlive = false, budgetMu, environment}) => launchService(
                 serviceIdHex: serviceIdHex,
-                initialMu: initialMu,
                 minSurvival: minSurvival,
                 keepAlive: keepAlive,
                 budgetMu: budgetMu,
@@ -340,7 +335,6 @@ class _RunServiceSectionState extends State<RunServiceSection> {
       final outcome = await (widget.work ?? backgroundWork).run(context, KeepAliveReason.launch, () async {
         final outcome = await launch(
           serviceIdHex: serviceId,
-          initialMu: ServiceStrings.initialDefault,
           minSurvival: _lastSurvival,
           keepAlive: _lastKeepAlive,
           budgetMu: _lastBudget,
@@ -836,8 +830,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
         context,
         transfer: transfer,
         work: () => offer.source == TransferSource.node
-            ? transfer.fromNode(offer, serviceId, ServiceStrings.initialDefault)
-            : transfer.fromLibrary(offer.to, serviceId, ServiceStrings.initialDefault, path!),
+            ? transfer.fromNode(offer, serviceId, null)
+            : transfer.fromLibrary(offer.to, serviceId, null, path!),
       ),
     );
     if (!mounted) return;

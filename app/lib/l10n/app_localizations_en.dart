@@ -6129,24 +6129,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunSurvivalLabel => 'Keep it running at least';
 
   @override
-  String get celautRunSurvivalHint => 'Empty: the default start balance';
+  String get celautRunSurvivalHint =>
+      'Empty: the node chooses the start balance';
 
   @override
   String get celautRunSurvivalWrong => 'From 1 minute to 30 days.';
 
   @override
-  String celautRunDefaultBalance(String balance) {
-    return 'Start balance $balance (the default).';
-  }
-
-  @override
-  String celautRunDefaultBalanceLasts(String balance, String time) {
-    return 'Start balance $balance (the default): about $time on this node.';
+  String celautRunNodeBalance(String cost) {
+    return 'Build $cost. The node adds its default start balance, which keeps the instance for the time that the node sets. The node gives back what the instance does not use.';
   }
 
   @override
   String get celautRunSurvivalNoPrice =>
-      'This node gives no price for its time. The app uses the default start balance.';
+      'This node gives no price for its time. The node chooses the start balance.';
 
   @override
   String celautRunSurvivalEstimate(String cost, String balance, String time) {

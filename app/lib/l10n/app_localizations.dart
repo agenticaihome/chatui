@@ -9788,7 +9788,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunSurvivalHint.
   ///
   /// In en, this message translates to:
-  /// **'Empty: the default start balance'**
+  /// **'Empty: the node chooses the start balance'**
   String get celautRunSurvivalHint;
 
   /// No description provided for @celautRunSurvivalWrong.
@@ -9797,22 +9797,16 @@ abstract class AppLocalizations {
   /// **'From 1 minute to 30 days.'**
   String get celautRunSurvivalWrong;
 
-  /// No description provided for @celautRunDefaultBalance.
+  /// No description provided for @celautRunNodeBalance.
   ///
   /// In en, this message translates to:
-  /// **'Start balance {balance} (the default).'**
-  String celautRunDefaultBalance(String balance);
-
-  /// No description provided for @celautRunDefaultBalanceLasts.
-  ///
-  /// In en, this message translates to:
-  /// **'Start balance {balance} (the default): about {time} on this node.'**
-  String celautRunDefaultBalanceLasts(String balance, String time);
+  /// **'Build {cost}. The node adds its default start balance, which keeps the instance for the time that the node sets. The node gives back what the instance does not use.'**
+  String celautRunNodeBalance(String cost);
 
   /// No description provided for @celautRunSurvivalNoPrice.
   ///
   /// In en, this message translates to:
-  /// **'This node gives no price for its time. The app uses the default start balance.'**
+  /// **'This node gives no price for its time. The node chooses the start balance.'**
   String get celautRunSurvivalNoPrice;
 
   /// No description provided for @celautRunSurvivalEstimate.

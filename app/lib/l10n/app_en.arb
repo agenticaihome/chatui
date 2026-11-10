@@ -4483,11 +4483,10 @@
   "celautRunConfirmBody": "The service runs on a node and uses your credit there until it stops. Stop it from its conversation, its info page or the list of conversations.",
   "celautRunConfirmNoQuote": "No node gave a price yet. Run asks every node of the list.",
   "celautRunSurvivalLabel": "Keep it running at least",
-  "celautRunSurvivalHint": "Empty: the default start balance",
+  "celautRunSurvivalHint": "Empty: the node chooses the start balance",
   "celautRunSurvivalWrong": "From 1 minute to 30 days.",
-  "celautRunDefaultBalance": "Start balance {balance} (the default).",
-  "celautRunDefaultBalanceLasts": "Start balance {balance} (the default): about {time} on this node.",
-  "celautRunSurvivalNoPrice": "This node gives no price for its time. The app uses the default start balance.",
+  "celautRunNodeBalance": "Build {cost}. The node adds its default start balance, which keeps the instance for the time that the node sets. The node gives back what the instance does not use.",
+  "celautRunSurvivalNoPrice": "This node gives no price for its time. The node chooses the start balance.",
   "celautRunSurvivalEstimate": "Start cost about {cost}, with a balance of {balance} for at least {time} at the price of the node now. A busy node, and the traffic of the conversation, cost more. The node gives back what the instance does not use.",
   "celautTopUpTitle": "Keep running",
   "celautTopUpThreshold": "When an instance would last less than",
@@ -4519,19 +4518,9 @@
       }
     }
   },
-  "@celautRunDefaultBalanceLasts": {
+  "@celautRunNodeBalance": {
     "placeholders": {
-      "balance": {
-        "type": "String"
-      },
-      "time": {
-        "type": "String"
-      }
-    }
-  },
-  "@celautRunDefaultBalance": {
-    "placeholders": {
-      "balance": {
+      "cost": {
         "type": "String"
       }
     }

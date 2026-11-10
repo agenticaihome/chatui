@@ -14,7 +14,6 @@ import 'package:argus_wallet/celaut/launcher.dart';
 import 'package:argus_wallet/celaut/package_channel.dart';
 import 'package:argus_wallet/celaut/package_library.dart';
 import 'package:argus_wallet/celaut/payers.dart';
-import 'package:argus_wallet/celaut/service_strings.dart';
 import 'package:argus_wallet/celaut/service_transfer.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
 import 'package:argus_wallet/theme/argus_theme.dart';
@@ -104,7 +103,9 @@ QuoteView _quote({String credit = '', String cost = '1000000'}) => QuoteView(
   initMaintenanceMu: '1',
   maxMaintenanceMu: '1',
   maintenanceSecondsLoop: 10,
-  variance: 0,
+  priceBounded: false,
+  priceVolatility: 0,
+  volatilityPeriodSeconds: 0,
   comparedNanoErg: '1',
   clientBalanceMu: credit,
 );
@@ -281,9 +282,9 @@ void main() {
               },
               loadServices: (id) async => services ?? _ranked(),
               previewQuote: (id) async => preview,
-              launch: ({required serviceIdHex, initialMu, minSurvival, keepAlive = false, budgetMu, environment}) async {
+              launch: ({required serviceIdHex, minSurvival, keepAlive = false, budgetMu, environment}) async {
                 launched.add(
-                  '$serviceIdHex $initialMu${minSurvival == null ? '' : ' ${minSurvival.inMinutes} min'}'
+                  '$serviceIdHex${minSurvival == null ? '' : ' ${minSurvival.inMinutes} min'}'
                   '${keepAlive ? ' keep ${budgetMu ?? 'no limit'}' : ''}',
                 );
                 if (launchGate != null) await launchGate!.future;
@@ -661,7 +662,7 @@ void main() {
   testWidgets('Run starts the best service with the default balance', (tester) async {
     await open(tester);
     await run(tester);
-    expect(launched, ['$_best 1000000']);
+    expect(launched, [_best]);
   });
 
   testWidgets('Run asks first, with the best node and its start cost', (tester) async {
@@ -680,20 +681,22 @@ void main() {
     expect(launched, isEmpty, reason: 'nothing starts before the user confirms');
     await tester.tap(find.byKey(const Key('run-confirm-ok')));
     await tester.pumpAndSettle();
-    expect(launched, ['$_best 1000000']);
+    expect(launched, [_best]);
   });
 
   testWidgets('the confirmation asks for the least time, and the launch uses it', (tester) async {
-    // 100 MU each 60 s on the best node, and a quote of 1,000,300 MU with the default
-    // balance of 1,000,000 MU: a build of 300 MU.
+    // 100 MU each 60 s on the best node, and a quote of 300 MU: the builds, with no
+    // balance (nodo#636).
     final best = QuoteView(
       address: const NodeAddress(host: '127.0.0.1', port: 18460),
       peerId: 'aa' * 32,
-      costMu: '1000300',
+      costMu: '300',
       initMaintenanceMu: '100',
       maxMaintenanceMu: '100',
       maintenanceSecondsLoop: 60,
-      variance: 0,
+      priceBounded: false,
+      priceVolatility: 0,
+      volatilityPeriodSeconds: 0,
       comparedNanoErg: '1',
       clientBalanceMu: '',
     );
@@ -702,10 +705,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('skill-sheet-run')));
     await tester.pumpAndSettle();
-    // Empty: the default balance, and how long it lasts on that node.
+    // Empty: the app sends no balance, the node chooses it; the dialog shows the build.
     expect(
       tester.widget<Text>(find.byKey(const Key('run-confirm-survival'))).data,
-      appL10n.celautRunDefaultBalanceLasts('1,000,000 MU', '6 d 22 h'),
+      appL10n.celautRunNodeBalance('300 MU'),
     );
     await tester.enterText(find.byKey(const Key('run-confirm-minutes')), '90');
     await tester.pump();
@@ -723,7 +726,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('run-confirm-ok')));
     await tester.pumpAndSettle();
-    expect(launched, ['$_best 1000000 90 min']);
+    expect(launched, ['$_best 90 min']);
     // The next confirmation starts with the same time.
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('celaut_min_survival_minutes_v1'), 90);
@@ -734,11 +737,13 @@ void main() {
     final best = QuoteView(
       address: const NodeAddress(host: '127.0.0.1', port: 18460),
       peerId: 'aa' * 32,
-      costMu: '1000300',
+      costMu: '300',
       initMaintenanceMu: '100',
       maxMaintenanceMu: '100',
       maintenanceSecondsLoop: 60,
-      variance: 0,
+      priceBounded: false,
+      priceVolatility: 0,
+      volatilityPeriodSeconds: 0,
       comparedNanoErg: '1',
       clientBalanceMu: '10000',
     );
@@ -784,7 +789,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('run-confirm-ok')));
       await tester.pumpAndSettle();
-      expect(launched, ['$_best 1000000 keep no limit']);
+      expect(launched, ['$_best keep no limit']);
       expect((await SharedPreferences.getInstance()).getInt('celaut_min_survival_minutes_v1'), isNull);
     });
 
@@ -796,7 +801,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const Key('run-confirm-ok')));
       await tester.pumpAndSettle();
-      expect(launched, ['$_best 1000000 keep 250000']);
+      expect(launched, ['$_best keep 250000']);
     });
   });
 
@@ -909,7 +914,7 @@ void main() {
   testWidgets('Run starts the service that the user chose', (tester) async {
     await open(tester);
     await run(tester, serviceId: _other);
-    expect(launched, ['$_other 1000000']);
+    expect(launched, [_other]);
   });
 
   testWidgets('a service with a chat slot opens the conversation', (tester) async {
@@ -1269,7 +1274,7 @@ void main() {
       expect(find.text(appL10n.celautRunConfirmTitle('echo')), findsOneWidget);
       await tester.tap(find.byKey(const Key('run-confirm-ok')));
       await tester.pumpAndSettle();
-      expect(launched, ['$_best ${ServiceStrings.initialDefault}']);
+      expect(launched, [_best]);
       expect(changed, greaterThan(0));
     });
 

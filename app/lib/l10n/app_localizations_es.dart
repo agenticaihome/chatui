@@ -6204,24 +6204,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautRunSurvivalLabel => 'Mantenerla en marcha al menos';
 
   @override
-  String get celautRunSurvivalHint => 'Vacío: el saldo inicial por defecto';
+  String get celautRunSurvivalHint => 'Vacío: el nodo elige el saldo inicial';
 
   @override
   String get celautRunSurvivalWrong => 'De 1 minuto a 30 días.';
 
   @override
-  String celautRunDefaultBalance(String balance) {
-    return 'Saldo inicial de $balance (por defecto).';
-  }
-
-  @override
-  String celautRunDefaultBalanceLasts(String balance, String time) {
-    return 'Saldo inicial de $balance (por defecto): unos $time en este nodo.';
+  String celautRunNodeBalance(String cost) {
+    return 'Construcción $cost. El nodo añade su saldo inicial por defecto, que mantiene la instancia el tiempo que fija el nodo. El nodo devuelve lo que la instancia no usa.';
   }
 
   @override
   String get celautRunSurvivalNoPrice =>
-      'Este nodo no da un precio por su tiempo. La app usa el saldo inicial por defecto.';
+      'Este nodo no da un precio por su tiempo. El nodo elige el saldo inicial.';
 
   @override
   String celautRunSurvivalEstimate(String cost, String balance, String time) {
