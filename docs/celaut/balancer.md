@@ -180,8 +180,9 @@ What the app does (`celaut_balancer::closing`, a port of nodo's `interruption.py
   A quote or a start that a node refuses because it is closed also says when it opens
   (`celaut_node_opens_at`): the app asks the node for its current `Peer` (`GetPeerInfo`,
   signature checked), because the `Peer` of the connection can be older than a change of
-  the schedule; if that fails, it uses the one of the connection. The skip itself uses the
-  `Peer` of the connection.
+  the schedule; if that fails, it uses the one of the connection. For the same reason, a
+  node whose `Peer` of the connection says closed is skipped only if its current `Peer` says
+  closed too (one `GetPeerInfo`, no quote): a node that opened again is asked.
 - **Interruption class.** `funded_life` is how long the balance of the start pays (the quote
   round has no `initial_mu`, so each node funds its default 360 periods, up to 4 days):
 

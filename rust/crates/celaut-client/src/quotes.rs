@@ -146,13 +146,23 @@ pub async fn quotes_weighted<T: Transport>(
     let mut to_ask = Vec::new();
     let now = unix_now();
     for session in sessions {
-        let window = session.info().peer.activity_window.as_ref();
-        if schedule_closed(window, now) {
-            closed.push(QuoteClosed {
-                peer_id: session.peer_id().to_string(),
-                opens_at: next_open(window, now),
-            });
-            continue;
+        let cached = session.info().peer.activity_window.as_ref();
+        if schedule_closed(cached, now) {
+            // The Peer of the connection can be older than a change of the schedule: read
+            // the current one before the skip, and skip only if it says closed too. If it
+            // cannot be read, the one of the connection decides.
+            let fresh = tokio::time::timeout(QUOTE_TIMEOUT, session.fresh_activity_window()).await;
+            let current = match fresh {
+                Ok(Ok(window)) => window,
+                _ => cached.cloned(),
+            };
+            if schedule_closed(current.as_ref(), now) {
+                closed.push(QuoteClosed {
+                    peer_id: session.peer_id().to_string(),
+                    opens_at: next_open(current.as_ref(), now),
+                });
+                continue;
+            }
         }
         let misfits = ask
             .map(|a| a.misfits(&session.info().peer.resources))

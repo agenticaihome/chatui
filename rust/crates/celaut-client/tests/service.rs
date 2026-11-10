@@ -668,27 +668,46 @@ async fn quotes_skip_a_node_whose_announced_schedule_says_that_it_is_closed() {
         peer.activity_window = window;
         sign_peer(peer, seed)
     };
+    // Closed by the Peer of the connection and by the current one (read again before the
+    // skip): no quote call.
     let (peer, id) = windowed(1, Some(span(10, 20)));
-    let closed = open_with(peer, id, vec![after_signal(&quote("100"))]).await;
+    let closed = open_with(peer.clone(), id, vec![stream_of(1, &peer)]).await;
+    // Closed by the Peer of the connection, but the current one is open: it is asked.
+    let (peer, id) = windowed(4, Some(span(10, 20)));
+    let (reopened_peer, _) = windowed(4, Some(span(-10, 10)));
+    let reopened = open_with(
+        peer,
+        id,
+        vec![stream_of(1, &reopened_peer), after_signal(&quote("100"))],
+    )
+    .await;
     let (peer, id) = windowed(2, Some(span(-10, 10)));
     let open = open_with(peer, id, vec![after_signal(&quote("100"))]).await;
     let (peer, id) = windowed(3, None);
     let silent = open_with(peer, id, vec![after_signal(&quote("100"))]).await;
     let cache = Mutex::new(QuoteCache::new());
 
-    let answer = quotes(&[&closed, &open, &silent], SERVICE, &Configuration::default(), &cache).await;
+    let answer = quotes(
+        &[&closed, &open, &silent, &reopened],
+        SERVICE,
+        &Configuration::default(),
+        &cache,
+    )
+    .await;
 
     let mut asked: Vec<&str> = answer.ranked.iter().map(|r| r.candidate.peer_id.as_str()).collect();
     asked.sort();
-    let mut expected = vec![open.peer_id(), silent.peer_id()];
+    let mut expected = vec![open.peer_id(), silent.peer_id(), reopened.peer_id()];
     expected.sort();
     assert_eq!(asked, expected);
     assert_eq!(answer.closed.len(), 1);
     assert_eq!(answer.closed[0].peer_id, closed.peer_id());
     let opens_at = answer.closed[0].opens_at.unwrap();
     assert!(opens_at > now && opens_at <= now + 11 * 60, "{opens_at} {now}");
-    assert_eq!(closed.transport().calls(), 2);
+    // The opening is 2 calls; the read of the current Peer is one more.
+    assert_eq!(closed.transport().calls(), 3);
     assert_eq!(open.transport().calls(), 3);
+    assert_eq!(reopened.transport().calls(), 4);
 }
 
 #[tokio::test]
