@@ -216,9 +216,10 @@ An instance stops when its balance on the node runs out. Two ways to choose how 
 
 - **For a time.** The confirmation of a launch has a field in minutes; the app turns it into
   the start balance (`initial_mu`) with the price of the node (`survivalBalanceMu`: the periods
-  in the time plus one, each at `init_maintenance_mu * (1 + variance)`). Without a time, the
-  default start balance. On a running instance, **Add time** on its info page moves that much
-  more.
+  in the time plus one, each at `init_maintenance_mu * (1 + price_volatility)^k`, as nodo's
+  `funding_sum_mu`; [balancer.md](balancer.md)). Without a time, no `initial_mu`: the node
+  chooses the start balance (issue #119). On a running instance, **Add time** on its info page
+  moves that much more, at the volatility periods after the time since its start.
 - **Until I stop it.** The second choice of the confirmation, and a switch on the info page.
   The app tops the instance up while the user does not stop it. It is the dangerous one: it
   uses the credit of the user on the node. The warning is always on screen when the user
