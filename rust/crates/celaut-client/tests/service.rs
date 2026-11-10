@@ -159,7 +159,7 @@ fn quote(cost: &str) -> EstimatedCost {
         init_maintenance_cost: mu("0"),
         max_maintenance_cost: mu("0"),
         maintenance_seconds_loop: 0,
-        variance: 0.0,
+        ..Default::default()
     }
 }
 
@@ -887,7 +887,8 @@ mod hibernation_record {
             pricing: Some(InstancePricing {
                 maintenance_mu: awake_mu.into(),
                 maintenance_seconds: 60,
-                variance: "0".into(),
+                volatility: "0".into(),
+                volatility_period_seconds: 0,
             }),
             ..running(Some(LAUNCH))
         }

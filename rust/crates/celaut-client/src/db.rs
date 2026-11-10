@@ -327,8 +327,16 @@ pub struct InstancePricing {
     pub maintenance_mu: String,
     /// The seconds of one period (`maintenance_seconds_loop`).
     pub maintenance_seconds: u32,
-    /// The margin of the node for the difference of the real cost, as text.
-    pub variance: String,
+    /// The most that the price can rise in one volatility period, as text: the
+    /// `price_volatility` of a bounded quote, 0 for one that is not bounded (nodo#636). A
+    /// record from before #636 has its `variance` here: with a period of 0 it is the same
+    /// margin on each period.
+    #[serde(alias = "variance")]
+    pub volatility: String,
+    /// The seconds of one volatility period (`volatility_period_seconds`); 0 is one period
+    /// for the whole life.
+    #[serde(default)]
+    pub volatility_period_seconds: u32,
 }
 
 /// The settings of an instance that runs until the user stops it.
@@ -1516,5 +1524,18 @@ mod tests {
         assert_eq!(data.deposited_nano_erg(&peer), 10_000_000);
         data.nodes.get_mut(&peer).unwrap().listed = true;
         assert_eq!(data.listed_nodes().count(), 1);
+    }
+
+    #[test]
+    fn a_price_from_before_nodo_636_reads_its_variance_as_the_volatility() {
+        let old: InstancePricing = serde_json::from_str(
+            r#"{"maintenance_mu": "1000", "maintenance_seconds": 60, "variance": "0.25"}"#,
+        )
+        .unwrap();
+        assert_eq!(old.volatility, "0.25");
+        assert_eq!(old.volatility_period_seconds, 0);
+        let new: InstancePricing =
+            serde_json::from_str(&serde_json::to_string(&old).unwrap()).unwrap();
+        assert_eq!(new, old);
     }
 }

@@ -30,7 +30,9 @@ QuoteView _quote(String peer, int port, String cost, String? compared) => QuoteV
   initMaintenanceMu: '11990',
   maxMaintenanceMu: '11990',
   maintenanceSecondsLoop: 10,
-  variance: 0,
+  priceBounded: false,
+  priceVolatility: 0,
+  volatilityPeriodSeconds: 0,
   comparedNanoErg: compared,
   clientBalanceMu: '',
 );
@@ -185,7 +187,8 @@ void main() {
       'down.example:9000',
     ]);
     expect(call.service, _service);
-    expect(call.initial, ServiceStrings.initialDefault);
+    // A quote carries no balance: its cost is the builds (nodo#636, issue #119).
+    expect(call.initial, isNull);
     final cheap = tester.getTopLeft(find.byKey(Key('service-quote-$_cheap')));
     final dear = tester.getTopLeft(find.byKey(Key('service-quote-$_dear')));
     expect(cheap.dy, lessThan(dear.dy));
@@ -213,10 +216,12 @@ void main() {
     expect(api.quoteCalls, isEmpty);
   });
 
-  testWidgets('an empty start balance asks for the default of the node', (tester) async {
+  testWidgets('the balance field starts empty, and a typed balance is not in the quote', (tester) async {
     await pump(tester);
     await fill(tester);
-    await tester.enterText(find.byKey(const Key('service-initial')), '');
+    final field = tester.widget<TextField>(find.byKey(const Key('service-initial')));
+    expect(field.controller!.text, isEmpty);
+    await tester.enterText(find.byKey(const Key('service-initial')), '500');
     await tester.tap(find.byKey(const Key('service-quote')));
     await tester.pumpAndSettle();
     expect(api.quoteCalls.single.initial, isNull);
@@ -250,8 +255,8 @@ void main() {
     final start = api.startCalls.single;
     expect(start.node, const NodeAddress(host: '127.0.0.1', port: 18460));
     expect(start.service, _service);
-    // The quote (build plus balance) is what the start sends.
-    expect(start.initial, '1000000');
+    // No balance typed: no initial_mu, and the node adds its default balance (#119).
+    expect(start.initial, isNull);
     expect(find.byKey(const Key('service-instance')), findsOneWidget);
     expect(find.text(ServiceStrings.clientBalance('3,500,000 MU')), findsOneWidget);
     // One instance at a time: the start buttons are off.

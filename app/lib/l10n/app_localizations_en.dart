@@ -5981,18 +5981,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunRetry => 'Try again';
 
   @override
-  String get celautRunServicesTitle => 'Services with this skill';
-
-  @override
   String get celautRunNoServices => 'No service has this skill yet.';
-
-  @override
-  String get celautRunBest => 'Best';
-
-  @override
-  String celautRunScore(String score) {
-    return 'Score $score';
-  }
 
   @override
   String get celautRunButton => 'Run';
@@ -6129,24 +6118,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunSurvivalLabel => 'Keep it running at least';
 
   @override
-  String get celautRunSurvivalHint => 'Empty: the default start balance';
+  String get celautRunSurvivalHint => 'Empty: the node decides';
 
   @override
   String get celautRunSurvivalWrong => 'From 1 minute to 30 days.';
 
   @override
-  String celautRunDefaultBalance(String balance) {
-    return 'Start balance $balance (the default).';
-  }
-
-  @override
-  String celautRunDefaultBalanceLasts(String balance, String time) {
-    return 'Start balance $balance (the default): about $time on this node.';
+  String celautRunNodeBalance(String cost) {
+    return 'Build $cost. The node adds its default start balance, which keeps the instance for the time that the node sets. The node gives back what the instance does not use.';
   }
 
   @override
   String get celautRunSurvivalNoPrice =>
-      'This node gives no price for its time. The app uses the default start balance.';
+      'This node gives no price for its time. The node chooses the start balance.';
 
   @override
   String celautRunSurvivalEstimate(String cost, String balance, String time) {
@@ -6681,17 +6665,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatSelectText => 'Select text';
 
   @override
-  String celautRunMoreOptions(String count) {
-    return 'Show $count more options';
-  }
-
-  @override
-  String get celautRunFewerOptions => 'Show fewer options';
-
-  @override
-  String get celautRunCategoryAll => 'All';
-
-  @override
   String get celautRunOnPhone => 'On this phone';
 
   @override
@@ -6701,55 +6674,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunPhoneServices => 'Run the services on this phone';
 
   @override
-  String get celautStoreFeatured => 'Featured';
-
-  @override
-  String get celautStoreFeaturedHint =>
-      'One skill of each field, from the publisher with the most reputation';
-
-  @override
-  String get celautStoreSuggested => 'Suggested for you';
-
-  @override
-  String get celautStoreSuggestedHint =>
-      'In the fields of the skills that you ran';
-
-  @override
-  String get celautStoreNew => 'New';
-
-  @override
-  String get celautStoreNewHint => 'The last skills published on Ergo';
-
-  @override
-  String get celautStorePopular => 'Popular';
-
-  @override
-  String get celautStorePopularHint => 'The skills with the most services';
-
-  @override
-  String get celautStoreCategories => 'Categories';
-
-  @override
-  String get celautStoreAll => 'All skills';
-
-  @override
   String celautStoreServices(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count services',
       one: '1 service',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String celautStoreSkills(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count skills',
-      one: '1 skill',
     );
     return '$_temp0';
   }
@@ -8001,4 +7931,79 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatOpenCards => 'Open the cards';
+
+  @override
+  String get celautSkillsIntro =>
+      'Pick a skill to see the services that do it.';
+
+  @override
+  String get celautStoreOtherField => 'Other';
+
+  @override
+  String celautStoreShowMore(int count) {
+    return 'Show more ($count)';
+  }
+
+  @override
+  String get celautStoreShowFewer => 'Show fewer';
+
+  @override
+  String get celautSkillAbout => 'About this skill';
+
+  @override
+  String celautSkillField(String field) {
+    return 'Field: $field';
+  }
+
+  @override
+  String get celautSkillTestBanner =>
+      'Most results are tests. Check before you trust them.';
+
+  @override
+  String get celautSkillRecommended => 'Recommended';
+
+  @override
+  String celautSkillOtherOptions(String count) {
+    return 'Other options ($count)';
+  }
+
+  @override
+  String celautSkillRating(String level) {
+    return 'Rating: $level';
+  }
+
+  @override
+  String get celautSkillRatingHigh => 'High';
+
+  @override
+  String get celautSkillRatingMedium => 'Medium';
+
+  @override
+  String get celautSkillRatingLow => 'Low';
+
+  @override
+  String celautSkillRatingExact(String score) {
+    return 'Exact rating: $score of 1';
+  }
+
+  @override
+  String get celautSkillDeclared => 'Declared by the publisher';
+
+  @override
+  String get celautSkillFromResults =>
+      'Seen only in test results, not declared by a publisher';
+
+  @override
+  String get celautSkillUnverified => 'Unverified';
+
+  @override
+  String celautSkillServiceId(String id) {
+    return 'Service id $id';
+  }
+
+  @override
+  String get celautSkillIdCopied => 'Service id copied';
+
+  @override
+  String get celautSkillUse => 'Use this service';
 }

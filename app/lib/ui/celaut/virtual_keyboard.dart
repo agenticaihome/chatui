@@ -176,27 +176,25 @@ class _ChatVirtualKeyboardState extends State<ChatVirtualKeyboard> {
     final scheme = Theme.of(context).colorScheme;
     return Expanded(
       flex: (flex * 10).round(),
-      child: Padding(
-        padding: const EdgeInsets.all(3),
-        child: Semantics(
-          button: true,
-          label: label,
-          excludeSemantics: label != null,
-          onTap: onTap,
-          child: _KeyCap(
-            key: Key('vk-$id'),
-            height: AppLayout.short(context) ? _shortKeyHeight : _keyHeight,
-            color: on ? scheme.primaryContainer : scheme.surfaceContainerHighest,
-            downColor: scheme.secondaryContainer,
-            onDown: repeat
-                ? () => _startRepeat(onTap)
-                : () {
-                    unawaited(HapticFeedback.selectionClick());
-                    onTap();
-                  },
-            onUp: repeat ? _stopRepeat : null,
-            child: child,
-          ),
+      child: Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: label != null,
+        onTap: onTap,
+        child: _KeyCap(
+          key: ValueKey('vk-place-$id'),
+          capKey: Key('vk-$id'),
+          height: AppLayout.short(context) ? _shortKeyHeight : _keyHeight,
+          color: on ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+          downColor: scheme.secondaryContainer,
+          onDown: repeat
+              ? () => _startRepeat(onTap)
+              : () {
+                  unawaited(HapticFeedback.selectionClick());
+                  onTap();
+                },
+          onUp: repeat ? _stopRepeat : null,
+          child: child,
         ),
       ),
     );
@@ -217,7 +215,8 @@ class _ChatVirtualKeyboardState extends State<ChatVirtualKeyboard> {
     return Container(
       key: const Key('chat-virtual-keyboard'),
       color: Theme.of(context).colorScheme.surfaceContainer,
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+      // No padding here: the keys reach the edges, so a tap near an edge still types
+      // (issue #121). Each key draws its cap [_keyGap] inside its own place.
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -251,13 +250,23 @@ class _ChatVirtualKeyboardState extends State<ChatVirtualKeyboard> {
   }
 }
 
+/// The space between the caps of two keys is [_keyGap] twice. It belongs to the keys.
+const _keyGap = 3.0;
+
 /// One key of [ChatVirtualKeyboard]. It acts when the finger goes down, as the keyboard of a
 /// phone shows the letter at once, and it shows that it is down in one frame, with no splash.
 /// A key of the old keyboard was an [InkWell]: its tap waited for the finger to go up, and its
 /// splash and highlight made about 20 frames for each key (`docs/performance.md`, section 5).
+///
+/// The key takes the taps on all its place, the space around its cap too: the keys touch,
+/// so every point of the keyboard types the nearest key. The space between the caps was not
+/// part of a key, and a tap there did nothing: about a quarter of the keyboard, and the
+/// keys that a fast typist "lost" (issue #121, `docs/performance.md`, section 7).
+/// [capKey] is the key of the cap that the user sees.
 class _KeyCap extends StatefulWidget {
   const _KeyCap({
     super.key,
+    this.capKey,
     required this.height,
     required this.color,
     required this.downColor,
@@ -266,6 +275,7 @@ class _KeyCap extends StatefulWidget {
     required this.child,
   });
 
+  final Key? capKey;
   final double height;
   final Color color;
   final Color downColor;
@@ -295,12 +305,16 @@ class _KeyCapState extends State<_KeyCap> {
       },
       onPointerUp: (_) => _up(),
       onPointerCancel: (_) => _up(),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: _down ? widget.downColor : widget.color,
-          borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(_keyGap),
+        child: DecoratedBox(
+          key: widget.capKey,
+          decoration: BoxDecoration(
+            color: _down ? widget.downColor : widget.color,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: SizedBox(height: widget.height, child: Center(child: widget.child)),
         ),
-        child: SizedBox(height: widget.height, child: Center(child: widget.child)),
       ),
     );
   }

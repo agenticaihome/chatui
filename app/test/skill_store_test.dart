@@ -32,21 +32,6 @@ SkillView _skill(
 );
 
 void main() {
-  test('the fields: the most used first, then by name, with no case and no empty field', () {
-    final skills = [
-      _skill('a', domain: 'nlp'),
-      _skill('b', domain: 'Finance'),
-      _skill('c', domain: 'finance '),
-      _skill('d', domain: 'blockchain'),
-      _skill('e'),
-    ];
-    expect(skillCategories(skills), [
-      (key: 'finance', label: 'Finance'),
-      (key: 'blockchain', label: 'blockchain'),
-      (key: 'nlp', label: 'nlp'),
-    ]);
-  });
-
   test('the search looks in the name, the text, the tags and the field', () {
     final s = _skill('Proof of reserves', domain: 'finance', tags: ['merkle-sum'], prose: 'Solvency of an exchange.');
     for (final q in ['proof', 'solvency', 'merkle', 'finance', '']) {
@@ -55,70 +40,34 @@ void main() {
     expect(skillMatches(s, 'chat'), isFalse);
   });
 
-  group('the sections of the store', () {
+  group('the list of the store (#122)', () {
     final a = _skill('A', domain: 'finance', height: 10, services: ['s1', 's2'], reputation: 5);
     final b = _skill('B', domain: 'Finance', height: 30, services: ['s3'], reputation: 5);
     final c = _skill('C', domain: 'nlp', height: 20, services: ['s4', 's5', 's6'], reputation: 1);
     final d = _skill('D', domain: 'nlp', height: 40, services: const [], reputation: 9);
-    final e = _skill('E', domain: 'chat', height: 0, services: ['s7'], reputation: 0);
-    final all = [a, b, c, d, e];
+    final e = _skill('E', height: 0, services: ['s7'], reputation: 0);
     List<String> names(List<SkillView> skills) => [for (final s in skills) s.name];
 
-    test('featured: the most backed skill of each field, with a service', () {
-      // finance: A (5, 2 services) over B (5, 1); nlp: C, as D has no service; chat: E.
-      expect(names(featuredSkills(all)), ['A', 'C', 'E']);
-      expect(featuredSkills([d]), isEmpty);
+    test('the most backed first: reputation, then services, then the newest, then the name', () {
+      expect(names(rankSkills([a, b, c, d, e])), ['D', 'A', 'B', 'C', 'E']);
+      final x = _skill('beta', height: 5, services: ['1'], reputation: 1);
+      final y = _skill('Alpha', height: 5, services: ['2'], reputation: 1);
+      expect(names(rankSkills([x, y])), ['Alpha', 'beta']);
     });
 
-    test('featured: at most $featuredSize, and the skills with no field are one field', () {
-      final many = [
-        for (var i = 0; i < 9; i++) _skill('F$i', domain: 'f$i', services: ['x$i'], reputation: i.toDouble()),
-        _skill('N1', services: ['n1'], reputation: 100),
-        _skill('N2', services: ['n2'], reputation: 99),
-      ];
-      expect(names(featuredSkills(many)), ['N1', 'F8', 'F7', 'F6', 'F5']);
+    test('the groups are the fields, in the order of their first skill; no field is one group', () {
+      final groups = skillGroups(rankSkills([a, b, c, d, e]));
+      expect([for (final g in groups) g.key], ['nlp', 'finance', '']);
+      expect([for (final g in groups) g.title], ['nlp', 'finance', '']);
+      expect([for (final g in groups) names(g.skills)], [
+        ['D', 'C'],
+        ['A', 'B'],
+        ['E'],
+      ]);
     });
 
-    test('new: the highest block first; a skill with no height is not there', () {
-      expect(names(newSkills(all)), ['D', 'B', 'C', 'A']);
-    });
-
-    test('popular: the most services first, then the backing; no skill with no service', () {
-      expect(names(popularSkills(all)), ['C', 'A', 'B', 'E']);
-    });
-
-    test('the order of a tie is the name, on every phone', () {
-      final x = _skill('beta', domain: 'z', height: 5, services: ['1'], reputation: 1);
-      final y = _skill('Alpha', domain: 'y', height: 5, services: ['2'], reputation: 1);
-      expect(names(newSkills([x, y])), ['Alpha', 'beta']);
-      expect(names(popularSkills([x, y])), ['Alpha', 'beta']);
-      expect(names(featuredSkills([x, y])), ['Alpha', 'beta']);
-    });
-
-    test('the rows have at most $storeRowSize skills', () {
-      final many = [for (var i = 0; i < 20; i++) _skill('S$i', domain: 'd', height: i + 1, services: ['s$i'])];
-      expect(newSkills(many), hasLength(storeRowSize));
-      expect(popularSkills(many), hasLength(storeRowSize));
-      expect(suggestedSkills(many, [(serviceId: 's0', name: '')]), hasLength(storeRowSize));
-    });
-
-    test('a skill was run if an instance has one of its services or its name', () {
-      expect(skillWasRun(a, [(serviceId: 'S2', name: '')]), isTrue);
-      expect(skillWasRun(a, [(serviceId: 'zz', name: ' a ')]), isTrue);
-      expect(skillWasRun(a, [(serviceId: 's3', name: 'B')]), isFalse);
-      expect(skillWasRun(_skill(''), [(serviceId: 'zz', name: '')]), isFalse);
-    });
-
-    test('suggested: the other skills of the fields that the user ran, the most backed first', () {
-      expect(suggestedSkills(all, const []), isEmpty);
-      // Ran A (finance): B. Ran C (nlp): D, which has no service but is in the field.
-      expect(names(suggestedSkills(all, [(serviceId: 's1', name: '')])), ['B']);
-      expect(names(suggestedSkills(all, [(serviceId: 's1', name: ''), (serviceId: 's5', name: '')])), ['D', 'B']);
-      // A service that is no skill's: no suggestion.
-      expect(suggestedSkills(all, [(serviceId: 'other', name: 'echo')]), isEmpty);
-      // A skill with no field gives no suggestion.
-      final lone = _skill('L', services: ['l1']);
-      expect(suggestedSkills([lone, _skill('M')], [(serviceId: 'l1', name: '')]), isEmpty);
+    test('the short list has $storeShortList skills', () {
+      expect(storeShortList, 6);
     });
   });
 
@@ -176,9 +125,14 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byType(SkillMark), findsOneWidget);
       expect(find.text('E'), findsOneWidget);
-      // Three tags at most; the field is not a tag again.
-      expect(find.text('ergoscript'), findsOneWidget);
-      expect(find.text('audit'), findsNothing);
+      // The name and one line of text: no field and no tag on the card (they are in the
+      // search and in the details of the skill).
+      expect(find.text('blockchain-security'), findsNothing);
+      expect(find.text('ergoscript'), findsNothing);
+      final texts = tester.widgetList<Text>(find.descendant(of: find.byType(SkillCard), matching: find.byType(Text)));
+      final lines = [for (final t in texts) if (t.data != 'E') t];
+      expect(lines, hasLength(2));
+      expect(lines.every((t) => t.maxLines == 1), isTrue);
     });
   }
 }

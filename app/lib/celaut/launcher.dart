@@ -18,7 +18,8 @@ typedef PricingCall = void Function({
   required String instanceId,
   required String maintenanceMu,
   required int maintenanceSeconds,
-  required double variance,
+  required double volatility,
+  required int volatilityPeriodSeconds,
 });
 
 /// Turn "run until I stop it" on for a started instance (`celautSetKeepAlive`).
@@ -92,10 +93,16 @@ class LaunchOutcome {
     required this.instance,
     required this.skipped,
     this.leftOut = const [],
+    this.sentMu,
   });
 
   final QuoteView quote;
   final InstanceView instance;
+
+  /// The `initial_mu` that the app sent to start the instance, in MU; null if it sent
+  /// none, and the node chose the start balance (nodo#636: `cost` plus the funding of
+  /// `deposits.DEFAULT_INITIAL_PERIODS` periods).
+  final String? sentMu;
 
   /// The nodes that were better than [quote] and did not start the service.
   final List<LaunchSkip> skipped;
@@ -157,41 +164,55 @@ List<NodeAddress> knownNodeAddresses(List<KnownNodeView> known) {
 const maxMinSurvival = Duration(days: 30);
 
 /// The balance that keeps an instance on the node of [quote] for at least [time]
-/// (Josemi, 2026-10-23): the node charges the maintenance at the start
-/// (`init_maintenance_cost`) once each `maintenance_seconds_loop`, so the balance is the
-/// periods in [time], plus one for the period that runs at the end, each with the margin
-/// of the node for the difference of the real cost (`cost * (1 + variance)`, as nodo's
-/// `variance_cost_normalization` with k = 1), rounded up. Null if the quote gives no
-/// maintenance price.
+/// (nodo#636): the funding of the maintenance periods in [time], plus one for the period
+/// that runs at the end, each at most `init_maintenance_cost * (1 + price_volatility)^k`
+/// (`MaintenancePrice`), rounded up. Null if the quote gives no maintenance price.
 BigInt? survivalBalanceMu(QuoteView quote, Duration time) => quotePrice(quote)?.balanceFor(time);
 
 /// How long the balance [balanceMu] keeps an instance on the node of [quote], the inverse
 /// of [survivalBalanceMu]. Null if the quote gives no maintenance price.
 Duration? survivalOf(QuoteView quote, BigInt balanceMu) => quotePrice(quote)?.lasts(balanceMu);
 
-/// The maintenance price of the node of [quote]; null if the quote gives none.
+/// The maintenance price of the node of [quote]; null if the quote gives none. A quote
+/// that is not bounded (`price_bounded` false) promises no limit to the rise: the app
+/// counts each period at the price of the quote, as nodo's `funding_sum_mu` does.
 MaintenancePrice? quotePrice(QuoteView quote) => MaintenancePrice.of(
       perPeriodMu: quote.initMaintenanceMu,
       periodSeconds: quote.maintenanceSecondsLoop,
-      variance: quote.variance,
+      volatility: quoteVolatility(quote),
+      volatilityPeriodSeconds: quote.volatilityPeriodSeconds,
     );
 
-/// The start cost of [quote] with the balance [balanceMu] instead of [quotedBalanceMu],
-/// the balance that the quote was asked with: the quote is the build plus that balance
-/// (nodo #563). Null if the quote is less than its balance (a node that does not follow
-/// #563).
-BigInt? startCostWith(QuoteView quote, BigInt quotedBalanceMu, BigInt balanceMu) {
+/// The volatility that the app counts for [quote]: `price_volatility` if the quote is
+/// bounded, else 0.
+double quoteVolatility(QuoteView quote) => quote.priceBounded ? quote.priceVolatility : 0.0;
+
+/// The `initial_mu` of a start on the node of [quote] (nodo#636): the `cost` of the
+/// quote (the builds) plus the balance that keeps the instance for [minSurvival]. Null
+/// when the app lets the node choose the balance: no [minSurvival] (the instance runs
+/// until the user stops it, or for the default time of the node), or a quote that gives
+/// no maintenance price. The node then charges `cost` plus the funding of its
+/// `deposits.DEFAULT_INITIAL_PERIODS` periods, as for `nodo execute`.
+///
+/// [balanceMu], the balance that the user typed on the service debug screen, wins over
+/// [minSurvival].
+BigInt? startMuFor(QuoteView quote, Duration? minSurvival, {BigInt? balanceMu}) {
   final cost = BigInt.tryParse(quote.costMu);
-  if (cost == null || cost < quotedBalanceMu) return null;
-  return cost - quotedBalanceMu + balanceMu;
+  if (cost == null) return null;
+  if (balanceMu != null) return cost + balanceMu;
+  if (minSurvival == null) return null;
+  final balance = survivalBalanceMu(quote, minSurvival);
+  return balance == null ? null : cost + balance;
 }
 
-/// False if the credit of the client on the node of [q] is less than the price: then
-/// [launchService] does not ask the node to start, and the node never reads the values.
-bool wouldAskToStart(QuoteView q) {
+/// False if the credit of the client on the node of [q] is less than what the start
+/// takes: [startMu], or, when the node chooses the balance, at least the `cost` of the
+/// quote. Then [launchService] does not ask the node to start, and the node never reads
+/// the values.
+bool wouldAskToStart(QuoteView q, {BigInt? startMu}) {
   final credit = BigInt.tryParse(q.clientBalanceMu);
-  final cost = BigInt.tryParse(q.costMu);
-  return !(credit != null && cost != null && credit < cost);
+  final need = startMu ?? BigInt.tryParse(q.costMu);
+  return !(credit != null && need != null && credit < need);
 }
 
 /// A node whose last checks failed this many times in a row is left out of the quotes.
@@ -248,11 +269,17 @@ String _hostPort(NodeAddress a) => '${a.host}:${a.port}';
 /// quotes are in. A quote carries no variable: only a start does, so a node that only
 /// prices the service never reads them. Throws [LaunchCancelled] if the user cancels.
 ///
-/// [minSurvival] is the least time that the instance must run. The first quotes give the
-/// price of the maintenance of each node; the nodes are then asked again with the balance
-/// that keeps the instance for that time on the most expensive of them
-/// ([survivalBalanceMu]), so the quote and the start balance are right on every node. A
-/// node keeps what the instance did not use and gives it back at the stop.
+/// The nodes are asked for a quote with no `initial_mu`: the `cost` of a quote is the
+/// builds only (nodo#636), and the balance is added by the start ([startMuFor]).
+///
+/// [minSurvival] is the least time that the instance must run: each node gets its `cost`
+/// plus the balance that keeps the instance for that time at its own price
+/// ([survivalBalanceMu]). Without it, the app sends no `initial_mu`, and the node chooses
+/// the balance (issue #119: no constant balance of the app). A node keeps what the
+/// instance did not use and gives it back at the stop.
+///
+/// [balanceMu] is a balance that the user typed (the service debug screen): each node
+/// gets its `cost` plus it.
 ///
 /// [keepAlive] makes the instance run until the user stops it (Josemi, 2026-10-29): the app
 /// tops it up when its balance is low (`AutoTopUp`). [budgetMu] is the most that it may
@@ -261,8 +288,8 @@ String _hostPort(NodeAddress a) => '${a.host}:${a.port}';
 /// not a failure of the launch: the instance runs.
 Future<LaunchOutcome> launchService({
   required String serviceIdHex,
-  String? initialMu,
   Duration? minSurvival,
+  String? balanceMu,
   bool keepAlive = false,
   String? budgetMu,
   List<NodeAddress>? nodes,
@@ -278,17 +305,8 @@ Future<LaunchOutcome> launchService({
   if (all.isEmpty) throw const LaunchFailure(LaunchFailureKind.noNodes);
   final chosen = chooseNodesToAsk(all, health());
   final leftOut = chosen.leftOut;
-  var quotes = await quote(nodes: chosen.ask, serviceIdHex: serviceIdHex, initialMu: initialMu);
-  if (minSurvival != null && quotes.quotes.isNotEmpty) {
-    BigInt? need;
-    for (final q in quotes.quotes) {
-      final b = survivalBalanceMu(q, minSurvival);
-      if (b != null && (need == null || b > need)) need = b;
-    }
-    if (need != null && need.toString() != initialMu) {
-      quotes = await quote(nodes: chosen.ask, serviceIdHex: serviceIdHex, initialMu: need.toString());
-    }
-  }
+  final quotes = await quote(nodes: chosen.ask, serviceIdHex: serviceIdHex);
+  final typed = balanceMu == null ? null : BigInt.tryParse(balanceMu);
   if (quotes.quotes.isEmpty) {
     throw LaunchFailure(
       LaunchFailureKind.noQuotes,
@@ -300,13 +318,14 @@ Future<LaunchOutcome> launchService({
   if (values == null) throw const LaunchCancelled();
   final skipped = <LaunchSkip>[];
   for (final candidate in quotes.quotes) {
-    if (!wouldAskToStart(candidate)) {
+    final startMu = startMuFor(candidate, minSurvival, balanceMu: typed);
+    if (!wouldAskToStart(candidate, startMu: startMu)) {
       skipped.add(
         LaunchSkip(
           candidate,
           CelautError(
             kind: CelautErrorKind.insufficientCredit,
-            message: 'credit ${candidate.clientBalanceMu} MU, price ${candidate.costMu} MU',
+            message: 'credit ${candidate.clientBalanceMu} MU, price ${startMu ?? candidate.costMu} MU',
           ),
         ),
       );
@@ -316,9 +335,9 @@ Future<LaunchOutcome> launchService({
       final instance = await start(
         node: candidate.address,
         serviceIdHex: serviceIdHex,
-        // The node takes the build out of initial_mu, and its quote is the build plus
-        // the balance asked for: the least that a start needs.
-        initialMu: candidate.costMu,
+        // The node takes the builds out of initial_mu, and the rest is the balance of the
+        // instance. None: the node adds its default balance to the cost.
+        initialMu: startMu?.toString(),
         environment: values,
       );
       _keepPlan(instance.instanceId, candidate, keepAlive, budgetMu, setPricing, setKeepAlive);
@@ -327,6 +346,7 @@ Future<LaunchOutcome> launchService({
         instance: instance,
         skipped: skipped,
         leftOut: leftOut,
+        sentMu: startMu?.toString(),
       );
     } on CelautError catch (e) {
       skipped.add(LaunchSkip(candidate, e));
@@ -356,7 +376,8 @@ void _keepPlan(
         instanceId: instanceId,
         maintenanceMu: quote.initMaintenanceMu,
         maintenanceSeconds: quote.maintenanceSecondsLoop,
-        variance: quote.variance,
+        volatility: quoteVolatility(quote),
+        volatilityPeriodSeconds: quote.volatilityPeriodSeconds,
       );
     }
     if (keepAlive) setKeepAlive(instanceId: instanceId, enabled: true, budgetMu: budgetMu);

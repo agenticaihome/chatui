@@ -129,7 +129,7 @@ balancer would use with its start cost. Run needs the wallet open.
   "Details". A node that forgot the client id gives the usual choice; the app never makes a
   new client by itself.
 
-#### 2.1 The store (#102, 2026-11-05)
+#### 2.1 The store (#102, 2026-11-05; simpler in #122, 2026-11-10)
 
 The screen is a store. These parts stay at the top at all times, above the part that
 scrolls:
@@ -138,30 +138,42 @@ scrolls:
 - two small actions for the service files on this phone: "Import" (pick a `.celaut.bee`
   file) and "On this phone" (a sheet with the saved files, each with Run and Remove, and
   the import). On a narrow screen they are icons with a tooltip; from 560 dp they also
-  show their text. The phone icon shows the number of saved files;
-- the fields of the skills as chips.
+  show their text. The phone icon shows the number of saved files.
 
-With no search and "All", the store shows these sections. Each card has one action: Run,
-which opens the services of the skill with the best one chosen.
+Under them there is one way to browse (#122): one list of the skills, in groups by field.
+The field is the title of its group, not a line of each card; the skills with no field are
+one group, "Other". The skills come with the most backed first: the reputation of the
+publisher (nanoERG of the boxes that hold the profile token of the skill box), then the
+number of declared services, then the newest, then the name. The list shows the first 6
+skills and "Show more (N)"; a search shows all the skills that match, in their groups. The
+search looks in the name, the text, the tags and the field.
 
-| Section | Data | Order |
-|---|---|---|
-| Featured | the publisher reputation (nanoERG of the boxes that hold the profile token of the skill box) and the coverage boxes | of each field, the skill whose publisher has the most reputation, then with the most declared services, then the newest; at most 5 |
-| Suggested for you | the instances in the app (`celaut_instances`: service id and name) | the skills that the user did not run, in the fields of the skills that the user ran; the most backed first |
-| New | the block height of the skill box (`settlementHeight`, else `creationHeight`) | the highest first |
-| Popular | the coverage boxes: the services that publishers declared for the skill | the most services first |
-| Categories | the `domain` of the skills | a tile for each field, with its number of skills; a tap chooses its chip |
-| All skills | every skill | the order of the explorer; two columns from 600 dp |
+A card has at most three lines of text: the name, one line of the text and the number of
+services, with one action, Run. The tags and the whole text are in "About this skill", a
+closed part at the top of the services of the skill. The rows Featured, Suggested, New and
+Popular, the tiles of the fields and the chips of #102 are gone: they repeated the same
+grouping.
 
-- Only skills with a declared service are featured or popular: the others cannot run.
-- A section with no skill is not shown. There is no fake data: with no history there is no
-  "Suggested", and if the explorer does not give the coverage boxes there is no "Featured"
-  and no "Popular" (that list is not kept, so the next read asks again).
-- The catalog has no count of runs. "Popular" is the count of services that publishers
-  declared, not the count of runs.
-- The data costs one query for all the coverage boxes and one request for each publisher,
-  not one for each skill (`celaut_skills`).
-- A search or a chip shows the skills that match, as cards, with no section.
+#### 2.2 The services of a skill (#122)
+
+Run on a card opens a sheet (in the Run screen) or a page (the skill picker of the service
+screen) with the services of the skill. The ranking does not change (`catalog.md`); the
+screen shows less at each step:
+
+- One banner at the top: "Most results are tests. Check before you trust them." It is not
+  repeated on the cards or under the button.
+- One main card, "Recommended": the first of the ranking, chosen at first. One main action:
+  Run (sheet) or "Use this service" (picker).
+- The other services are under "Other options (N)", closed at first. A tap on a card
+  chooses it; the chosen card has a check and a border.
+- The score is a level, "Rating: High / Medium / Low" (from 0.7 high, from 0.4 medium, else
+  low; a service with no data scores 0.5), with a short bar of three parts.
+- Where the data comes from is an icon with a tooltip: "Declared by the publisher", or
+  "Seen only in test results, not declared by a publisher". The second also has the chip
+  "Unverified".
+- "Details", closed at first: the id in short form (first 6 and last 4 characters) with
+  Copy (the full id), the exact rating ("0.62 of 1") and the source in words. No screen
+  shows the 64-character id or the raw score before the user opens "Details".
 
 ## 3. What this changes in the milestones
 
@@ -216,9 +228,10 @@ An instance stops when its balance on the node runs out. Two ways to choose how 
 
 - **For a time.** The confirmation of a launch has a field in minutes; the app turns it into
   the start balance (`initial_mu`) with the price of the node (`survivalBalanceMu`: the periods
-  in the time plus one, each at `init_maintenance_mu * (1 + variance)`). Without a time, the
-  default start balance. On a running instance, **Add time** on its info page moves that much
-  more.
+  in the time plus one, each at `init_maintenance_mu * (1 + price_volatility)^k`, as nodo's
+  `funding_sum_mu`; [balancer.md](balancer.md)). Without a time, no `initial_mu`: the node
+  chooses the start balance (issue #119). On a running instance, **Add time** on its info page
+  moves that much more, at the volatility periods after the time since its start.
 - **Until I stop it.** The second choice of the confirmation, and a switch on the info page.
   The app tops the instance up while the user does not stop it. It is the dangerous one: it
   uses the credit of the user on the node. The warning is always on screen when the user

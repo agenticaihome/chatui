@@ -1646,17 +1646,7 @@
   "celautRunEmpty": "Ninguna habilidad coincide.",
   "celautRunCatalogError": "El catálogo de habilidades no está disponible ahora.",
   "celautRunRetry": "Reintentar",
-  "celautRunServicesTitle": "Servicios con esta habilidad",
   "celautRunNoServices": "Ningún servicio tiene esta habilidad todavía.",
-  "celautRunBest": "Mejor",
-  "celautRunScore": "Puntuación {score}",
-  "@celautRunScore": {
-    "placeholders": {
-      "score": {
-        "type": "String"
-      }
-    }
-  },
   "celautRunButton": "Ejecutar",
   "celautRunLaunching": "Lanzando {name}…",
   "celautRunLaunchingNote": "La app pregunta a los nodos y arranca el servicio en el mejor.",
@@ -1778,11 +1768,10 @@
   "celautRunConfirmBody": "El servicio se ejecuta en un nodo y usa tu crédito allí hasta que se detiene. Detenlo desde su conversación, su página de información o la lista de conversaciones.",
   "celautRunConfirmNoQuote": "Ningún nodo ha dado un precio todavía. Ejecutar pregunta a todos los nodos de la lista.",
   "celautRunSurvivalLabel": "Mantenerla en marcha al menos",
-  "celautRunSurvivalHint": "Vacío: el saldo inicial por defecto",
+  "celautRunSurvivalHint": "Vacío: lo decide el nodo",
   "celautRunSurvivalWrong": "De 1 minuto a 30 días.",
-  "celautRunDefaultBalance": "Saldo inicial de {balance} (por defecto).",
-  "celautRunDefaultBalanceLasts": "Saldo inicial de {balance} (por defecto): unos {time} en este nodo.",
-  "celautRunSurvivalNoPrice": "Este nodo no da un precio por su tiempo. La app usa el saldo inicial por defecto.",
+  "celautRunNodeBalance": "Construcción {cost}. El nodo añade su saldo inicial por defecto, que mantiene la instancia el tiempo que fija el nodo. El nodo devuelve lo que la instancia no usa.",
+  "celautRunSurvivalNoPrice": "Este nodo no da un precio por su tiempo. El nodo elige el saldo inicial.",
   "celautRunSurvivalEstimate": "Coste de inicio de unos {cost}, con un saldo de {balance} para al menos {time} al precio actual del nodo. Un nodo ocupado y el tráfico de la conversación cuestan más. El nodo devuelve lo que la instancia no usa.",
   "celautTopUpTitle": "Mantener en marcha",
   "celautTopUpThreshold": "Cuando una instancia vaya a durar menos de",
@@ -2111,31 +2100,10 @@
   "walletSummaryLatest": "Últimas transacciones",
   "walletSummaryNoTransactions": "Aún no hay transacciones",
   "chatSelectText": "Seleccionar texto",
-  "celautRunMoreOptions": "Mostrar {count} opciones más",
-  "@celautRunMoreOptions": {
-    "placeholders": {
-      "count": {
-        "type": "String"
-      }
-    }
-  },
-  "celautRunFewerOptions": "Mostrar menos opciones",
-  "celautRunCategoryAll": "Todas",
   "celautRunOnPhone": "En el móvil",
   "celautRunImport": "Importar",
   "celautRunPhoneServices": "Ejecutar los servicios del móvil",
-  "celautStoreFeatured": "Destacadas",
-  "celautStoreFeaturedHint": "Una habilidad de cada campo, del publicador con más reputación",
-  "celautStoreSuggested": "Sugeridas para ti",
-  "celautStoreSuggestedHint": "En los campos de las habilidades que ejecutaste",
-  "celautStoreNew": "Nuevas",
-  "celautStoreNewHint": "Las últimas habilidades publicadas en Ergo",
-  "celautStorePopular": "Populares",
-  "celautStorePopularHint": "Las habilidades con más servicios",
-  "celautStoreCategories": "Categorías",
-  "celautStoreAll": "Todas las habilidades",
   "celautStoreServices": "{count, plural, =1{1 servicio} other{{count} servicios}}",
-  "celautStoreSkills": "{count, plural, =1{1 habilidad} other{{count} habilidades}}",
   "celautEnvSensitive": "Sensible",
   "celautEnvNotSensitive": "No sensible",
   "celautEnvSensitiveHint": "Una contraseña, una clave o un token. Antes de que un valor sensible vaya a donde otros puedan leerlo, la app te avisa.",
@@ -2658,6 +2626,59 @@
   "descendantsOpenConfirm": "Abrir y pagar",
   "serviceInfoWorkloadsInitial": "Primeras instancias que arranca",
   "serviceInfoWorkloadOr": "o",
+  "celautSkillsIntro": "Elige una habilidad para ver los servicios que la hacen.",
+  "celautStoreOtherField": "Otros",
+  "celautStoreShowMore": "Mostrar más ({count})",
+  "celautStoreShowFewer": "Mostrar menos",
+  "celautSkillAbout": "Sobre esta habilidad",
+  "celautSkillField": "Campo: {field}",
+  "celautSkillTestBanner": "La mayoría de los resultados son pruebas. Compruébalos antes de confiar en ellos.",
+  "celautSkillRecommended": "Recomendado",
+  "celautSkillOtherOptions": "Otras opciones ({count})",
+  "celautSkillRating": "Valoración: {level}",
+  "celautSkillRatingHigh": "Alta",
+  "celautSkillRatingMedium": "Media",
+  "celautSkillRatingLow": "Baja",
+  "celautSkillRatingExact": "Valoración exacta: {score} de 1",
+  "celautSkillDeclared": "Declarado por el publicador",
+  "celautSkillFromResults": "Visto solo en resultados de pruebas, sin declarar por un publicador",
+  "celautSkillUnverified": "Sin verificar",
+  "celautSkillServiceId": "Id del servicio {id}",
+  "celautSkillIdCopied": "Id del servicio copiado",
+  "celautSkillUse": "Usar este servicio",
+  "celautRunServicesTitle": "Servicios con esta habilidad",
+  "celautRunBest": "Mejor",
+  "celautRunScore": "Puntuación {score}",
+  "@celautRunScore": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "celautRunDefaultBalance": "Saldo inicial de {balance} (por defecto).",
+  "celautRunDefaultBalanceLasts": "Saldo inicial de {balance} (por defecto): unos {time} en este nodo.",
+  "celautRunMoreOptions": "Mostrar {count} opciones más",
+  "@celautRunMoreOptions": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "celautRunFewerOptions": "Mostrar menos opciones",
+  "celautRunCategoryAll": "Todas",
+  "celautStoreFeatured": "Destacadas",
+  "celautStoreFeaturedHint": "Una habilidad de cada campo, del publicador con más reputación",
+  "celautStoreSuggested": "Sugeridas para ti",
+  "celautStoreSuggestedHint": "En los campos de las habilidades que ejecutaste",
+  "celautStoreNew": "Nuevas",
+  "celautStoreNewHint": "Las últimas habilidades publicadas en Ergo",
+  "celautStorePopular": "Populares",
+  "celautStorePopularHint": "Las habilidades con más servicios",
+  "celautStoreCategories": "Categorías",
+  "celautStoreAll": "Todas las habilidades",
+  "celautStoreSkills": "{count, plural, =1{1 habilidad} other{{count} habilidades}}",
   "cardsLoading": "Cargando las cartas…",
   "cardsNoDeck": "El servicio no tiene cartas ahora.",
   "cardsEnd": "No quedan más cartas.",

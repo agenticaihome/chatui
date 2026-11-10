@@ -186,9 +186,10 @@ class AutoTopUp extends ChangeNotifier {
   /// of the node is not known.
   Future<TopUpView?> addTime(String instanceId, Duration time) async {
     final plan = planOf(instanceId);
-    final price = plan == null ? null : priceOf(plan);
-    if (price == null) return null;
-    var left = price.addFor(time);
+    final price = plan == null ? null : priceOf(plan, now: _now());
+    final add = price?.addFor(time);
+    if (add == null) return null;
+    var left = add;
     TopUpView? last;
     while (left > BigInt.zero) {
       final step = left > maxCallMu ? maxCallMu : left;
@@ -199,11 +200,19 @@ class AutoTopUp extends ChangeNotifier {
   }
 
   /// The price of the node of an instance, from its plan; null if the app does not know it.
-  static MaintenancePrice? priceOf(InstancePlanView plan) => MaintenancePrice.of(
-        perPeriodMu: plan.maintenanceMu,
-        periodSeconds: plan.maintenanceSeconds,
-        variance: plan.variance,
-      );
+  /// Its next periods are the ones after the time since the start ([now]), so a bounded
+  /// price counts the volatility period that they are in (nodo#636).
+  static MaintenancePrice? priceOf(InstancePlanView plan, {DateTime? now}) {
+    final started = plan.startedAt;
+    final at = (now ?? DateTime.now()).millisecondsSinceEpoch ~/ 1000;
+    return MaintenancePrice.of(
+      perPeriodMu: plan.maintenanceMu,
+      periodSeconds: plan.maintenanceSeconds,
+      volatility: plan.volatility,
+      volatilityPeriodSeconds: plan.volatilityPeriodSeconds,
+      elapsed: Duration(seconds: started > 0 && at > started ? at - started : 0),
+    );
+  }
 
   /// The user saw the [need] and closed it.
   void dismissNeed() {
@@ -282,13 +291,14 @@ class AutoTopUp extends ChangeNotifier {
     // A hibernated instance costs its disk only, and the plan has that price. Its balance
     // must also hold the fee of the wake call, which the instance pays. A top-up never
     // wakes it: the keep-alive only keeps its disk (ui.md, section 4b).
-    final price = priceOf(plan);
+    final price = priceOf(plan, now: _now());
     final reserve = plan.hibernated ? (BigInt.tryParse(plan.wakeFeeMu) ?? BigInt.zero) : BigInt.zero;
     final spare = balance > reserve ? balance - reserve : BigInt.zero;
     final low = price == null ? spare < fallbackThresholdMu : price.lasts(spare) < _threshold;
     if (!low || _waiting(id) || !_busy.add(id)) return;
     try {
-      var amount = price == null ? fallbackAmountMu : price.addFor(_chunk);
+      // A price that is too large to fund ((1 + v)^k) moves the most of one call.
+      var amount = price == null ? fallbackAmountMu : (price.addFor(_chunk) ?? maxCallMu);
       if (balance < reserve) amount += reserve - balance;
       if (amount > maxCallMu) amount = maxCallMu;
       final limit = BigInt.tryParse(plan.budgetMu);

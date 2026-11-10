@@ -10,13 +10,16 @@ fn mu(n: &str) -> Option<Amount> {
     Some(Amount { n: n.into() })
 }
 
-fn quote(cost: &str, init: &str, max: &str, seconds: i32, variance: f32) -> EstimatedCost {
+/// A bounded quote with the volatility [volatility] (nodo#636).
+fn quote(cost: &str, init: &str, max: &str, seconds: i32, volatility: f32) -> EstimatedCost {
     EstimatedCost {
         cost: mu(cost),
         init_maintenance_cost: mu(init),
         max_maintenance_cost: mu(max),
         maintenance_seconds_loop: seconds,
-        variance,
+        price_bounded: true,
+        price_volatility: volatility,
+        volatility_period_seconds: 86400,
     }
 }
 
@@ -108,6 +111,39 @@ fn rank_compares_in_nano_erg_best_first() {
     assert_eq!(order(&ranked), vec!["d", "b", "a", "e", "c"]);
     assert_eq!(ranked[1].cost_nano_erg, Some(300.0));
     assert_eq!(ranked[4].score, None);
+}
+
+/// A quote that promises no price bound (nodo#636).
+fn unbounded(cost: &str, volatility: f32) -> EstimatedCost {
+    EstimatedCost {
+        price_bounded: false,
+        ..quote(cost, "0", "0", 0, volatility)
+    }
+}
+
+#[test]
+fn the_volatility_counts_only_for_a_bounded_quote() {
+    // vcnorm(1000, 0.5) = 1500 for a bounded quote; an unbounded one is read as 0.
+    assert_eq!(cost_mu(&quote("1000", "0", "0", 0, 0.5)).unwrap(), 1500.0);
+    assert_eq!(cost_mu(&unbounded("1000", 0.5)).unwrap(), 1000.0);
+    // A volatility that is not a finite number of at least 0 is 0 (`price_bound.strict`).
+    assert_eq!(volatility(&quote("1", "0", "0", 0, -0.5)), 0.0);
+    assert_eq!(volatility(&quote("1", "0", "0", 0, f32::NAN)), 0.0);
+    assert_eq!(volatility(&quote("1", "0", "0", 0, f32::INFINITY)), 0.0);
+}
+
+#[test]
+fn bounded_quotes_come_before_unbounded_ones() {
+    let ranked = rank(vec![
+        // Cheaper, but no bound: after every bounded quote.
+        candidate("a", unbounded("10", 0.0), Some(1)),
+        candidate("b", flat("1000"), Some(1)),
+        candidate("c", flat("500"), Some(1)),
+        // No ERG rate: last; bounded before unbounded there too.
+        candidate("d", unbounded("1", 0.0), None),
+        candidate("e", flat("1"), None),
+    ]);
+    assert_eq!(order(&ranked), vec!["c", "b", "a", "e", "d"]);
 }
 
 #[test]

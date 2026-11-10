@@ -449,7 +449,8 @@ abstract class RustLibApi extends BaseApi {
     required String instanceId,
     required String maintenanceMu,
     required int maintenanceSeconds,
-    required double variance,
+    required double volatility,
+    required int volatilityPeriodSeconds,
   });
 
   void crateApiCelautServiceCelautSetInstanceTitle({
@@ -3386,7 +3387,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required String instanceId,
     required String maintenanceMu,
     required int maintenanceSeconds,
-    required double variance,
+    required double volatility,
+    required int volatilityPeriodSeconds,
   }) {
     return handler.executeSync(
       SyncTask(
@@ -3395,7 +3397,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(instanceId, serializer);
           sse_encode_String(maintenanceMu, serializer);
           sse_encode_u_32(maintenanceSeconds, serializer);
-          sse_encode_f_64(variance, serializer);
+          sse_encode_f_64(volatility, serializer);
+          sse_encode_u_32(volatilityPeriodSeconds, serializer);
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 85)!;
         },
         codec: SseCodec(
@@ -3403,7 +3406,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_celaut_error,
         ),
         constMeta: kCrateApiCelautServiceCelautSetInstancePricingConstMeta,
-        argValues: [instanceId, maintenanceMu, maintenanceSeconds, variance],
+        argValues: [
+          instanceId,
+          maintenanceMu,
+          maintenanceSeconds,
+          volatility,
+          volatilityPeriodSeconds,
+        ],
         apiImpl: this,
       ),
     );
@@ -3416,7 +3425,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           "instanceId",
           "maintenanceMu",
           "maintenanceSeconds",
-          "variance",
+          "volatility",
+          "volatilityPeriodSeconds",
         ],
       );
 
@@ -6378,18 +6388,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   InstancePlanView dco_decode_instance_plan_view(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 9)
-      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return InstancePlanView(
       keepAlive: dco_decode_bool(arr[0]),
       budgetMu: dco_decode_String(arr[1]),
       spentMu: dco_decode_String(arr[2]),
       maintenanceMu: dco_decode_String(arr[3]),
       maintenanceSeconds: dco_decode_u_32(arr[4]),
-      variance: dco_decode_f_64(arr[5]),
-      hibernated: dco_decode_bool(arr[6]),
-      diskOnly: dco_decode_bool(arr[7]),
-      wakeFeeMu: dco_decode_String(arr[8]),
+      volatility: dco_decode_f_64(arr[5]),
+      volatilityPeriodSeconds: dco_decode_u_32(arr[6]),
+      startedAt: dco_decode_i_64(arr[7]),
+      hibernated: dco_decode_bool(arr[8]),
+      diskOnly: dco_decode_bool(arr[9]),
+      wakeFeeMu: dco_decode_String(arr[10]),
     );
   }
 
@@ -7122,8 +7134,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   QuoteView dco_decode_quote_view(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 9)
-      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return QuoteView(
       address: dco_decode_node_address(arr[0]),
       peerId: dco_decode_String(arr[1]),
@@ -7131,9 +7143,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       initMaintenanceMu: dco_decode_String(arr[3]),
       maxMaintenanceMu: dco_decode_String(arr[4]),
       maintenanceSecondsLoop: dco_decode_i_32(arr[5]),
-      variance: dco_decode_f_32(arr[6]),
-      comparedNanoErg: dco_decode_opt_String(arr[7]),
-      clientBalanceMu: dco_decode_String(arr[8]),
+      priceBounded: dco_decode_bool(arr[6]),
+      priceVolatility: dco_decode_f_32(arr[7]),
+      volatilityPeriodSeconds: dco_decode_i_32(arr[8]),
+      comparedNanoErg: dco_decode_opt_String(arr[9]),
+      clientBalanceMu: dco_decode_String(arr[10]),
     );
   }
 
@@ -8392,7 +8406,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_spentMu = sse_decode_String(deserializer);
     var var_maintenanceMu = sse_decode_String(deserializer);
     var var_maintenanceSeconds = sse_decode_u_32(deserializer);
-    var var_variance = sse_decode_f_64(deserializer);
+    var var_volatility = sse_decode_f_64(deserializer);
+    var var_volatilityPeriodSeconds = sse_decode_u_32(deserializer);
+    var var_startedAt = sse_decode_i_64(deserializer);
     var var_hibernated = sse_decode_bool(deserializer);
     var var_diskOnly = sse_decode_bool(deserializer);
     var var_wakeFeeMu = sse_decode_String(deserializer);
@@ -8402,7 +8418,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       spentMu: var_spentMu,
       maintenanceMu: var_maintenanceMu,
       maintenanceSeconds: var_maintenanceSeconds,
-      variance: var_variance,
+      volatility: var_volatility,
+      volatilityPeriodSeconds: var_volatilityPeriodSeconds,
+      startedAt: var_startedAt,
       hibernated: var_hibernated,
       diskOnly: var_diskOnly,
       wakeFeeMu: var_wakeFeeMu,
@@ -9537,7 +9555,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_initMaintenanceMu = sse_decode_String(deserializer);
     var var_maxMaintenanceMu = sse_decode_String(deserializer);
     var var_maintenanceSecondsLoop = sse_decode_i_32(deserializer);
-    var var_variance = sse_decode_f_32(deserializer);
+    var var_priceBounded = sse_decode_bool(deserializer);
+    var var_priceVolatility = sse_decode_f_32(deserializer);
+    var var_volatilityPeriodSeconds = sse_decode_i_32(deserializer);
     var var_comparedNanoErg = sse_decode_opt_String(deserializer);
     var var_clientBalanceMu = sse_decode_String(deserializer);
     return QuoteView(
@@ -9547,7 +9567,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       initMaintenanceMu: var_initMaintenanceMu,
       maxMaintenanceMu: var_maxMaintenanceMu,
       maintenanceSecondsLoop: var_maintenanceSecondsLoop,
-      variance: var_variance,
+      priceBounded: var_priceBounded,
+      priceVolatility: var_priceVolatility,
+      volatilityPeriodSeconds: var_volatilityPeriodSeconds,
       comparedNanoErg: var_comparedNanoErg,
       clientBalanceMu: var_clientBalanceMu,
     );
@@ -10646,7 +10668,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.spentMu, serializer);
     sse_encode_String(self.maintenanceMu, serializer);
     sse_encode_u_32(self.maintenanceSeconds, serializer);
-    sse_encode_f_64(self.variance, serializer);
+    sse_encode_f_64(self.volatility, serializer);
+    sse_encode_u_32(self.volatilityPeriodSeconds, serializer);
+    sse_encode_i_64(self.startedAt, serializer);
     sse_encode_bool(self.hibernated, serializer);
     sse_encode_bool(self.diskOnly, serializer);
     sse_encode_String(self.wakeFeeMu, serializer);
@@ -11611,7 +11635,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.initMaintenanceMu, serializer);
     sse_encode_String(self.maxMaintenanceMu, serializer);
     sse_encode_i_32(self.maintenanceSecondsLoop, serializer);
-    sse_encode_f_32(self.variance, serializer);
+    sse_encode_bool(self.priceBounded, serializer);
+    sse_encode_f_32(self.priceVolatility, serializer);
+    sse_encode_i_32(self.volatilityPeriodSeconds, serializer);
     sse_encode_opt_String(self.comparedNanoErg, serializer);
     sse_encode_String(self.clientBalanceMu, serializer);
   }
