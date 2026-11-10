@@ -15,6 +15,7 @@ import '../home/home_scene.dart';
 import '../home/home_style.dart';
 import '../layout.dart';
 import 'client_unknown_dialog.dart';
+import 'node_resources.dart';
 
 /// The compute view (`docs/celaut/ui.md`, section 2), in the look of the Celaut landing
 /// page: the Compute tab of the home screen (`docs/celaut/ui-chat-first.md`). It shows
@@ -285,9 +286,14 @@ class ComputeHomeScreenState extends State<ComputeHomeScreen> {
         if (n.clientUnknown) n,
     ];
     return [
+      // The one total of the home; a tap shows how the nodes split it (issue #123).
       _Line(
         key: const Key('compute-home-nodes'),
-        onTap: widget.onNodes,
+        onTap: d == null || d.nodes.isEmpty
+            ? widget.onNodes
+            : () => Navigator.of(context).push<void>(
+                  MaterialPageRoute(builder: (_) => NodeResourcesScreen(overview: d)),
+                ),
         leading: Container(
           width: 10,
           height: 10,

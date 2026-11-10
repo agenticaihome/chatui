@@ -7974,46 +7974,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get serviceInfoWorkloadOr => 'o';
 
   @override
-  String get cardsLoading => 'Cargando las cartas…';
-
-  @override
-  String get cardsNoDeck => 'El servicio no tiene cartas ahora.';
-
-  @override
-  String get cardsEnd => 'No quedan más cartas.';
-
-  @override
-  String get cardsBackToChat => 'Volver al chat';
-
-  @override
-  String get cardsUndo => 'Deshacer';
-
-  @override
-  String cardsProgress(int position, int total) {
-    return '$position de $total';
-  }
-
-  @override
-  String cardsWaiting(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count movimientos esperan para enviarse',
-      one: '1 movimiento espera para enviarse',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get cardsConnecting => 'Conectando…';
-
-  @override
-  String get cardsTapForDetail => 'Toca la carta para ver los detalles';
-
-  @override
-  String get chatOpenCards => 'Abrir las cartas';
-
-  @override
   String get celautSkillsIntro =>
       'Elige una habilidad para ver los servicios que la hacen.';
 
@@ -8087,4 +8047,183 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get celautSkillUse => 'Usar este servicio';
+
+  @override
+  String get celautRunServicesTitle => 'Servicios con esta habilidad';
+
+  @override
+  String get celautRunBest => 'Mejor';
+
+  @override
+  String celautRunScore(String score) {
+    return 'Puntuación $score';
+  }
+
+  @override
+  String celautRunDefaultBalance(String balance) {
+    return 'Saldo inicial de $balance (por defecto).';
+  }
+
+  @override
+  String celautRunDefaultBalanceLasts(String balance, String time) {
+    return 'Saldo inicial de $balance (por defecto): unos $time en este nodo.';
+  }
+
+  @override
+  String celautRunMoreOptions(String count) {
+    return 'Mostrar $count opciones más';
+  }
+
+  @override
+  String get celautRunFewerOptions => 'Mostrar menos opciones';
+
+  @override
+  String get celautRunCategoryAll => 'Todas';
+
+  @override
+  String get celautStoreFeatured => 'Destacadas';
+
+  @override
+  String get celautStoreFeaturedHint =>
+      'Una habilidad de cada campo, del publicador con más reputación';
+
+  @override
+  String get celautStoreSuggested => 'Sugeridas para ti';
+
+  @override
+  String get celautStoreSuggestedHint =>
+      'En los campos de las habilidades que ejecutaste';
+
+  @override
+  String get celautStoreNew => 'Nuevas';
+
+  @override
+  String get celautStoreNewHint => 'Las últimas habilidades publicadas en Ergo';
+
+  @override
+  String get celautStorePopular => 'Populares';
+
+  @override
+  String get celautStorePopularHint => 'Las habilidades con más servicios';
+
+  @override
+  String get celautStoreCategories => 'Categorías';
+
+  @override
+  String get celautStoreAll => 'Todas las habilidades';
+
+  @override
+  String celautStoreSkills(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count habilidades',
+      one: '1 habilidad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cardsLoading => 'Cargando las cartas…';
+
+  @override
+  String get cardsNoDeck => 'El servicio no tiene cartas ahora.';
+
+  @override
+  String get cardsEnd => 'No quedan más cartas.';
+
+  @override
+  String get cardsBackToChat => 'Volver al chat';
+
+  @override
+  String get cardsUndo => 'Deshacer';
+
+  @override
+  String cardsProgress(int position, int total) {
+    return '$position de $total';
+  }
+
+  @override
+  String cardsWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count movimientos esperan para enviarse',
+      one: '1 movimiento espera para enviarse',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cardsConnecting => 'Conectando…';
+
+  @override
+  String get cardsTapForDetail => 'Toca la carta para ver los detalles';
+
+  @override
+  String get chatOpenCards => 'Abrir las cartas';
+
+  @override
+  String get celautIdCopied => 'Id copiado';
+
+  @override
+  String get celautIdShowFull => 'Mostrar el id completo';
+
+  @override
+  String get celautIdShowShort => 'Mostrar el id corto';
+
+  @override
+  String get celautClientIdLabel => 'Id de cliente';
+
+  @override
+  String get celautClientIdNone => 'Todavía no hay cliente';
+
+  @override
+  String get celautClientIdCopied => 'Id de cliente copiado';
+
+  @override
+  String get celautNodesDetail => 'Detalles del nodo';
+
+  @override
+  String get celautResourcesScreenTitle => 'Recursos de los nodos';
+
+  @override
+  String get celautResourcesByResource => 'Por recurso';
+
+  @override
+  String get celautResourcesByNode => 'Por nodo';
+
+  @override
+  String get celautResourcesNote =>
+      'Lo que ofrecen los nodos, no lo que está libre ahora.';
+
+  @override
+  String celautResourcesUnreachable(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nodos no respondieron y no están en el total',
+      one: '1 nodo no respondió y no está en el total',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get celautResourcesNoNode => 'Ningún nodo respondió.';
+
+  @override
+  String celautResourcesTotal(String resource, String total, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nodos',
+      one: '1 nodo',
+    );
+    return '$resource: $total en $_temp0';
+  }
+
+  @override
+  String celautResourcesShareHint(int count) {
+    return 'La parte de este nodo en el total de los $count nodos que respondieron';
+  }
 }

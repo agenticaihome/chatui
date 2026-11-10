@@ -12677,66 +12677,6 @@ abstract class AppLocalizations {
   /// **'or'**
   String get serviceInfoWorkloadOr;
 
-  /// No description provided for @cardsLoading.
-  ///
-  /// In en, this message translates to:
-  /// **'Loading the cards…'**
-  String get cardsLoading;
-
-  /// No description provided for @cardsNoDeck.
-  ///
-  /// In en, this message translates to:
-  /// **'The service has no cards now.'**
-  String get cardsNoDeck;
-
-  /// No description provided for @cardsEnd.
-  ///
-  /// In en, this message translates to:
-  /// **'No more cards.'**
-  String get cardsEnd;
-
-  /// No description provided for @cardsBackToChat.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to the chat'**
-  String get cardsBackToChat;
-
-  /// No description provided for @cardsUndo.
-  ///
-  /// In en, this message translates to:
-  /// **'Undo'**
-  String get cardsUndo;
-
-  /// No description provided for @cardsProgress.
-  ///
-  /// In en, this message translates to:
-  /// **'{position} of {total}'**
-  String cardsProgress(int position, int total);
-
-  /// No description provided for @cardsWaiting.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 move waits to be sent} other{{count} moves wait to be sent}}'**
-  String cardsWaiting(int count);
-
-  /// No description provided for @cardsConnecting.
-  ///
-  /// In en, this message translates to:
-  /// **'Connecting…'**
-  String get cardsConnecting;
-
-  /// No description provided for @cardsTapForDetail.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap the card for details'**
-  String get cardsTapForDetail;
-
-  /// No description provided for @chatOpenCards.
-  ///
-  /// In en, this message translates to:
-  /// **'Open the cards'**
-  String get chatOpenCards;
-
   /// No description provided for @celautSkillsIntro.
   ///
   /// In en, this message translates to:
@@ -12856,6 +12796,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use this service'**
   String get celautSkillUse;
+
+  /// No description provided for @celautRunServicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Services with this skill'**
+  String get celautRunServicesTitle;
+
+  /// No description provided for @celautRunBest.
+  ///
+  /// In en, this message translates to:
+  /// **'Best'**
+  String get celautRunBest;
+
+  /// No description provided for @celautRunScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Score {score}'**
+  String celautRunScore(String score);
+
+  /// No description provided for @celautRunDefaultBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Start balance {balance} (the default).'**
+  String celautRunDefaultBalance(String balance);
+
+  /// No description provided for @celautRunDefaultBalanceLasts.
+  ///
+  /// In en, this message translates to:
+  /// **'Start balance {balance} (the default): about {time} on this node.'**
+  String celautRunDefaultBalanceLasts(String balance, String time);
+
+  /// No description provided for @celautRunMoreOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {count} more options'**
+  String celautRunMoreOptions(String count);
+
+  /// No description provided for @celautRunFewerOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Show fewer options'**
+  String get celautRunFewerOptions;
+
+  /// No description provided for @celautRunCategoryAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get celautRunCategoryAll;
+
+  /// No description provided for @celautStoreFeatured.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured'**
+  String get celautStoreFeatured;
+
+  /// No description provided for @celautStoreFeaturedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'One skill of each field, from the publisher with the most reputation'**
+  String get celautStoreFeaturedHint;
+
+  /// No description provided for @celautStoreSuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested for you'**
+  String get celautStoreSuggested;
+
+  /// No description provided for @celautStoreSuggestedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'In the fields of the skills that you ran'**
+  String get celautStoreSuggestedHint;
+
+  /// No description provided for @celautStoreNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get celautStoreNew;
+
+  /// No description provided for @celautStoreNewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The last skills published on Ergo'**
+  String get celautStoreNewHint;
+
+  /// No description provided for @celautStorePopular.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular'**
+  String get celautStorePopular;
+
+  /// No description provided for @celautStorePopularHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The skills with the most services'**
+  String get celautStorePopularHint;
+
+  /// No description provided for @celautStoreCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get celautStoreCategories;
+
+  /// No description provided for @celautStoreAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All skills'**
+  String get celautStoreAll;
+
+  /// No description provided for @celautStoreSkills.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 skill} other{{count} skills}}'**
+  String celautStoreSkills(int count);
+
+  /// No description provided for @cardsLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the cards…'**
+  String get cardsLoading;
+
+  /// No description provided for @cardsNoDeck.
+  ///
+  /// In en, this message translates to:
+  /// **'The service has no cards now.'**
+  String get cardsNoDeck;
+
+  /// No description provided for @cardsEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'No more cards.'**
+  String get cardsEnd;
+
+  /// No description provided for @cardsBackToChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the chat'**
+  String get cardsBackToChat;
+
+  /// No description provided for @cardsUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get cardsUndo;
+
+  /// No description provided for @cardsProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{position} of {total}'**
+  String cardsProgress(int position, int total);
+
+  /// No description provided for @cardsWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 move waits to be sent} other{{count} moves wait to be sent}}'**
+  String cardsWaiting(int count);
+
+  /// No description provided for @cardsConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get cardsConnecting;
+
+  /// No description provided for @cardsTapForDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the card for details'**
+  String get cardsTapForDetail;
+
+  /// No description provided for @chatOpenCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the cards'**
+  String get chatOpenCards;
+
+  /// No description provided for @celautIdCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Id copied'**
+  String get celautIdCopied;
+
+  /// No description provided for @celautIdShowFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Show full id'**
+  String get celautIdShowFull;
+
+  /// No description provided for @celautIdShowShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Show short id'**
+  String get celautIdShowShort;
+
+  /// No description provided for @celautClientIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Client id'**
+  String get celautClientIdLabel;
+
+  /// No description provided for @celautClientIdNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No client yet'**
+  String get celautClientIdNone;
+
+  /// No description provided for @celautClientIdCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Client id copied'**
+  String get celautClientIdCopied;
+
+  /// No description provided for @celautNodesDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Node details'**
+  String get celautNodesDetail;
+
+  /// No description provided for @celautResourcesScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resources of the nodes'**
+  String get celautResourcesScreenTitle;
+
+  /// No description provided for @celautResourcesByResource.
+  ///
+  /// In en, this message translates to:
+  /// **'By resource'**
+  String get celautResourcesByResource;
+
+  /// No description provided for @celautResourcesByNode.
+  ///
+  /// In en, this message translates to:
+  /// **'By node'**
+  String get celautResourcesByNode;
+
+  /// No description provided for @celautResourcesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'What the nodes offer, not what is free now.'**
+  String get celautResourcesNote;
+
+  /// No description provided for @celautResourcesUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 node did not answer and is not in the total} other{{count} nodes did not answer and are not in the total}}'**
+  String celautResourcesUnreachable(int count);
+
+  /// No description provided for @celautResourcesNoNode.
+  ///
+  /// In en, this message translates to:
+  /// **'No node answered.'**
+  String get celautResourcesNoNode;
+
+  /// No description provided for @celautResourcesTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{resource}: {total} on {count, plural, =1{1 node} other{{count} nodes}}'**
+  String celautResourcesTotal(String resource, String total, int count);
+
+  /// No description provided for @celautResourcesShareHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The part of this node in the total of the {count} nodes that answered'**
+  String celautResourcesShareHint(int count);
 }
 
 class _AppLocalizationsDelegate

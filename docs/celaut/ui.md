@@ -222,6 +222,38 @@ Tor). "Check now" under the node cards checks all the nodes. A check changes onl
 cards: the overview (the figures) is not loaded again. Nothing is checked while Tor is
 starting or has failed.
 
+### The detail of a node and the resources (#123, 2026-11-10)
+
+Each row of the node list has a Details action (an info icon). It opens the detail of the
+node: the screen of `node_connect_screen.dart`, which connects at once and checks the peer id.
+The rule is the one of #122: the minimum first, the details behind one tap.
+
+- **Ids.** The peer id and the client id of the app show in short form (first 6 and last 4
+  characters), each with "Copy" (the full id) and "Show full id". The client id is read from
+  the Celaut database of the app (`celaut_client_id`); it shows only in the detail, never in
+  the node list, never in a log or an error report. With no client yet the row says "No
+  client yet". A node that forgot the client id shows no id: only the usual message and
+  "Make a new client" (the same choice as in the list; never a new client by itself).
+- **Resources of one node.** One summary line: CPU, memory and disk with their units, from
+  the entry that the node counts with (the largest; the same as the sums of the home). A
+  value that the node does not give is "unknown", never 0. When the last overview of the
+  home has other nodes, a small bar for each resource shows the part of the total of the
+  nodes that answered that this node has. The architectures and the benchmark are in a closed
+  "Details" part.
+- **Resources of all the nodes.** The home line stays one short total. A tap opens
+  "Resources of the nodes", with one view at a time (a switch; "By resource" is the default):
+  - *By resource*: CPU, memory or disk (chips, in this order). The total ("at least …" when
+    some nodes do not give the value), and a stacked bar that splits it between the nodes,
+    with one row for each node, the largest first. A node whose value is unknown is a striped
+    part of the bar and says "unknown".
+  - *By node*: a card for each node with its three resources (a bar and the value for each),
+    the largest node first (memory, then cores, then disk).
+  - The nodes that did not answer are counted apart ("1 node did not answer and is not in the
+    total"), never as 0. One note says that this is what the nodes offer, not what is free.
+  - No full id: a node shows as its address and its peer id in short form.
+  - "By architecture" is not there yet: the overview has one entry for each node (its
+    largest), not the entries of each architecture.
+
 ## 4b. Keep running (2026-10-29, Josemi; before: "Automatic top-up", 2026-10-23)
 
 An instance stops when its balance on the node runs out. Two ways to choose how long it runs:

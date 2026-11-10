@@ -11,6 +11,7 @@ import 'package:argus_wallet/celaut/wallet_money.dart';
 import 'package:argus_wallet/format.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
 import 'package:argus_wallet/ui/celaut/compute_home_screen.dart';
+import 'package:argus_wallet/ui/celaut/node_resources.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -195,8 +196,12 @@ void main() {
     expect(line, contains(l.celautHomeNodesReady('2', '3')));
     expect(line, contains(l.celautAtLeast(CelautStrings.cores(6), 1)));
     expect(line, contains(CelautStrings.bytes(8589934592)));
+    // A tap shows how the nodes split the total (#123), not the node list.
     await tester.tap(find.byKey(const Key('compute-home-nodes')));
-    expect(run.nodesOpened, 1);
+    await tester.pumpAndSettle();
+    expect(find.byType(NodeResourcesScreen), findsOneWidget);
+    expect(find.byKey(const Key('resources-unreachable')), findsOneWidget);
+    expect(run.nodesOpened, 0);
   });
 
   testWidgets('the credit on the nodes and the full wallets are one line each, with USD', (tester) async {

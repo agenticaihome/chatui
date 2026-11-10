@@ -1,17 +1,48 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/api/celaut.dart';
+import '../../bridge/api/celaut_home.dart';
+import '../../bridge/api/celaut_service.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../l10n/l10n.dart';
 import '../../celaut/host_port.dart';
 import '../../theme/argus_theme.dart';
 import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
+import 'client_unknown_dialog.dart';
+import 'id_row.dart';
+import 'node_resources.dart';
 
-/// Debug screen of milestone M1: connect to a Celaut node and show its
-/// advertisement, after the identity and signature checks.
+/// Connect to a Celaut node and show its advertisement, after the identity and signature
+/// checks. From the node list it is the detail of a node ([address] given: it connects at
+/// once). The ids show in short form, with Copy and "Show full id"; the client id of the app
+/// shows only here, never in the node list (issue #123). The resources show as one summary
+/// line, with a bar for each resource when [overview] gives the other nodes; the
+/// architectures and the benchmark are in a closed "Details" part.
 class NodeConnectScreen extends StatefulWidget {
-  const NodeConnectScreen({super.key});
+  const NodeConnectScreen({
+    super.key,
+    this.address,
+    this.expectedPeerId,
+    this.overview,
+    this.clientIdOf,
+    this.newClient,
+  });
+
+  /// The node to show at once (`host:port`); null for an empty form.
+  final String? address;
+
+  /// The identity that the node must prove, if known.
+  final String? expectedPeerId;
+
+  /// The last overview of the home screen: the bars compare this node with the others.
+  final ComputeOverviewView? overview;
+
+  /// Read the client id of the app on a node (null: no client yet). Tests give their own.
+  final String? Function(String peerId)? clientIdOf;
+
+  /// Make a new client on a node that forgot the client id. Tests give their own.
+  final Future<NewClientView> Function(NodeAddress node)? newClient;
 
   @override
   State<NodeConnectScreen> createState() => _NodeConnectScreenState();
@@ -25,6 +56,43 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
   CelautErrorKind? _errorKind;
   String? _errorDetail;
   String? _inputError;
+
+  /// The client id of the app on the node of [_info]; null if the app has none yet.
+  String? _clientId;
+
+  @override
+  void initState() {
+    super.initState();
+    final address = widget.address;
+    if (address != null) {
+      _addressCtrl.text = address;
+      _expectedCtrl.text = widget.expectedPeerId ?? '';
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _connect();
+      });
+    }
+  }
+
+  String? _readClientId(String peerId) {
+    try {
+      return (widget.clientIdOf ?? (id) => celautClientId(peerId: id))(peerId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The node forgot the client id: the usual choice, then connect again after a new client.
+  Future<void> _forgotten() async {
+    final parsed = parseHostPort(_addressCtrl.text).value;
+    if (parsed == null) return;
+    final choice = await showClientUnknownChoice(
+      context,
+      node: NodeAddress(host: parsed.host, port: parsed.port),
+      error: _errorDetail ?? '',
+      newClient: widget.newClient,
+    );
+    if (choice == ClientUnknownChoice.newClient && mounted) await _connect();
+  }
 
   @override
   void dispose() {
@@ -70,12 +138,22 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
         expectedPeerId: expected.isEmpty ? null : expected,
       );
       if (!mounted) return;
-      setState(() => _info = info);
+      setState(() {
+        _info = info;
+        _clientId = _readClientId(info.peerId);
+      });
     } on CelautError catch (e) {
       if (!mounted) return;
       setState(() {
         _errorKind = e.kind;
         _errorDetail = e.message;
+      });
+    } catch (e) {
+      // Not an error of the node (the bridge, a bug): the screen says it, it does not break.
+      if (!mounted) return;
+      setState(() {
+        _errorKind = CelautErrorKind.protocol;
+        _errorDetail = '$e';
       });
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -85,6 +163,33 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
   @override
   Widget build(BuildContext context) {
     final info = _info;
+    // The detail of a node of the list: no form (it would show the full peer id), only the
+    // address and "Check now".
+    if (widget.address != null) {
+      return SettingsPage(
+        title: appL10n.celautNodesDetail,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _addressCtrl.text,
+                  key: const Key('celaut-detail-address'),
+                  style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                ),
+              ),
+              TextButton(
+                key: const Key('celaut-connect'),
+                onPressed: _busy ? null : _connect,
+                child: Text(_busy ? CelautStrings.connecting : appL10n.celautNodesCheckNow),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ..._body(context, info),
+        ],
+      );
+    }
     return SettingsPage(
       title: CelautStrings.screenTitle,
       children: [
@@ -128,14 +233,30 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        if (_errorKind != null) _ErrorCard(kind: _errorKind!, detail: _errorDetail ?? ''),
-        if (info != null) ..._result(context, info),
+        ..._body(context, info),
       ],
     );
   }
 
+  /// The error, or the advertisement of the node.
+  List<Widget> _body(BuildContext context, PeerInfoView? info) {
+    return [
+        if (_errorKind != null) _ErrorCard(kind: _errorKind!, detail: _errorDetail ?? ''),
+        // The node forgot the client id: no id shows, only the message and the action.
+        if (_errorKind == CelautErrorKind.clientUnknown)
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              key: const Key('celaut-client-unknown'),
+              onPressed: _forgotten,
+              child: Text(appL10n.celautHomeClientUnknownAction),
+            ),
+          ),
+        if (info != null) ..._result(context, info),
+    ];
+  }
+
   List<Widget> _result(BuildContext context, PeerInfoView info) {
-    final colors = ArgusColors.of(context);
     return [
       SectionLabel(CelautStrings.identityTitle),
       const SizedBox(height: 10),
@@ -143,13 +264,23 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(CelautStrings.peerIdLabel, style: TextStyle(fontSize: 12.5, color: colors.muted)),
-            const SizedBox(height: 4),
-            SelectableText(
-              info.peerId,
+            IdRow(
               key: const Key('celaut-peer-id'),
-              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+              label: CelautStrings.peerIdLabel,
+              id: info.peerId,
+              keyPrefix: 'celaut-peer-id',
             ),
+            const SizedBox(height: 8),
+            if (_clientId != null)
+              IdRow(
+                key: const Key('celaut-client-id'),
+                label: appL10n.celautClientIdLabel,
+                id: _clientId!,
+                keyPrefix: 'celaut-client-id',
+                copiedText: appL10n.celautClientIdCopied,
+              )
+            else
+              _labelled(context, appL10n.celautClientIdLabel, appL10n.celautClientIdNone),
             const SizedBox(height: 12),
             _labelled(context, CelautStrings.advertisedLabel, formatUtc(info.ts)),
             const SizedBox(height: 6),
@@ -190,12 +321,59 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
       const SizedBox(height: 24),
       SectionLabel(CelautStrings.resourcesTitle),
       const SizedBox(height: 10),
-      _listCard(
-        context,
-        empty: CelautStrings.noResources,
-        rows: [for (final r in info.resources) _resourcesRow(context, r)],
-      ),
+      _resources(context, info),
     ];
+  }
+
+  /// One summary line (the entry that the node counts with), a bar for each resource
+  /// against the other nodes, and the architectures and the benchmark in a closed part.
+  Widget _resources(BuildContext context, PeerInfoView info) {
+    final entry = largestEntry(info.resources);
+    if (entry == null) {
+      return _listCard(context, empty: CelautStrings.noResources, rows: const []);
+    }
+    final o = widget.overview;
+    final others = o == null ? const <NodeComputeView>[] : answeredNodes(o);
+    final counted = others.any((n) => n.peerId == info.peerId);
+    num totalOf(NodeResource r) => others.fold<num>(0, (a, n) => a + (resourceOf(n, r) ?? 0));
+    return SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            resourcesSummary(
+              entryResource(entry, NodeResource.cpu),
+              entryResource(entry, NodeResource.memory),
+              entryResource(entry, NodeResource.disk),
+            ),
+            key: const Key('celaut-resources-summary'),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          if (counted && others.length > 1) ...[
+            const SizedBox(height: 8),
+            Text(appL10n.celautResourcesShareHint(others.length), style: TextStyle(fontSize: 12.5, color: ArgusColors.of(context).muted)),
+            for (final r in NodeResource.values)
+              NodeShareRow(
+                key: Key('celaut-share-${r.name}'),
+                resource: r,
+                value: entryResource(entry, r),
+                total: totalOf(r),
+              ),
+          ],
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              key: const Key('celaut-resources-details'),
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(appL10n.celautRunDetails),
+              children: [for (final r in info.resources) _resourcesRow(context, r)],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _labelled(BuildContext context, String label, String value) {
