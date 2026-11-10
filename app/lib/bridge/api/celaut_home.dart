@@ -22,6 +22,12 @@ Future<ComputeOverviewView> celautComputeOverview() =>
 List<KnownNodeView> celautKnownNodes() =>
     RustLib.instance.api.crateApiCelautHomeCelautKnownNodes();
 
+/// The client id of the app on the node `peer_id` (issue #123), or `None` if the app has no
+/// client there yet. The node detail shows it in short form, and in full only when the user
+/// asks; it never goes into a log or an error report.
+String? celautClientId({required String peerId}) =>
+    RustLib.instance.api.crateApiCelautHomeCelautClientId(peerId: peerId);
+
 /// Add the node at `node` to the node list. The app checks the node first (its identity
 /// and advertisement). A node that was removed comes back with its client id and its
 /// deposits. If the node forgot the client id, the answer is a `ClientUnknown` error and

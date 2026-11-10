@@ -8042,4 +8042,68 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get serviceInfoWorkloadOr => 'o';
+
+  @override
+  String get celautIdCopied => 'Id copiado';
+
+  @override
+  String get celautIdShowFull => 'Mostrar el id completo';
+
+  @override
+  String get celautIdShowShort => 'Mostrar el id corto';
+
+  @override
+  String get celautClientIdLabel => 'Id de cliente';
+
+  @override
+  String get celautClientIdNone => 'Todavía no hay cliente';
+
+  @override
+  String get celautClientIdCopied => 'Id de cliente copiado';
+
+  @override
+  String get celautNodesDetail => 'Detalles del nodo';
+
+  @override
+  String get celautResourcesScreenTitle => 'Recursos de los nodos';
+
+  @override
+  String get celautResourcesByResource => 'Por recurso';
+
+  @override
+  String get celautResourcesByNode => 'Por nodo';
+
+  @override
+  String get celautResourcesNote =>
+      'Lo que ofrecen los nodos, no lo que está libre ahora.';
+
+  @override
+  String celautResourcesUnreachable(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nodos no respondieron y no están en el total',
+      one: '1 nodo no respondió y no está en el total',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get celautResourcesNoNode => 'Ningún nodo respondió.';
+
+  @override
+  String celautResourcesTotal(String resource, String total, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nodos',
+      one: '1 nodo',
+    );
+    return '$resource: $total en $_temp0';
+  }
+
+  @override
+  String celautResourcesShareHint(int count) {
+    return 'La parte de este nodo en el total de los $count nodos que respondieron';
+  }
 }

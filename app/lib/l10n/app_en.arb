@@ -5777,5 +5777,47 @@
   "descendantsOpenBudgetTooSmall": "The budget does not pay for one stream.",
   "descendantsOpenConfirm": "Open and pay",
   "serviceInfoWorkloadsInitial": "First instances that it starts",
-  "serviceInfoWorkloadOr": "or"
+  "serviceInfoWorkloadOr": "or",
+  "celautIdCopied": "Id copied",
+  "celautIdShowFull": "Show full id",
+  "celautIdShowShort": "Show short id",
+  "celautClientIdLabel": "Client id",
+  "celautClientIdNone": "No client yet",
+  "celautClientIdCopied": "Client id copied",
+  "celautNodesDetail": "Node details",
+  "celautResourcesScreenTitle": "Resources of the nodes",
+  "celautResourcesByResource": "By resource",
+  "celautResourcesByNode": "By node",
+  "celautResourcesNote": "What the nodes offer, not what is free now.",
+  "celautResourcesUnreachable": "{count, plural, =1{1 node did not answer and is not in the total} other{{count} nodes did not answer and are not in the total}}",
+  "@celautResourcesUnreachable": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautResourcesNoNode": "No node answered.",
+  "celautResourcesTotal": "{resource}: {total} on {count, plural, =1{1 node} other{{count} nodes}}",
+  "@celautResourcesTotal": {
+    "placeholders": {
+      "resource": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautResourcesShareHint": "The part of this node in the total of the {count} nodes that answered",
+  "@celautResourcesShareHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

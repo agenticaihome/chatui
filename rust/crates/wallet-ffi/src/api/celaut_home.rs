@@ -414,6 +414,20 @@ pub fn celaut_known_nodes() -> Vec<KnownNodeView> {
     })
 }
 
+/// The client id of the app on the node `peer_id` (issue #123), or `None` if the app has no
+/// client there yet. The node detail shows it in short form, and in full only when the user
+/// asks; it never goes into a log or an error report.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_client_id(peer_id: String) -> Option<String> {
+    let peer_id = peer_id.trim().to_lowercase();
+    db().read(|d| {
+        d.nodes
+            .get(&peer_id)
+            .map(|n| n.client_id.clone())
+            .filter(|c| !c.is_empty())
+    })
+}
+
 /// Add the node at `node` to the node list. The app checks the node first (its identity
 /// and advertisement). A node that was removed comes back with its client id and its
 /// deposits. If the node forgot the client id, the answer is a `ClientUnknown` error and
@@ -626,6 +640,28 @@ mod tests {
         let back = celaut_known_nodes();
         let back = back.iter().find(|n| n.peer_id == peer).unwrap();
         assert_eq!(back.deposited_nano_erg, 7);
+    }
+
+    #[test]
+    fn the_client_id_of_a_node_is_read_by_its_peer_id() {
+        let peer = "cd34".repeat(16);
+        let fresh = "ef56".repeat(16);
+        db().update(|d| {
+            d.nodes.insert(
+                peer.clone(),
+                NodeRecord {
+                    client_id: "client-123".into(),
+                    addresses: vec!["node.example:2".into()],
+                    ..Default::default()
+                },
+            );
+            d.nodes.insert(fresh.clone(), NodeRecord::default());
+        })
+        .unwrap();
+        assert_eq!(celaut_client_id(peer.to_uppercase()).as_deref(), Some("client-123"));
+        // A node with no client yet, and a node that the app does not know.
+        assert_eq!(celaut_client_id(fresh), None);
+        assert_eq!(celaut_client_id("00".repeat(32)), None);
     }
 
     #[test]

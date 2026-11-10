@@ -12784,6 +12784,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'or'**
   String get serviceInfoWorkloadOr;
+
+  /// No description provided for @celautIdCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Id copied'**
+  String get celautIdCopied;
+
+  /// No description provided for @celautIdShowFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Show full id'**
+  String get celautIdShowFull;
+
+  /// No description provided for @celautIdShowShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Show short id'**
+  String get celautIdShowShort;
+
+  /// No description provided for @celautClientIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Client id'**
+  String get celautClientIdLabel;
+
+  /// No description provided for @celautClientIdNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No client yet'**
+  String get celautClientIdNone;
+
+  /// No description provided for @celautClientIdCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Client id copied'**
+  String get celautClientIdCopied;
+
+  /// No description provided for @celautNodesDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Node details'**
+  String get celautNodesDetail;
+
+  /// No description provided for @celautResourcesScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resources of the nodes'**
+  String get celautResourcesScreenTitle;
+
+  /// No description provided for @celautResourcesByResource.
+  ///
+  /// In en, this message translates to:
+  /// **'By resource'**
+  String get celautResourcesByResource;
+
+  /// No description provided for @celautResourcesByNode.
+  ///
+  /// In en, this message translates to:
+  /// **'By node'**
+  String get celautResourcesByNode;
+
+  /// No description provided for @celautResourcesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'What the nodes offer, not what is free now.'**
+  String get celautResourcesNote;
+
+  /// No description provided for @celautResourcesUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 node did not answer and is not in the total} other{{count} nodes did not answer and are not in the total}}'**
+  String celautResourcesUnreachable(int count);
+
+  /// No description provided for @celautResourcesNoNode.
+  ///
+  /// In en, this message translates to:
+  /// **'No node answered.'**
+  String get celautResourcesNoNode;
+
+  /// No description provided for @celautResourcesTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{resource}: {total} on {count, plural, =1{1 node} other{{count} nodes}}'**
+  String celautResourcesTotal(String resource, String total, int count);
+
+  /// No description provided for @celautResourcesShareHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The part of this node in the total of the {count} nodes that answered'**
+  String celautResourcesShareHint(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -19,6 +19,7 @@ import '../scan_screen.dart';
 import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
 import 'client_unknown_dialog.dart';
+import 'node_connect_screen.dart';
 import 'node_status.dart';
 import 'support_chat_screen.dart';
 
@@ -121,6 +122,22 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
       if (n.peerId == peerId) return n;
     }
     return null;
+  }
+
+  /// The detail of a node: its ids (the client id of the app is only there), its
+  /// advertisement and its resources against the other nodes (issue #123).
+  void _detail(KnownNodeView n) {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NodeConnectScreen(
+          address: n.addresses.first,
+          expectedPeerId: n.peerId,
+          overview: overviewCache.value,
+          newClient: widget.newClient,
+        ),
+      ),
+    );
   }
 
   Future<void> _clientUnknown(KnownNodeView n) async {
@@ -507,6 +524,12 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
                 const SizedBox(width: 8),
                 Column(
                   children: [
+                    IconButton(
+                      key: Key('nodes-detail-${n.peerId}'),
+                      tooltip: l.celautNodesDetail,
+                      onPressed: n.addresses.isEmpty ? null : () => _detail(n),
+                      icon: const Icon(Icons.info_outline),
+                    ),
                     IconButton(
                       key: Key('nodes-support-${n.peerId}'),
                       tooltip: l.celautNodesSupport,

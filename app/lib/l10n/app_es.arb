@@ -2657,5 +2657,20 @@
   "descendantsOpenBudgetTooSmall": "El presupuesto no paga ni un flujo.",
   "descendantsOpenConfirm": "Abrir y pagar",
   "serviceInfoWorkloadsInitial": "Primeras instancias que arranca",
-  "serviceInfoWorkloadOr": "o"
+  "serviceInfoWorkloadOr": "o",
+  "celautIdCopied": "Id copiado",
+  "celautIdShowFull": "Mostrar el id completo",
+  "celautIdShowShort": "Mostrar el id corto",
+  "celautClientIdLabel": "Id de cliente",
+  "celautClientIdNone": "Todavía no hay cliente",
+  "celautClientIdCopied": "Id de cliente copiado",
+  "celautNodesDetail": "Detalles del nodo",
+  "celautResourcesScreenTitle": "Recursos de los nodos",
+  "celautResourcesByResource": "Por recurso",
+  "celautResourcesByNode": "Por nodo",
+  "celautResourcesNote": "Lo que ofrecen los nodos, no lo que está libre ahora.",
+  "celautResourcesUnreachable": "{count, plural, =1{1 nodo no respondió y no está en el total} other{{count} nodos no respondieron y no están en el total}}",
+  "celautResourcesNoNode": "Ningún nodo respondió.",
+  "celautResourcesTotal": "{resource}: {total} en {count, plural, =1{1 nodo} other{{count} nodos}}",
+  "celautResourcesShareHint": "La parte de este nodo en el total de los {count} nodos que respondieron"
 }

@@ -9,6 +9,7 @@ import 'package:argus_wallet/celaut/invite_scan.dart';
 import 'package:argus_wallet/format.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
 import 'package:argus_wallet/ui/celaut/known_nodes_screen.dart';
+import 'package:argus_wallet/ui/celaut/node_connect_screen.dart';
 import 'package:argus_wallet/ui/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -170,6 +171,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(Key('nodes-row-$_a')), findsOneWidget);
     expect(find.text(appL10n.celautNodesDeposited(formatErg(10000000))), findsOneWidget);
+  });
+
+  testWidgets('a node has a Details action to its detail; the list never shows the client id (#123)', (tester) async {
+    await pump(tester);
+    expect(find.text(appL10n.celautClientIdLabel), findsNothing);
+    await tester.tap(find.byKey(Key('nodes-detail-$_a')));
+    await tester.pumpAndSettle();
+    final detail = tester.widget<NodeConnectScreen>(find.byType(NodeConnectScreen));
+    expect(detail.address, 'a.example:1');
+    expect(detail.expectedPeerId, _a);
   });
 
   testWidgets('a bad address calls nothing', (tester) async {
