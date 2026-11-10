@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:argus_wallet/bridge/api/celaut.dart';
 import 'package:argus_wallet/bridge/api/celaut_catalog.dart';
 import 'package:argus_wallet/celaut/service_strings.dart';
+import 'package:argus_wallet/l10n/app_localizations.dart';
 import 'package:argus_wallet/ui/celaut/skill_picker.dart';
+import 'package:argus_wallet/ui/celaut/skill_service_choice.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final _best = 'aa' * 32;
@@ -48,6 +51,7 @@ void main() {
     returned = false;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: Builder(
           builder: (context) => Scaffold(
             body: TextButton(
@@ -76,44 +80,122 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('lists the skills with their field, text and tags', (tester) async {
+  testWidgets('lists the skills in groups by field, each with its name and one line (#122)', (tester) async {
     await open(tester);
+    expect(find.text('Pick a skill to see the services that do it.'), findsOneWidget);
+    expect(find.text('ALGORITHMS'), findsOneWidget);
+    expect(find.text('NLP'), findsOneWidget);
     expect(find.text('Boolean SAT Solver'), findsOneWidget);
-    expect(find.text('algorithms'), findsOneWidget);
     expect(find.text('Decides if a formula can be satisfied.'), findsOneWidget);
-    expect(find.text('logic'), findsOneWidget);
-    expect(find.text('np-complete'), findsOneWidget);
+    // The field is the title of the group, not a line of the card; the tags are not on it.
+    expect(find.text('algorithms'), findsNothing);
+    expect(find.text('logic'), findsNothing);
     expect(find.text('Markdown Summarization'), findsOneWidget);
     expect(find.byKey(const Key('picker-loading')), findsNothing);
+    expect(find.byKey(const Key('picker-more')), findsNothing);
   });
 
-  testWidgets('a skill shows its services best first, and the best is chosen', (tester) async {
+  testWidgets('more than six skills: a short list first, and "Show more"', (tester) async {
+    final many = [
+      for (var i = 0; i < 9; i++)
+        SkillView(
+          boxId: 'k$i',
+          name: 'Skill $i',
+          prose: '',
+          tags: const [],
+          domain: 'd',
+          height: 0,
+          serviceIds: const [],
+          publisherReputation: 9.0 - i,
+        ),
+    ];
+    await open(tester, skills: () async => many);
+    expect(find.byKey(const Key('picker-skill-k5')), findsOneWidget);
+    expect(find.byKey(const Key('picker-skill-k6')), findsNothing);
+    expect(find.text('Show more (3)'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('picker-more')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('picker-skill-k8')), findsOneWidget);
+    expect(find.text('Show fewer'), findsOneWidget);
+  });
+
+  testWidgets('a skill shows one recommended service and one main action; the rest is one tap away (#122)', (
+    tester,
+  ) async {
     await open(tester);
     await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
     await tester.pumpAndSettle();
 
     expect(asked, ['skill-sat']);
     expect(find.byKey(const Key('picker-skill-name')), findsOneWidget);
-    expect(find.text(ServiceStrings.servicesTitle.toUpperCase()), findsOneWidget);
+    // One warning about test data, at the top.
+    expect(find.byKey(const Key('skill-test-banner')), findsOneWidget);
+    expect(find.text('Most results are tests. Check before you trust them.'), findsOneWidget);
+    // The best of the ranking is the one card, recommended and chosen.
+    expect(find.byKey(Key('picker-service-$_best')), findsOneWidget);
+    expect(find.byKey(Key('picker-service-$_other')), findsNothing);
+    expect(find.byKey(Key('picker-service-$_found')), findsNothing);
+    expect(
+      find.descendant(of: find.byKey(Key('picker-service-$_best')), matching: find.byKey(const Key('picker-service-recommended'))),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: find.byKey(Key('picker-service-$_best')), matching: find.byKey(const Key('picker-service-chosen'))),
+      findsOneWidget,
+    );
+    expect(find.text('Rating: High'), findsOneWidget);
+    expect(find.text('Other options (2)'), findsOneWidget);
+    expect(find.byType(FilledButton), findsOneWidget);
+    // No hexadecimal id and no raw score before "Details".
+    expect(find.textContaining('aaaaaa'), findsNothing);
+    expect(find.textContaining('0.85'), findsNothing);
+    expect(find.textContaining('benchmark'), findsNothing);
+
+    await tester.tap(find.byKey(Key('picker-service-details-$_best')));
+    await tester.pumpAndSettle();
+    expect(find.text('Service id aaaaaa…aaaa'), findsOneWidget);
+    expect(find.text('Exact rating: 0.85 of 1'), findsOneWidget);
+    expect(find.text('Declared by the publisher'), findsOneWidget);
+    expect(find.textContaining(_best), findsNothing);
+
+    // Copy puts the full id on the clipboard.
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') copied = (call.arguments as Map)['text'] as String;
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    await tester.tap(find.byKey(Key('picker-service-copy-$_best')));
+    await tester.pumpAndSettle();
+    expect(copied, _best);
+  });
+
+  testWidgets('the other options keep the order of the ranking; a service from results only is unverified', (
+    tester,
+  ) async {
+    await open(tester);
+    await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('picker-service-others')));
+    await tester.pumpAndSettle();
     final first = tester.getTopLeft(find.byKey(Key('picker-service-$_best')));
     final second = tester.getTopLeft(find.byKey(Key('picker-service-$_other')));
     final third = tester.getTopLeft(find.byKey(Key('picker-service-$_found')));
     expect(first.dy, lessThan(second.dy));
     expect(second.dy, lessThan(third.dy));
-    expect(find.text(ServiceStrings.serviceScore('0.85')), findsOneWidget);
-    expect(find.text(ServiceStrings.serviceScore('0.52')), findsOneWidget);
-    expect(find.byKey(const Key('picker-best')), findsOneWidget);
-    expect(find.text(ServiceStrings.serviceDeclared), findsNWidgets(2));
-    expect(find.text(ServiceStrings.serviceFromResults), findsOneWidget);
-    // One is chosen, and it is the first.
-    expect(find.byKey(const Key('picker-chosen')), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(Key('picker-service-$_best')),
-        matching: find.byKey(const Key('picker-chosen')),
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Rating: Medium'), findsOneWidget);
+    expect(find.byKey(Key('picker-service-unverified-$_found')), findsOneWidget);
+    expect(find.byKey(Key('picker-service-unverified-$_best')), findsNothing);
+    expect(find.byKey(const Key('picker-service-recommended')), findsOneWidget);
+    expect(find.byKey(const Key('skill-test-banner')), findsOneWidget);
+  });
+
+  test('the levels of a rating', () {
+    expect(serviceRatingOf(0.7), ServiceRating.high);
+    expect(serviceRatingOf(0.69), ServiceRating.medium);
+    expect(serviceRatingOf(0.5), ServiceRating.medium);
+    expect(serviceRatingOf(0.39), ServiceRating.low);
+    expect(shortServiceId('0123456789abcdef'), '012345…cdef');
   });
 
   testWidgets('"Use this service" returns the best one', (tester) async {
@@ -130,12 +212,14 @@ void main() {
     await open(tester);
     await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('picker-service-others')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(Key('picker-service-$_found')));
     await tester.pumpAndSettle();
     expect(
       find.descendant(
         of: find.byKey(Key('picker-service-$_found')),
-        matching: find.byKey(const Key('picker-chosen')),
+        matching: find.byKey(const Key('picker-service-chosen')),
       ),
       findsOneWidget,
     );

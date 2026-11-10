@@ -21,6 +21,7 @@ import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/ui/celaut/launch_failure_sheet.dart';
 import 'package:argus_wallet/ui/celaut/run_service_section.dart';
 import 'package:argus_wallet/ui/celaut/service_info_screen.dart';
+import 'package:argus_wallet/ui/celaut/skill_service_choice.dart';
 import 'package:argus_wallet/ui/celaut/skill_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -260,7 +261,6 @@ void main() {
     ChosenFile? importFile,
     IncomingPackages? incoming,
     bool settle = true,
-    List<RanService> ran = const [],
     Size size = const Size(390, 2400),
   }) async {
     tester.view.physicalSize = size;
@@ -310,7 +310,6 @@ void main() {
               library: (lib ?? _Lib()).library,
               importFile: importFile,
               incoming: incoming ?? IncomingPackages(),
-              runHistory: () => ran,
             ),
         ),
       ),
@@ -350,7 +349,7 @@ void main() {
     if (serviceId != null) {
       // The services beyond the best are folded until the user asks for them.
       if (find.byKey(Key('skill-service-$serviceId')).evaluate().isEmpty) {
-        await tester.tap(find.byKey(const Key('skill-sheet-more')));
+        await tester.tap(find.byKey(const Key('skill-service-others')));
         await tester.pumpAndSettle();
       }
       await tester.tap(find.byKey(Key('skill-service-$serviceId')));
@@ -384,116 +383,74 @@ void main() {
     await tester.tap(find.byKey(const Key('run-skill-run-skill-md')));
     await tester.pumpAndSettle();
     expect(tester.widget<Text>(find.byKey(const Key('skill-sheet-name'))).data, _summary.name);
-    expect(find.byKey(const Key('skill-service-best')), findsOneWidget);
+    expect(find.byKey(const Key('skill-service-recommended')), findsOneWidget);
   });
 
-  group('the store', () {
+  group('the store (#122)', () {
     setUp(() => skills = _catalog);
 
     Rect rectOf(WidgetTester tester, String key) => tester.getRect(find.byKey(Key(key)));
 
-    testWidgets('has its sections, each from its own data, in this order', (tester) async {
-      await open(tester, ran: [(serviceId: _serviceOf('market', 0), name: 'other name')]);
-      List<String> row(String id) => [
-        for (final e in find.descendant(of: find.byKey(Key('store-$id')), matching: find.byType(SkillTile)).evaluate())
-          (e.widget as SkillTile).skill.boxId,
+    /// The skills of the list, from the top.
+    List<String> listed(WidgetTester tester) {
+      final cards = [
+        for (final e in find.byType(SkillCard).evaluate())
+          ((e.widget as SkillCard).skill.boxId, tester.getTopLeft(find.byWidget(e.widget)).dy),
+      ]..sort((a, b) => a.$2.compareTo(b.$2));
+      return [for (final c in cards) c.$1];
+    }
+
+    testWidgets('one list in groups by field: the most backed six first, then "Show more"', (tester) async {
+      await open(tester, size: const Size(390, 3000));
+      expect(listed(tester), ['market', 'reserves', 'satsolver', 'address', 'markdown', 'audit']);
+      final groups = [
+        for (final f in ['finance', 'algorithms', 'blockchain', 'nlp', 'blockchain-security']) rectOf(tester, 'store-group-$f').top,
       ];
-      final featured = [
-        for (final e in find.byType(SkillFeatureCard).evaluate()) (e.widget as SkillFeatureCard).skill.boxId,
-      ];
-      expect(featured, ['market', 'satsolver', 'address', 'markdown', 'audit']);
-      expect(row('suggested'), ['reserves']);
-      expect(row('new'), ['reserves', 'market', 'audit', 'satsolver', 'address', 'markdown', 'satisfiability']);
-      expect(row('popular'), ['market', 'reserves', 'satsolver', 'address', 'markdown', 'audit', 'satisfiability']);
-      final tops = [
-        for (final key in ['store-featured', 'store-suggested', 'store-new', 'store-popular', 'store-categories', 'store-all'])
-          rectOf(tester, key).top,
-      ];
-      expect(tops, orderedEquals([...tops]..sort()));
-      // Every skill is in the list at the end, and every field has a tile.
-      for (final s in _catalog) {
-        expect(find.byKey(Key('run-skill-${s.boxId}')), findsOneWidget);
-        expect(find.byKey(Key('run-field-${s.domain.toLowerCase()}')), findsOneWidget);
+      expect(groups, orderedEquals([...groups]..sort()));
+      expect(find.text('FINANCE'), findsOneWidget);
+      // One way to browse: no featured row, no other row, no grid of fields, no chips.
+      for (final key in ['store-featured', 'store-suggested', 'store-new', 'store-popular', 'store-categories', 'run-category-all']) {
+        expect(find.byKey(Key(key)), findsNothing, reason: key);
       }
-      expect(find.text(appL10n.celautStoreServices(4)), findsWidgets);
-    });
-
-    testWidgets('a section with no data is not shown', (tester) async {
-      skills = [
-        for (final s in _catalog)
-          SkillView(
-            boxId: s.boxId,
-            name: s.name,
-            prose: s.prose,
-            tags: s.tags,
-            domain: s.domain,
-            height: 0,
-            serviceIds: const [],
-            publisherReputation: 0,
-          ),
-      ];
-      await open(tester);
-      for (final id in ['featured', 'suggested', 'new', 'popular']) {
-        expect(find.byKey(Key('store-$id')), findsNothing, reason: id);
-      }
-      expect(find.byKey(const Key('store-categories')), findsOneWidget);
-      expect(find.byKey(Key('run-skill-${_catalog.first.boxId}')), findsOneWidget);
-    });
-
-    testWidgets('no suggestion with no history', (tester) async {
-      await open(tester);
-      expect(find.byKey(const Key('store-suggested')), findsNothing);
-      expect(find.byKey(const Key('store-featured')), findsOneWidget);
-    });
-
-    testWidgets('a search or a field shows its skills only, with no section', (tester) async {
-      await open(tester);
-      await tester.enterText(find.byKey(const Key('run-search')), 'reserves');
+      expect(find.text('Show more (1)'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('store-more')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('store-featured')), findsNothing);
-      expect(find.byKey(const Key('store-all')), findsNothing);
-      expect(find.byKey(const Key('run-skill-reserves')), findsOneWidget);
-      expect(find.byKey(const Key('run-skill-market')), findsNothing);
+      expect(listed(tester).last, 'satisfiability');
+      expect(find.byKey(const Key('store-group-sat')), findsOneWidget);
+      expect(find.text('Show fewer'), findsOneWidget);
+      expect(find.text(appL10n.celautStoreServices(4)), findsOneWidget);
+    });
+
+    testWidgets('a card has its name, one line and its services: no field and no tag', (tester) async {
+      await open(tester, size: const Size(390, 3000));
+      final card = find.byKey(const Key('run-skill-market'));
+      final texts = [
+        for (final t in tester.widgetList<Text>(find.descendant(of: card, matching: find.byType(Text)))) t.data,
+      ];
+      expect(texts, ['M', 'market-strategy', 'About market-strategy.', appL10n.celautStoreServices(4), appL10n.celautRunButton]);
+    });
+
+    testWidgets('a search shows all the skills that match, in their groups', (tester) async {
+      await open(tester, size: const Size(390, 3000));
+      await tester.enterText(find.byKey(const Key('run-search')), 'boolean');
+      await tester.pumpAndSettle();
+      expect(listed(tester), ['satsolver', 'satisfiability']);
+      expect(find.byKey(const Key('store-more')), findsNothing);
+      await tester.enterText(find.byKey(const Key('run-search')), 'blockchain');
+      await tester.pumpAndSettle();
+      expect(listed(tester), ['address', 'audit']);
       await tester.enterText(find.byKey(const Key('run-search')), '');
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('store-featured')), findsOneWidget);
-      // The tile of a field chooses its chip.
-      await tester.ensureVisible(find.byKey(const Key('run-field-blockchain')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('run-field-blockchain')));
-      await tester.pumpAndSettle();
-      expect(tester.widget<ChoiceChip>(find.byKey(const Key('run-category-blockchain'))).selected, isTrue);
-      expect(find.byKey(const Key('store-featured')), findsNothing);
-      expect(find.byKey(const Key('run-skill-address')), findsOneWidget);
-      expect(find.byKey(const Key('run-skill-audit')), findsNothing);
-      // The list starts again from its top.
-      expect(rectOf(tester, 'run-skill-address').top, lessThan(rectOf(tester, 'run-top').bottom + 20));
-    });
-
-    testWidgets('Run on a featured card or a tile opens the services of its skill', (tester) async {
-      await open(tester, ran: [(serviceId: _serviceOf('market', 0), name: '')]);
-      await tester.tap(find.byKey(const Key('store-featured-run-market')));
-      await tester.pumpAndSettle();
-      expect(tester.widget<Text>(find.byKey(const Key('skill-sheet-name'))).data, 'market-strategy');
-      Navigator.of(tester.element(find.byKey(const Key('skill-sheet')))).pop();
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('store-suggested-run-reserves')));
-      await tester.pumpAndSettle();
-      expect(tester.widget<Text>(find.byKey(const Key('skill-sheet-name'))).data, 'proof-of-reserves');
+      expect(listed(tester), hasLength(storeShortList));
     });
 
     for (final scale in [1.0, 1.3]) {
       for (final palette in [argusTheme(watchful: true), argusTheme(watchful: false)]) {
-        testWidgets('on a small phone (360 x 640, font x$scale, ${palette.brightness.name}): featured and '
-            'suggested show with no scroll, and the actions of this phone stay at the top', (tester) async {
+        testWidgets('on a small phone (360 x 640, font x$scale, ${palette.brightness.name}): the first group shows '
+            'with no scroll, and the actions of this phone stay at the top', (tester) async {
           tester.platformDispatcher.textScaleFactorTestValue = scale;
           addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-          await open(
-            tester,
-            size: const Size(360, 640),
-            theme: palette,
-            ran: [(serviceId: _serviceOf('market', 0), name: '')],
-          );
+          await open(tester, size: const Size(360, 640), theme: palette);
           expect(tester.takeException(), isNull);
           final import = rectOf(tester, 'run-import');
           final phone = rectOf(tester, 'run-phone');
@@ -504,13 +461,11 @@ void main() {
           expect(find.descendant(of: find.byKey(const Key('run-import')), matching: find.byType(Text)), findsNothing);
           expect(tester.widget<Tooltip>(find.ancestor(of: find.byKey(const Key('run-phone')), matching: find.byType(Tooltip)).first).message,
               appL10n.celautRunPhoneServices);
-          // Featured and the start of the suggestions are on the screen.
-          expect(rectOf(tester, 'store-featured-market').bottom, lessThan(640));
-          expect(rectOf(tester, 'store-suggested-reserves').top, lessThan(640 - 40));
+          expect(rectOf(tester, 'run-skill-market').bottom, lessThan(640));
           // Scroll far: the actions do not move.
           await tester.drag(find.byKey(const Key('run-list')), const Offset(0, -1500));
           await tester.pumpAndSettle();
-          expect(find.byKey(const Key('store-featured')).hitTestable(), findsNothing);
+          expect(find.byKey(const Key('store-group-finance')).hitTestable(), findsNothing);
           expect(rectOf(tester, 'run-import'), import);
           expect(rectOf(tester, 'run-phone'), phone);
           await tester.tap(find.byKey(const Key('run-phone')));
@@ -526,44 +481,19 @@ void main() {
       expect(find.descendant(of: find.byKey(const Key('run-import')), matching: find.text(appL10n.celautRunImport)), findsOneWidget);
       expect(find.descendant(of: find.byKey(const Key('run-phone')), matching: find.text(appL10n.celautRunOnPhone)), findsOneWidget);
       expect(rectOf(tester, 'run-import').top, lessThan(80));
-      // Three fields in a row of tiles: the most used first, then by name.
-      final fields = [for (final f in ['finance', 'algorithms', 'blockchain']) rectOf(tester, 'run-field-$f')];
-      expect(fields.map((r) => r.top).toSet(), hasLength(1));
-      expect(rectOf(tester, 'run-field-blockchain-security').top, greaterThan(fields.first.bottom));
-      // The list builds what is near the screen only: scroll to the cards.
-      await tester.scrollUntilVisible(
-        find.byKey(Key('run-skill-${_catalog[1].boxId}')),
-        200,
-        scrollable: find.descendant(of: find.byKey(const Key('run-list')), matching: find.byType(Scrollable)).first,
-      );
-      await tester.pumpAndSettle();
-      final first = rectOf(tester, 'run-skill-${_catalog[0].boxId}');
-      final second = rectOf(tester, 'run-skill-${_catalog[1].boxId}');
+      final first = rectOf(tester, 'run-skill-market');
+      final second = rectOf(tester, 'run-skill-reserves');
       expect(second.top, first.top);
       expect(second.left, greaterThan(first.right));
       expect(second.height, first.height);
     });
   });
 
-  testWidgets('the fields of the skills are chips, and a chip shows the skills of its field', (tester) async {
-    await open(tester);
-    expect(find.byKey(const Key('run-category-all')), findsOneWidget);
-    expect(find.byKey(const Key('run-category-algorithms')), findsOneWidget);
-    expect(find.byKey(const Key('run-category-nlp')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('run-category-nlp')));
-    await tester.pump();
-    expect(find.byKey(const Key('run-skill-skill-sat')), findsNothing);
-    expect(find.byKey(const Key('run-skill-skill-md')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('run-category-all')));
-    await tester.pump();
-    expect(find.byKey(const Key('run-skill-skill-sat')), findsOneWidget);
-    expect(find.byKey(const Key('run-skill-skill-md')), findsOneWidget);
-  });
-
-  testWidgets('with no field in the catalog, there are no chips', (tester) async {
+  testWidgets('with no field in the catalog, the skills are one group', (tester) async {
     skills = [for (var i = 0; i < 3; i++) SkillView(boxId: 'skill-$i', name: 'Skill $i', prose: '', tags: const [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0)];
     await open(tester);
-    expect(find.byKey(const Key('run-categories')), findsNothing);
+    expect(find.byKey(const Key('store-group-')), findsOneWidget);
+    expect(find.text(appL10n.celautStoreOtherField.toUpperCase()), findsOneWidget);
     expect(find.byKey(const Key('run-skill-skill-2')), findsOneWidget);
   });
 
@@ -608,11 +538,14 @@ void main() {
     expect(find.byKey(const Key('run-empty')), findsOneWidget);
   });
 
-  testWidgets('every skill of the catalog is listed, not only the first ones', (tester) async {
+  testWidgets('every skill of the catalog is listed after "Show more", not only the first ones', (tester) async {
     skills = [
       for (var i = 0; i < 9; i++) SkillView(boxId: 'skill-$i', name: 'Skill $i', prose: '', tags: const [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0),
     ];
-    await open(tester);
+    await open(tester, size: const Size(390, 3000));
+    expect(find.byKey(const Key('run-skill-skill-6')), findsNothing);
+    await tester.tap(find.byKey(const Key('store-more')));
+    await tester.pumpAndSettle();
     for (var i = 0; i < 9; i++) {
       expect(find.byKey(Key('run-skill-skill-$i')), findsOneWidget);
     }
@@ -634,13 +567,19 @@ void main() {
     await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('skill-sheet')), findsOneWidget);
-    expect(find.byKey(const Key('skill-service-best')), findsOneWidget);
-    // Only the best shows at first; the others are one tap away.
+    expect(find.byKey(const Key('skill-service-recommended')), findsOneWidget);
+    expect(find.byKey(const Key('skill-test-banner')), findsOneWidget);
+    // Only the best shows at first; the others are one tap away. No id and no score yet.
     expect(find.byKey(Key('skill-service-$_best')), findsOneWidget);
     expect(find.byKey(Key('skill-service-$_other')), findsNothing);
-    expect(find.text('${_best.substring(0, 8)}…'), findsOneWidget);
+    expect(find.textContaining(_best.substring(0, 6)), findsNothing);
+    expect(find.textContaining('%'), findsNothing);
+    expect(find.descendant(of: find.byKey(const Key('skill-sheet')), matching: find.byType(FilledButton)), findsOneWidget);
+    await tester.tap(find.byKey(Key('skill-service-details-$_best')));
+    await tester.pumpAndSettle();
+    expect(find.text('Service id ${shortServiceId(_best)}'), findsOneWidget);
     expect(find.text(_best), findsNothing);
-    await tester.tap(find.byKey(const Key('skill-sheet-more')));
+    await tester.tap(find.byKey(const Key('skill-service-others')));
     await tester.pumpAndSettle();
     final best = tester.getTopLeft(find.byKey(Key('skill-service-$_best')));
     final other = tester.getTopLeft(find.byKey(Key('skill-service-$_other')));

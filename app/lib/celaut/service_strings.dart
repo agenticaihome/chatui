@@ -49,23 +49,12 @@ class ServiceStrings {
   // Pick a skill (the catalog)
   static const pickSkill = 'Pick a skill';
   static const skillsTitle = 'Skills';
-  static const skillsIntro =
-      'The skills that publishers put on Ergo. Pick one: the app ranks the services that '
-      'cover it by what they measured and by the reputation of who published them.';
   static const skillsLoading = 'Reading the catalog…';
   static const skillsEmpty = 'The catalog has no skills.';
   static const servicesLoading = 'Reading the services of this skill…';
   static const servicesEmpty = 'No service covers this skill yet.';
-  static const servicesTitle = 'Services, best first';
-  static const bestService = 'Best';
-  static String serviceScore(String score) => 'Score $score';
-  static const serviceDeclared = 'A publisher declared that it covers the skill';
-  static const serviceFromResults = 'Only in the results of a benchmark of the skill';
-  static const useService = 'Use this service';
   static const otherSkill = 'Other skills';
   static const retry = 'Try again';
-  static const testDataNote =
-      'Most results on Ergo today are tests. A high score is not a proof that the service works.';
 
   // Launch (the balancer picks the node)
   static String launched(String address, String cost) =>

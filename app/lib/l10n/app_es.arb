@@ -1646,17 +1646,7 @@
   "celautRunEmpty": "Ninguna habilidad coincide.",
   "celautRunCatalogError": "El catálogo de habilidades no está disponible ahora.",
   "celautRunRetry": "Reintentar",
-  "celautRunServicesTitle": "Servicios con esta habilidad",
   "celautRunNoServices": "Ningún servicio tiene esta habilidad todavía.",
-  "celautRunBest": "Mejor",
-  "celautRunScore": "Puntuación {score}",
-  "@celautRunScore": {
-    "placeholders": {
-      "score": {
-        "type": "String"
-      }
-    }
-  },
   "celautRunButton": "Ejecutar",
   "celautRunLaunching": "Lanzando {name}…",
   "celautRunLaunchingNote": "La app pregunta a los nodos y arranca el servicio en el mejor.",
@@ -2111,31 +2101,10 @@
   "walletSummaryLatest": "Últimas transacciones",
   "walletSummaryNoTransactions": "Aún no hay transacciones",
   "chatSelectText": "Seleccionar texto",
-  "celautRunMoreOptions": "Mostrar {count} opciones más",
-  "@celautRunMoreOptions": {
-    "placeholders": {
-      "count": {
-        "type": "String"
-      }
-    }
-  },
-  "celautRunFewerOptions": "Mostrar menos opciones",
-  "celautRunCategoryAll": "Todas",
   "celautRunOnPhone": "En el móvil",
   "celautRunImport": "Importar",
   "celautRunPhoneServices": "Ejecutar los servicios del móvil",
-  "celautStoreFeatured": "Destacadas",
-  "celautStoreFeaturedHint": "Una habilidad de cada campo, del publicador con más reputación",
-  "celautStoreSuggested": "Sugeridas para ti",
-  "celautStoreSuggestedHint": "En los campos de las habilidades que ejecutaste",
-  "celautStoreNew": "Nuevas",
-  "celautStoreNewHint": "Las últimas habilidades publicadas en Ergo",
-  "celautStorePopular": "Populares",
-  "celautStorePopularHint": "Las habilidades con más servicios",
-  "celautStoreCategories": "Categorías",
-  "celautStoreAll": "Todas las habilidades",
   "celautStoreServices": "{count, plural, =1{1 servicio} other{{count} servicios}}",
-  "celautStoreSkills": "{count, plural, =1{1 habilidad} other{{count} habilidades}}",
   "celautEnvSensitive": "Sensible",
   "celautEnvNotSensitive": "No sensible",
   "celautEnvSensitiveHint": "Una contraseña, una clave o un token. Antes de que un valor sensible vaya a donde otros puedan leerlo, la app te avisa.",
@@ -2657,5 +2626,25 @@
   "descendantsOpenBudgetTooSmall": "El presupuesto no paga ni un flujo.",
   "descendantsOpenConfirm": "Abrir y pagar",
   "serviceInfoWorkloadsInitial": "Primeras instancias que arranca",
-  "serviceInfoWorkloadOr": "o"
+  "serviceInfoWorkloadOr": "o",
+  "celautSkillsIntro": "Elige una habilidad para ver los servicios que la hacen.",
+  "celautStoreOtherField": "Otros",
+  "celautStoreShowMore": "Mostrar más ({count})",
+  "celautStoreShowFewer": "Mostrar menos",
+  "celautSkillAbout": "Sobre esta habilidad",
+  "celautSkillField": "Campo: {field}",
+  "celautSkillTestBanner": "La mayoría de los resultados son pruebas. Compruébalos antes de confiar en ellos.",
+  "celautSkillRecommended": "Recomendado",
+  "celautSkillOtherOptions": "Otras opciones ({count})",
+  "celautSkillRating": "Valoración: {level}",
+  "celautSkillRatingHigh": "Alta",
+  "celautSkillRatingMedium": "Media",
+  "celautSkillRatingLow": "Baja",
+  "celautSkillRatingExact": "Valoración exacta: {score} de 1",
+  "celautSkillDeclared": "Declarado por el publicador",
+  "celautSkillFromResults": "Visto solo en resultados de pruebas, sin declarar por un publicador",
+  "celautSkillUnverified": "Sin verificar",
+  "celautSkillServiceId": "Id del servicio {id}",
+  "celautSkillIdCopied": "Id del servicio copiado",
+  "celautSkillUse": "Usar este servicio"
 }

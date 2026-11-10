@@ -4,15 +4,19 @@ import '../../bridge/api/celaut.dart';
 import '../../bridge/api/celaut_catalog.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/service_strings.dart';
+import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
+import '../home/home_style.dart';
 import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
+import 'skill_service_choice.dart';
 import 'skill_store.dart';
 
 /// Pick a skill of the catalog (`docs/celaut/catalog.md`), then one of the services that
-/// cover it. The services come ranked, best first, and the best is chosen at first. The
-/// screen returns the id of the chosen service (64 hexadecimal characters), or nothing
-/// if the user goes back.
+/// cover it. The skills are in groups by field, the most backed first, with a short list
+/// and "Show more". The services come ranked: the best is recommended and chosen at first,
+/// the others are one tap away ([SkillServiceChoice], issue #122). The screen returns the
+/// id of the chosen service (64 hexadecimal characters), or nothing if the user goes back.
 class SkillPickerScreen extends StatefulWidget {
   const SkillPickerScreen({super.key, this.loadSkills, this.loadServices});
 
@@ -34,6 +38,9 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
   List<SkillServiceView>? _services;
   bool _loadingServices = false;
   String? _chosen;
+
+  /// The whole list of skills is shown, not only the first [storeShortList].
+  bool _showAll = false;
 
   CelautError? _error;
 
@@ -140,22 +147,41 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
   }
 
   List<Widget> _skillList(BuildContext context) {
+    final l = context.l10n;
+    final t = HomeText.of(context);
     final muted = ArgusColors.of(context).muted;
-    final skills = _skills;
+    final ranked = rankSkills(_skills ?? const <SkillView>[]);
+    final cut = !_showAll && ranked.length > storeShortList;
     return [
-      const SettingsNote(ServiceStrings.skillsIntro),
+      SettingsNote(l.celautSkillsIntro),
       if (_loadingSkills)
         const SoftCard(child: Text(ServiceStrings.skillsLoading, key: Key('picker-loading')))
-      else if (skills != null && skills.isEmpty)
+      else if (_skills != null && ranked.isEmpty)
         SoftCard(child: Text(ServiceStrings.skillsEmpty, style: TextStyle(color: muted))),
-      for (final skill in skills ?? const <SkillView>[]) ...[
-        SkillCard(
-          key: Key('picker-skill-${skill.boxId}'),
-          skill: skill,
-          onTap: () => _readServices(skill),
+      for (final g in skillGroups(cut ? ranked.take(storeShortList).toList() : ranked)) ...[
+        Padding(
+          key: Key('picker-group-${g.key}'),
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
         ),
-        const SizedBox(height: 10),
+        for (final skill in g.skills) ...[
+          SkillCard(
+            key: Key('picker-skill-${skill.boxId}'),
+            skill: skill,
+            onTap: () => _readServices(skill),
+          ),
+          const SizedBox(height: 10),
+        ],
       ],
+      if (ranked.length > storeShortList)
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton(
+            key: const Key('picker-more'),
+            onPressed: () => setState(() => _showAll = !_showAll),
+            child: Text(_showAll ? l.celautStoreShowFewer : l.celautStoreShowMore(ranked.length - storeShortList)),
+          ),
+        ),
     ];
   }
 
@@ -168,9 +194,8 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
         key: const Key('picker-skill-name'),
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
       ),
-      const SizedBox(height: 10),
-      const SectionLabel(ServiceStrings.servicesTitle),
-      const SizedBox(height: 10),
+      SkillAbout(skill: skill),
+      const SizedBox(height: 6),
       if (_loadingServices)
         const SoftCard(child: Text(ServiceStrings.servicesLoading, key: Key('picker-loading')))
       else if (services != null && services.isEmpty)
@@ -181,18 +206,21 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
             style: TextStyle(color: muted),
           ),
         ),
-      for (var i = 0; i < (services?.length ?? 0); i++) ...[
-        _serviceCard(context, services![i], best: i == 0),
-        const SizedBox(height: 10),
-      ],
       if (services != null && services.isNotEmpty) ...[
+        const SkillTestDataBanner(),
+        const SizedBox(height: 10),
+        SkillServiceChoice(
+          services: services,
+          chosen: _chosen,
+          onChoose: (id) => setState(() => _chosen = id),
+          keyPrefix: 'picker-service',
+        ),
+        const SizedBox(height: 12),
         FilledButton(
           key: const Key('picker-use'),
           onPressed: _chosen == null ? null : () => Navigator.of(context).pop(_chosen),
-          child: const Text(ServiceStrings.useService),
+          child: Text(context.l10n.celautSkillUse),
         ),
-        const SizedBox(height: 8),
-        Text(ServiceStrings.testDataNote, style: TextStyle(fontSize: 12, color: muted)),
       ],
       const SizedBox(height: 8),
       OutlinedButton(
@@ -201,66 +229,5 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
         child: const Text(ServiceStrings.otherSkill),
       ),
     ];
-  }
-
-  Widget _serviceCard(BuildContext context, SkillServiceView service, {required bool best}) {
-    final muted = ArgusColors.of(context).muted;
-    final chosen = _chosen == service.serviceId;
-    return SoftCard(
-      child: InkWell(
-        key: Key('picker-service-${service.serviceId}'),
-        onTap: () => setState(() => _chosen = service.serviceId),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                chosen ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                size: 20,
-                key: Key(chosen ? 'picker-chosen' : 'picker-not-chosen'),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          ServiceStrings.serviceScore(service.score.toStringAsFixed(2)),
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        if (best) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            ServiceStrings.bestService,
-                            key: const Key('picker-best'),
-                            style: TextStyle(fontSize: 12, color: muted),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    // Not selectable: a selectable text takes the tap that chooses the card.
-                    Text(
-                      service.serviceId,
-                      style: TextStyle(fontSize: 11.5, color: muted, fontFamily: 'monospace'),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      service.direct
-                          ? ServiceStrings.serviceDeclared
-                          : ServiceStrings.serviceFromResults,
-                      style: TextStyle(fontSize: 12, color: muted),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

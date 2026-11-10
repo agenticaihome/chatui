@@ -9551,29 +9551,11 @@ abstract class AppLocalizations {
   /// **'Try again'**
   String get celautRunRetry;
 
-  /// No description provided for @celautRunServicesTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Services with this skill'**
-  String get celautRunServicesTitle;
-
   /// No description provided for @celautRunNoServices.
   ///
   /// In en, this message translates to:
   /// **'No service has this skill yet.'**
   String get celautRunNoServices;
-
-  /// No description provided for @celautRunBest.
-  ///
-  /// In en, this message translates to:
-  /// **'Best'**
-  String get celautRunBest;
-
-  /// No description provided for @celautRunScore.
-  ///
-  /// In en, this message translates to:
-  /// **'Score {score}'**
-  String celautRunScore(String score);
 
   /// No description provided for @celautRunButton.
   ///
@@ -10685,24 +10667,6 @@ abstract class AppLocalizations {
   /// **'Select text'**
   String get chatSelectText;
 
-  /// No description provided for @celautRunMoreOptions.
-  ///
-  /// In en, this message translates to:
-  /// **'Show {count} more options'**
-  String celautRunMoreOptions(String count);
-
-  /// No description provided for @celautRunFewerOptions.
-  ///
-  /// In en, this message translates to:
-  /// **'Show fewer options'**
-  String get celautRunFewerOptions;
-
-  /// No description provided for @celautRunCategoryAll.
-  ///
-  /// In en, this message translates to:
-  /// **'All'**
-  String get celautRunCategoryAll;
-
   /// No description provided for @celautRunOnPhone.
   ///
   /// In en, this message translates to:
@@ -10721,77 +10685,11 @@ abstract class AppLocalizations {
   /// **'Run the services on this phone'**
   String get celautRunPhoneServices;
 
-  /// No description provided for @celautStoreFeatured.
-  ///
-  /// In en, this message translates to:
-  /// **'Featured'**
-  String get celautStoreFeatured;
-
-  /// No description provided for @celautStoreFeaturedHint.
-  ///
-  /// In en, this message translates to:
-  /// **'One skill of each field, from the publisher with the most reputation'**
-  String get celautStoreFeaturedHint;
-
-  /// No description provided for @celautStoreSuggested.
-  ///
-  /// In en, this message translates to:
-  /// **'Suggested for you'**
-  String get celautStoreSuggested;
-
-  /// No description provided for @celautStoreSuggestedHint.
-  ///
-  /// In en, this message translates to:
-  /// **'In the fields of the skills that you ran'**
-  String get celautStoreSuggestedHint;
-
-  /// No description provided for @celautStoreNew.
-  ///
-  /// In en, this message translates to:
-  /// **'New'**
-  String get celautStoreNew;
-
-  /// No description provided for @celautStoreNewHint.
-  ///
-  /// In en, this message translates to:
-  /// **'The last skills published on Ergo'**
-  String get celautStoreNewHint;
-
-  /// No description provided for @celautStorePopular.
-  ///
-  /// In en, this message translates to:
-  /// **'Popular'**
-  String get celautStorePopular;
-
-  /// No description provided for @celautStorePopularHint.
-  ///
-  /// In en, this message translates to:
-  /// **'The skills with the most services'**
-  String get celautStorePopularHint;
-
-  /// No description provided for @celautStoreCategories.
-  ///
-  /// In en, this message translates to:
-  /// **'Categories'**
-  String get celautStoreCategories;
-
-  /// No description provided for @celautStoreAll.
-  ///
-  /// In en, this message translates to:
-  /// **'All skills'**
-  String get celautStoreAll;
-
   /// No description provided for @celautStoreServices.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 service} other{{count} services}}'**
   String celautStoreServices(int count);
-
-  /// No description provided for @celautStoreSkills.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 skill} other{{count} skills}}'**
-  String celautStoreSkills(int count);
 
   /// No description provided for @celautEnvSensitive.
   ///
@@ -12784,6 +12682,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'or'**
   String get serviceInfoWorkloadOr;
+
+  /// No description provided for @celautSkillsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a skill to see the services that do it.'**
+  String get celautSkillsIntro;
+
+  /// No description provided for @celautStoreOtherField.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get celautStoreOtherField;
+
+  /// No description provided for @celautStoreShowMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more ({count})'**
+  String celautStoreShowMore(int count);
+
+  /// No description provided for @celautStoreShowFewer.
+  ///
+  /// In en, this message translates to:
+  /// **'Show fewer'**
+  String get celautStoreShowFewer;
+
+  /// No description provided for @celautSkillAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About this skill'**
+  String get celautSkillAbout;
+
+  /// No description provided for @celautSkillField.
+  ///
+  /// In en, this message translates to:
+  /// **'Field: {field}'**
+  String celautSkillField(String field);
+
+  /// No description provided for @celautSkillTestBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Most results are tests. Check before you trust them.'**
+  String get celautSkillTestBanner;
+
+  /// No description provided for @celautSkillRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get celautSkillRecommended;
+
+  /// No description provided for @celautSkillOtherOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Other options ({count})'**
+  String celautSkillOtherOptions(String count);
+
+  /// No description provided for @celautSkillRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating: {level}'**
+  String celautSkillRating(String level);
+
+  /// No description provided for @celautSkillRatingHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get celautSkillRatingHigh;
+
+  /// No description provided for @celautSkillRatingMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get celautSkillRatingMedium;
+
+  /// No description provided for @celautSkillRatingLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get celautSkillRatingLow;
+
+  /// No description provided for @celautSkillRatingExact.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact rating: {score} of 1'**
+  String celautSkillRatingExact(String score);
+
+  /// No description provided for @celautSkillDeclared.
+  ///
+  /// In en, this message translates to:
+  /// **'Declared by the publisher'**
+  String get celautSkillDeclared;
+
+  /// No description provided for @celautSkillFromResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen only in test results, not declared by a publisher'**
+  String get celautSkillFromResults;
+
+  /// No description provided for @celautSkillUnverified.
+  ///
+  /// In en, this message translates to:
+  /// **'Unverified'**
+  String get celautSkillUnverified;
+
+  /// No description provided for @celautSkillServiceId.
+  ///
+  /// In en, this message translates to:
+  /// **'Service id {id}'**
+  String celautSkillServiceId(String id);
+
+  /// No description provided for @celautSkillIdCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Service id copied'**
+  String get celautSkillIdCopied;
+
+  /// No description provided for @celautSkillUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this service'**
+  String get celautSkillUse;
 }
 
 class _AppLocalizationsDelegate

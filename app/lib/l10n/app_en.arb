@@ -4344,17 +4344,7 @@
   "celautRunEmpty": "No skill matches.",
   "celautRunCatalogError": "The skill catalog is not available now.",
   "celautRunRetry": "Try again",
-  "celautRunServicesTitle": "Services with this skill",
   "celautRunNoServices": "No service has this skill yet.",
-  "celautRunBest": "Best",
-  "celautRunScore": "Score {score}",
-  "@celautRunScore": {
-    "placeholders": {
-      "score": {
-        "type": "String"
-      }
-    }
-  },
   "celautRunButton": "Run",
   "celautRunLaunching": "Launching {name}…",
   "celautRunLaunchingNote": "The app asks the nodes, then starts the service on the best one.",
@@ -4856,39 +4846,11 @@
   "walletSummaryLatest": "Latest transactions",
   "walletSummaryNoTransactions": "No transactions yet",
   "chatSelectText": "Select text",
-  "celautRunMoreOptions": "Show {count} more options",
-  "@celautRunMoreOptions": {
-    "placeholders": {
-      "count": {
-        "type": "String"
-      }
-    }
-  },
-  "celautRunFewerOptions": "Show fewer options",
-  "celautRunCategoryAll": "All",
   "celautRunOnPhone": "On this phone",
   "celautRunImport": "Import",
   "celautRunPhoneServices": "Run the services on this phone",
-  "celautStoreFeatured": "Featured",
-  "celautStoreFeaturedHint": "One skill of each field, from the publisher with the most reputation",
-  "celautStoreSuggested": "Suggested for you",
-  "celautStoreSuggestedHint": "In the fields of the skills that you ran",
-  "celautStoreNew": "New",
-  "celautStoreNewHint": "The last skills published on Ergo",
-  "celautStorePopular": "Popular",
-  "celautStorePopularHint": "The skills with the most services",
-  "celautStoreCategories": "Categories",
-  "celautStoreAll": "All skills",
   "celautStoreServices": "{count, plural, =1{1 service} other{{count} services}}",
   "@celautStoreServices": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "celautStoreSkills": "{count, plural, =1{1 skill} other{{count} skills}}",
-  "@celautStoreSkills": {
     "placeholders": {
       "count": {
         "type": "int"
@@ -5777,5 +5739,67 @@
   "descendantsOpenBudgetTooSmall": "The budget does not pay for one stream.",
   "descendantsOpenConfirm": "Open and pay",
   "serviceInfoWorkloadsInitial": "First instances that it starts",
-  "serviceInfoWorkloadOr": "or"
+  "serviceInfoWorkloadOr": "or",
+  "celautSkillsIntro": "Pick a skill to see the services that do it.",
+  "celautStoreOtherField": "Other",
+  "celautStoreShowMore": "Show more ({count})",
+  "@celautStoreShowMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautStoreShowFewer": "Show fewer",
+  "celautSkillAbout": "About this skill",
+  "celautSkillField": "Field: {field}",
+  "@celautSkillField": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillTestBanner": "Most results are tests. Check before you trust them.",
+  "celautSkillRecommended": "Recommended",
+  "celautSkillOtherOptions": "Other options ({count})",
+  "@celautSkillOtherOptions": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillRating": "Rating: {level}",
+  "@celautSkillRating": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillRatingHigh": "High",
+  "celautSkillRatingMedium": "Medium",
+  "celautSkillRatingLow": "Low",
+  "celautSkillRatingExact": "Exact rating: {score} of 1",
+  "@celautSkillRatingExact": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillDeclared": "Declared by the publisher",
+  "celautSkillFromResults": "Seen only in test results, not declared by a publisher",
+  "celautSkillUnverified": "Unverified",
+  "celautSkillServiceId": "Service id {id}",
+  "@celautSkillServiceId": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillIdCopied": "Service id copied",
+  "celautSkillUse": "Use this service"
 }
