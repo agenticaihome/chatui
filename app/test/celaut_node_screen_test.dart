@@ -267,6 +267,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(api.calls.single, (host: 'node.example', port: 8090, expected: _peerId));
       expect(find.byKey(const Key('celaut-client-id')), findsOneWidget);
+      // No form: it would show the full peer id.
+      expect(find.byKey(const Key('celaut-expected')), findsNothing);
+      expect(find.text(_peerId), findsNothing);
+      expect(find.text('node.example:8090'), findsOneWidget);
+      // "Check now" asks the node again.
+      await tester.tap(find.byKey(const Key('celaut-connect')));
+      await tester.pumpAndSettle();
+      expect(api.calls, hasLength(2));
     });
   });
 

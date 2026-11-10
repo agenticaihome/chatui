@@ -163,6 +163,33 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
   @override
   Widget build(BuildContext context) {
     final info = _info;
+    // The detail of a node of the list: no form (it would show the full peer id), only the
+    // address and "Check now".
+    if (widget.address != null) {
+      return SettingsPage(
+        title: appL10n.celautNodesDetail,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _addressCtrl.text,
+                  key: const Key('celaut-detail-address'),
+                  style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                ),
+              ),
+              TextButton(
+                key: const Key('celaut-connect'),
+                onPressed: _busy ? null : _connect,
+                child: Text(_busy ? CelautStrings.connecting : appL10n.celautNodesCheckNow),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ..._body(context, info),
+        ],
+      );
+    }
     return SettingsPage(
       title: CelautStrings.screenTitle,
       children: [
@@ -206,6 +233,14 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
           ),
         ),
         const SizedBox(height: 24),
+        ..._body(context, info),
+      ],
+    );
+  }
+
+  /// The error, or the advertisement of the node.
+  List<Widget> _body(BuildContext context, PeerInfoView? info) {
+    return [
         if (_errorKind != null) _ErrorCard(kind: _errorKind!, detail: _errorDetail ?? ''),
         // The node forgot the client id: no id shows, only the message and the action.
         if (_errorKind == CelautErrorKind.clientUnknown)
@@ -218,8 +253,7 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
             ),
           ),
         if (info != null) ..._result(context, info),
-      ],
-    );
+    ];
   }
 
   List<Widget> _result(BuildContext context, PeerInfoView info) {
