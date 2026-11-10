@@ -25,7 +25,9 @@ QuoteView _quote(NodeAddress a) => QuoteView(
   initMaintenanceMu: '1',
   maxMaintenanceMu: '1',
   maintenanceSecondsLoop: 10,
-  variance: 0,
+  priceBounded: false,
+  priceVolatility: 0,
+  volatilityPeriodSeconds: 0,
   comparedNanoErg: '1',
   clientBalanceMu: '100',
 );

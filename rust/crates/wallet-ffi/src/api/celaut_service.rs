@@ -333,12 +333,17 @@ pub(crate) fn forget_if_broken_key(key: &str) {
 pub struct QuoteView {
     pub address: NodeAddress,
     pub peer_id: String,
-    /// The cost of the start (charged by StartService), in MU of the node.
+    /// The builds of the start, in MU of the node (nodo#636: no balance). A start adds the
+    /// balance of the instance to it; with no `initial_mu`, the node adds its default.
     pub cost_mu: String,
     pub init_maintenance_mu: String,
     pub max_maintenance_mu: String,
     pub maintenance_seconds_loop: i32,
-    pub variance: f32,
+    /// The node promises that the price of an instance rises at most by
+    /// `price_volatility` in each `volatility_period_seconds` (nodo#636).
+    pub price_bounded: bool,
+    pub price_volatility: f32,
+    pub volatility_period_seconds: i32,
     /// The cost for the comparison in nanoERG, or `None` if the node gives no ERG rate
     /// (then its price is not compared, and it comes last).
     pub compared_nano_erg: Option<String>,
@@ -376,7 +381,9 @@ pub(crate) fn quote_view(address: NodeAddress, peer_id: String, q: &EstimatedCos
         init_maintenance_mu: n(&q.init_maintenance_cost),
         max_maintenance_mu: n(&q.max_maintenance_cost),
         maintenance_seconds_loop: q.maintenance_seconds_loop,
-        variance: q.variance,
+        price_bounded: q.price_bounded,
+        price_volatility: q.price_volatility,
+        volatility_period_seconds: q.volatility_period_seconds,
         compared_nano_erg: None,
         client_balance_mu: String::new(),
     }
@@ -989,8 +996,13 @@ pub struct InstancePlanView {
     pub maintenance_mu: String,
     /// The seconds of one period (0 if unknown).
     pub maintenance_seconds: u32,
-    /// The margin of the node for the difference of the real cost.
-    pub variance: f64,
+    /// The most that the price can rise in one volatility period (0: not bounded).
+    pub volatility: f64,
+    /// The seconds of one volatility period (0: one period for the whole life).
+    pub volatility_period_seconds: u32,
+    /// When the instance started, in seconds since 1970 (`InstanceRecord.started_at`): the
+    /// volatility period of its next maintenance periods comes from it.
+    pub started_at: i64,
     /// The app keeps the instance hibernated. A top-up does not wake it, and the node
     /// charges it for its disk only.
     pub hibernated: bool,
@@ -1017,14 +1029,16 @@ pub fn celaut_instance_plan(instance_id: String) -> Result<InstancePlanView, Cel
     db().read(|d| {
         let r = d.instances.get(&instance_id).ok_or_else(unknown_instance)?;
         let keep = r.keep_alive.as_ref();
-        let (mut maintenance_mu, maintenance_seconds, variance) = match &r.pricing {
-            Some(p) => (
-                p.maintenance_mu.clone(),
-                p.maintenance_seconds,
-                p.variance.parse().unwrap_or(0.0),
-            ),
-            None => (String::new(), 0, 0.0),
-        };
+        let (mut maintenance_mu, maintenance_seconds, volatility, volatility_period_seconds) =
+            match &r.pricing {
+                Some(p) => (
+                    p.maintenance_mu.clone(),
+                    p.maintenance_seconds,
+                    p.volatility.parse().unwrap_or(0.0),
+                    p.volatility_period_seconds,
+                ),
+                None => (String::new(), 0, 0.0, 0),
+            };
         // A hibernated instance costs its disk only: the keep-alive aims at that.
         let hibernated = r.hibernated_at.is_some();
         let price = r.hibernated_price.as_ref().filter(|_| hibernated);
@@ -1042,7 +1056,9 @@ pub fn celaut_instance_plan(instance_id: String) -> Result<InstancePlanView, Cel
                 .unwrap_or_default(),
             maintenance_mu,
             maintenance_seconds,
-            variance,
+            volatility,
+            volatility_period_seconds,
+            started_at: r.started_at,
             hibernated,
             disk_only,
             wake_fee_mu: price.map(|p| p.wake_fee_mu.clone()).unwrap_or_default(),
@@ -1051,13 +1067,15 @@ pub fn celaut_instance_plan(instance_id: String) -> Result<InstancePlanView, Cel
 }
 
 /// Keep the price of the node of an instance, from the quote that won its start, so that
-/// the app can say how long a balance lasts and how much a time costs.
+/// the app can say how long a balance lasts and how much a time costs. `volatility` is the
+/// `price_volatility` of a bounded quote, 0 for one that is not bounded (nodo#636).
 #[flutter_rust_bridge::frb(sync)]
 pub fn celaut_set_instance_pricing(
     instance_id: String,
     maintenance_mu: String,
     maintenance_seconds: u32,
-    variance: f64,
+    volatility: f64,
+    volatility_period_seconds: u32,
 ) -> Result<(), CelautError> {
     if maintenance_mu.parse::<u128>().map_or(true, |m| m == 0) || maintenance_seconds == 0 {
         return Err(invalid("The price of the maintenance is not valid."));
@@ -1068,7 +1086,9 @@ pub fn celaut_set_instance_pricing(
                 r.pricing = Some(InstancePricing {
                     maintenance_mu,
                     maintenance_seconds,
-                    variance: variance.max(0.0).to_string(),
+                    volatility: if volatility.is_finite() { volatility.max(0.0) } else { 0.0 }
+                        .to_string(),
+                    volatility_period_seconds,
                 });
                 true
             }
@@ -1603,7 +1623,7 @@ mod tests {
         use celaut_client::db::HibernatedPrice;
         let id = "plan-hibernated-test".to_string();
         hibernation_record(&id, true);
-        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, 0.0).unwrap();
+        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, 0.0, 0).unwrap();
         // The app has no price of the disk: it uses the awake price and says so.
         let plan = celaut_instance_plan(id.clone()).unwrap();
         assert!(plan.hibernated);
@@ -1850,6 +1870,7 @@ mod tests {
                     peer_id: "ab".repeat(32),
                     token: "token".into(),
                     topped_up_mu: Some("700".into()),
+                    started_at: 1_700_000_000,
                     ..Default::default()
                 },
             );
@@ -1862,13 +1883,17 @@ mod tests {
             ("", 0)
         );
 
-        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, 0.25).unwrap();
+        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, 0.25, 86400).unwrap();
         let plan = celaut_instance_plan(id.clone()).unwrap();
         assert_eq!(plan.maintenance_mu, "1000");
         assert_eq!(plan.maintenance_seconds, 60);
-        assert_eq!(plan.variance, 0.25);
-        assert!(celaut_set_instance_pricing(id.clone(), "0".into(), 60, 0.0).is_err());
-        assert!(celaut_set_instance_pricing(id.clone(), "5".into(), 0, 0.0).is_err());
+        assert_eq!(plan.volatility, 0.25);
+        assert_eq!(plan.volatility_period_seconds, 86400);
+        assert_eq!(plan.started_at, 1_700_000_000);
+        celaut_set_instance_pricing(id.clone(), "1000".into(), 60, f64::NAN, 0).unwrap();
+        assert_eq!(celaut_instance_plan(id.clone()).unwrap().volatility, 0.0);
+        assert!(celaut_set_instance_pricing(id.clone(), "0".into(), 60, 0.0, 0).is_err());
+        assert!(celaut_set_instance_pricing(id.clone(), "5".into(), 0, 0.0, 0).is_err());
 
         // The count starts at the 700 MU that were already moved.
         celaut_set_keep_alive(id.clone(), true, Some(" 5000 ".into())).unwrap();

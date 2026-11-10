@@ -56,9 +56,10 @@ What the port does, in the order of nodo (`request_misfit`):
 
 ```
 vcnorm(c, v)  = trunc(c * (1 + v * k))                 k = COST_AVERAGE_VARIATION = 1
-per_hour(a)   = 0 if s <= 0 else trunc(vcnorm(a, variance) * 3600 / s)
+v             = price_volatility if price_bounded, else 0 (nodo#636; not finite or < 0: 0)
+per_hour(a)   = 0 if s <= 0 else trunc(vcnorm(a, v) * 3600 / s)
                 s = maintenance_seconds_loop
-cost_mu       = trunc(vcnorm(cost, variance)
+cost_mu       = trunc(vcnorm(cost, v)
                       + mean(per_hour(init_maintenance_cost), per_hour(max_maintenance_cost)))
 
 score         = +inf if cost_mu <= 0
@@ -94,23 +95,50 @@ TTL 10 s, at most 4096 entries, LRU. Key = sha256 over namespace `"peer-quote"`,
 peer id, the configuration in the node's MU and the metadata with sorted hashes
 (each part: length as 8-byte big endian, then bytes).
 
+The quotes that promise a price bound (`price_bounded`) come first, then the score, as in
+nodo (#636, G); the same for the quotes that cannot be compared.
+
+## The start balance of a launch (2026-11-10, issue #119, nodo#636)
+
+The app has no balance of its own: before, it asked every quote with a fixed balance of
+1 000 000 MU (the default of a field of the service debug screen) and started with that.
+That was about 3 minutes of a service at 18M MU per hour, the same for a small and a large
+service, and a parent that starts a child from its balance could run dry first.
+
+A quote is asked with no `initial_mu`. Its `cost` is the builds only (the service and its
+initial children; nodo#636), and a node charges `init_maintenance_cost` once each
+`maintenance_seconds_loop`, at most `init × (1 + price_volatility)^k` in the volatility period
+`k` (`volatility_period_seconds`). The start adds the balance:
+
+- **No time** (the time field empty, or "until I stop it"): the start has no `initial_mu`.
+  The node charges `cost` plus the funding of its `deposits.DEFAULT_INITIAL_PERIODS` periods
+  (360 by default), as for `nodo execute`. The confirmation shows the build and says that the
+  node chooses the balance.
+- **A time `T`**: `initial_mu = cost + balance(q, T)` on each node, at the price of that node
+  (`launcher.dart`, `startMuFor`). One round of quotes.
+- balance(q, T) = funding_sum(ceil(T / loop) + 1), where funding_sum(N) = ceil(Σ_{i=1..N}
+  init × (1 + v)^k(i)), k(i) = floor(i × loop / T_v) + 1 (1 when T_v = 0), v = 0 for a quote
+  that is not bounded: nodo's `price_bound.funding_sum_mu` (`maintenance_price.dart`). The
+  extra period is the one that runs at the end. The float32 `price_volatility` is read as
+  the decimal that it was written as (0.1, not 0.10000000149), as nodo's `_rounded`.
+- A node that gives no price per period (loop 0, or no amount) gets no `initial_mu`: the
+  node chooses its default balance. This is the fallback balance of issue #119.
+- The credit check before a start compares the credit of the client with
+  `cost + balance(q, T)`, or with `cost` when the node chooses.
+- The service debug screen keeps a balance field, empty by default; a typed balance is added
+  to the `cost` of each node (`balanceMu`).
+- A node gives back what the instance did not use at the stop.
+
+Open for nodo: with no `initial_mu`, a parent gets `cost + funding_sum(360)` of its own
+price, but it starts each initial child with the default of the child, which can be more
+(nodo#637 e2e, 2026-11-09: parent 5 586 372 MU, child default 5 747 148 MU → "Insufficient
+balance", the child does not start). The app cannot fix this: the quote does not say what
+the children take after their builds. A time long enough funds the child.
+
 ## The least time of a launch (2026-10-23, Josemi)
 
-The confirmation of a launch has a field: the least time that the instance must run. A
-quote is the build plus the start balance that the request asks for (nodo #563), and a node
-charges `init_maintenance_cost` once each `maintenance_seconds_loop`. So for a time `T`:
-
-- balance(q, T) = (ceil(T / loop) + 1) × ceil(init_maintenance × (1 + variance)). The extra
-  period is the one that runs at the end; `1 + variance` is nodo's
-  `variance_cost_normalization` with k = 1 (`launcher.dart`, `survivalBalanceMu`).
-- The launch asks the nodes once with the default balance (1 000 000 MU) to learn their
-  prices, then again with the largest balance(q, T) of the quotes. Each node then quotes
-  the build plus that balance, and the start pays that quote. A node gives back what the
-  instance did not use at the stop.
-- The confirmation shows the estimate for the best node before any second quote: its
-  quote less the default balance, plus balance(q, T). With no time, it shows the default
-  balance and how long that lasts on the best node.
-- A node that gives no price per period (loop 0, or no amount) gets the default balance.
+The confirmation of a launch has a field: the least time that the instance must run. The
+start balance for that time is balance(q, T) above.
 - The time holds at the price of the quote. nodo prices each maintenance period against the
   load of its host at that moment (a scarcity surcharge, up to the `scarcity_max_multiplier`
   that it advertises), and it takes the tunnel connections (`TUNNEL_OPEN_MU`) and their
@@ -126,14 +154,12 @@ be from 1 minute to 30 days.
 
 A service can declare the children that it starts at its start
 (`Service.initial_environment_workload`). The parent pays the start of each child from its own
-balance, and the node puts that amount in the `cost` of its quote: `cost` is the build, the
-balance that the quote was asked with, and the starts of the initial children. There is no
-separate field (nodo#635, at Josemi's request: the client has nothing to do with the split).
-So the app has nothing to add: every start sends the `cost` of the winning quote, the score
-and the credit check use `cost`, and keep running counts the whole balance as before. A node
-with `ON_UNDERFUNDED=reject` (the default) refuses a start whose balance after the build cannot
-pay the children and one period of the parent; a start funded with the `cost` of a quote of
-that node passes. The info page of a service lists the first instances that it starts
+balance. Since nodo#636 the `cost` of a quote is the builds of the parent and of its initial
+children, with no balance; the parent funds the balance of each child (its default, when the
+parent sends no `initial_mu`) from the balance that the start gave it. There is no separate
+field (nodo#635, at Josemi's request: the client has nothing to do with the split). The app
+sends `cost + balance(q, T)` for a time, or no `initial_mu`, as for any service (see "The start
+balance of a launch", and its open point for nodo). The info page of a service lists the first instances that it starts
 (`initial_environment_workload`) apart from the ones that it can start later.
 
 ## Priority of the user (node reputation)

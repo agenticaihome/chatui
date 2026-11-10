@@ -19,9 +19,8 @@ class ServiceStrings {
   static const nodesHint = 'One host:port on each line. Empty: the nodes of the Nodes list';
   static const serviceLabel = 'Service id';
   static const serviceHint = '64 hexadecimal characters';
-  static const initialLabel = 'Start balance in MU (optional)';
-  static const initialHint = 'Empty: the default of the node, one hour of resources';
-  static const initialDefault = '1000000';
+  static const initialLabel = 'Balance in MU, added to the cost (optional)';
+  static const initialHint = 'Empty: the node chooses the balance (its default periods)';
   static const quote = 'Get quotes';
   static const launch = 'Launch on the best node';
   static const launching = 'Launching…';
