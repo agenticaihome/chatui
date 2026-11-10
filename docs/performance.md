@@ -250,3 +250,38 @@ its bytes (`copied`) and can be cancelled (`cancelCopy`). The card says "Reading
 file…" during the copy and "Checking the service file…" during the check; the rocket rises over
 both. The launch (its rocket shows before the first call to a node) and the transfer of a
 service to a node (its card shows before the transfer) did not have the problem.
+
+## 7. Keys lost when the user types fast (November 2026, issue #121)
+
+**What it was.** The keyboard of the app (the default of the chat) put 3 dp of empty space
+around the cap of each key, and 4 dp around the keyboard. That space was not part of a key, so
+a tap there did nothing: on a phone of 360 dp, about a quarter of the area of the keyboard.
+A slow typist aims at the middle of the caps; a fast one does not, and lost the keys that
+landed between two caps. The speed itself did not lose keys.
+
+**How it was found.** On the emulator (`chatui-x86`, 1080 × 2400, 420 dpi), a script taps
+"the quick brown fox jumps over the lazy dog" (43 keys) in one `adb shell` command, about
+25 ms a key. Each finger lands anywhere within half a key pitch of the middle of the key it
+aims at, so the point is always nearer to that key than to any other. Six runs with fixed
+seeds (258 keys):
+
+| Build | Taps in the middle of the caps | Taps anywhere in the place of the key |
+|---|---|---|
+| Before (master 0.1.39) | 0 lost | 62 lost (24 %), for example "Th quick brown ox jps overhe z dog" |
+| After | 0 lost | 0 lost, 0 wrong |
+
+The other paths did not lose keys, before or after: `adb shell input text` bursts (up to
+216 characters in 1.5 s) with the keyboard of the app and with the keyboard of the system
+(LatinIME, "Use the system keyboard" on). The chat never writes the text back while the
+user types: the draft is kept in memory and does not change the field, and no listener
+sets the value of the field (a test checks that no `TextInput.setEditingState` goes to the
+input method during a fast stream of composing updates).
+
+**The fix (`virtual_keyboard.dart`).** A key takes the taps on all its place: the space
+around its cap is inside the `Listener` of the key, and the keyboard has no padding of its
+own. The keys touch, so every point of the keyboard types the nearest key. The caps look
+the same: 6 dp between two caps; at the edges of the keyboard 3 dp in place of 7 dp, so the
+caps are a little wider and the keyboard is 8 dp lower. The tests
+`celaut_virtual_keyboard_test.dart` and `celaut_chat_screen_test.dart` type with two thumbs
+(the next finger goes down before the last one is up, with no frame between the keys) at
+random points of the place of each key, and fail on the old keyboard.
