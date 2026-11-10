@@ -428,6 +428,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   NodeUriView dco_decode_node_uri_view(dynamic raw);
 
   @protected
+  OnCloseView dco_decode_on_close_view(dynamic raw);
+
+  @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
@@ -1076,6 +1079,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NodeUriView sse_decode_node_uri_view(SseDeserializer deserializer);
+
+  @protected
+  OnCloseView sse_decode_on_close_view(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -1922,6 +1928,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_node_uri_view(NodeUriView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_on_close_view(OnCloseView self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);

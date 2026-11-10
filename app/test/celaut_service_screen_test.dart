@@ -24,6 +24,8 @@ final _cheap = 'aa' * 32;
 final _dear = 'bb' * 32;
 
 QuoteView _quote(String peer, int port, String cost, String? compared) => QuoteView(
+  closesAt: 0,
+  onClose: OnCloseView.refuse,
   address: NodeAddress(host: '127.0.0.1', port: port),
   peerId: peer,
   costMu: cost,
@@ -131,6 +133,7 @@ void main() {
       quotes: [_quote(_cheap, 18460, '1000000', '5316400'), _quote(_dear, 18461, '9000000', null)],
       failures: [
         QuoteFailureView(
+          opensAt: 0,
           address: const NodeAddress(host: 'down.example', port: 9000),
           kind: CelautErrorKind.unreachable,
           message: 'connection refused',

@@ -103,7 +103,8 @@ class MaintenancePrice {
     }
     // Rounded up, as nodo's exact sum; a sum within a relative 1e-12 of a whole MU is that MU, so
     // the error of the floating point (1.1 * 1.1 = 1.2100000000000002) adds no MU.
-    return BigInt.from((total * (1 - 1e-12)).ceil());
+    // ceilToDouble: `ceil()` gives an int, which stops at 2^63 - 1.
+    return BigInt.from((total * (1 - 1e-12)).ceilToDouble());
   }
 
   int _periods(Duration time) {

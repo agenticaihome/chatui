@@ -20,6 +20,8 @@ typedef PricingCall = void Function({
   required int maintenanceSeconds,
   required double volatility,
   required int volatilityPeriodSeconds,
+  required int closesAt,
+  required OnCloseView onClose,
 });
 
 /// Turn "run until I stop it" on for a started instance (`celautSetKeepAlive`).
@@ -160,6 +162,10 @@ List<NodeAddress> knownNodeAddresses(List<KnownNodeView> known) {
   return nodes;
 }
 
+/// `deposits.DEFAULT_INITIAL_PERIODS` of nodo (default 360): the maintenance periods that
+/// a node funds for a start with no `initial_mu`. A node can set another number.
+const nodeDefaultPeriods = 360;
+
 /// The longest minimum time of a launch: 30 days.
 const maxMinSurvival = Duration(days: 30);
 
@@ -207,12 +213,23 @@ BigInt? startMuFor(QuoteView quote, Duration? minSurvival, {BigInt? balanceMu}) 
 
 /// False if the credit of the client on the node of [q] is less than what the start
 /// takes: [startMu], or, when the node chooses the balance, at least the `cost` of the
-/// quote. Then [launchService] does not ask the node to start, and the node never reads
-/// the values.
+/// quote plus one maintenance period: the least balance with which a node starts a
+/// service (nodo#636, `start_funding.minimum_runtime_mu`). The node then adds its default
+/// balance (`deposits.DEFAULT_INITIAL_PERIODS` periods, which the app cannot know), so a
+/// node may still refuse a credit above this. Then [launchService] does not ask the node
+/// to start, and the node never reads the values.
 bool wouldAskToStart(QuoteView q, {BigInt? startMu}) {
   final credit = BigInt.tryParse(q.clientBalanceMu);
-  final need = startMu ?? BigInt.tryParse(q.costMu);
+  final need = startMu ?? _leastStartMu(q);
   return !(credit != null && need != null && credit < need);
+}
+
+/// The `cost` of [q] plus the funding of one maintenance period, or the `cost` alone if
+/// the quote gives no maintenance price.
+BigInt? _leastStartMu(QuoteView q) {
+  final cost = BigInt.tryParse(q.costMu);
+  if (cost == null) return null;
+  return cost + (survivalBalanceMu(q, Duration.zero) ?? BigInt.zero);
 }
 
 /// A node whose last checks failed this many times in a row is left out of the quotes.
@@ -378,6 +395,10 @@ void _keepPlan(
         maintenanceSeconds: quote.maintenanceSecondsLoop,
         volatility: quoteVolatility(quote),
         volatilityPeriodSeconds: quote.volatilityPeriodSeconds,
+        // What the node said about its activity window (nodo#344): the info page warns
+        // when the node stops the instance at its next close.
+        closesAt: quote.closesAt,
+        onClose: quote.onClose,
       );
     }
     if (keepAlive) setKeepAlive(instanceId: instanceId, enabled: true, budgetMu: budgetMu);

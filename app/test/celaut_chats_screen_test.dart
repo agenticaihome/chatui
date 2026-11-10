@@ -271,6 +271,8 @@ void main() {
             node.db.add(started);
             return LaunchOutcome(
               quote: QuoteView(
+                closesAt: 0,
+                onClose: OnCloseView.refuse,
                 address: const NodeAddress(host: 'node.example', port: 53460),
                 peerId: 'aa' * 32,
                 costMu: '1000',

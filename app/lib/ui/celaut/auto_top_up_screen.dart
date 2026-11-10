@@ -125,6 +125,8 @@ class _AutoTopUpScreenState extends State<AutoTopUpScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(l.celautTopUpNote, key: const Key('top-up-note'), style: t.secondary),
+                  const SizedBox(height: 12),
+                  Text(l.celautTopUpWindowNote, key: const Key('top-up-window-note'), style: t.secondary),
                 ],
               ),
       ),

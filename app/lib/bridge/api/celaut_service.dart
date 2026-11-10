@@ -8,9 +8,9 @@ import 'celaut.dart';
 import 'celaut_env.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `address_of_key`, `already_hibernated`, `awake_view`, `check`, `close_ports`, `configuration`, `cost_so_far`, `forget_if_broken_key`, `forget_if_broken`, `hibernation_view`, `instance`, `key`, `mark_gone_if_hibernated`, `n`, `new_client_session`, `not_hibernated`, `open_session`, `preferred_port`, `quote_view`, `refusal_view`, `refused_view`, `resources_view`, `service_id`, `session_pinned`, `session_with`, `session`, `source_view`, `spent_since`, `start_configuration`, `state_of`, `state`, `stopped_instance`, `unknown_instance`
+// These functions are ignored because they are not marked as `pub`: `address_of_key`, `already_hibernated`, `awake_view`, `check`, `close_ports`, `configuration`, `cost_so_far`, `forget_if_broken_key`, `forget_if_broken`, `from_name`, `hibernation_view`, `instance`, `key`, `mark_gone_if_hibernated`, `n`, `name`, `new_client_session`, `not_hibernated`, `of`, `open_session`, `opens_at_of`, `preferred_port`, `quote_view`, `refusal_view`, `refused_view`, `resources_view`, `service_id`, `session_pinned`, `session_with`, `session`, `source_view`, `spent_since`, `start_configuration`, `state_of`, `state`, `stopped_instance`, `unknown_instance`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `State`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 // These functions are ignored (category: IgnoreBecauseOwnerTyShouldIgnore): `default`
 
 /// Make a new client on the node, after the node forgot the stored client id and the
@@ -18,6 +18,13 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 /// deposits of the node and its limit stay in the database.
 Future<NewClientView> celautNewClient({required NodeAddress node}) =>
     RustLib.instance.api.crateApiCelautServiceCelautNewClient(node: node);
+
+/// When the node of `node` opens again, by the activity window that it announced
+/// (nodo#344): the unix time in seconds, or 0 if the app does not know (no connection,
+/// no schedule, or the schedule says that it is open). For a start that the node refused
+/// because it is closed.
+PlatformInt64 celautNodeOpensAt({required NodeAddress node}) =>
+    RustLib.instance.api.crateApiCelautServiceCelautNodeOpensAt(node: node);
 
 /// Ask each node for the price of the service, and give the quotes best first
 /// (`docs/celaut/balancer.md`). The nodes must already have the service.
@@ -119,18 +126,24 @@ InstancePlanView celautInstancePlan({required String instanceId}) => RustLib
 /// Keep the price of the node of an instance, from the quote that won its start, so that
 /// the app can say how long a balance lasts and how much a time costs. `volatility` is the
 /// `price_volatility` of a bounded quote, 0 for one that is not bounded (nodo#636).
+/// `closes_at` and `on_close` are what the quote said about the activity window of the
+/// node (nodo#344): the app warns when the node stops the instance at its next close.
 void celautSetInstancePricing({
   required String instanceId,
   required String maintenanceMu,
   required int maintenanceSeconds,
   required double volatility,
   required int volatilityPeriodSeconds,
+  required PlatformInt64 closesAt,
+  required OnCloseView onClose,
 }) => RustLib.instance.api.crateApiCelautServiceCelautSetInstancePricing(
   instanceId: instanceId,
   maintenanceMu: maintenanceMu,
   maintenanceSeconds: maintenanceSeconds,
   volatility: volatility,
   volatilityPeriodSeconds: volatilityPeriodSeconds,
+  closesAt: closesAt,
+  onClose: onClose,
 );
 
 /// Turn "run until I stop it" on or off for a running instance (Josemi, 2026-10-29).
@@ -442,6 +455,13 @@ class InstancePlanView {
   /// hibernated instance needs it in its balance (empty if the app does not know it).
   final String wakeFeeMu;
 
+  /// The next close of the activity window of the node, in unix seconds, from the quote
+  /// of the start (nodo#344); 0 if none was scheduled, or the app does not know.
+  final PlatformInt64 closesAt;
+
+  /// What the node said that it does with the instance when its window closes.
+  final OnCloseView onClose;
+
   const InstancePlanView({
     required this.keepAlive,
     required this.budgetMu,
@@ -454,6 +474,8 @@ class InstancePlanView {
     required this.hibernated,
     required this.diskOnly,
     required this.wakeFeeMu,
+    required this.closesAt,
+    required this.onClose,
   });
 
   @override
@@ -468,7 +490,9 @@ class InstancePlanView {
       startedAt.hashCode ^
       hibernated.hashCode ^
       diskOnly.hashCode ^
-      wakeFeeMu.hashCode;
+      wakeFeeMu.hashCode ^
+      closesAt.hashCode ^
+      onClose.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -485,7 +509,9 @@ class InstancePlanView {
           startedAt == other.startedAt &&
           hibernated == other.hibernated &&
           diskOnly == other.diskOnly &&
-          wakeFeeMu == other.wakeFeeMu;
+          wakeFeeMu == other.wakeFeeMu &&
+          closesAt == other.closesAt &&
+          onClose == other.onClose;
 }
 
 /// The state of an instance that the app keeps (the node has no call that says
@@ -641,20 +667,40 @@ class NodeAddress {
           port == other.port;
 }
 
+/// What a node does with a running instance when its activity window closes
+/// (`EstimatedCost.on_close`, nodo#344).
+enum OnCloseView {
+  /// It leaves the instance running, and refuses new work until it opens. Also the
+  /// value of an older node, and of a value that the app does not know.
+  refuse,
+
+  /// It stops the instance and refunds the balance.
+  stop,
+
+  /// It hibernates the instance, and wakes it when it opens.
+  hibernate,
+}
+
 /// A node that gave no quote.
 class QuoteFailureView {
   final NodeAddress address;
   final CelautErrorKind kind;
   final String message;
 
+  /// With [`CelautErrorKind::NodeClosed`]: the unix time, in seconds, at which the
+  /// schedule that the node announced opens next; 0 if it is not known (nodo#344).
+  final PlatformInt64 opensAt;
+
   const QuoteFailureView({
     required this.address,
     required this.kind,
     required this.message,
+    required this.opensAt,
   });
 
   @override
-  int get hashCode => address.hashCode ^ kind.hashCode ^ message.hashCode;
+  int get hashCode =>
+      address.hashCode ^ kind.hashCode ^ message.hashCode ^ opensAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -663,7 +709,8 @@ class QuoteFailureView {
           runtimeType == other.runtimeType &&
           address == other.address &&
           kind == other.kind &&
-          message == other.message;
+          message == other.message &&
+          opensAt == other.opensAt;
 }
 
 /// One quote, in the MU of the node and, if the node gives an ERG rate, in nanoERG. An
@@ -685,6 +732,13 @@ class QuoteView {
   final double priceVolatility;
   final int volatilityPeriodSeconds;
 
+  /// The unix time of the next close of the activity window of the node, in seconds; 0
+  /// if none is scheduled (nodo#344). Not a promise of a long life when it is 0.
+  final PlatformInt64 closesAt;
+
+  /// What the node does with a running instance when the window closes.
+  final OnCloseView onClose;
+
   /// The cost for the comparison in nanoERG, or `None` if the node gives no ERG rate
   /// (then its price is not compared, and it comes last).
   final String? comparedNanoErg;
@@ -704,6 +758,8 @@ class QuoteView {
     required this.priceBounded,
     required this.priceVolatility,
     required this.volatilityPeriodSeconds,
+    required this.closesAt,
+    required this.onClose,
     this.comparedNanoErg,
     required this.clientBalanceMu,
   });
@@ -719,6 +775,8 @@ class QuoteView {
       priceBounded.hashCode ^
       priceVolatility.hashCode ^
       volatilityPeriodSeconds.hashCode ^
+      closesAt.hashCode ^
+      onClose.hashCode ^
       comparedNanoErg.hashCode ^
       clientBalanceMu.hashCode;
 
@@ -736,6 +794,8 @@ class QuoteView {
           priceBounded == other.priceBounded &&
           priceVolatility == other.priceVolatility &&
           volatilityPeriodSeconds == other.volatilityPeriodSeconds &&
+          closesAt == other.closesAt &&
+          onClose == other.onClose &&
           comparedNanoErg == other.comparedNanoErg &&
           clientBalanceMu == other.clientBalanceMu;
 }

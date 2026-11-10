@@ -4,9 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../bridge/api/celaut_service.dart';
 import '../../celaut/celaut_format.dart';
+import '../../celaut/closing.dart';
 import '../../celaut/launcher.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
+import 'closing_text.dart';
 
 /// What the user chose in the confirmation of a launch.
 class RunChoice {
@@ -162,6 +164,30 @@ class _RunConfirmDialogState extends State<_RunConfirmDialog> {
     );
   }
 
+  /// What the node of [best] does at the next close of its activity window (nodo#344),
+  /// in the color of an error when the close comes before the instance would end: the
+  /// time that the user chose, the default periods of the node, or never ("until I stop
+  /// it").
+  List<Widget> _closing(BuildContext context, QuoteView best, Duration? survival) {
+    final note = closingNote(context, best.closesAt, best.onClose);
+    if (note == null) return const [];
+    final life = _keepAlive
+        ? null
+        : survival ?? Duration(seconds: nodeDefaultPeriods * best.maintenanceSecondsLoop);
+    final inside = closesBefore(best.closesAt, life, DateTime.now());
+    final keepStop = _keepAlive ? keepStopNote(context, best.closesAt, best.onClose) : null;
+    final text = keepStop ?? (inside ? '$note ${context.l10n.celautCloseBeforeTime}' : note);
+    final t = HomeText.of(context);
+    return [
+      const SizedBox(height: 4),
+      Text(
+        text,
+        key: const Key('run-confirm-closing'),
+        style: inside ? t.secondary.copyWith(color: Theme.of(context).colorScheme.error) : t.secondary,
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
@@ -249,6 +275,13 @@ class _RunConfirmDialogState extends State<_RunConfirmDialog> {
                     ] else if (!wrong) ...[
                       const SizedBox(height: 4),
                       Text(_estimate(context, best), key: const Key('run-confirm-survival'), style: t.secondary),
+                    ],
+                    ..._closing(context, best, survival),
+                    // nodo#636: a node that promises no price bound can charge more later;
+                    // the figures are at the price of the quote.
+                    if (!best.priceBounded && quotePrice(best) != null) ...[
+                      const SizedBox(height: 4),
+                      Text(l.celautRunNotBounded, key: const Key('run-confirm-unbounded'), style: t.secondary),
                     ],
                   ],
                 );

@@ -98,6 +98,8 @@ List<SkillServiceView> _ranked() => [
 ];
 
 QuoteView _quote({String credit = '', String cost = '1000000'}) => QuoteView(
+  closesAt: 0,
+  onClose: OnCloseView.refuse,
   address: const NodeAddress(host: '127.0.0.1', port: 18460),
   peerId: 'aa' * 32,
   costMu: cost,
@@ -624,10 +626,55 @@ void main() {
     expect(launched, [_best]);
   });
 
+  testWidgets('the confirmation says when the node closes, in red inside the time (nodo#344)', (tester) async {
+    // The node stops its instances at its next close, in 2 hours.
+    final closesAt = DateTime.now().add(const Duration(hours: 2)).millisecondsSinceEpoch ~/ 1000;
+    final best = QuoteView(
+      closesAt: closesAt,
+      onClose: OnCloseView.stop,
+      address: const NodeAddress(host: '127.0.0.1', port: 18460),
+      peerId: 'aa' * 32,
+      costMu: '300',
+      initMaintenanceMu: '100',
+      maxMaintenanceMu: '100',
+      maintenanceSecondsLoop: 60,
+      priceBounded: false,
+      priceVolatility: 0,
+      volatilityPeriodSeconds: 0,
+      comparedNanoErg: '1',
+      clientBalanceMu: '',
+    );
+    await open(tester, preview: best);
+    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('skill-sheet-run')));
+    await tester.pumpAndSettle();
+    final error = Theme.of(tester.element(find.byKey(const Key('run-confirm')))).colorScheme.error;
+    Text closing() => tester.widget<Text>(find.byKey(const Key('run-confirm-closing')));
+    // 30 minutes: the close comes after, so it is said in the plain color.
+    await tester.enterText(find.byKey(const Key('run-confirm-minutes')), '30');
+    await tester.pump();
+    expect(closing().data, contains('stops the instance'));
+    expect(closing().style?.color, isNot(error));
+    // 3 hours: it closes before the time ends.
+    await tester.enterText(find.byKey(const Key('run-confirm-minutes')), '180');
+    await tester.pump();
+    expect(closing().data, contains(appL10n.celautCloseBeforeTime));
+    expect(closing().style?.color, error);
+    // The quote promises no price bound: the figures are an estimate.
+    expect(find.byKey(const Key('run-confirm-unbounded')), findsOneWidget);
+    // "Until I stop it": keep-alive cannot keep it past the close.
+    await tester.tap(find.text(appL10n.celautRunModeKeep));
+    await tester.pumpAndSettle();
+    expect(closing().data, contains('Keep running'));
+  });
+
   testWidgets('the confirmation asks for the least time, and the launch uses it', (tester) async {
     // 100 MU each 60 s on the best node, and a quote of 300 MU: the builds, with no
     // balance (nodo#636).
     final best = QuoteView(
+      closesAt: 0,
+      onClose: OnCloseView.refuse,
       address: const NodeAddress(host: '127.0.0.1', port: 18460),
       peerId: 'aa' * 32,
       costMu: '300',
@@ -675,6 +722,8 @@ void main() {
   group('the mode until I stop it', () {
     // 100 MU each 60 s, a client credit of 10,000 MU on the best node.
     final best = QuoteView(
+      closesAt: 0,
+      onClose: OnCloseView.refuse,
       address: const NodeAddress(host: '127.0.0.1', port: 18460),
       peerId: 'aa' * 32,
       costMu: '300',
@@ -902,6 +951,7 @@ void main() {
       LaunchFailureKind.allFailed,
       quoteFailures: [
         QuoteFailureView(
+          opensAt: 0,
           address: const NodeAddress(host: 'q.example', port: 9),
           kind: CelautErrorKind.serviceMissing,
           message: 'This node does not have the service ab',
@@ -1306,12 +1356,14 @@ void main() {
       LaunchFailureKind.noQuotes,
       quoteFailures: [
         QuoteFailureView(
+          opensAt: 0,
           address: const NodeAddress(host: 'q.example', port: 9),
           kind: CelautErrorKind.serviceMissing,
           message: 'This node does not have the service',
         ),
         if (holder)
           QuoteFailureView(
+            opensAt: 0,
             address: const NodeAddress(host: 'h.example', port: 7),
             kind: CelautErrorKind.noRoom,
             message: 'This node cannot run the service right now',

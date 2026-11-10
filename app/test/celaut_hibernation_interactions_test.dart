@@ -49,6 +49,8 @@ InstancePlanView _plan({
   String budget = '',
   String spent = '',
 }) => InstancePlanView(
+  closesAt: 0,
+  onClose: OnCloseView.refuse,
   keepAlive: true,
   budgetMu: budget,
   spentMu: spent,

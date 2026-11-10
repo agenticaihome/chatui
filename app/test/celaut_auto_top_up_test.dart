@@ -47,6 +47,8 @@ InstancePlanView _plan({
   bool diskOnly = false,
   String wakeFee = '',
 }) => InstancePlanView(
+  closesAt: 0,
+  onClose: OnCloseView.refuse,
   keepAlive: keep,
   budgetMu: budget,
   spentMu: spent,
@@ -152,6 +154,8 @@ void main() {
       db = [_instance('i')];
       balances['i'] = '1';
       plans['i'] = const InstancePlanView(
+        closesAt: 0,
+        onClose: OnCloseView.refuse,
         keepAlive: true,
         budgetMu: '',
         spentMu: '',

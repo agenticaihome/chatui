@@ -16,9 +16,11 @@ const _d = NodeAddress(host: 'd.example', port: 4);
 final _id = 'ab' * 32;
 
 QuoteFailureView _failure(NodeAddress a, CelautErrorKind kind) =>
-    QuoteFailureView(address: a, kind: kind, message: kind.name);
+    QuoteFailureView(opensAt: 0, address: a, kind: kind, message: kind.name);
 
 QuoteView _quote(NodeAddress a) => QuoteView(
+  closesAt: 0,
+  onClose: OnCloseView.refuse,
   address: a,
   peerId: 'p',
   costMu: '10',
