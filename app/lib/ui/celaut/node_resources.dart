@@ -83,11 +83,12 @@ List<NodeComputeView> answeredNodes(ComputeOverviewView o) {
   return [for (final n in o.nodes) if (n.reachable && seen.add(n.peerId)) n];
 }
 
-/// The colour of the [i]-th node in a bar: the same node keeps its colour in every view.
+/// The colour of the [i]-th node in a bar: the primary colour of the theme, turned by the
+/// golden angle for each next node, so two neighbours never look alike (some palettes have
+/// the same primary and tertiary). The same node keeps its colour in every view.
 Color nodeColor(BuildContext context, int i) {
-  final scheme = Theme.of(context).colorScheme;
-  final colors = [scheme.primary, scheme.tertiary, scheme.secondary, scheme.error, scheme.inversePrimary];
-  return colors[i % colors.length];
+  final primary = HSLColor.fromColor(Theme.of(context).colorScheme.primary);
+  return primary.withHue((primary.hue + i * 137.5) % 360).withSaturation(primary.saturation.clamp(0.45, 0.8)).toColor();
 }
 
 /// A part of a [ShareBar]: a known value, or a node whose value is unknown ([value] null).
