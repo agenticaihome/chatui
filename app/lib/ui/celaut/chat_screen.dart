@@ -1072,8 +1072,10 @@ class _ChatScreenState extends State<ChatScreen>
   /// only here, and is not kept.
   /// Open the deck of the cards slot [slot] of the instance (`docs/celaut/cards.md`). The
   /// conversation stays open under it.
-  Future<void> _openCards(int slot) =>
-      openCards(context, _instance, slot, title: instanceTitle(_instance), openTunnel: widget.openTunnel);
+  Future<void> _openCards(int slot) async {
+    final text = await openCards(context, _instance, slot, title: instanceTitle(_instance), openTunnel: widget.openTunnel);
+    if (text != null && mounted) unawaited(_send(only: text));
+  }
 
   Future<void> _answerSecret(ChatMessage m, ChatSecretRequest r) async {
     if (!_answering.add(r.requestId)) return;
@@ -1700,13 +1702,16 @@ class _ChatScreenState extends State<ChatScreen>
                                         answering: _answering,
                                         onSecret: (r) => _answerSecret(m, r),
                                         slotLinkKind: (link) => slotLinkButtonKind(_instance, link),
-                                        onSlotLink: (link) => openSlotLink(
-                                          context,
-                                          _instance,
-                                          link,
-                                          title: instanceTitle(_instance),
-                                          openTunnel: widget.openTunnel,
-                                        ),
+                                        onSlotLink: (link) async {
+                                          final text = await openSlotLink(
+                                            context,
+                                            _instance,
+                                            link,
+                                            title: instanceTitle(_instance),
+                                            openTunnel: widget.openTunnel,
+                                          );
+                                          if (text != null && mounted) unawaited(_send(only: text));
+                                        },
                                         onReopenKeyboard:
                                             (m.seq == _keyboardClosedSeq || _keyboardHidden) && i == messages.length - 1
                                                 ? () => setState(() {

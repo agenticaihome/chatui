@@ -185,6 +185,67 @@ void main() {
       await h.close(tester);
     });
 
+    // Opens the deck from a page and gives what the page gets when the deck closes.
+    Future<List<Object?>> openFrom(WidgetTester tester, cpb.Deck deck) async {
+      final results = <Object?>[];
+      await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Builder(
+          builder: (context) => TextButton(
+            key: const Key('open'),
+            onPressed: () async => results.add(await Navigator.of(context)
+                .push<Object>(MaterialPageRoute(builder: (_) => CardsScreen(title: 'Echo', client: h.client)))),
+            child: const Text('open'),
+          ),
+        ),
+      ));
+      await tester.tap(find.byKey(const Key('open')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      h.push(deck);
+      await tester.pump();
+      await tester.pump();
+      return results;
+    }
+
+    testWidgets('the button of the end gives the done_text of the deck to the chat', (tester) async {
+      final deck = _deck()..doneText = 'I answered';
+      deck.cards.removeWhere((c) => c.itemId != 'milk');
+      final results = await openFrom(tester, deck);
+      await tester.tap(find.byKey(const Key('cards-action-basket')));
+      await tester.pump();
+      expect(find.byKey(const Key('cards-end')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('cards-back')));
+      await tester.pumpAndSettle();
+      expect(results, ['I answered']);
+      await h.close(tester);
+    });
+
+    testWidgets('with no done_text, or with the back arrow, the chat gets nothing', (tester) async {
+      final deck = _deck();
+      deck.cards.removeWhere((c) => c.itemId != 'milk');
+      var results = await openFrom(tester, deck);
+      await tester.tap(find.byKey(const Key('cards-action-basket')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('cards-back')));
+      await tester.pumpAndSettle();
+      expect(results, [null]);
+      await h.close(tester);
+
+      // A deck with a text, left by the back arrow.
+      h = _Harness();
+      final withText = _deck()..doneText = 'I answered';
+      withText.cards.removeWhere((c) => c.itemId != 'milk');
+      results = await openFrom(tester, withText);
+      await tester.tap(find.byKey(const Key('cards-action-basket')));
+      await tester.pump();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(results, [null]);
+      await h.close(tester);
+    });
+
     testWidgets('undo sends an undo and shows the card again', (tester) async {
       await h.open(tester);
       h.push(_deck());

@@ -37,8 +37,9 @@ SlotKind? slotLinkButtonKind(InstanceListView instance, ChatSlotLink link) {
 }
 
 /// Open the slot of [link] after the user tapped its button: the deck of a cards slot,
-/// or the browser for a web slot.
-Future<void> openSlotLink(
+/// or the browser for a web slot. It returns the text to send to the chat, or null (see
+/// [openCards]).
+Future<String?> openSlotLink(
   BuildContext context,
   InstanceListView instance,
   ChatSlotLink link, {
@@ -47,17 +48,20 @@ Future<void> openSlotLink(
 }) async {
   switch (slotLinkButtonKind(instance, link)) {
     case SlotKind.cards:
-      await openCards(context, instance, link.port, title: title, openTunnel: openTunnel);
+      return openCards(context, instance, link.port, title: title, openTunnel: openTunnel);
     case SlotKind.web:
       await openWebInBrowser(context, instance, slot: link.port, openTunnel: openTunnel);
     case SlotKind.chat || null:
       break;
   }
+  return null;
 }
 
 /// Open the deck of the cards slot [slot] of [instance] on the full screen. The page shows
-/// at once; the tunnel opens under it.
-Future<void> openCards(
+/// at once; the tunnel opens under it. It returns the `done_text` of the deck if the user
+/// went back to the chat with the button of the end of the deck, or null: then the caller
+/// sends that text to the chat.
+Future<String?> openCards(
   BuildContext context,
   InstanceListView instance,
   int slot, {
@@ -65,12 +69,13 @@ Future<void> openCards(
   Future<int> Function(String instanceId, int slot)? openTunnel,
 }) async {
   final tunnel = (openTunnel ?? (id, s) => celautOpenTunnel(instanceId: id, slot: s))(instance.instanceId, slot);
-  final failed = await Navigator.of(context).push<CelautError>(
+  final result = await Navigator.of(context).push<Object>(
     MaterialPageRoute(builder: (_) => CardsScreen(title: title, tunnel: tunnel)),
   );
-  if (failed != null && context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(CelautStrings.errorText(failed.kind))));
+  if (result is CelautError && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(CelautStrings.errorText(result.kind))));
   }
+  return result is String && result.isNotEmpty ? result : null;
 }
 
 /// The color of a [cpb.Tone] in the theme (`docs/celaut/cards.md`, section 5.4).
@@ -284,7 +289,11 @@ class _CardsScreenState extends State<CardsScreen> {
           FilledButton(
             key: const Key('cards-back'),
             style: FilledButton.styleFrom(minimumSize: const Size(88, 48)),
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: () {
+              // The text of the deck for the end goes to the chat (cards.md, section 7).
+              final text = deck.doneText;
+              Navigator.of(context).pop(text.isEmpty ? null : text);
+            },
             child: Text(l.cardsBackToChat),
           ),
         ],

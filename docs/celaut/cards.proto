@@ -114,6 +114,11 @@ message Deck {
 
   // Texto para el final del mazo, cuando no quedan cartas sin decisión.
   optional string end_text = 6;
+
+  // Texto que el cliente envía al chat, como mensaje del usuario, cuando el usuario
+  // toca el botón de volver al chat al final del mazo. Una línea, 256 bytes o menos.
+  // Sin texto, el cliente no envía nada.
+  optional string done_text = 7;
 }
 
 message DeckAction {

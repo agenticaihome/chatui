@@ -253,10 +253,20 @@ const Deck$json = {
       '10': 'endText',
       '17': true
     },
+    {
+      '1': 'done_text',
+      '3': 7,
+      '4': 1,
+      '5': 9,
+      '9': 2,
+      '10': 'doneText',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_title'},
     {'1': '_end_text'},
+    {'1': '_done_text'},
   ],
 };
 
@@ -265,7 +275,8 @@ final $typed_data.Uint8List deckDescriptor = $convert.base64Decode(
     'CgREZWNrEhcKB2RlY2tfaWQYASABKAlSBmRlY2tJZBIZCgV0aXRsZRgCIAEoCUgAUgV0aXRsZY'
     'gBARIlCgdhY3Rpb25zGAMgAygLMgsuRGVja0FjdGlvblIHYWN0aW9ucxIbCgVjYXJkcxgEIAMo'
     'CzIFLkNhcmRSBWNhcmRzEiMKDXNob3dfcHJvZ3Jlc3MYBSABKAhSDHNob3dQcm9ncmVzcxIeCg'
-    'hlbmRfdGV4dBgGIAEoCUgBUgdlbmRUZXh0iAEBQggKBl90aXRsZUILCglfZW5kX3RleHQ=');
+    'hlbmRfdGV4dBgGIAEoCUgBUgdlbmRUZXh0iAEBEiAKCWRvbmVfdGV4dBgHIAEoCUgCUghkb25l'
+    'VGV4dIgBAUIICgZfdGl0bGVCCwoJX2VuZF90ZXh0QgwKCl9kb25lX3RleHQ=');
 
 @$core.Deprecated('Use deckActionDescriptor instead')
 const DeckAction$json = {

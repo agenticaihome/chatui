@@ -85,6 +85,7 @@ class CardsDeck {
     this.cards = const [],
     this.showProgress = false,
     this.endText = '',
+    this.doneText = '',
   });
 
   final String id;
@@ -94,6 +95,10 @@ class CardsDeck {
   final bool showProgress;
   final String endText;
 
+  /// The text that the client sends to the chat when the user goes back to it from the end
+  /// of the deck. Empty: nothing is sent.
+  final String doneText;
+
   CardsDeck copyWith({List<DeckCard>? cards}) => CardsDeck(
         id: id,
         title: title,
@@ -101,6 +106,7 @@ class CardsDeck {
         cards: cards ?? this.cards,
         showProgress: showProgress,
         endText: endText,
+        doneText: doneText,
       );
 }
 
@@ -408,6 +414,7 @@ class CardsClient extends ChangeNotifier {
       cards: cards,
       showProgress: d.showProgress,
       endText: _cut(d.endText, 1024),
+      doneText: _line(d.doneText, 256),
     );
   }
 

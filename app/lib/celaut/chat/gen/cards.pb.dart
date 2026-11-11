@@ -495,6 +495,7 @@ class Deck extends $pb.GeneratedMessage {
     $core.Iterable<Card>? cards,
     $core.bool? showProgress,
     $core.String? endText,
+    $core.String? doneText,
   }) {
     final result = Deck._();
     if (deckId != null) result.deckId = deckId;
@@ -503,6 +504,7 @@ class Deck extends $pb.GeneratedMessage {
     if (cards != null) result.cards.addAll(cards);
     if (showProgress != null) result.showProgress = showProgress;
     if (endText != null) result.endText = endText;
+    if (doneText != null) result.doneText = doneText;
     return result;
   }
 
@@ -526,6 +528,7 @@ class Deck extends $pb.GeneratedMessage {
         subBuilder: Card.$_createMessage)
     ..aOB(5, _omitFieldNames ? '' : 'showProgress')
     ..aOS(6, _omitFieldNames ? '' : 'endText')
+    ..aOS(7, _omitFieldNames ? '' : 'doneText')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -596,6 +599,18 @@ class Deck extends $pb.GeneratedMessage {
   $core.bool hasEndText() => $_has(5);
   @$pb.TagNumber(6)
   void clearEndText() => $_clearField(6);
+
+  /// Texto que el cliente envía al chat, como mensaje del usuario, cuando el usuario
+  /// toca el botón de volver al chat al final del mazo. Una línea, 256 bytes o menos.
+  /// Sin texto, el cliente no envía nada.
+  @$pb.TagNumber(7)
+  $core.String get doneText => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set doneText($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasDoneText() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearDoneText() => $_clearField(7);
 }
 
 class DeckAction extends $pb.GeneratedMessage {

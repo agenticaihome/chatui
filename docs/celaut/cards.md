@@ -96,6 +96,7 @@ ignored, `UNIMPLEMENTED` for a call that this document does not define.
 | `cards` | `Card`, repeated | 0 to 500 cards, in the order that the user sees them. Each `item_id` is unique in the deck |
 | `show_progress` | bool | The client shows the count, for example "12 of 30" |
 | `end_text` | string, optional | A text for the end of the deck, 1 024 bytes or less |
+| `done_text` | string, optional | One line, 256 bytes or less. The client sends it to the chat, as a message of the user, when the user goes back to the chat with the button of the end of the deck. With no `done_text`, the client sends nothing |
 
 ### 5.2 Card
 
@@ -254,8 +255,10 @@ fails the check is not shown; the card stays usable.
   the current card. The user can undo more than once, back to the first decision of the
   session.
 - **End of the deck.** With no current card, the client shows the end: `end_text` (or a short
-  default text), the undo button and a button to go back to the chat. A new deck or a refresh
-  with new cards shows cards again.
+  default text), the undo button and a button to go back to the chat. With `done_text`, that
+  button also sends the text to the chat, so the assistant answers with no typing. The user
+  sees the message in the chat. A back gesture or the back arrow sends nothing. A new deck or
+  a refresh with new cards shows cards again.
 - **Progress.** With `show_progress`, the client shows the position of the current card: the
   number of done cards plus one, "of" the number of cards.
 - **Group.** The client shows the `group` of the card on the card.
@@ -330,6 +333,7 @@ The rules of `chat.md`, section 9, for `DownloadFile` apply.
 | 28 | An event with an old `version` | No change |
 | 29 | An image of a card that is not on screen | No `DownloadFile` for it |
 | 30 | All cards done | The end of the deck shows, with undo and the button to go back |
+| 31 | The button to go back at the end of a deck with `done_text` | The chat gets that text as a message of the user. With no `done_text`, or with the back arrow, no message |
 
 ## 11. Changes to the interface
 
