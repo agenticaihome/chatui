@@ -8177,4 +8177,136 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get celautRunNotBounded =>
       'This node promises no limit to its price: the figures are at its price now, and it can charge more later.';
+
+  @override
+  String get cardsGesturesArm => 'Arm the motion gestures';
+
+  @override
+  String get cardsGesturesDisarm => 'Turn the motion gestures off';
+
+  @override
+  String get cardsGesturesArmed =>
+      'Motion gestures on: turn your wrist to one side and back';
+
+  @override
+  String get cardsSettingsTitle => 'Cards';
+
+  @override
+  String get cardsSettingsRowSubtitle =>
+      'Reflections, vibration, transitions, frames, motion gestures';
+
+  @override
+  String get cardsSettingsGroup => 'Effects of the cards';
+
+  @override
+  String get cardsSettingsReflections => 'Reflections';
+
+  @override
+  String get cardsSettingsReflectionsSubtitle =>
+      'A light on the image that follows the tilt of the phone and your finger';
+
+  @override
+  String get cardsSettingsReflectionsPointer =>
+      'A light on the image that follows your finger';
+
+  @override
+  String get cardsSettingsStrength => 'Strength';
+
+  @override
+  String get cardsStrengthLow => 'Low';
+
+  @override
+  String get cardsStrengthMedium => 'Medium';
+
+  @override
+  String get cardsStrengthHigh => 'High';
+
+  @override
+  String get cardsSettingsVibration => 'Vibration';
+
+  @override
+  String get cardsSettingsVibrationSubtitle =>
+      'Short vibrations at the decision point of a swipe, the release, a cancel and an undo. They follow the touch feedback setting of the system.';
+
+  @override
+  String get cardsSettingsTransitions => 'Transitions';
+
+  @override
+  String get cardsTransitionsOff => 'Off';
+
+  @override
+  String get cardsTransitionsSimple => 'Simple';
+
+  @override
+  String get cardsTransitionsFull => 'Full';
+
+  @override
+  String get cardsSettingsStyle => 'Style of the full transitions';
+
+  @override
+  String get cardsStyleToss => 'Throw';
+
+  @override
+  String get cardsStyleSlide => 'Slide';
+
+  @override
+  String get cardsStyleFade => 'Fade';
+
+  @override
+  String get cardsSettingsFrames => 'Frames';
+
+  @override
+  String get cardsFramesTheme => 'Follow the theme';
+
+  @override
+  String get cardsFramesNone => 'None';
+
+  @override
+  String get cardsSettingsGestures => 'Motion gestures';
+
+  @override
+  String get cardsSettingsGesturesSubtitle =>
+      'A sharp turn of the wrist to one side and back is a swipe to that side. Arm it in the deck each time; it ends by itself.';
+
+  @override
+  String get cardsSettingsSensitivity => 'Sensitivity';
+
+  @override
+  String get cardsSettingsSwapSides => 'Swap the sides';
+
+  @override
+  String get cardsSettingsSwapSidesSubtitle =>
+      'A turn to the left is a swipe to the right';
+
+  @override
+  String get cardsSettingsTest => 'Try the gesture';
+
+  @override
+  String get cardsSettingsTestStop => 'Stop the test';
+
+  @override
+  String get cardsSettingsTestIdle =>
+      'Turn your wrist sharply to one side and back.';
+
+  @override
+  String get cardsSettingsTestLeft => 'Detected: a swipe to the left';
+
+  @override
+  String get cardsSettingsTestRight => 'Detected: a swipe to the right';
+
+  @override
+  String get cardsSettingsReduceMotion =>
+      '\"Remove animations\" is on in the system, so the reflections and the transitions are lower until you choose.';
+
+  @override
+  String get cardsSettingsFollowSystem => 'Follow the system';
+
+  @override
+  String get cardsSettingsNote =>
+      'The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the phone.';
+
+  @override
+  String cardsSettingsTestValue(String value, String needed) {
+    return 'Turn: $value rad/s (a gesture needs $needed)';
+  }
 }

@@ -13102,6 +13102,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This node promises no limit to its price: the figures are at its price now, and it can charge more later.'**
   String get celautRunNotBounded;
+
+  /// No description provided for @cardsGesturesArm.
+  ///
+  /// In en, this message translates to:
+  /// **'Arm the motion gestures'**
+  String get cardsGesturesArm;
+
+  /// No description provided for @cardsGesturesDisarm.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn the motion gestures off'**
+  String get cardsGesturesDisarm;
+
+  /// No description provided for @cardsGesturesArmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Motion gestures on: turn your wrist to one side and back'**
+  String get cardsGesturesArmed;
+
+  /// No description provided for @cardsSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards'**
+  String get cardsSettingsTitle;
+
+  /// No description provided for @cardsSettingsRowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reflections, vibration, transitions, frames, motion gestures'**
+  String get cardsSettingsRowSubtitle;
+
+  /// No description provided for @cardsSettingsGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Effects of the cards'**
+  String get cardsSettingsGroup;
+
+  /// No description provided for @cardsSettingsReflections.
+  ///
+  /// In en, this message translates to:
+  /// **'Reflections'**
+  String get cardsSettingsReflections;
+
+  /// No description provided for @cardsSettingsReflectionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A light on the image that follows the tilt of the phone and your finger'**
+  String get cardsSettingsReflectionsSubtitle;
+
+  /// No description provided for @cardsSettingsReflectionsPointer.
+  ///
+  /// In en, this message translates to:
+  /// **'A light on the image that follows your finger'**
+  String get cardsSettingsReflectionsPointer;
+
+  /// No description provided for @cardsSettingsStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength'**
+  String get cardsSettingsStrength;
+
+  /// No description provided for @cardsStrengthLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get cardsStrengthLow;
+
+  /// No description provided for @cardsStrengthMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get cardsStrengthMedium;
+
+  /// No description provided for @cardsStrengthHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get cardsStrengthHigh;
+
+  /// No description provided for @cardsSettingsVibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get cardsSettingsVibration;
+
+  /// No description provided for @cardsSettingsVibrationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Short vibrations at the decision point of a swipe, the release, a cancel and an undo. They follow the touch feedback setting of the system.'**
+  String get cardsSettingsVibrationSubtitle;
+
+  /// No description provided for @cardsSettingsTransitions.
+  ///
+  /// In en, this message translates to:
+  /// **'Transitions'**
+  String get cardsSettingsTransitions;
+
+  /// No description provided for @cardsTransitionsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get cardsTransitionsOff;
+
+  /// No description provided for @cardsTransitionsSimple.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple'**
+  String get cardsTransitionsSimple;
+
+  /// No description provided for @cardsTransitionsFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full'**
+  String get cardsTransitionsFull;
+
+  /// No description provided for @cardsSettingsStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Style of the full transitions'**
+  String get cardsSettingsStyle;
+
+  /// No description provided for @cardsStyleToss.
+  ///
+  /// In en, this message translates to:
+  /// **'Throw'**
+  String get cardsStyleToss;
+
+  /// No description provided for @cardsStyleSlide.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide'**
+  String get cardsStyleSlide;
+
+  /// No description provided for @cardsStyleFade.
+  ///
+  /// In en, this message translates to:
+  /// **'Fade'**
+  String get cardsStyleFade;
+
+  /// No description provided for @cardsSettingsFrames.
+  ///
+  /// In en, this message translates to:
+  /// **'Frames'**
+  String get cardsSettingsFrames;
+
+  /// No description provided for @cardsFramesTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow the theme'**
+  String get cardsFramesTheme;
+
+  /// No description provided for @cardsFramesNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get cardsFramesNone;
+
+  /// No description provided for @cardsSettingsGestures.
+  ///
+  /// In en, this message translates to:
+  /// **'Motion gestures'**
+  String get cardsSettingsGestures;
+
+  /// No description provided for @cardsSettingsGesturesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A sharp turn of the wrist to one side and back is a swipe to that side. Arm it in the deck each time; it ends by itself.'**
+  String get cardsSettingsGesturesSubtitle;
+
+  /// No description provided for @cardsSettingsSensitivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Sensitivity'**
+  String get cardsSettingsSensitivity;
+
+  /// No description provided for @cardsSettingsSwapSides.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap the sides'**
+  String get cardsSettingsSwapSides;
+
+  /// No description provided for @cardsSettingsSwapSidesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A turn to the left is a swipe to the right'**
+  String get cardsSettingsSwapSidesSubtitle;
+
+  /// No description provided for @cardsSettingsTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Try the gesture'**
+  String get cardsSettingsTest;
+
+  /// No description provided for @cardsSettingsTestStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop the test'**
+  String get cardsSettingsTestStop;
+
+  /// No description provided for @cardsSettingsTestIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn your wrist sharply to one side and back.'**
+  String get cardsSettingsTestIdle;
+
+  /// No description provided for @cardsSettingsTestLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Detected: a swipe to the left'**
+  String get cardsSettingsTestLeft;
+
+  /// No description provided for @cardsSettingsTestRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Detected: a swipe to the right'**
+  String get cardsSettingsTestRight;
+
+  /// No description provided for @cardsSettingsReduceMotion.
+  ///
+  /// In en, this message translates to:
+  /// **'\"Remove animations\" is on in the system, so the reflections and the transitions are lower until you choose.'**
+  String get cardsSettingsReduceMotion;
+
+  /// No description provided for @cardsSettingsFollowSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow the system'**
+  String get cardsSettingsFollowSystem;
+
+  /// No description provided for @cardsSettingsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the phone.'**
+  String get cardsSettingsNote;
+
+  /// No description provided for @cardsSettingsTestValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn: {value} rad/s (a gesture needs {needed})'**
+  String cardsSettingsTestValue(String value, String needed);
 }
 
 class _AppLocalizationsDelegate

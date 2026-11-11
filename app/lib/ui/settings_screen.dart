@@ -27,6 +27,7 @@ import 'home/home_scene.dart';
 import 'layout.dart';
 import 'settings/about_page.dart';
 import 'settings/address_book_page.dart';
+import 'settings/cards_settings_page.dart';
 import 'settings/chat_settings_page.dart';
 import 'settings/display_settings_page.dart';
 import 'settings/network_settings_page.dart';
@@ -300,6 +301,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: t.chatSettingsTitle,
           subtitle: t.chatSettingsRowSubtitle,
           onTap: () => _open(const ChatSettingsPage()),
+        ),
+        SettingsRow(
+          key: const Key('settings-cards'),
+          icon: Icons.style_outlined,
+          title: t.cardsSettingsTitle,
+          subtitle: t.cardsSettingsRowSubtitle,
+          onTap: () => _open(const CardsSettingsPage()),
         ),
         ValueListenableBuilder<bool>(
           valueListenable: computeHomeFlag,

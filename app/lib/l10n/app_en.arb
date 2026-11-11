@@ -5953,5 +5953,55 @@
     }
   },
   "celautTopUpWindowNote": "Some nodes work only at certain hours. A node that stops its instances when it closes stops a kept instance too: the info page of the instance says when.",
-  "celautRunNotBounded": "This node promises no limit to its price: the figures are at its price now, and it can charge more later."
+  "celautRunNotBounded": "This node promises no limit to its price: the figures are at its price now, and it can charge more later.",
+  "cardsGesturesArm": "Arm the motion gestures",
+  "cardsGesturesDisarm": "Turn the motion gestures off",
+  "cardsGesturesArmed": "Motion gestures on: turn your wrist to one side and back",
+  "cardsSettingsTitle": "Cards",
+  "cardsSettingsRowSubtitle": "Reflections, vibration, transitions, frames, motion gestures",
+  "cardsSettingsGroup": "Effects of the cards",
+  "cardsSettingsReflections": "Reflections",
+  "cardsSettingsReflectionsSubtitle": "A light on the image that follows the tilt of the phone and your finger",
+  "cardsSettingsReflectionsPointer": "A light on the image that follows your finger",
+  "cardsSettingsStrength": "Strength",
+  "cardsStrengthLow": "Low",
+  "cardsStrengthMedium": "Medium",
+  "cardsStrengthHigh": "High",
+  "cardsSettingsVibration": "Vibration",
+  "cardsSettingsVibrationSubtitle": "Short vibrations at the decision point of a swipe, the release, a cancel and an undo. They follow the touch feedback setting of the system.",
+  "cardsSettingsTransitions": "Transitions",
+  "cardsTransitionsOff": "Off",
+  "cardsTransitionsSimple": "Simple",
+  "cardsTransitionsFull": "Full",
+  "cardsSettingsStyle": "Style of the full transitions",
+  "cardsStyleToss": "Throw",
+  "cardsStyleSlide": "Slide",
+  "cardsStyleFade": "Fade",
+  "cardsSettingsFrames": "Frames",
+  "cardsFramesTheme": "Follow the theme",
+  "cardsFramesNone": "None",
+  "cardsSettingsGestures": "Motion gestures",
+  "cardsSettingsGesturesSubtitle": "A sharp turn of the wrist to one side and back is a swipe to that side. Arm it in the deck each time; it ends by itself.",
+  "cardsSettingsSensitivity": "Sensitivity",
+  "cardsSettingsSwapSides": "Swap the sides",
+  "cardsSettingsSwapSidesSubtitle": "A turn to the left is a swipe to the right",
+  "cardsSettingsTest": "Try the gesture",
+  "cardsSettingsTestStop": "Stop the test",
+  "cardsSettingsTestIdle": "Turn your wrist sharply to one side and back.",
+  "cardsSettingsTestLeft": "Detected: a swipe to the left",
+  "cardsSettingsTestRight": "Detected: a swipe to the right",
+  "cardsSettingsReduceMotion": "\"Remove animations\" is on in the system, so the reflections and the transitions are lower until you choose.",
+  "cardsSettingsFollowSystem": "Follow the system",
+  "cardsSettingsNote": "The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the phone.",
+  "cardsSettingsTestValue": "Turn: {value} rad/s (a gesture needs {needed})",
+  "@cardsSettingsTestValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "needed": {
+        "type": "String"
+      }
+    }
+  }
 }
