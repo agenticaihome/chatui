@@ -198,6 +198,7 @@ class _ChatScreenState extends State<ChatScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final _input = TextEditingController();
   final _inputFocus = FocusNode();
+  final _inputScroll = ScrollController();
   final _scroll = ScrollController();
   late final ChatClient _chat = widget.chat ?? ChatClient(port: widget.port);
   late final ConversationKeepAlive _keepAlive = widget.keepAlive ?? ChannelConversationKeepAlive();
@@ -331,6 +332,7 @@ class _ChatScreenState extends State<ChatScreen>
     // The text that the user did not send the last time is in the input again.
     _input.text = _notes.draft(_id);
     _input.addListener(_keepDraft);
+    _input.addListener(_followCaret);
     _chat.addListener(_onChat);
     unawaited(_keepAlive.start());
     // The screen reads the chat now: a watch that a former screen left stops.
@@ -372,6 +374,18 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _keepDraft() => _notes.setDraft(_id, _input.text);
+
+  /// The input shows its last line: the keyboard of the app changes the text without a
+  /// system input connection, and then the field does not always scroll to the caret.
+  void _followCaret() {
+    final v = _input.value;
+    if (!v.selection.isValid || !v.selection.isCollapsed || v.selection.baseOffset < v.text.length) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_inputScroll.hasClients) return;
+      final max = _inputScroll.position.maxScrollExtent;
+      if (_inputScroll.offset != max) _inputScroll.jumpTo(max);
+    });
+  }
 
   /// Use the messages that a read gave. [read] is true if the read worked: the first one
   /// that works gives the history, which shows at once.
@@ -1218,6 +1232,8 @@ class _ChatScreenState extends State<ChatScreen>
     _ticker?.cancel();
     _poll?.cancel();
     _input.removeListener(_keepDraft);
+    _input.removeListener(_followCaret);
+    _inputScroll.dispose();
     _input.dispose();
     _inputFocus.dispose();
     _scroll.dispose();
@@ -1483,6 +1499,7 @@ class _ChatScreenState extends State<ChatScreen>
                               key: const Key('chat-input'),
                               controller: _input,
                               focusNode: _inputFocus,
+                              scrollController: _inputScroll,
                               onTap: () {
                                 _showKeyboard();
                               },
