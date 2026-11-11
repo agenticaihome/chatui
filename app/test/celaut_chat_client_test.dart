@@ -30,6 +30,7 @@ class GrpcChannelAndFiles {
 }
 
 void main() {
+  answerPiecesTests();
   late FakeChatService svc;
   late TcpProxy proxy;
   late ChatClient chat;
@@ -1489,6 +1490,25 @@ void main() {
       // A character of many code points is not cut in half.
       final flags = '🇪🇸' * 90;
       expect(ChatClient.cleanTitle(flags)!.length, '🇪🇸'.length * ChatClient.titleMaxChars);
+    });
+  });
+}
+
+void answerPiecesTests() {
+  group('answerPieces', () {
+    test('puts the reasoning that came after the text in a block after it', () {
+      final pieces = answerPieces('Hello. Done.', 'think A think B', [(text: 6, reasoning: 8)]);
+      expect(pieces.map((p) => (p.reasoning, p.text)).toList(), [
+        (true, 'think A '),
+        (false, 'Hello.'),
+        (true, 'think B'),
+        (false, ' Done.'),
+      ]);
+    });
+
+    test('with no marks it gives the reasoning, then the text', () {
+      final pieces = answerPieces('Hi', 'think', const []);
+      expect(pieces.map((p) => p.reasoning).toList(), [true, false]);
     });
   });
 }

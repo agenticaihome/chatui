@@ -2201,26 +2201,27 @@ class _Bubble extends StatelessWidget {
                     onLoaded: onLoaded,
                     color: color,
                   ),
-                if (shownReasoning.isNotEmpty)
-                  _Reasoning(
-                    key: Key('chat-reasoning-${message.seq}'),
-                    text: shownReasoning,
-                    // The user sees the reasoning grow until the text starts.
-                    openByDefault: message.isOpen && message.text.isEmpty,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                if (shownText.isNotEmpty)
-                  _MessageText(
-                    text: shownText,
-                    style: textStyle.copyWith(color: color),
-                    // Only the text of the service has HTML blocks: the user writes plain text.
-                    html: html && !mine,
-                    markdown: !mine,
-                    streaming: message.isOpen,
-                    onKeyboardTap: onReopenKeyboard,
-                    // Not selectable: a long press opens the menu, which can select the text.
-                    selectable: false,
-                  ),
+                for (final (i, piece) in answerPieces(shownText, shownReasoning, message.marks).indexed)
+                  if (piece.reasoning)
+                    _Reasoning(
+                      key: Key(i == 0 ? 'chat-reasoning-${message.seq}' : 'chat-reasoning-${message.seq}-$i'),
+                      text: piece.text,
+                      // The user sees the reasoning grow until the text after it starts.
+                      openByDefault: message.isOpen && i == answerPieces(shownText, shownReasoning, message.marks).length - 1,
+                      color: scheme.onSurfaceVariant,
+                    )
+                  else
+                    _MessageText(
+                      text: piece.text,
+                      style: textStyle.copyWith(color: color),
+                      // Only the text of the service has HTML blocks: the user writes plain text.
+                      html: html && !mine,
+                      markdown: !mine,
+                      streaming: message.isOpen,
+                      onKeyboardTap: onReopenKeyboard,
+                      // Not selectable: a long press opens the menu, which can select the text.
+                      selectable: false,
+                    ),
                 for (final r in message.secretRequests)
                   _SecretCard(
                     key: Key('chat-secret-${r.requestId}'),

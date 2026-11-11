@@ -131,6 +131,32 @@ class ChatSlotLink {
   int get hashCode => Object.hash(port, label);
 }
 
+/// A part of an answer, in the order that the user reads it: reasoning or text.
+typedef AnswerPiece = ({bool reasoning, String text});
+
+/// Splits [text] and [reasoning], as they show now, in the pieces that [marks] say: the
+/// reasoning that came before the text, then the text, then the reasoning that came after
+/// it, and so on. A piece that is empty is left out.
+List<AnswerPiece> answerPieces(String text, String reasoning, List<({int text, int reasoning})> marks) {
+  final out = <AnswerPiece>[];
+  var t = 0;
+  var r = 0;
+  void add(bool isReasoning, String all, int from, int to) {
+    final end = to > all.length ? all.length : to;
+    if (from < end) out.add((reasoning: isReasoning, text: all.substring(from, end)));
+  }
+
+  for (final k in marks) {
+    add(true, reasoning, r, k.reasoning);
+    add(false, text, t, k.text);
+    r = k.reasoning < r ? r : k.reasoning;
+    t = k.text < t ? t : k.text;
+  }
+  add(true, reasoning, r, reasoning.length);
+  add(false, text, t, text.length);
+  return out;
+}
+
 class ChatMessage {
   const ChatMessage({
     required this.seq,
@@ -139,6 +165,7 @@ class ChatMessage {
     this.attachments = const [],
     this.status = statusDone,
     this.reasoning = '',
+    this.marks = const [],
     this.replyTo,
     this.cid,
     this.pinned = false,
@@ -172,6 +199,13 @@ class ChatMessage {
 
   /// The reasoning of the model, apart from [text]. Empty if the service gives none.
   final String reasoning;
+
+  /// Where reasoning came after text, while the answer grew. The protocol has one
+  /// [reasoning] for the message, so the client notes, for each delta of reasoning that
+  /// follows new text, the length of the text and of the reasoning before it. The client
+  /// shows that reasoning in a block after that text ([answerPieces]). The marks live
+  /// only in this client: a read of the message does not give them.
+  final List<({int text, int reasoning})> marks;
 
   /// The `seq` of the user message that this message answers, if the service says it and
   /// the client knows that message.
@@ -223,6 +257,7 @@ class ChatMessage {
     String? text,
     String? status,
     String? reasoning,
+    List<({int text, int reasoning})>? marks,
     bool? pinned,
     int? updatedAt,
     String? error,
@@ -235,6 +270,7 @@ class ChatMessage {
         attachments: attachments,
         status: status ?? this.status,
         reasoning: reasoning ?? this.reasoning,
+        marks: marks ?? this.marks,
         replyTo: replyTo,
         cid: cid,
         pinned: pinned ?? this.pinned,
@@ -893,7 +929,12 @@ class ChatClient extends ChangeNotifier {
       // A read can be older than the events that came since: keep the longer text.
       final older = incoming.isOpen &&
           incoming.text.length + incoming.reasoning.length < have.text.length + have.reasoning.length;
-      if (!older) _messages[index] = _withNewerPin(incoming, have);
+      if (!older) {
+        final next = _withNewerPin(incoming, have);
+        // The marks of the deltas stay while they fit the text that the read gives.
+        final keep = have.marks.where((k) => k.text <= next.text.length && k.reasoning <= next.reasoning.length);
+        _messages[index] = next.copyWith(marks: keep.toList());
+      }
     } else if (!incoming.isOpen && incoming.updatedAt > have.updatedAt) {
       // A final message does not change, except for `pinned`.
       _messages[index] = have.copyWith(pinned: incoming.pinned, updatedAt: incoming.updatedAt);
@@ -914,9 +955,14 @@ class ChatClient extends ChangeNotifier {
     final have = _byId(d.messageId);
     if (have == null || !have.isOpen) return;
     if (d.textAppend.isEmpty && d.reasoningAppend.isEmpty) return;
+    // Reasoning after new text starts a new block, after that text.
+    final startsBlock = d.reasoningAppend.isNotEmpty &&
+        have.text.isNotEmpty &&
+        (have.marks.isEmpty ? true : have.marks.last.text < have.text.length);
     _messages[have.seq - 1] = have.copyWith(
       text: have.text + d.textAppend,
       reasoning: have.reasoning + d.reasoningAppend,
+      marks: startsBlock ? [...have.marks, (text: have.text.length, reasoning: have.reasoning.length)] : null,
     );
   }
 
