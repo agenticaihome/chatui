@@ -2687,7 +2687,7 @@
   "cardsProgress": "{position} de {total}",
   "cardsWaiting": "{count, plural, =1{1 movimiento espera para enviarse} other{{count} movimientos esperan para enviarse}}",
   "cardsConnecting": "Conectando…",
-  "cardsTapForDetail": "Toca la carta para ver los detalles",
+  "cardsTapForDetail": "Pulsa la carta para ver u ocultar los detalles",
   "chatOpenCards": "Abrir las cartas",
   "celautIdCopied": "Id copiado",
   "celautIdShowFull": "Mostrar el id completo",

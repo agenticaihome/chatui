@@ -8158,7 +8158,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cardsConnecting => 'Conectando…';
 
   @override
-  String get cardsTapForDetail => 'Toca la carta para ver los detalles';
+  String get cardsTapForDetail =>
+      'Pulsa la carta para ver u ocultar los detalles';
 
   @override
   String get chatOpenCards => 'Abrir las cartas';

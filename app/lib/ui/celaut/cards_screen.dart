@@ -121,6 +121,9 @@ class CardsScreen extends StatefulWidget {
 class _CardsScreenState extends State<CardsScreen> {
   CardsClient? _client;
   Offset _drag = Offset.zero;
+
+  /// The card whose texts show in full on the card (a press toggles it).
+  String? _expanded;
   final _focus = FocusNode();
 
   @override
@@ -170,12 +173,18 @@ class _CardsScreenState extends State<CardsScreen> {
     final client = _client;
     if (client == null) return;
     client.act(action.id, card: card);
-    setState(() => _drag = Offset.zero);
+    setState(() {
+      _drag = Offset.zero;
+      _expanded = null;
+    });
   }
 
   void _undo() {
     _client?.undo();
-    setState(() => _drag = Offset.zero);
+    setState(() {
+      _drag = Offset.zero;
+      _expanded = null;
+    });
   }
 
   cpb.Direction _sideOf(Offset o, Size size, Velocity v) {
@@ -318,7 +327,8 @@ class _CardsScreenState extends State<CardsScreen> {
                   Positioned.fill(
                     child: GestureDetector(
                       key: Key('cards-card-${current.itemId}'),
-                      onTap: () => _openDetail(context, client, current),
+                      onTap: () => _toggle(current),
+                      onLongPress: () => _toggle(current),
                       onPanUpdate: (d) => setState(() => _drag += d.delta),
                       onPanEnd: (d) {
                         final action = client.actionFor(_sideOf(_drag, size, d.velocity));
@@ -338,6 +348,7 @@ class _CardsScreenState extends State<CardsScreen> {
                             card: current,
                             client: client,
                             hint: hint,
+                            expanded: _expanded == current.itemId,
                           ),
                         ),
                       ),
@@ -395,18 +406,8 @@ class _CardsScreenState extends State<CardsScreen> {
     );
   }
 
-  Future<void> _openDetail(BuildContext context, CardsClient client, DeckCard card) async {
-    final action = await Navigator.of(context).push<CardsAction>(
-      MaterialPageRoute(
-        builder: (_) => CardDetailScreen(
-          card: card,
-          client: client,
-          actions: [...client.deck.actions, ...card.buttons],
-        ),
-      ),
-    );
-    if (action != null && mounted) _act(action, card);
-  }
+  /// A press on the card shows its texts in full, inside the card; another press hides them.
+  void _toggle(DeckCard card) => setState(() => _expanded = _expanded == card.itemId ? null : card.itemId);
 }
 
 /// The buttons of the actions: one for each action of the deck (also the ones of a swipe,
@@ -470,18 +471,17 @@ Widget actionButton(BuildContext context, CardsAction a, VoidCallback onPressed)
 
 /// The image of a card, read on demand from the service.
 class _CardImage extends StatelessWidget {
-  const _CardImage({required this.card, required this.client, this.fit = BoxFit.cover});
+  const _CardImage({required this.card, required this.client});
 
   final DeckCard card;
   final CardsClient client;
-  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
     final cached = client.cachedImage(card);
     Widget show(Uint8List bytes) => Image.memory(
           bytes,
-          fit: fit,
+          fit: BoxFit.cover,
           gaplessPlayback: true,
           semanticLabel: card.altText.isNotEmpty ? card.altText : null,
           errorBuilder: (_, _, _) => const SizedBox.shrink(),
@@ -501,13 +501,16 @@ class _CardImage extends StatelessWidget {
 
 /// One card as it shows in the deck.
 class _CardFace extends StatelessWidget {
-  const _CardFace({super.key, required this.card, required this.client, this.hint});
+  const _CardFace({super.key, required this.card, required this.client, this.hint, this.expanded = false});
 
   final DeckCard card;
   final CardsClient client;
 
   /// The action that a release now would make, shown on the card during a drag.
   final CardsAction? hint;
+
+  /// The card shows its texts in full, with the `detail`, in place of its image.
+  final bool expanded;
 
   @override
   Widget build(BuildContext context) {
@@ -586,6 +589,33 @@ class _CardFace extends StatelessWidget {
                   ),
                 ),
               ),
+            if (expanded)
+              Positioned.fill(
+                child: ColoredBox(
+                  key: Key('cards-expanded-${card.itemId}'),
+                  color: scheme.surfaceContainerHigh,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (card.group.isNotEmpty)
+                          Text(card.group.toUpperCase(),
+                              style: theme.textTheme.labelSmall?.copyWith(color: scheme.primary, letterSpacing: 1.2)),
+                        Text(card.title, style: theme.textTheme.headlineSmall?.copyWith(color: scheme.onSurface)),
+                        if (card.text.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(card.text, style: theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant)),
+                        ],
+                        if (card.detail.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Text(card.detail, key: const Key('cards-detail-text'), style: theme.textTheme.bodyMedium),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             if (hint != null)
               Positioned(
                 top: 16,
@@ -605,64 +635,6 @@ class _CardFace extends StatelessWidget {
                   ),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The detail view of a card: the image, the texts and the actions. It pops the action
-/// that the user chose, or null.
-class CardDetailScreen extends StatelessWidget {
-  const CardDetailScreen({super.key, required this.card, required this.client, required this.actions});
-
-  final DeckCard card;
-  final CardsClient client;
-  final List<CardsAction> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      key: const Key('cards-detail'),
-      appBar: AppBar(titleSpacing: 0, title: Text(card.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  if (card.image != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(cardRadius),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 360),
-                        child: _CardImage(card: card, client: client, fit: BoxFit.contain),
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                  if (card.group.isNotEmpty)
-                    Text(card.group.toUpperCase(), style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary)),
-                  SelectableText(card.title, style: theme.textTheme.headlineSmall),
-                  if (card.text.isNotEmpty) ...[const SizedBox(height: 8), SelectableText(card.text, style: theme.textTheme.bodyLarge)],
-                  if (card.detail.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    SelectableText(card.detail, key: const Key('cards-detail-text'), style: theme.textTheme.bodyMedium),
-                  ],
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: [for (final a in actions) actionButton(context, a, () => Navigator.of(context).pop(a))],
-              ),
-            ),
           ],
         ),
       ),

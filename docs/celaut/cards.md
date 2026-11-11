@@ -105,7 +105,7 @@ ignored, `UNIMPLEMENTED` for a call that this document does not define.
 | `title` | string | One line, 1 to 256 bytes |
 | `text` | string, optional | Plain text, 1 024 bytes or less. The client shows it under the title |
 | `image` | `ImageContent`, optional | A file of `image/jpeg` or `image/png`, 4 MiB or less, with a SHA3-256 hash (`chat.md`, sections 5.1 and 6.4). `alt_text` is the text for a screen reader |
-| `detail` | string, optional | Plain text, 16 384 bytes or less. The client shows it in the detail view, which opens with a tap on the card |
+| `detail` | string, optional | Plain text, 16 384 bytes or less. The client shows it on the card, in place of the image, with a press on the card |
 | `buttons` | `CardButton`, repeated | 0 to 4 buttons of this card only |
 | `tone` | `Tone` | The role of the color of the card |
 | `layout` | `Layout` | The form of the card |
@@ -231,7 +231,7 @@ Rules for the service:
 
 A card has the hash of its image, not its bytes. The client reads the image with
 `DownloadFile` on the same slot, only when it needs it: for the current card and the next two
-cards, and for the card of the detail view. The client checks the SHA3-256 hash of the bytes,
+cards. The client checks the SHA3-256 hash of the bytes,
 and keeps the images in memory only (24 MiB or less). An image that it cannot read or that
 fails the check is not shown; the card stays usable.
 
@@ -239,8 +239,10 @@ fails the check is not shown; the card stays usable.
 
 - **Order.** The client shows the current card on top, and the next cards under it. A move
   marks the current card as done in the client at once, and the next card comes.
-- **Detail view.** A tap on the card opens the detail view: the image, the title, the text, the
-  `detail` and the buttons. The detail view has the same actions as the deck.
+- **Detail on the card.** A press on the card (a tap or a long press) shows the group, the
+  title, the text and the `detail` in full, on the card and not on another screen. Another
+  press hides them. The actions and the buttons of the card stay on screen. A decision hides
+  the detail of the card.
 - **Queue with no connection.** The client puts each decision in a local queue, in order, and
   sends the queue one decision at a time. If a send fails because the slot cannot be reached,
   the client keeps the decision and sends it again later with the same `idempotency_key`, in
@@ -320,7 +322,7 @@ The rules of `chat.md`, section 9, for `DownloadFile` apply.
 | 21 | A swipe to a side with an action | One `SendAction` with that `action_id`; the next card shows |
 | 22 | The button of each action | The same decision as the swipe |
 | 22a | An action with `keep` | One `SendAction`; the card shows again after the other cards; the end of the deck does not show while a card is kept |
-| 23 | A tap on the card | The detail view opens; no decision is sent |
+| 23 | A press on the card | The card shows its title, text and `detail` in full; another press hides them; no decision is sent |
 | 24 | Undo | One `SendAction` with `undo` for the last card; that card shows again |
 | 25 | No connection, three moves, then the connection comes back | Three decisions, in order, each with its first key |
 | 26 | A `deck` event with a new `deck_id` | The new deck shows from its first card; undo is empty |

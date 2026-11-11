@@ -5875,7 +5875,7 @@
     }
   },
   "cardsConnecting": "Connecting…",
-  "cardsTapForDetail": "Tap the card for details",
+  "cardsTapForDetail": "Press the card to show or hide the details",
   "chatOpenCards": "Open the cards",
   "celautIdCopied": "Id copied",
   "celautIdShowFull": "Show full id",

@@ -12962,7 +12962,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardsTapForDetail.
   ///
   /// In en, this message translates to:
-  /// **'Tap the card for details'**
+  /// **'Press the card to show or hide the details'**
   String get cardsTapForDetail;
 
   /// No description provided for @chatOpenCards.

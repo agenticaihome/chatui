@@ -8077,7 +8077,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cardsConnecting => 'Connecting…';
 
   @override
-  String get cardsTapForDetail => 'Tap the card for details';
+  String get cardsTapForDetail => 'Press the card to show or hide the details';
 
   @override
   String get chatOpenCards => 'Open the cards';

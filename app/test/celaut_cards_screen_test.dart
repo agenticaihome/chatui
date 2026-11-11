@@ -156,22 +156,32 @@ void main() {
       await h.close(tester);
     });
 
-    testWidgets('a tap opens the detail view and sends nothing; an action there acts on that card', (tester) async {
+    testWidgets('a press shows the detail in the card, another press hides it; no decision is sent', (tester) async {
       await h.open(tester);
       final deck = _deck();
       deck.cards.removeAt(0);
       h.push(deck);
       await tester.pump();
       await tester.pump();
+      expect(find.text('Whole grain, sliced.'), findsNothing);
       await tester.tap(find.byKey(const Key('cards-card-bread')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('cards-detail')), findsOneWidget);
+      await tester.pump();
+      expect(find.byKey(const Key('cards-expanded-bread')), findsOneWidget);
       expect(find.text('Whole grain, sliced.'), findsOneWidget);
       expect(h.sent, isEmpty);
+      await tester.tap(find.byKey(const Key('cards-card-bread')));
+      await tester.pump();
+      expect(find.byKey(const Key('cards-expanded-bread')), findsNothing);
+      expect(find.text('Whole grain, sliced.'), findsNothing);
+      await tester.longPress(find.byKey(const Key('cards-card-bread')));
+      await tester.pump();
+      expect(find.text('Whole grain, sliced.'), findsOneWidget);
+      // An action closes it and the next card comes, with its texts hidden.
       await tester.tap(find.byKey(const Key('cards-action-basket')));
-      await tester.pumpAndSettle();
+      await tester.pump();
       expect(h.sent.single.itemId, 'bread');
       expect(find.byKey(const Key('cards-card-eggs')), findsOneWidget);
+      expect(find.byKey(const Key('cards-expanded-eggs')), findsNothing);
       await h.close(tester);
     });
 
