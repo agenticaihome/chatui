@@ -387,6 +387,30 @@ the effects keep 60 frames per second or turn themselves down.
 | U7 | 60 frames per second on a low-end phone, measured; the effects turn down when the rate falls |
 | U8 | The text and the buttons keep their contrast and size in each theme, with a frame |
 
+### 13.2 What chatui does
+
+The last phase is built in chatui (`app/lib/celaut/cards_effects.dart`,
+`app/lib/ui/celaut/cards_look.dart`, `cards_screen.dart`, Settings > Cards). The wire of this
+document does not change.
+
+| Effect | Behaviour | Setting (default) |
+|---|---|---|
+| Reflection | A light on the image of the top card (never over the texts). The gyroscope turn is summed, pulled back to the centre in about 1.5 s, smoothed and limited to 0.35 rad; the finger adds to it during a drag. With no gyroscope it follows the finger (and a mouse pointer). | on / off, strength low · medium · high (on, medium) |
+| Vibration | Once at the decision point of a swipe (not per frame), at a release that decides (also a button, a key or a motion gesture), at a cancel (the card comes back) and at an undo. Decision > undo > decision point = cancel; the strength moves each one step. The haptics of the view: they follow the touch feedback setting of the system, with no permission. No vibration motor: the item is hidden. | on / off, strength (on, medium) |
+| Transitions | Full: the card leaves to its side with the style (throw = move and turn, slide, fade = fade and shrink), the next card grows from under it, a third card shows the depth of the deck; the end of the deck, a refresh and an undo fade in with a small scale. Simple: a fade only, no movement. The action goes to the client at once: the effect is only drawn over the new state. | off / simple / full, style (full, throw) |
+| Frames | From the active theme: a border of the theme (the tone border stays), the corner of the cards of the app, a soft shadow (light themes) or a soft light of the accent (dark themes). None: no shadow, no neutral border. The face of the card is the same surface in both: the texts keep their contrast. | follow the theme / none (theme) |
+| Motion gestures | A turn around the long axis of the screen faster than the threshold, then the return (half the threshold, other side) within 0.6 s, is a swipe to that side; then 0.8 s of pause. Thresholds 4.5 / 3.0 / 2.0 rad/s. Armed with a button in the deck; it ends after 30 s with no gesture, when the app leaves the front or the screen goes off. Undo is on screen while armed. The card leaves to that side with the same vibration as a swipe. No gyroscope: the item is hidden. | on / off (off), sensitivity (medium), swap the sides (off), a test |
+
+- "Reduce motion" is the system setting "Remove animations" (`MediaQuery.disableAnimations`).
+  While the user has not chosen, it makes the reflections off and the transitions simple; a
+  choice of the user wins, and "Follow the system" goes back.
+- The gyroscope runs only while the deck shows a card, the app is in front, and the
+  reflection or an armed gesture needs it (also during the test of the settings, at most
+  20 s). The samples stay in memory in the filter; nothing is kept or sent.
+- The deck reads the time of each frame while it is on screen. When more than a quarter of
+  60 frames are longer than 20 ms, it turns the reflections off; the next time, it makes the
+  full transitions simple. It does not step up again while the deck is open.
+
 ## 14. Revision history
 
 | Revision | Date | Change |
