@@ -283,6 +283,7 @@ const DeckAction$json = {
       '6': '.Direction',
       '10': 'direction'
     },
+    {'1': 'keep', '3': 6, '4': 1, '5': 8, '10': 'keep'},
   ],
 };
 
@@ -290,7 +291,8 @@ const DeckAction$json = {
 final $typed_data.Uint8List deckActionDescriptor = $convert.base64Decode(
     'CgpEZWNrQWN0aW9uEhsKCWFjdGlvbl9pZBgBIAEoCVIIYWN0aW9uSWQSFAoFbGFiZWwYAiABKA'
     'lSBWxhYmVsEhkKBGljb24YAyABKA4yBS5JY29uUgRpY29uEhkKBHRvbmUYBCABKA4yBS5Ub25l'
-    'UgR0b25lEigKCWRpcmVjdGlvbhgFIAEoDjIKLkRpcmVjdGlvblIJZGlyZWN0aW9u');
+    'UgR0b25lEigKCWRpcmVjdGlvbhgFIAEoDjIKLkRpcmVjdGlvblIJZGlyZWN0aW9uEhIKBGtlZX'
+    'AYBiABKAhSBGtlZXA=');
 
 @$core.Deprecated('Use cardDescriptor instead')
 const Card$json = {

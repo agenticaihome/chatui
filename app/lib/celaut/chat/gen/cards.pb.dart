@@ -605,6 +605,7 @@ class DeckAction extends $pb.GeneratedMessage {
     Icon? icon,
     Tone? tone,
     Direction? direction,
+    $core.bool? keep,
   }) {
     final result = DeckAction._();
     if (actionId != null) result.actionId = actionId;
@@ -612,6 +613,7 @@ class DeckAction extends $pb.GeneratedMessage {
     if (icon != null) result.icon = icon;
     if (tone != null) result.tone = tone;
     if (direction != null) result.direction = direction;
+    if (keep != null) result.keep = keep;
     return result;
   }
 
@@ -633,6 +635,7 @@ class DeckAction extends $pb.GeneratedMessage {
     ..aE<Tone>(4, _omitFieldNames ? '' : 'tone', enumValues: Tone.values)
     ..aE<Direction>(5, _omitFieldNames ? '' : 'direction',
         enumValues: Direction.values)
+    ..aOB(6, _omitFieldNames ? '' : 'keep')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -706,6 +709,18 @@ class DeckAction extends $pb.GeneratedMessage {
   $core.bool hasDirection() => $_has(4);
   @$pb.TagNumber(5)
   void clearDirection() => $_clearField(5);
+
+  /// true: la carta no queda hecha con esta acción. Pasa al final del mazo y
+  /// vuelve a salir cuando se han recorrido las demás, hasta que el usuario
+  /// haga otra acción (por ejemplo "Quizá"). El cliente envía la decisión igual.
+  @$pb.TagNumber(6)
+  $core.bool get keep => $_getBF(5);
+  @$pb.TagNumber(6)
+  set keep($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasKeep() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearKeep() => $_clearField(6);
 }
 
 class Card extends $pb.GeneratedMessage {

@@ -86,6 +86,47 @@ void main() {
     expect(client.canUndo, isFalse);
   });
 
+  test('a keep action sends the card to the end of the loop until another action is made', () async {
+    final deck = svc.shoppingList();
+    deck.actions.clear();
+    deck.actions.addAll([
+      DeckAction(actionId: 'maybe', label: 'Maybe', direction: Direction.DIRECTION_UP, keep: true),
+      DeckAction(actionId: 'want', label: 'Want', direction: Direction.DIRECTION_RIGHT),
+      DeckAction(actionId: 'no', label: 'No', direction: Direction.DIRECTION_LEFT),
+    ]);
+    svc.replace(deck);
+    client.start();
+    await until(() => client.deck.actions.length == 3);
+    expect(client.deck.actions.first.keep, isTrue);
+
+    client.act('maybe'); // milk
+    expect(client.current!.itemId, 'bread');
+    expect(client.doneCount, 0);
+    client.act('maybe'); // bread
+    client.act('want'); // eggs
+    expect(client.ended, isFalse);
+    // The loop: milk comes back first, then bread.
+    expect(client.ahead.map((c) => c.itemId), ['milk', 'bread']);
+    client.act('maybe'); // milk again: it goes behind bread
+    expect(client.ahead.map((c) => c.itemId), ['bread', 'milk']);
+    client.act('want');
+    client.act('no');
+    expect(client.ended, isTrue);
+
+    // A keep decision still goes to the service, in order.
+    await until(() => svc.taken.length == 6);
+    expect(svc.taken.map((r) => r.actionId), ['maybe', 'maybe', 'want', 'maybe', 'want', 'no']);
+
+    // Undo of a keep brings the card back to its place.
+    expect(client.undo(), 'milk');
+    expect(client.undo(), 'bread');
+    expect(client.undo(), 'milk');
+    expect(client.ahead.map((c) => c.itemId), ['milk', 'bread']);
+    expect(client.undo(), 'eggs');
+    expect(client.ahead.map((c) => c.itemId), ['eggs', 'milk', 'bread']);
+    await until(() => svc.taken.length == 10);
+  });
+
   test('with no connection the moves wait, then go in order with their first keys', () async {
     // A relay on a fixed port, like the tunnel: it can go down and come back.
     final relay = _Relay(svc.server!.port!);

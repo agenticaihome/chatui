@@ -22,6 +22,7 @@ class CardsAction {
     this.icon = cpb.Icon.ICON_NONE,
     this.tone = cpb.Tone.TONE_NEUTRAL,
     this.direction = cpb.Direction.DIRECTION_NONE,
+    this.keep = false,
   });
 
   final String id;
@@ -32,6 +33,10 @@ class CardsAction {
   /// The side of a swipe that makes this action. [cpb.Direction.DIRECTION_NONE] for a button
   /// only, and for each button of a card.
   final cpb.Direction direction;
+
+  /// The card is not done with this action: it goes to the end of the deck and comes back
+  /// after the other cards, until the user makes an action that is not a keep.
+  final bool keep;
 }
 
 /// One card of a deck (`docs/celaut/cards.md`, section 5.2), with its texts cut to the
@@ -176,7 +181,12 @@ class CardsClient extends ChangeNotifier {
   final Map<String, String> _local = {};
 
   /// The decisions of the user in this deck, for undo: the last one is at the end.
-  final List<({String itemId, String actionId})> _history = [];
+  final List<({String itemId, String actionId, int? turn})> _history = [];
+
+  /// For each card that a keep action sent to the end: its turn. A higher turn is later in
+  /// the loop. A card with no turn keeps its place in the deck.
+  final Map<String, int> _turns = {};
+  int _turn = 0;
 
   final Queue<cpb.SendActionRequest> _queue = Queue();
   bool _sending = false;
@@ -200,22 +210,43 @@ class CardsClient extends ChangeNotifier {
   /// The decisions that wait in the queue.
   int get pending => _queue.length;
 
+  bool _isKeep(String actionId) {
+    for (final a in _deck.actions) {
+      if (a.id == actionId) return a.keep;
+    }
+    return false;
+  }
+
+  /// A card is done with a decision that is not a keep action.
   bool isDone(DeckCard card) {
     final mine = _local[card.itemId];
-    if (mine != null) return mine.isNotEmpty;
-    return card.decision != null;
+    final id = mine ?? card.decision ?? '';
+    return id.isNotEmpty && !_isKeep(id);
+  }
+
+  /// The cards in the order of the loop: the ones that no keep action moved, in the order of
+  /// the deck, then the ones that it moved, the oldest first.
+  List<DeckCard> get _loop {
+    final cards = [..._deck.cards];
+    if (_turns.isEmpty) return cards;
+    final index = {for (var i = 0; i < cards.length; i++) cards[i].itemId: i};
+    cards.sort((a, b) {
+      final t = (_turns[a.itemId] ?? 0).compareTo(_turns[b.itemId] ?? 0);
+      return t != 0 ? t : index[a.itemId]!.compareTo(index[b.itemId]!);
+    });
+    return cards;
   }
 
   /// The first card that is not done, or null at the end of the deck.
   DeckCard? get current {
-    for (final card in _deck.cards) {
+    for (final card in _loop) {
       if (!isDone(card)) return card;
     }
     return null;
   }
 
   /// The cards that are not done, in order: the current card first.
-  List<DeckCard> get ahead => [for (final c in _deck.cards) if (!isDone(c)) c];
+  List<DeckCard> get ahead => [for (final c in _loop) if (!isDone(c)) c];
 
   int get doneCount => _deck.cards.where(isDone).length;
 
@@ -285,6 +316,7 @@ class CardsClient extends ChangeNotifier {
         if (next.id != _deck.id) {
           _local.clear();
           _history.clear();
+          _turns.clear();
         }
         _deck = next;
       case cpb.DeckEvent_Event.cardsAdded when e.deckId == _deck.id:
@@ -340,10 +372,10 @@ class CardsClient extends ChangeNotifier {
   }
 
   static CardsAction? _actionOf(String id, String label, cpb.Icon icon, cpb.Tone tone,
-      [cpb.Direction direction = cpb.Direction.DIRECTION_NONE]) {
+      [cpb.Direction direction = cpb.Direction.DIRECTION_NONE, bool keep = false]) {
     final text = _line(label, 32);
     if (!_id.hasMatch(id) || text.isEmpty) return null;
-    return CardsAction(id: id, label: text, icon: icon, tone: tone, direction: direction);
+    return CardsAction(id: id, label: text, icon: icon, tone: tone, direction: direction, keep: keep);
   }
 
   CardsDeck _deckOf(cpb.Deck d) {
@@ -353,14 +385,14 @@ class CardsClient extends ChangeNotifier {
     final sides = <cpb.Direction>{};
     for (final a in d.actions) {
       if (actions.length == maxActions) break;
-      final action = _actionOf(a.actionId, a.label, a.icon, a.tone, a.direction);
+      final action = _actionOf(a.actionId, a.label, a.icon, a.tone, a.direction, a.keep);
       if (action == null || actions.any((x) => x.id == action.id)) continue;
       // Two actions on one side: the first one keeps it.
       final side = action.direction;
       final keep = side == cpb.Direction.DIRECTION_NONE || sides.add(side);
       actions.add(keep
           ? action
-          : CardsAction(id: action.id, label: action.label, icon: action.icon, tone: action.tone));
+          : CardsAction(id: action.id, label: action.label, icon: action.icon, tone: action.tone, keep: action.keep));
     }
     final cards = <DeckCard>[];
     final ids = <String>{};
@@ -419,8 +451,14 @@ class CardsClient extends ChangeNotifier {
   void act(String actionId, {DeckCard? card}) {
     final target = card ?? current;
     if (target == null || _closed) return;
+    _history.add((itemId: target.itemId, actionId: actionId, turn: _turns[target.itemId]));
     _local[target.itemId] = actionId;
-    _history.add((itemId: target.itemId, actionId: actionId));
+    // A keep action sends the card to the end of the loop.
+    if (_isKeep(actionId)) {
+      _turns[target.itemId] = ++_turn;
+    } else {
+      _turns.remove(target.itemId);
+    }
     _enqueue(target.itemId, actionId, undo: false);
     notifyListeners();
   }
@@ -431,6 +469,12 @@ class CardsClient extends ChangeNotifier {
     if (_history.isEmpty || _closed) return null;
     final last = _history.removeLast();
     _local[last.itemId] = '';
+    // The card comes back to the place that it had before the decision.
+    if (last.turn == null) {
+      _turns.remove(last.itemId);
+    } else {
+      _turns[last.itemId] = last.turn!;
+    }
     _enqueue(last.itemId, last.actionId, undo: true);
     notifyListeners();
     return last.itemId;

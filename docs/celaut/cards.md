@@ -128,6 +128,13 @@ A `DeckAction` also has `direction`. With `DIRECTION_LEFT`, `DIRECTION_RIGHT`, `
 or `DIRECTION_DOWN`, a swipe of the card to that side makes the action. With `DIRECTION_NONE`,
 the action is only a button.
 
+A `DeckAction` can also have `keep` (`false` by default). With `keep`, the card is **not done**
+by the action: it goes to the end of the deck and the client shows it again after the other
+cards, until the user makes an action that is not a `keep` on it. The deck is a loop. The client
+sends the decision as for any action, so the service knows it (for example "Maybe"). A card
+with a `decision` that is a `keep` action is not done either. An undo puts the card back in its
+place. A client that does not know `keep` shows the card as done: the field is optional.
+
 **Each action is also a button** (accessibility). The client must show one button for each
 `DeckAction`, also for an action with a direction. On a device with a keyboard, the arrow keys
 make the action of their direction. A swipe alone is never the only way.
@@ -312,6 +319,7 @@ The rules of `chat.md`, section 9, for `DownloadFile` apply.
 | 20 | A slot with `http2`, `grpc`, `cards` | The client can open the deck. A slot without `cards` is not a deck |
 | 21 | A swipe to a side with an action | One `SendAction` with that `action_id`; the next card shows |
 | 22 | The button of each action | The same decision as the swipe |
+| 22a | An action with `keep` | One `SendAction`; the card shows again after the other cards; the end of the deck does not show while a card is kept |
 | 23 | A tap on the card | The detail view opens; no decision is sent |
 | 24 | Undo | One `SendAction` with `undo` for the last card; that card shows again |
 | 25 | No connection, three moves, then the connection comes back | Three decisions, in order, each with its first key |

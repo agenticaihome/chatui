@@ -133,6 +133,11 @@ message DeckAction {
   // Dirección de deslizar que hace esta acción. DIRECTION_NONE: solo botón.
   // Dos acciones no tienen la misma dirección.
   Direction direction = 5;
+
+  // true: la carta no queda hecha con esta acción. Pasa al final del mazo y
+  // vuelve a salir cuando se han recorrido las demás, hasta que el usuario
+  // haga otra acción (por ejemplo "Quizá"). El cliente envía la decisión igual.
+  bool keep = 6;
 }
 
 message Card {
