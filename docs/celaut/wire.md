@@ -9,6 +9,20 @@ The `nodo:` line numbers are from nodo dev `76dcac3b` (2026-11-10, issue #129), 
 whose `celaut.proto` `celaut-proto` pins (`protos/SOURCE`). Section 4 (the deposit) was
 checked against nodo dev `ee5af5bc` and names functions, not lines.
 
+`celaut.proto` was re-pinned to nodo dev `798e3b81` (2026-11-12). Since `76dcac3b` the contract has these
+changes, all of them additive on the wire except the first:
+
+- `GetResourceAvailability` takes a `ResourceAvailabilityRequest` at index 1. It has the old
+  `ArchitectureResources` in `main` (field 1) and the `devices` in field 2. chatui does not call this
+  RPC. A client that calls it must wrap its old request in `main`.
+- Devices with a direct connection (nodo#536): `Device`, `Container.devices`, `Peer.devices`,
+  `AttachedDevice`, `DeviceChange`, and `devices` in the instance and in the answer and the input of
+  `ModifyServiceSystemResources`. chatui reads and keeps these fields (prost keeps them), and does not
+  show or use them yet.
+- The notice of the node (nodo#645): `Container.notice_declaration`. chatui does not use it.
+- A local instance of the node can call `Deposit` with an empty `client_id` (nodo#630). Only a comment.
+
+
 ## 1. Transport
 
 - **Port:** no fixed default. `network.GATEWAY_PORT: auto` picks a free port on the first
@@ -92,7 +106,7 @@ client). Auth "token" = possession of an instance token.
 | ModifyServiceSystemResources | 1 `ModifyServiceSystemResourcesInput` (with `service_token`), 2 `Client` (the father) | 1 `ModifyServiceSystemResourcesOutput` | token+client |
 | GetMetrics | 1 `TokenMessage{instance token}` | 1 `Metrics` | token |
 | GetClientMetrics | 1 `Client` | 1 `Metrics` (free) | client |
-| GetResourceAvailability | 1 `ArchitectureResources`, 2 `Client` | 1 `ResourceAvailability` | client |
+| GetResourceAvailability | 1 `ResourceAvailabilityRequest` (1 `main`, the old `ArchitectureResources`, and 2 `devices`), 2 `Client` | 1 `ResourceAvailability` | client |
 | GetService | 1 Hash, 2 Client (send Client first) | 4 Hash, 5 Metadata, 6 Service | client |
 | ServiceTunnel | 1 `TokenMessage{token, slot, receipts}` or 2 `DescendantTunnel{token, instance_ref, slot, receipts, remaining_hops}`, then 0 bytes | 0 bytes, 2 `ExecutionReceipt` | token |
 | GetBalanceStatement | 1 `BalanceStatementRequest`, 2 `Client` | 1 `BalanceStatement` | client |

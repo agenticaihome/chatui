@@ -1,3 +1,3 @@
-celaut-project/nodo 76dcac3bc2fc81758c405341aa0808156f65b537 protos/celaut.proto (nodo dev; the file last changed in 7533a177, the activity window of nodo#344)
+celaut-project/nodo ef42f94bba9129f43d5e9b340d73f379ae52302e protos/celaut.proto (nodo dev; the file last changed in 798e3b81, the deposit token of an instance, nodo#630; before it: devices #536, the notice of the node #645)
 celaut-project/nodo b5c1e8a5ea43b43d0779c1a7613d5294f39c6745 protos/buffer.proto
 celaut-project/nodo f4dcb3b2 protos/invite.proto (the peer invitation of nodo#579; it is not part of celaut.proto)

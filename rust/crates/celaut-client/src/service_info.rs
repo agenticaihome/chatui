@@ -643,6 +643,7 @@ mod tests {
                 }),
                 node_protocol_stack: vec![protocol(&["grpc"])],
                 environment_variables: declaration(names),
+                ..Default::default()
             }),
             api: Some(Api {
                 slot: vec![
