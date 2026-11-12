@@ -361,6 +361,7 @@ fn change_answer(sysreq: Sysresources, balance: &str) -> Vec<Buffer> {
         &ModifyServiceSystemResourcesOutput {
             sysreq: Some(sysreq),
             balance: mu(balance),
+            ..Default::default()
         },
     )
 }
