@@ -36,6 +36,7 @@ class MainActivity : FlutterFragmentActivity() {
         PackageHandler.registerWith(flutterEngine, this)
         IncomingPackageHandler.registerWith(flutterEngine, this, if (restored) null else intent)
         MotionHandler.registerWith(flutterEngine, this)
+        CardsSensorsHandler.registerWith(flutterEngine, this)
     }
 
     override fun onRequestPermissionsResult(

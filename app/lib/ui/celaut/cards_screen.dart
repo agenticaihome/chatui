@@ -1,17 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../../bridge/api/celaut.dart';
 import '../../bridge/api/celaut_service.dart';
 import '../../celaut/cards_client.dart';
+import '../../celaut/cards_effects.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/chat/gen/cards.pb.dart' as cpb;
 import '../../celaut/chat_client.dart' show ChatSlotLink;
 import '../../l10n/l10n.dart';
-import '../../theme/argus_theme.dart' show cardRadius, rustFor;
+import '../../theme/argus_theme.dart' show rustFor;
 import '../../theme/argus_tones.dart' show mossFor;
+import 'cards_look.dart';
 import 'open_web.dart';
 
 /// What a `slot_link` of the chat opens (`docs/celaut/chat.md`, section 5.8).
@@ -106,24 +109,50 @@ IconData? iconOf(cpb.Icon icon) => switch (icon) {
       _ => null,
     };
 
-/// The full-screen deck of a cards slot (`docs/celaut/cards.md`, section 7).
+/// The full-screen deck of a cards slot (`docs/celaut/cards.md`, section 7), with the
+/// effects of section 13 (reflections, vibration, transitions, frames, motion gestures).
 ///
 /// Give it the [tunnel] to the slot (a page that opens a [CardsClient] on the local port),
 /// or a [client] (tests). On a pop, the page closes the client after the queue of
-/// decisions is sent, and pops a [CelautError] if the tunnel failed.
+/// decisions is sent, and pops a [CelautError] if the tunnel failed. [settings], [sensors]
+/// and [haptics] default to the ones of the app; tests give their own.
 class CardsScreen extends StatefulWidget {
-  const CardsScreen({super.key, required this.title, this.tunnel, this.client})
-      : assert(tunnel != null || client != null);
+  const CardsScreen({
+    super.key,
+    required this.title,
+    this.tunnel,
+    this.client,
+    this.settings,
+    this.sensors,
+    this.haptics,
+    this.armTimeout = const Duration(seconds: 30),
+  }) : assert(tunnel != null || client != null);
 
   final String title;
   final Future<int>? tunnel;
   final CardsClient? client;
+  final CardsSettings? settings;
+  final CardsSensors? sensors;
+  final CardsHapticPlayer? haptics;
+
+  /// The motion gestures end by themselves after this time with no gesture.
+  final Duration armTimeout;
 
   @override
   State<CardsScreen> createState() => _CardsScreenState();
 }
 
-class _CardsScreenState extends State<CardsScreen> {
+/// The card that leaves after a decision, drawn over the deck while its transition runs.
+class _Leaving {
+  const _Leaving(this.card, this.from, this.direction, this.hint);
+
+  final DeckCard card;
+  final Offset from;
+  final cpb.Direction direction;
+  final CardsAction? hint;
+}
+
+class _CardsScreenState extends State<CardsScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   CardsClient? _client;
   Offset _drag = Offset.zero;
 
@@ -131,9 +160,40 @@ class _CardsScreenState extends State<CardsScreen> {
   String? _expanded;
   final _focus = FocusNode();
 
+  CardsSettings get _settings => widget.settings ?? cardsSettings;
+  CardsEffects _fx = CardsEffects.none;
+
+  late final AnimationController _leave;
+  late final AnimationController _appear;
+  _Leaving? _leaving;
+
+  /// The deck id and its items: a change that the user did not make is a refresh.
+  String _signature = '';
+
+  bool _pastThreshold = false;
+
+  final _tilt = ValueNotifier<Offset>(Offset.zero);
+  Offset _gyroTilt = Offset.zero;
+  Offset _pointerTilt = Offset.zero;
+  final _filter = TiltFilter();
+  StreamSubscription<GyroSample>? _gyro;
+  bool _resumed = true;
+
+  bool _armed = false;
+  Timer? _armTimer;
+  WristGestureDetector? _wrist;
+
+  final _guard = FrameRateGuard();
+  int _stepDown = 0;
+
   @override
   void initState() {
     super.initState();
+    _leave = AnimationController(vsync: this)..addStatusListener(_leaveStatus);
+    _appear = AnimationController(vsync: this, value: 1);
+    WidgetsBinding.instance.addObserver(this);
+    SchedulerBinding.instance.addTimingsCallback(_timings);
+    _settings.addListener(_settingsChanged);
     final given = widget.client;
     if (given != null) {
       _use(given);
@@ -149,6 +209,12 @@ class _CardsScreenState extends State<CardsScreen> {
     }
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _resolve();
+  }
+
   void _use(CardsClient client) {
     _client = client;
     client.addListener(_changed);
@@ -159,11 +225,60 @@ class _CardsScreenState extends State<CardsScreen> {
   void _changed() {
     if (!mounted) return;
     _client?.prefetch();
+    final deck = _client?.deck;
+    if (deck != null) {
+      final sig = '${deck.id}|${deck.cards.map((c) => c.itemId).join(',')}';
+      if (_signature.isNotEmpty && sig != _signature) _play(_appear);
+      _signature = sig;
+    }
     setState(() {});
+    _syncSensors();
+  }
+
+  void _settingsChanged() {
+    if (!mounted) return;
+    setState(_resolve);
+  }
+
+  /// The effects now: the settings, "reduce motion" of the system and the steps down.
+  void _resolve() {
+    _fx = _settings.resolve(reduceMotion: MediaQuery.disableAnimationsOf(context), stepDown: _stepDown);
+    if (!_fx.gestures && _armed) _disarm();
+    _syncSensors();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _resumed = state == AppLifecycleState.resumed;
+    // The screen goes off or the app goes away: the gestures end and the sensor stops.
+    if (!_resumed && _armed) _disarm();
+    _syncSensors();
+  }
+
+  void _timings(List<FrameTiming> timings) {
+    var changed = false;
+    for (final t in timings) {
+      changed = _guard.add(t.totalSpan) || changed;
+    }
+    if (changed && mounted) {
+      setState(() {
+        _stepDown = _guard.stepDown;
+        _resolve();
+      });
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    SchedulerBinding.instance.removeTimingsCallback(_timings);
+    _settings.removeListener(_settingsChanged);
+    _armTimer?.cancel();
+    unawaited(_gyro?.cancel());
+    _gyro = null;
+    _leave.dispose();
+    _appear.dispose();
+    _tilt.dispose();
     _focus.dispose();
     final client = _client;
     if (client != null) {
@@ -174,6 +289,133 @@ class _CardsScreenState extends State<CardsScreen> {
     super.dispose();
   }
 
+  // --- Sensors -----------------------------------------------------------------------
+
+  /// The gyroscope runs only while the deck shows a card, the app is in front, and an
+  /// effect needs it (section 13, U6).
+  void _syncSensors() {
+    final client = _client;
+    final want = mounted &&
+        _resumed &&
+        client != null &&
+        client.current != null &&
+        (_fx.gyroReflections || (_armed && _fx.gestures));
+    if (want && _gyro == null) {
+      _filter.reset();
+      _gyro = (widget.sensors ?? const PlatformCardsSensors()).gyro().listen(_sample, onError: (Object _) {
+        // No sensor after all: the reflection follows the finger, the gestures end.
+        _gyro = null;
+        if (_armed) _disarm();
+      });
+    } else if (!want && _gyro != null) {
+      unawaited(_gyro!.cancel());
+      _gyro = null;
+      _gyroTilt = Offset.zero;
+      _updateTilt();
+    }
+  }
+
+  void _sample(GyroSample s) {
+    if (!mounted) return;
+    if (_fx.gyroReflections) {
+      _gyroTilt = _filter.add(s);
+      _updateTilt();
+    }
+    final wrist = _wrist;
+    final client = _client;
+    if (!_armed || wrist == null || client == null) return;
+    final turn = wrist.add(s);
+    if (turn == WristTurn.none) return;
+    // The swap is for left and right; up and down stay where the screen turns.
+    final side = switch (turn) {
+      WristTurn.left => _fx.swapSides ? cpb.Direction.DIRECTION_RIGHT : cpb.Direction.DIRECTION_LEFT,
+      WristTurn.right => _fx.swapSides ? cpb.Direction.DIRECTION_LEFT : cpb.Direction.DIRECTION_RIGHT,
+      WristTurn.up => cpb.Direction.DIRECTION_UP,
+      WristTurn.down => cpb.Direction.DIRECTION_DOWN,
+      WristTurn.none => cpb.Direction.DIRECTION_NONE,
+    };
+    final action = client.actionFor(side);
+    if (action == null || client.current == null) return;
+    _restartArmTimer();
+    _decide(action, side: side);
+  }
+
+  void _updateTilt() {
+    final x = (_gyroTilt.dx + _pointerTilt.dx).clamp(-1.0, 1.0);
+    final y = (_gyroTilt.dy + _pointerTilt.dy).clamp(-1.0, 1.0);
+    _tilt.value = Offset(x, y);
+  }
+
+  // --- Motion gestures ---------------------------------------------------------------
+
+  void _toggleArm() => _armed ? _disarm() : _arm();
+
+  void _arm() {
+    setState(() {
+      _armed = true;
+      _wrist = WristGestureDetector(threshold: WristGestureDetector.thresholdOf(_fx.sensitivity));
+    });
+    _restartArmTimer();
+    _syncSensors();
+  }
+
+  void _disarm() {
+    _armTimer?.cancel();
+    _armTimer = null;
+    _wrist = null;
+    if (mounted) setState(() => _armed = false);
+    _syncSensors();
+  }
+
+  void _restartArmTimer() {
+    _armTimer?.cancel();
+    _armTimer = Timer(widget.armTimeout, _disarm);
+  }
+
+  // --- Vibration and transitions -----------------------------------------------------
+
+  void _buzz(CardsHapticEvent event) {
+    if (!_fx.haptics) return;
+    (widget.haptics ?? playSystemHaptic)(hapticLevelOf(event, _fx.hapticStrength));
+  }
+
+  Duration get _leaveTime => switch (_fx.transitions) {
+        CardsTransitions.full => const Duration(milliseconds: 260),
+        CardsTransitions.simple => const Duration(milliseconds: 150),
+        CardsTransitions.off => Duration.zero,
+      };
+
+  void _play(AnimationController c) {
+    final time = _leaveTime;
+    if (time == Duration.zero) {
+      c.value = 1;
+      return;
+    }
+    c.duration = time;
+    c.forward(from: 0);
+  }
+
+  void _leaveStatus(AnimationStatus s) {
+    if (s == AnimationStatus.completed && _leaving != null && mounted) setState(() => _leaving = null);
+  }
+
+  /// A decision by a swipe, a button, a key or a motion gesture: it vibrates, the card
+  /// leaves with the transition, and the action goes to the client at once (the effects
+  /// never wait for anything).
+  void _decide(CardsAction action, {cpb.Direction? side}) {
+    final client = _client;
+    final card = client?.current;
+    if (client == null || card == null) return;
+    _buzz(CardsHapticEvent.release);
+    if (_fx.transitions != CardsTransitions.off) {
+      final dir = side ?? action.direction;
+      _leaving = _Leaving(card, _drag, dir, dir == cpb.Direction.DIRECTION_NONE ? null : action);
+      _play(_leave);
+      if (_fx.transitions == CardsTransitions.full) _play(_appear);
+    }
+    _act(action);
+  }
+
   void _act(CardsAction action, [DeckCard? card]) {
     final client = _client;
     if (client == null) return;
@@ -181,15 +423,22 @@ class _CardsScreenState extends State<CardsScreen> {
     setState(() {
       _drag = Offset.zero;
       _expanded = null;
+      _pastThreshold = false;
     });
+    _pointerTilt = Offset.zero;
+    _updateTilt();
   }
 
   void _undo() {
+    if (_client?.canUndo != true) return;
+    _buzz(CardsHapticEvent.undo);
     _client?.undo();
     setState(() {
+      _leaving = null;
       _drag = Offset.zero;
       _expanded = null;
     });
+    _play(_appear);
   }
 
   cpb.Direction _sideOf(Offset o, Size size, Velocity v) {
@@ -200,6 +449,42 @@ class _CardsScreenState extends State<CardsScreen> {
     if (!far && !fast) return cpb.Direction.DIRECTION_NONE;
     if (horizontal) return dx < 0 ? cpb.Direction.DIRECTION_LEFT : cpb.Direction.DIRECTION_RIGHT;
     return dy < 0 ? cpb.Direction.DIRECTION_UP : cpb.Direction.DIRECTION_DOWN;
+  }
+
+  void _dragBy(Offset delta, Size size, CardsClient client) {
+    _drag += delta;
+    final past = client.actionFor(_sideOf(_drag, size, Velocity.zero)) != null;
+    // One vibration when the card passes the decision point, none for each frame.
+    if (past && !_pastThreshold) _buzz(CardsHapticEvent.threshold);
+    _pastThreshold = past;
+    _pointerTilt = Offset((_drag.dx / size.width).clamp(-1.0, 1.0), (_drag.dy / size.height).clamp(-1.0, 1.0));
+    _updateTilt();
+    setState(() {});
+  }
+
+  void _dragEnd(Velocity v, Size size, CardsClient client) {
+    final action = client.actionFor(_sideOf(_drag, size, v));
+    if (action != null) {
+      _decide(action);
+      return;
+    }
+    // The card comes back: a cancel, when the drag went somewhere.
+    if (_pastThreshold || _drag.distance > 24) _buzz(CardsHapticEvent.cancel);
+    _pointerTilt = Offset.zero;
+    _updateTilt();
+    setState(() {
+      _drag = Offset.zero;
+      _pastThreshold = false;
+    });
+  }
+
+  void _hover(Offset local, Size size) {
+    if (_fx.gyroReflections || !_fx.reflections) return;
+    _pointerTilt = Offset(
+      ((local.dx / size.width) * 2 - 1).clamp(-1.0, 1.0),
+      ((local.dy / size.height) * 2 - 1).clamp(-1.0, 1.0),
+    );
+    _updateTilt();
   }
 
   KeyEventResult _key(FocusNode node, KeyEvent event) {
@@ -214,7 +499,7 @@ class _CardsScreenState extends State<CardsScreen> {
     };
     final action = client.actionFor(side);
     if (action == null || client.current == null) return KeyEventResult.ignored;
-    _act(action);
+    _decide(action, side: side);
     return KeyEventResult.handled;
   }
 
@@ -223,6 +508,7 @@ class _CardsScreenState extends State<CardsScreen> {
     final l = context.l10n;
     final client = _client;
     final deck = client?.deck;
+    final canArm = _fx.gestures && client != null && client.current != null;
     return Focus(
       focusNode: _focus,
       autofocus: true,
@@ -237,12 +523,22 @@ class _CardsScreenState extends State<CardsScreen> {
             overflow: TextOverflow.ellipsis,
           ),
           actions: [
-            if (client != null && client.canUndo)
+            if (canArm)
+              IconButton(
+                key: const Key('cards-arm'),
+                isSelected: _armed,
+                tooltip: _armed ? l.cardsGesturesDisarm : l.cardsGesturesArm,
+                icon: const Icon(Icons.screen_rotation_alt_outlined),
+                selectedIcon: const Icon(Icons.screen_rotation_alt),
+                onPressed: _toggleArm,
+              ),
+            // With the gestures armed, undo is always on screen (section 13).
+            if (client != null && (client.canUndo || _armed))
               IconButton(
                 key: const Key('cards-undo'),
                 tooltip: l.cardsUndo,
                 icon: const Icon(Icons.undo),
-                onPressed: _undo,
+                onPressed: client.canUndo ? _undo : null,
               ),
           ],
         ),
@@ -271,7 +567,7 @@ class _CardsScreenState extends State<CardsScreen> {
     }
     final current = client.current;
     if (current == null) {
-      return _message(
+      final end = _message(
         context,
         const Key('cards-end'),
         Icons.check_circle_outline,
@@ -298,12 +594,24 @@ class _CardsScreenState extends State<CardsScreen> {
           ),
         ],
       );
+      // The end comes with its own short effect, under the last card that leaves.
+      return Stack(children: [
+        Positioned.fill(child: _appearing(end)),
+        if (_leaving != null)
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: LayoutBuilder(builder: (context, box) => _ghost(context, client, box.biggest)),
+            ),
+          ),
+      ]);
     }
     final ahead = client.ahead;
     final next = ahead.length > 1 ? ahead[1] : null;
+    final third = _fx.transitions == CardsTransitions.full && ahead.length > 2 ? ahead[2] : null;
     return Column(
       children: [
-        if (deck.showProgress || status != null)
+        if (deck.showProgress || status != null || _armed)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Row(children: [
@@ -317,6 +625,21 @@ class _CardsScreenState extends State<CardsScreen> {
               ?status,
             ]),
           ),
+        if (_armed)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            child: Row(children: [
+              Icon(Icons.screen_rotation_alt, size: 16, color: scheme.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  l.cardsGesturesArmed,
+                  key: const Key('cards-armed'),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(color: scheme.primary),
+                ),
+              ),
+            ]),
+          ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -324,53 +647,81 @@ class _CardsScreenState extends State<CardsScreen> {
               final size = box.biggest;
               final side = _sideOf(_drag, size, Velocity.zero);
               final hint = client.actionFor(side);
-              return Stack(
+              return _appearing(Stack(
                 children: [
-                  if (next != null)
+                  if (third != null)
                     Positioned.fill(
-                      child: Transform.scale(
-                        scale: 0.95,
-                        child: _CardFace(key: ValueKey('cards-under-${next.itemId}'), card: next, client: client),
-                      ),
-                    ),
-                  Positioned.fill(
-                    child: GestureDetector(
-                      key: Key('cards-card-${current.itemId}'),
-                      onTap: () => _toggle(current),
-                      onLongPress: () => _toggle(current),
-                      onPanUpdate: (d) => setState(() => _drag += d.delta),
-                      onPanEnd: (d) {
-                        final action = client.actionFor(_sideOf(_drag, size, d.velocity));
-                        if (action != null) {
-                          _act(action);
-                        } else {
-                          setState(() => _drag = Offset.zero);
-                        }
-                      },
-                      onPanCancel: () => setState(() => _drag = Offset.zero),
                       child: Transform.translate(
-                        offset: _drag,
-                        child: Transform.rotate(
-                          angle: _drag.dx / size.width * 0.25,
+                        offset: const Offset(0, 14),
+                        child: Transform.scale(
+                          scale: 0.90,
                           child: _CardFace(
-                            key: ValueKey('cards-face-${current.itemId}'),
-                            card: current,
+                            key: ValueKey('cards-under2-${third.itemId}'),
+                            card: third,
                             client: client,
-                            hint: hint,
-                            expanded: _expanded == current.itemId,
+                            frames: _fx.frames,
                           ),
                         ),
                       ),
                     ),
+                  if (next != null)
+                    Positioned.fill(
+                      child: Transform.translate(
+                        offset: Offset(0, third != null ? 7 : 0),
+                        child: Transform.scale(
+                          scale: 0.95,
+                          child: _CardFace(
+                            key: ValueKey('cards-under-${next.itemId}'),
+                            card: next,
+                            client: client,
+                            frames: _fx.frames,
+                          ),
+                        ),
+                      ),
+                    ),
+                  Positioned.fill(
+                    child: MouseRegion(
+                      onHover: (e) => _hover(e.localPosition, size),
+                      onExit: (_) {
+                        _pointerTilt = Offset.zero;
+                        _updateTilt();
+                      },
+                      child: GestureDetector(
+                        key: Key('cards-card-${current.itemId}'),
+                        onTap: () => _toggle(current),
+                        onLongPress: () => _toggle(current),
+                        onPanUpdate: (d) => _dragBy(d.delta, size, client),
+                        onPanEnd: (d) => _dragEnd(d.velocity, size, client),
+                        onPanCancel: () => _dragEnd(Velocity.zero, size, client),
+                        child: _rising(Transform.translate(
+                          offset: _drag,
+                          child: Transform.rotate(
+                            angle: _drag.dx / size.width * 0.25,
+                            child: _CardFace(
+                              key: ValueKey('cards-face-${current.itemId}'),
+                              card: current,
+                              client: client,
+                              hint: hint,
+                              expanded: _expanded == current.itemId,
+                              frames: _fx.frames,
+                              reflection: _fx.reflections
+                                  ? CardReflection(tilt: _tilt, opacity: reflectionOpacity(_fx.reflectionStrength))
+                                  : null,
+                            ),
+                          ),
+                        )),
+                      ),
+                    ),
                   ),
+                  if (_leaving != null) Positioned.fill(child: _ghost(context, client, size)),
                 ],
-              );
+              ));
             }),
           ),
         ),
         _ActionBar(
           actions: [...deck.actions, ...current.buttons],
-          onAction: (a) => _act(a),
+          onAction: (a) => _decide(a),
         ),
         const SizedBox(height: 8),
         Text(
@@ -379,6 +730,95 @@ class _CardsScreenState extends State<CardsScreen> {
         ),
         const SizedBox(height: 8),
       ],
+    );
+  }
+
+  /// The new top card grows from its place under the one that leaves (full transitions).
+  Widget _rising(Widget child) {
+    if (_leaving == null || _fx.transitions != CardsTransitions.full) return child;
+    return AnimatedBuilder(
+      animation: _leave,
+      builder: (context, child) =>
+          Transform.scale(scale: 0.95 + 0.05 * Curves.easeOut.transform(_leave.value), child: child),
+      child: child,
+    );
+  }
+
+  /// The short effect of the end of the deck, a refresh and an undo: a fade (simple), with
+  /// a small scale (full). Nothing with the transitions off.
+  Widget _appearing(Widget child) {
+    if (_fx.transitions == CardsTransitions.off) return child;
+    final full = _fx.transitions == CardsTransitions.full;
+    return AnimatedBuilder(
+      animation: _appear,
+      builder: (context, child) {
+        final t = Curves.easeOut.transform(_appear.value);
+        final faded = Opacity(opacity: 0.4 + 0.6 * t, child: child);
+        return full ? Transform.scale(scale: 0.96 + 0.04 * t, child: faded) : faded;
+      },
+      child: child,
+    );
+  }
+
+  /// The card that leaves, with the style of the transition. It takes no input and is not
+  /// read by a screen reader: the deck under it is already the new state.
+  Widget _ghost(BuildContext context, CardsClient client, Size size) {
+    final leaving = _leaving!;
+    final face = _CardFace(
+      key: ValueKey('cards-leaving-${leaving.card.itemId}'),
+      card: leaving.card,
+      client: client,
+      hint: leaving.hint,
+      frames: _fx.frames,
+    );
+    final dir = switch (leaving.direction) {
+      cpb.Direction.DIRECTION_LEFT => const Offset(-1, 0),
+      cpb.Direction.DIRECTION_RIGHT => const Offset(1, 0),
+      cpb.Direction.DIRECTION_UP => const Offset(0, -1),
+      cpb.Direction.DIRECTION_DOWN => const Offset(0, 1),
+      _ => Offset.zero,
+    };
+    final simple = _fx.transitions == CardsTransitions.simple;
+    final style = dir == Offset.zero && !simple ? CardsTransitionStyle.fade : _fx.style;
+    return IgnorePointer(
+      child: ExcludeSemantics(
+        child: AnimatedBuilder(
+          animation: _leave,
+          builder: (context, child) {
+            final t = Curves.easeIn.transform(_leave.value);
+            final baseAngle = leaving.from.dx / size.width * 0.25;
+            if (simple) {
+              // Reduced motion: no movement, only a fade.
+              return Opacity(
+                opacity: 1 - t,
+                child: Transform.translate(offset: leaving.from, child: Transform.rotate(angle: baseAngle, child: child)),
+              );
+            }
+            final far = Offset(dir.dx * size.width * 1.3, dir.dy * size.height * 1.2);
+            return switch (style) {
+              CardsTransitionStyle.toss => Opacity(
+                  opacity: 1 - 0.3 * t,
+                  child: Transform.translate(
+                    offset: leaving.from + far * t,
+                    child: Transform.rotate(angle: baseAngle + dir.dx * 0.35 * t, child: child),
+                  ),
+                ),
+              CardsTransitionStyle.slide => Transform.translate(
+                  offset: leaving.from + far * t,
+                  child: Transform.rotate(angle: baseAngle * (1 - t), child: child),
+                ),
+              CardsTransitionStyle.fade => Opacity(
+                  opacity: 1 - t,
+                  child: Transform.translate(
+                    offset: leaving.from * (1 - t),
+                    child: Transform.scale(scale: 1 - 0.12 * t, child: child),
+                  ),
+                ),
+            };
+          },
+          child: face,
+        ),
+      ),
     );
   }
 
@@ -510,7 +950,15 @@ class _CardImage extends StatelessWidget {
 
 /// One card as it shows in the deck.
 class _CardFace extends StatelessWidget {
-  const _CardFace({super.key, required this.card, required this.client, this.hint, this.expanded = false});
+  const _CardFace({
+    super.key,
+    required this.card,
+    required this.client,
+    this.hint,
+    this.expanded = false,
+    this.frames = CardsFrames.none,
+    this.reflection,
+  });
 
   final DeckCard card;
   final CardsClient client;
@@ -521,11 +969,21 @@ class _CardFace extends StatelessWidget {
   /// The card shows its texts in full, with the `detail`, in place of its image.
   final bool expanded;
 
+  /// The frame of the card (section 13): from the theme, or none.
+  final CardsFrames frames;
+
+  /// The light on the image (section 13), or null. It never covers the texts.
+  final Widget? reflection;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final border = card.tone == cpb.Tone.TONE_NEUTRAL ? scheme.outlineVariant : toneColor(context, card.tone);
+    final frame = cardFrameOf(
+      theme,
+      card.tone == cpb.Tone.TONE_NEUTRAL ? null : toneColor(context, card.tone),
+      frames,
+    );
     final hasImage = card.image != null;
     final full = card.layout == cpb.Layout.LAYOUT_IMAGE_FULL && hasImage;
     final texts = <Widget>[
@@ -545,40 +1003,51 @@ class _CardFace extends StatelessWidget {
             style: theme.textTheme.bodyLarge?.copyWith(color: full ? Colors.white : scheme.onSurfaceVariant)),
       ],
     ];
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (hasImage)
+          Expanded(
+            flex: 5,
+            child: Stack(fit: StackFit.expand, children: [
+              _CardImage(card: card, client: client),
+              ?reflection,
+            ]),
+          ),
+        Expanded(
+          flex: hasImage ? 4 : 1,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: hasImage ? MainAxisAlignment.start : MainAxisAlignment.center,
+              children: texts,
+            ),
+          ),
+        ),
+      ],
+    );
     return Semantics(
       container: true,
       label: card.title,
       hint: context.l10n.cardsTapForDetail,
-      child: Material(
-        color: scheme.surfaceContainerHigh,
-        elevation: 2,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(cardRadius),
-          side: BorderSide(color: border, width: card.tone == cpb.Tone.TONE_NEUTRAL ? 1 : 2),
-        ),
-        child: Stack(
+      child: DecoratedBox(
+        key: Key('cards-frame-${card.itemId}'),
+        decoration: frame.decoration(scheme.surfaceContainerHigh),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(frame.radius),
+          child: Material(
+            type: MaterialType.transparency,
+            child: Stack(
           children: [
-            if (full)
-              Positioned.fill(child: _CardImage(card: card, client: client))
+            if (full) ...[
+              Positioned.fill(child: _CardImage(card: card, client: client)),
+              if (reflection != null) Positioned.fill(child: reflection!),
+            ] else if (!hasImage && reflection != null)
+              // No image: the light is the background of the texts, which paint over it.
+              Stack(fit: StackFit.expand, children: [reflection!, body])
             else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (hasImage) Expanded(flex: 5, child: _CardImage(card: card, client: client)),
-                  Expanded(
-                    flex: hasImage ? 4 : 1,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: hasImage ? MainAxisAlignment.start : MainAxisAlignment.center,
-                        children: texts,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              body,
             if (full)
               Positioned(
                 left: 0,
@@ -644,7 +1113,9 @@ class _CardFace extends StatelessWidget {
                   ),
                 ),
               ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

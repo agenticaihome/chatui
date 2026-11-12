@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'bitcoin/bitcoin_settings.dart';
 import 'celaut/auto_top_up.dart';
 import 'celaut/background_work.dart';
+import 'celaut/cards_effects.dart';
 import 'celaut/chat_groups.dart';
 import 'celaut/chat_prefs.dart';
 import 'celaut/incoming_package.dart';
@@ -73,6 +74,7 @@ Future<void> main() async {
     spendPolicy.load().catchError((_) {}),
     previewSettings.load().catchError((_) {}),
     chatPrefs.load().catchError((_) {}),
+    cardsSettings.load().catchError((_) {}),
     chatGroups.load().catchError((_) {}),
   ]);
   networkController.priceRefresher = tokenPricer.refresh;

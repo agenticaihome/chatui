@@ -8259,4 +8259,144 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get celautRunNotBounded =>
       'Este nodo no promete un límite a su precio: las cifras son a su precio de ahora, y puede cobrar más después.';
+
+  @override
+  String get cardsGesturesArm => 'Activar los gestos de movimiento';
+
+  @override
+  String get cardsGesturesDisarm => 'Desactivar los gestos de movimiento';
+
+  @override
+  String get cardsGesturesArmed =>
+      'Gestos de movimiento activos: gira la muñeca a un lado y vuelve, o inclínala hacia delante o atrás';
+
+  @override
+  String get cardsSettingsTitle => 'Tarjetas';
+
+  @override
+  String get cardsSettingsRowSubtitle =>
+      'Reflejos, vibración, transiciones, marcos, gestos de movimiento';
+
+  @override
+  String get cardsSettingsGroup => 'Efectos de las tarjetas';
+
+  @override
+  String get cardsSettingsReflections => 'Reflejos';
+
+  @override
+  String get cardsSettingsReflectionsSubtitle =>
+      'Una luz en la imagen que sigue la inclinación del teléfono y el dedo';
+
+  @override
+  String get cardsSettingsReflectionsPointer =>
+      'Una luz en la imagen que sigue el dedo';
+
+  @override
+  String get cardsSettingsStrength => 'Intensidad';
+
+  @override
+  String get cardsStrengthLow => 'Baja';
+
+  @override
+  String get cardsStrengthMedium => 'Media';
+
+  @override
+  String get cardsStrengthHigh => 'Alta';
+
+  @override
+  String get cardsSettingsVibration => 'Vibración';
+
+  @override
+  String get cardsSettingsVibrationSubtitle =>
+      'Vibraciones cortas en el punto de decisión de un deslizamiento, al soltar, al cancelar y al deshacer. Siguen el ajuste de respuesta táctil del sistema.';
+
+  @override
+  String get cardsSettingsTransitions => 'Transiciones';
+
+  @override
+  String get cardsTransitionsOff => 'No';
+
+  @override
+  String get cardsTransitionsSimple => 'Simples';
+
+  @override
+  String get cardsTransitionsFull => 'Completas';
+
+  @override
+  String get cardsSettingsStyle => 'Estilo de las transiciones completas';
+
+  @override
+  String get cardsStyleToss => 'Lanzar';
+
+  @override
+  String get cardsStyleSlide => 'Deslizar';
+
+  @override
+  String get cardsStyleFade => 'Desvanecer';
+
+  @override
+  String get cardsSettingsFrames => 'Marcos';
+
+  @override
+  String get cardsFramesTheme => 'Según el tema';
+
+  @override
+  String get cardsFramesNone => 'Ninguno';
+
+  @override
+  String get cardsSettingsGestures => 'Gestos de movimiento';
+
+  @override
+  String get cardsSettingsGesturesSubtitle =>
+      'Un giro rápido de la muñeca a un lado y de vuelta es un deslizamiento a ese lado: izquierda, derecha, arriba o abajo. Actívalo en el mazo cada vez; se apaga solo.';
+
+  @override
+  String get cardsSettingsSensitivity => 'Sensibilidad';
+
+  @override
+  String get cardsSettingsSwapSides => 'Invertir los lados';
+
+  @override
+  String get cardsSettingsSwapSidesSubtitle =>
+      'Un giro a la izquierda es un deslizamiento a la derecha (arriba y abajo no cambian)';
+
+  @override
+  String get cardsSettingsTest => 'Probar el gesto';
+
+  @override
+  String get cardsSettingsTestStop => 'Detener la prueba';
+
+  @override
+  String get cardsSettingsTestIdle =>
+      'Gira la muñeca rápido a un lado, o inclínala hacia delante o atrás, y vuelve.';
+
+  @override
+  String get cardsSettingsTestLeft =>
+      'Detectado: un deslizamiento a la izquierda';
+
+  @override
+  String get cardsSettingsTestRight =>
+      'Detectado: un deslizamiento a la derecha';
+
+  @override
+  String get cardsSettingsTestUp => 'Detectado: un deslizamiento hacia arriba';
+
+  @override
+  String get cardsSettingsTestDown => 'Detectado: un deslizamiento hacia abajo';
+
+  @override
+  String get cardsSettingsReduceMotion =>
+      '\"Quitar animaciones\" está activado en el sistema, así que los reflejos y las transiciones son menores hasta que elijas.';
+
+  @override
+  String get cardsSettingsFollowSystem => 'Seguir al sistema';
+
+  @override
+  String get cardsSettingsNote =>
+      'Los efectos nunca cambian lo que hace una tarjeta. Los sensores funcionan solo mientras las tarjetas están en pantalla, y sus datos se quedan en el teléfono.';
+
+  @override
+  String cardsSettingsTestValue(String value, String needed) {
+    return 'Giro: $value rad/s (un gesto necesita $needed)';
+  }
 }
