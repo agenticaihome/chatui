@@ -568,17 +568,11 @@ class ChatClient extends ChangeNotifier {
   /// to date, and the owner need not read. False while no stream can be opened.
   bool get streaming => _streamReady;
 
-  /// The client waits for an answer: a message is open, or there are more user messages
-  /// than assistant messages (`docs/celaut/chat.md`, section 10).
-  bool get awaitingAnswer {
-    var users = 0;
-    var replies = 0;
-    for (final message in _messages) {
-      if (message.isOpen) return true;
-      message.fromUser ? users++ : replies++;
-    }
-    return users > replies;
-  }
+  /// The client waits for an answer: a message is open (`docs/celaut/chat.md`, section 10).
+  /// The count of user and assistant messages does not matter: a service does not have
+  /// to answer each user message (a bridge to a person, for example), so a user message
+  /// with no answer is not a wait.
+  bool get awaitingAnswer => _messages.any((message) => message.isOpen);
 
   /// Read the capabilities (once) and what is new in the conversation, put it in
   /// [messages], and open the `Connect` stream if it is not open. While the stream is

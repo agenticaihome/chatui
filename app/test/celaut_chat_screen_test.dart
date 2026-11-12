@@ -94,9 +94,7 @@ class _FakeChat extends ChatClient {
   }
 
   @override
-  bool get awaitingAnswer =>
-      _messages.any((m) => m.isOpen) ||
-      _messages.where((m) => m.fromUser).length > _messages.where((m) => !m.fromUser).length;
+  bool get awaitingAnswer => _messages.any((m) => m.isOpen);
 
   @override
   Future<void> sync() async {

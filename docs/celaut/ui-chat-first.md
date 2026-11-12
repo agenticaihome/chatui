@@ -255,8 +255,7 @@ These rules are for the app. The protocol is in [chat.md](chat.md), revision 6 (
 The watcher of answers (`chat_done_watcher.dart`) gives the notice when the user left the chat
 screen:
 
-- When the chat screen closes with an answer pending (a message is open, or there are more
-  user messages than assistant messages), it hands the chat to the watcher. This includes
+- When the chat screen closes with an answer pending (a message is open), it hands the chat to the watcher. This includes
   the way back to the list, another tab, and the app in the background. The screen gives
   the statuses of the messages that it knew. The messages that are done in them are
   history and get no notice.
