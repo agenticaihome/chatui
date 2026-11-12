@@ -269,6 +269,38 @@ void main() {
       expect(h.sensors.active, isFalse);
     });
 
+    testWidgets('a card with no image has the reflection too, under its texts (U8)', (tester) async {
+      final h = _Harness();
+      await h.open(tester);
+      // Milk and bread have an image; eggs has none.
+      await tester.tap(find.byKey(const Key('cards-action-basket')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('cards-action-basket')));
+      await tester.pumpAndSettle();
+      expect(find.text('Eggs'), findsOneWidget);
+      expect(find.byKey(const Key('cards-reflection')), findsOneWidget);
+      // The texts paint after the light, so they are never covered by it.
+      final order = tester.allWidgets.toList();
+      final light = order.indexWhere((w) => w.key == const Key('cards-reflection'));
+      final title = order.indexWhere((w) => w is Text && w.data == 'Eggs');
+      expect(light, lessThan(title));
+      h.sensors.tilt(3, 20);
+      await tester.pump();
+      await h.close(tester);
+    });
+
+    testWidgets('the setting off: a card with no image has no reflection either', (tester) async {
+      final h = _Harness()..settings.reflections = false;
+      await h.open(tester);
+      await tester.tap(find.byKey(const Key('cards-action-basket')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('cards-action-basket')));
+      await tester.pumpAndSettle();
+      expect(find.text('Eggs'), findsOneWidget);
+      expect(find.byKey(const Key('cards-reflection')), findsNothing);
+      await h.close(tester);
+    });
+
     testWidgets('no gyroscope: the reflection is there and follows the finger, no sensor (U3)', (tester) async {
       final h = _Harness(device: const CardsDevice(hasVibrator: true));
       await h.open(tester);

@@ -1003,6 +1003,30 @@ class _CardFace extends StatelessWidget {
             style: theme.textTheme.bodyLarge?.copyWith(color: full ? Colors.white : scheme.onSurfaceVariant)),
       ],
     ];
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (hasImage)
+          Expanded(
+            flex: 5,
+            child: Stack(fit: StackFit.expand, children: [
+              _CardImage(card: card, client: client),
+              ?reflection,
+            ]),
+          ),
+        Expanded(
+          flex: hasImage ? 4 : 1,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: hasImage ? MainAxisAlignment.start : MainAxisAlignment.center,
+              children: texts,
+            ),
+          ),
+        ),
+      ],
+    );
     return Semantics(
       container: true,
       label: card.title,
@@ -1019,31 +1043,11 @@ class _CardFace extends StatelessWidget {
             if (full) ...[
               Positioned.fill(child: _CardImage(card: card, client: client)),
               if (reflection != null) Positioned.fill(child: reflection!),
-            ] else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (hasImage)
-                    Expanded(
-                      flex: 5,
-                      child: Stack(fit: StackFit.expand, children: [
-                        _CardImage(card: card, client: client),
-                        ?reflection,
-                      ]),
-                    ),
-                  Expanded(
-                    flex: hasImage ? 4 : 1,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: hasImage ? MainAxisAlignment.start : MainAxisAlignment.center,
-                        children: texts,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            ] else if (!hasImage && reflection != null)
+              // No image: the light is the background of the texts, which paint over it.
+              Stack(fit: StackFit.expand, children: [reflection!, body])
+            else
+              body,
             if (full)
               Positioned(
                 left: 0,
