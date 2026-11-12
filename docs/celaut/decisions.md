@@ -139,8 +139,7 @@
   switch of 2026-10-23 is gone and its value is not read. See [ui.md](ui.md), section 4b.
 - **Watcher of answers (2026-10-24, Josemi):** the notice of a done answer also comes when
   the user left the chat screen while a service still makes an answer. When the screen
-  closes with an answer pending (an open message, or more user messages than assistant
-  messages), it hands the chat to `ChatDoneWatcher`. The watcher opens its own tunnel and
+  closes with an answer pending (an open message), it hands the chat to `ChatDoneWatcher`. The watcher opens its own tunnel and
   reads the chat every 2 seconds (`ChatClient.pollWaiting`), only while an answer is pending.
   (Since the entry "Chat over gRPC" of 2026-10-24, the watcher follows the `Connect` stream
   and not a poll; the other rules stay.)

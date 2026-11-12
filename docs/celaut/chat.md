@@ -1391,8 +1391,9 @@ storage of the app are not part of this document ([ui-chat-first.md](ui-chat-fir
   again by itself.
 - The client must call `GetCapabilities` first, and then read the history from `after_sequence`
   0 when it opens a conversation that it does not have.
-- The client waits for an answer when the messages that it has include an open message, or
-  more user messages than assistant messages.
+- The client waits for an answer when the messages that it has include an open message. It
+  does not compare the number of user messages with the number of assistant messages: a
+  service does not have to answer each user message (section 5.2).
 - The client must open `Connect` and follow section 6.5. It must apply the events in
   the order that it gets them:
   - `MessageCreated` of a message that the client does not have adds the message. For a

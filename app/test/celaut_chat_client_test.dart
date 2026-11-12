@@ -186,6 +186,17 @@ void main() {
     });
   });
 
+  group('waiting', () {
+    test('user messages with no answer are not a wait', () async {
+      svc.user('one');
+      svc.user('two');
+      await boot();
+      await chat.sync();
+      expect(chat.count, 2);
+      expect(chat.awaitingAnswer, isFalse);
+    });
+  });
+
   group('stream', () {
     test('the events change the messages, and the client does not read', () async {
       final u = svc.user('q');
