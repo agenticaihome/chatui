@@ -73,6 +73,26 @@ class CardsSettingsPage extends StatelessWidget {
                   if (s.vibration)
                     strengths(const Key('cards-set-vibration-strength'), s.vibrationStrength, s.setVibrationStrength),
                 ],
+                SettingsRow(
+                  icon: Icons.volume_up_outlined,
+                  title: l.cardsSettingsSounds,
+                  subtitle: l.cardsSettingsSoundsSubtitle,
+                  trailing: Switch(
+                    key: const Key('cards-set-sounds'),
+                    value: s.sounds,
+                    onChanged: s.setSounds,
+                  ),
+                ),
+                if (s.sounds) ...[
+                  _Choice<CardsStrength>(
+                    key: const Key('cards-set-sound-volume'),
+                    title: l.cardsSettingsSoundVolume,
+                    value: s.soundVolume,
+                    options: {for (final v in CardsStrength.values) v: strengthName(l, v)},
+                    onChanged: s.setSoundVolume,
+                  ),
+                  _SoundTest(volume: s.soundVolume),
+                ],
                 _Choice<CardsTransitions>(
                   key: const Key('cards-set-transitions'),
                   title: l.cardsSettingsTransitions,
@@ -184,6 +204,37 @@ class _Choice<T> extends StatelessWidget {
           ),
         ]),
       );
+}
+
+/// A button for each group of sounds, so that the user hears them (the sound plays even if
+/// the deck is not open).
+class _SoundTest extends StatelessWidget {
+  const _SoundTest({required this.volume});
+
+  final CardsStrength volume;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final names = {
+      CardsSound.confirm: l.cardsSoundConfirm,
+      CardsSound.reject: l.cardsSoundReject,
+      CardsSound.later: l.cardsSoundLater,
+      CardsSound.special: l.cardsSoundSpecial,
+      CardsSound.undo: l.cardsSoundUndo,
+    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Wrap(spacing: 8, runSpacing: 4, children: [
+        for (final e in names.entries)
+          OutlinedButton(
+            key: Key('cards-sound-test-${e.key.name}'),
+            onPressed: () => playSystemSound(e.key, volume),
+            child: Text(e.value),
+          ),
+      ]),
+    );
+  }
 }
 
 /// The test of the motion gestures: the user turns the wrist and sees the turn rate and the

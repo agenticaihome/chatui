@@ -87,6 +87,23 @@ final $typed_data.Uint8List iconDescriptor = $convert.base64Decode(
     'oKSUNPTl9MQVRFUhADEg0KCUlDT05fU1RBUhAEEg0KCUlDT05fQ0FSVBAFEhAKDElDT05fQVJD'
     'SElWRRAGEg8KC0lDT05fREVMRVRFEAcSDQoJSUNPTl9GTEFHEAgSDQoJSUNPTl9JTkZPEAk=');
 
+@$core.Deprecated('Use soundDescriptor instead')
+const Sound$json = {
+  '1': 'Sound',
+  '2': [
+    {'1': 'SOUND_DEFAULT', '2': 0},
+    {'1': 'SOUND_CONFIRM', '2': 1},
+    {'1': 'SOUND_REJECT', '2': 2},
+    {'1': 'SOUND_LATER', '2': 3},
+    {'1': 'SOUND_SPECIAL', '2': 4},
+  ],
+};
+
+/// Descriptor for `Sound`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List soundDescriptor = $convert.base64Decode(
+    'CgVTb3VuZBIRCg1TT1VORF9ERUZBVUxUEAASEQoNU09VTkRfQ09ORklSTRABEhAKDFNPVU5EX1'
+    'JFSkVDVBACEg8KC1NPVU5EX0xBVEVSEAMSEQoNU09VTkRfU1BFQ0lBTBAE');
+
 @$core.Deprecated('Use watchRequestDescriptor instead')
 const WatchRequest$json = {
   '1': 'WatchRequest',
@@ -295,6 +312,7 @@ const DeckAction$json = {
       '10': 'direction'
     },
     {'1': 'keep', '3': 6, '4': 1, '5': 8, '10': 'keep'},
+    {'1': 'sound', '3': 7, '4': 1, '5': 14, '6': '.Sound', '10': 'sound'},
   ],
 };
 
@@ -303,7 +321,7 @@ final $typed_data.Uint8List deckActionDescriptor = $convert.base64Decode(
     'CgpEZWNrQWN0aW9uEhsKCWFjdGlvbl9pZBgBIAEoCVIIYWN0aW9uSWQSFAoFbGFiZWwYAiABKA'
     'lSBWxhYmVsEhkKBGljb24YAyABKA4yBS5JY29uUgRpY29uEhkKBHRvbmUYBCABKA4yBS5Ub25l'
     'UgR0b25lEigKCWRpcmVjdGlvbhgFIAEoDjIKLkRpcmVjdGlvblIJZGlyZWN0aW9uEhIKBGtlZX'
-    'AYBiABKAhSBGtlZXA=');
+    'AYBiABKAhSBGtlZXASHAoFc291bmQYByABKA4yBi5Tb3VuZFIFc291bmQ=');
 
 @$core.Deprecated('Use cardDescriptor instead')
 const Card$json = {
@@ -371,6 +389,7 @@ const CardButton$json = {
     {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
     {'1': 'icon', '3': 3, '4': 1, '5': 14, '6': '.Icon', '10': 'icon'},
     {'1': 'tone', '3': 4, '4': 1, '5': 14, '6': '.Tone', '10': 'tone'},
+    {'1': 'sound', '3': 5, '4': 1, '5': 14, '6': '.Sound', '10': 'sound'},
   ],
 };
 
@@ -378,7 +397,7 @@ const CardButton$json = {
 final $typed_data.Uint8List cardButtonDescriptor = $convert.base64Decode(
     'CgpDYXJkQnV0dG9uEhsKCWFjdGlvbl9pZBgBIAEoCVIIYWN0aW9uSWQSFAoFbGFiZWwYAiABKA'
     'lSBWxhYmVsEhkKBGljb24YAyABKA4yBS5JY29uUgRpY29uEhkKBHRvbmUYBCABKA4yBS5Ub25l'
-    'UgR0b25l');
+    'UgR0b25lEhwKBXNvdW5kGAUgASgOMgYuU291bmRSBXNvdW5k');
 
 @$core.Deprecated('Use sendActionRequestDescriptor instead')
 const SendActionRequest$json = {

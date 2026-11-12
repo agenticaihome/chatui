@@ -621,6 +621,7 @@ class DeckAction extends $pb.GeneratedMessage {
     Tone? tone,
     Direction? direction,
     $core.bool? keep,
+    Sound? sound,
   }) {
     final result = DeckAction._();
     if (actionId != null) result.actionId = actionId;
@@ -629,6 +630,7 @@ class DeckAction extends $pb.GeneratedMessage {
     if (tone != null) result.tone = tone;
     if (direction != null) result.direction = direction;
     if (keep != null) result.keep = keep;
+    if (sound != null) result.sound = sound;
     return result;
   }
 
@@ -651,6 +653,7 @@ class DeckAction extends $pb.GeneratedMessage {
     ..aE<Direction>(5, _omitFieldNames ? '' : 'direction',
         enumValues: Direction.values)
     ..aOB(6, _omitFieldNames ? '' : 'keep')
+    ..aE<Sound>(7, _omitFieldNames ? '' : 'sound', enumValues: Sound.values)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -736,6 +739,19 @@ class DeckAction extends $pb.GeneratedMessage {
   $core.bool hasKeep() => $_has(5);
   @$pb.TagNumber(6)
   void clearKeep() => $_clearField(6);
+
+  /// El sonido corto que el cliente da al hacer esta acción. Un grupo de
+  /// sonidos, no un sonido concreto: el cliente elige el sonido. Sin valor
+  /// (SOUND_DEFAULT), el cliente toma el sonido del tone y de keep (cards.md,
+  /// 5.5).
+  @$pb.TagNumber(7)
+  Sound get sound => $_getN(6);
+  @$pb.TagNumber(7)
+  set sound(Sound value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSound() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSound() => $_clearField(7);
 }
 
 class Card extends $pb.GeneratedMessage {
@@ -918,12 +934,14 @@ class CardButton extends $pb.GeneratedMessage {
     $core.String? label,
     Icon? icon,
     Tone? tone,
+    Sound? sound,
   }) {
     final result = CardButton._();
     if (actionId != null) result.actionId = actionId;
     if (label != null) result.label = label;
     if (icon != null) result.icon = icon;
     if (tone != null) result.tone = tone;
+    if (sound != null) result.sound = sound;
     return result;
   }
 
@@ -943,6 +961,7 @@ class CardButton extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'label')
     ..aE<Icon>(3, _omitFieldNames ? '' : 'icon', enumValues: Icon.values)
     ..aE<Tone>(4, _omitFieldNames ? '' : 'tone', enumValues: Tone.values)
+    ..aE<Sound>(5, _omitFieldNames ? '' : 'sound', enumValues: Sound.values)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1002,6 +1021,16 @@ class CardButton extends $pb.GeneratedMessage {
   $core.bool hasTone() => $_has(3);
   @$pb.TagNumber(4)
   void clearTone() => $_clearField(4);
+
+  /// Como DeckAction.sound.
+  @$pb.TagNumber(5)
+  Sound get sound => $_getN(4);
+  @$pb.TagNumber(5)
+  set sound(Sound value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasSound() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSound() => $_clearField(5);
 }
 
 class SendActionRequest extends $pb.GeneratedMessage {

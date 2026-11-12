@@ -104,6 +104,7 @@ class _Harness {
   final bool vertical;
   final sensors = FakeSensors();
   final buzz = <HapticLevel>[];
+  final heard = <CardsSound>[];
   final events = StreamController<cpb.DeckEvent>();
   final sent = <cpb.SendActionRequest>[];
   late final CardsClient client = _Client(
@@ -125,6 +126,7 @@ class _Harness {
         settings: settings,
         sensors: sensors,
         haptics: buzz.add,
+        sounds: (sound, volume) => heard.add(sound),
         armTimeout: const Duration(seconds: 30),
       ),
     ));
@@ -190,6 +192,74 @@ void main() {
         expect(h.moves, ['milk:basket', 'undo milk:basket']);
         await h.close(tester);
       }
+    });
+  });
+
+  group('sounds (cards.md 5.5)', () {
+    testWidgets('off by default: no sound, the same decisions', (tester) async {
+      final h = _Harness();
+      await h.open(tester);
+      await tester.drag(_card('milk'), const Offset(500, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('cards-undo')));
+      await tester.pumpAndSettle();
+      expect(h.heard, isEmpty);
+      expect(h.moves, ['milk:basket', 'undo milk:basket']);
+      await h.close(tester);
+    });
+
+    testWidgets('on: the group of each action, by swipe or button, and the undo sound', (tester) async {
+      final h = _Harness()..settings.sounds = true;
+      await h.open(tester);
+      h.events.add(cpb.DeckEvent(
+        version: Int64(2),
+        deckId: 'shopping-list',
+        deck: cpb.Deck(
+          deckId: 'shopping-list',
+          actions: [
+            // The service chooses a group, whatever the tone.
+            cpb.DeckAction(
+                actionId: 'later',
+                label: 'Not yet',
+                direction: cpb.Direction.DIRECTION_LEFT,
+                tone: cpb.Tone.TONE_POSITIVE,
+                sound: cpb.Sound.SOUND_SPECIAL),
+            // No sound value: the tone decides.
+            cpb.DeckAction(
+                actionId: 'basket',
+                label: 'In the basket',
+                direction: cpb.Direction.DIRECTION_RIGHT,
+                tone: cpb.Tone.TONE_NEGATIVE),
+            cpb.DeckAction(actionId: 'maybe', label: 'Maybe', keep: true),
+          ],
+          cards: [
+            cpb.Card(itemId: 'milk', title: 'Milk'),
+            cpb.Card(itemId: 'bread', title: 'Bread'),
+            cpb.Card(itemId: 'eggs', title: 'Eggs'),
+          ],
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('cards-action-later')));
+      await tester.pumpAndSettle();
+      await tester.drag(_card('bread'), const Offset(500, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('cards-action-maybe')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('cards-undo')));
+      await tester.pumpAndSettle();
+      expect(h.heard, [CardsSound.special, CardsSound.reject, CardsSound.later, CardsSound.undo]);
+      await h.close(tester);
+    });
+
+    testWidgets('a cancel and a press make no sound', (tester) async {
+      final h = _Harness()..settings.sounds = true;
+      await h.open(tester);
+      await tester.timedDrag(_card('milk'), const Offset(60, 0), const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(h.heard, isEmpty);
+      await h.close(tester);
     });
   });
 

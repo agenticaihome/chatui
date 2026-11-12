@@ -8275,7 +8275,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cardsSettingsRowSubtitle =>
-      'Reflejos, vibración, transiciones, marcos, gestos de movimiento';
+      'Reflejos, vibración, sonidos, transiciones, marcos, gestos de movimiento';
 
   @override
   String get cardsSettingsGroup => 'Efectos de las tarjetas';
@@ -8309,6 +8309,31 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get cardsSettingsVibrationSubtitle =>
       'Vibraciones cortas en el punto de decisión de un deslizamiento, al soltar, al cancelar y al deshacer. Siguen el ajuste de respuesta táctil del sistema.';
+
+  @override
+  String get cardsSettingsSounds => 'Sonidos';
+
+  @override
+  String get cardsSettingsSoundsSubtitle =>
+      'Un sonido corto para cada decisión y para deshacer, así sabes el movimiento sin mirar la pantalla. Siguen el volumen de los sonidos del sistema.';
+
+  @override
+  String get cardsSettingsSoundVolume => 'Volumen';
+
+  @override
+  String get cardsSoundConfirm => 'Confirmar';
+
+  @override
+  String get cardsSoundReject => 'Rechazar';
+
+  @override
+  String get cardsSoundLater => 'Luego';
+
+  @override
+  String get cardsSoundSpecial => 'Especial';
+
+  @override
+  String get cardsSoundUndo => 'Deshacer';
 
   @override
   String get cardsSettingsTransitions => 'Transiciones';

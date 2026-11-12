@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'chat/gen/cards.pbenum.dart' as cpb;
+
 /// The effects of the cards deck: the last phase of `docs/celaut/cards.md`, section 13.
 ///
 /// Each effect is a feature of the client only: it never changes what the deck does, the
@@ -30,6 +32,38 @@ enum CardsHapticEvent { threshold, release, cancel, undo }
 /// The four strengths of vibration that Flutter gives (they follow the haptics setting of
 /// the system on Android).
 enum HapticLevel { selection, light, medium, heavy }
+
+/// The groups of sounds of the deck (section 5.5 and 13.2). The first four are the
+/// `Sound` values that the service can choose; [undo] is only of the client.
+enum CardsSound { confirm, reject, later, special, undo }
+
+/// The group of sounds of an action: the choice of the service, or, with `SOUND_DEFAULT`,
+/// the one of its [tone] and [keep] (section 5.5). A value that the client does not know is
+/// `SOUND_DEFAULT`.
+CardsSound cardsSoundOf({
+  cpb.Sound sound = cpb.Sound.SOUND_DEFAULT,
+  cpb.Tone tone = cpb.Tone.TONE_NEUTRAL,
+  bool keep = false,
+}) {
+  switch (sound) {
+    case cpb.Sound.SOUND_CONFIRM:
+      return CardsSound.confirm;
+    case cpb.Sound.SOUND_REJECT:
+      return CardsSound.reject;
+    case cpb.Sound.SOUND_LATER:
+      return CardsSound.later;
+    case cpb.Sound.SOUND_SPECIAL:
+      return CardsSound.special;
+    default:
+      if (keep) return CardsSound.later;
+      return switch (tone) {
+        cpb.Tone.TONE_NEGATIVE => CardsSound.reject,
+        cpb.Tone.TONE_WARNING => CardsSound.later,
+        cpb.Tone.TONE_ACCENT => CardsSound.special,
+        _ => CardsSound.confirm,
+      };
+  }
+}
 
 /// What the phone has. Unknown (no answer of the platform: a test, a desktop) is nothing.
 @immutable
@@ -73,6 +107,8 @@ class CardsEffects {
     this.gestures = false,
     this.sensitivity = CardsStrength.medium,
     this.swapSides = false,
+    this.sounds = false,
+    this.soundVolume = CardsStrength.medium,
   });
 
   /// Every effect off: the base widget of revision 1.
@@ -94,6 +130,10 @@ class CardsEffects {
   final CardsStrength sensitivity;
   final bool swapSides;
 
+  /// A short sound for each decision and for an undo.
+  final bool sounds;
+  final CardsStrength soundVolume;
+
   /// The deck needs the gyroscope while it is on screen (the gestures need it only when
   /// they are armed).
   bool get wantsGyro => gyroReflections;
@@ -103,7 +143,7 @@ class CardsEffects {
 ///
 /// The reflections and the transitions are null until the user chooses: then the system
 /// setting "reduce motion" decides (it turns them down). The other defaults are on and
-/// medium, except the motion gestures: off.
+/// medium, except the motion gestures and the sounds: off.
 class CardsSettings extends ChangeNotifier {
   CardsSettings({CardsDevice? device}) : _device = device;
 
@@ -117,6 +157,8 @@ class CardsSettings extends ChangeNotifier {
   static const _gesturesKey = 'argus_cards_gestures';
   static const _sensitivityKey = 'argus_cards_gesture_sensitivity';
   static const _swapKey = 'argus_cards_gesture_swap';
+  static const _soundsKey = 'argus_cards_sounds';
+  static const _soundVolumeKey = 'argus_cards_sound_volume';
 
   bool? reflections;
   CardsStrength reflectionStrength = CardsStrength.medium;
@@ -128,6 +170,8 @@ class CardsSettings extends ChangeNotifier {
   bool gestures = false;
   CardsStrength sensitivity = CardsStrength.medium;
   bool swapSides = false;
+  bool sounds = false;
+  CardsStrength soundVolume = CardsStrength.medium;
 
   CardsDevice? _device;
 
@@ -154,6 +198,8 @@ class CardsSettings extends ChangeNotifier {
     gestures = p.getBool(_gesturesKey) ?? false;
     sensitivity = _enum(CardsStrength.values, p.getString(_sensitivityKey), CardsStrength.medium);
     swapSides = p.getBool(_swapKey) ?? false;
+    sounds = p.getBool(_soundsKey) ?? false;
+    soundVolume = _enum(CardsStrength.values, p.getString(_soundVolumeKey), CardsStrength.medium);
     _device ??= await CardsDevice.probe();
     notifyListeners();
   }
@@ -216,6 +262,16 @@ class CardsSettings extends ChangeNotifier {
     return _save((p) => p.setBool(_swapKey, value));
   }
 
+  Future<void> setSounds(bool value) {
+    sounds = value;
+    return _save((p) => p.setBool(_soundsKey, value));
+  }
+
+  Future<void> setSoundVolume(CardsStrength value) {
+    soundVolume = value;
+    return _save((p) => p.setString(_soundVolumeKey, value.name));
+  }
+
   /// The reflections as they apply with [reduceMotion] (the user's choice wins).
   bool reflectionsWith({required bool reduceMotion}) => reflections ?? !reduceMotion;
 
@@ -241,6 +297,8 @@ class CardsSettings extends ChangeNotifier {
       gestures: gestures && device.hasGyroscope,
       sensitivity: sensitivity,
       swapSides: swapSides,
+      sounds: sounds,
+      soundVolume: soundVolume,
     );
   }
 }
@@ -275,6 +333,92 @@ void playSystemHaptic(HapticLevel level) {
     HapticLevel.medium => HapticFeedback.mediumImpact(),
     HapticLevel.heavy => HapticFeedback.heavyImpact(),
   });
+}
+
+/// Plays the sound of a group at a volume. The default uses the platform (see
+/// [playSystemSound]).
+typedef CardsSoundPlayer = void Function(CardsSound sound, CardsStrength volume);
+
+typedef _Note = ({double from, double to, double start, double length});
+
+/// The synthetic sounds of the deck: each group is a short tone (0.5 s or less) that the
+/// client makes itself, so the app has no sound file and needs no permission. The groups
+/// differ in the shape of the pitch, not only in the pitch, so they stay different at a low
+/// volume and with a bad speaker.
+class CardsSounds {
+  const CardsSounds._();
+
+  static const sampleRate = 22050;
+
+  /// A note: the [from] and [to] frequencies in Hz (a glide), the [start] and the length in
+  /// seconds.
+  static _Note _note(double from, double to, double start, double length) =>
+      (from: from, to: to, start: start, length: length);
+
+  static List<_Note> _notes(CardsSound s) => switch (s) {
+        // Two notes that go up: yes.
+        CardsSound.confirm => [_note(660, 660, 0, 0.09), _note(880, 880, 0.09, 0.16)],
+        // Two low notes that go down: no.
+        CardsSound.reject => [_note(330, 330, 0, 0.1), _note(220, 220, 0.1, 0.2)],
+        // Two equal soft ticks: it comes back.
+        CardsSound.later => [_note(520, 520, 0, 0.06), _note(520, 520, 0.14, 0.06)],
+        // A rising run of four notes with a high end: it stands out.
+        CardsSound.special => [
+            _note(660, 660, 0, 0.08),
+            _note(880, 880, 0.08, 0.08),
+            _note(1320, 1320, 0.16, 0.08),
+            _note(1760, 1760, 0.24, 0.24),
+          ],
+        // One glide down: a step back.
+        CardsSound.undo => [_note(700, 420, 0, 0.16)],
+      };
+
+  /// The length of the sound of [s] in seconds.
+  static double lengthOf(CardsSound s) => _notes(s).map((n) => n.start + n.length).reduce(math.max);
+
+  /// 16-bit little-endian mono PCM at [sampleRate], at 0.8 of full scale (the platform
+  /// sets the volume).
+  static Uint8List pcm(CardsSound s) {
+    final notes = _notes(s);
+    final count = (lengthOf(s) * sampleRate).ceil();
+    final out = ByteData(count * 2);
+    for (final n in notes) {
+      final first = (n.start * sampleRate).round();
+      final last = math.min(count, ((n.start + n.length) * sampleRate).round());
+      var phase = 0.0;
+      for (var i = first; i < last; i++) {
+        final t = (i - first) / sampleRate;
+        final u = t / n.length;
+        final f = n.from + (n.to - n.from) * u;
+        phase += 2 * math.pi * f / sampleRate;
+        // 4 ms to start (no click), then a decay to near zero at the end of the note.
+        final env = math.min(1.0, t / 0.004) * math.pow(1 - u, 1.5);
+        final v = (math.sin(phase) * 0.8 * env * 32767).round();
+        final old = out.getInt16(i * 2, Endian.little);
+        out.setInt16(i * 2, (old + v).clamp(-32768, 32767), Endian.little);
+      }
+    }
+    return out.buffer.asUint8List();
+  }
+
+  /// The gain for [volume] (the platform volume of the system sounds comes on top).
+  static double gainOf(CardsStrength volume) => switch (volume) {
+        CardsStrength.low => 0.35,
+        CardsStrength.medium => 0.65,
+        CardsStrength.high => 1.0,
+      };
+}
+
+const _soundChannel = MethodChannel('argus/cards_sound');
+final _soundCache = <CardsSound, Uint8List>{};
+
+/// Plays a sound on the stream of the system sounds (it follows the volume and the silent
+/// mode of the phone, and needs no permission). A platform with no player is silent.
+void playSystemSound(CardsSound sound, CardsStrength volume) {
+  final pcm = _soundCache.putIfAbsent(sound, () => CardsSounds.pcm(sound));
+  unawaited(_soundChannel
+      .invokeMethod<void>('play', {'pcm': pcm, 'rate': CardsSounds.sampleRate, 'gain': CardsSounds.gainOf(volume)})
+      .catchError((Object _) {}));
 }
 
 /// One sample of the gyroscope: the turn rate in rad/s on the axes of the screen (x to

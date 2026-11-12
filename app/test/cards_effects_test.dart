@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:argus_wallet/celaut/cards_effects.dart';
+import 'package:argus_wallet/celaut/chat/gen/cards.pbenum.dart' as cpb;
 import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/ui/celaut/cards_look.dart';
 import 'package:flutter/material.dart';
@@ -51,6 +52,8 @@ void main() {
       expect(fx.frames, CardsFrames.theme);
       expect(fx.gestures, isFalse);
       expect(fx.sensitivity, CardsStrength.medium);
+      expect(fx.sounds, isFalse);
+      expect(fx.soundVolume, CardsStrength.medium);
     });
 
     test('each setting is kept on the phone and read back', () async {
@@ -66,6 +69,8 @@ void main() {
       await s.setGestures(true);
       await s.setSensitivity(CardsStrength.high);
       await s.setSwapSides(true);
+      await s.setSounds(true);
+      await s.setSoundVolume(CardsStrength.low);
       final again = CardsSettings(device: both);
       await again.load();
       expect(again.reflections, isFalse);
@@ -78,6 +83,9 @@ void main() {
       expect(again.gestures, isTrue);
       expect(again.sensitivity, CardsStrength.high);
       expect(again.swapSides, isTrue);
+      expect(again.sounds, isTrue);
+      expect(again.soundVolume, CardsStrength.low);
+      expect(again.resolve(reduceMotion: false).sounds, isTrue);
     });
 
     test('"reduce motion" turns the transitions and the reflections down until the user chooses', () async {
@@ -139,6 +147,42 @@ void main() {
       expect(hapticLevelOf(CardsHapticEvent.release, CardsStrength.low), HapticLevel.light);
       expect(hapticLevelOf(CardsHapticEvent.release, CardsStrength.high), HapticLevel.heavy);
       expect(hapticLevelOf(CardsHapticEvent.threshold, CardsStrength.low), HapticLevel.selection);
+    });
+  });
+
+  group('sounds (cards.md 5.5)', () {
+    test('the service chooses a group; it wins over the tone', () {
+      expect(cardsSoundOf(sound: cpb.Sound.SOUND_CONFIRM, tone: cpb.Tone.TONE_NEGATIVE), CardsSound.confirm);
+      expect(cardsSoundOf(sound: cpb.Sound.SOUND_REJECT), CardsSound.reject);
+      expect(cardsSoundOf(sound: cpb.Sound.SOUND_LATER, tone: cpb.Tone.TONE_POSITIVE), CardsSound.later);
+      expect(cardsSoundOf(sound: cpb.Sound.SOUND_SPECIAL), CardsSound.special);
+    });
+
+    test('SOUND_DEFAULT comes from keep, then from the tone', () {
+      CardsSound d(cpb.Tone t, {bool keep = false}) => cardsSoundOf(tone: t, keep: keep);
+      expect(d(cpb.Tone.TONE_NEUTRAL), CardsSound.confirm);
+      expect(d(cpb.Tone.TONE_POSITIVE), CardsSound.confirm);
+      expect(d(cpb.Tone.TONE_NEGATIVE), CardsSound.reject);
+      expect(d(cpb.Tone.TONE_WARNING), CardsSound.later);
+      expect(d(cpb.Tone.TONE_ACCENT), CardsSound.special);
+      expect(d(cpb.Tone.TONE_NEGATIVE, keep: true), CardsSound.later);
+    });
+
+    test('each group is a short tone, 1 s or less, and the groups differ', () {
+      final seen = <int>{};
+      for (final g in CardsSound.values) {
+        final pcm = CardsSounds.pcm(g);
+        expect(CardsSounds.lengthOf(g), lessThanOrEqualTo(1.0));
+        expect(pcm.length, (CardsSounds.lengthOf(g) * CardsSounds.sampleRate).ceil() * 2);
+        expect(pcm.any((b) => b != 0), isTrue);
+        seen.add(Object.hashAll(pcm));
+      }
+      expect(seen.length, CardsSound.values.length);
+    });
+
+    test('the volume moves the gain up one step at a time', () {
+      expect(CardsSounds.gainOf(CardsStrength.low), lessThan(CardsSounds.gainOf(CardsStrength.medium)));
+      expect(CardsSounds.gainOf(CardsStrength.medium), lessThan(CardsSounds.gainOf(CardsStrength.high)));
     });
   });
 

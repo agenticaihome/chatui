@@ -110,12 +110,12 @@ IconData? iconOf(cpb.Icon icon) => switch (icon) {
     };
 
 /// The full-screen deck of a cards slot (`docs/celaut/cards.md`, section 7), with the
-/// effects of section 13 (reflections, vibration, transitions, frames, motion gestures).
+/// effects of section 13 (reflections, vibration, sounds, transitions, frames, motion gestures).
 ///
 /// Give it the [tunnel] to the slot (a page that opens a [CardsClient] on the local port),
 /// or a [client] (tests). On a pop, the page closes the client after the queue of
 /// decisions is sent, and pops a [CelautError] if the tunnel failed. [settings], [sensors]
-/// and [haptics] default to the ones of the app; tests give their own.
+/// [haptics] and [sounds] default to the ones of the app; tests give their own.
 class CardsScreen extends StatefulWidget {
   const CardsScreen({
     super.key,
@@ -125,6 +125,7 @@ class CardsScreen extends StatefulWidget {
     this.settings,
     this.sensors,
     this.haptics,
+    this.sounds,
     this.armTimeout = const Duration(seconds: 30),
   }) : assert(tunnel != null || client != null);
 
@@ -134,6 +135,7 @@ class CardsScreen extends StatefulWidget {
   final CardsSettings? settings;
   final CardsSensors? sensors;
   final CardsHapticPlayer? haptics;
+  final CardsSoundPlayer? sounds;
 
   /// The motion gestures end by themselves after this time with no gesture.
   final Duration armTimeout;
@@ -379,6 +381,11 @@ class _CardsScreenState extends State<CardsScreen> with TickerProviderStateMixin
     (widget.haptics ?? playSystemHaptic)(hapticLevelOf(event, _fx.hapticStrength));
   }
 
+  void _sound(CardsSound sound) {
+    if (!_fx.sounds) return;
+    (widget.sounds ?? playSystemSound)(sound, _fx.soundVolume);
+  }
+
   Duration get _leaveTime => switch (_fx.transitions) {
         CardsTransitions.full => const Duration(milliseconds: 260),
         CardsTransitions.simple => const Duration(milliseconds: 150),
@@ -407,6 +414,7 @@ class _CardsScreenState extends State<CardsScreen> with TickerProviderStateMixin
     final card = client?.current;
     if (client == null || card == null) return;
     _buzz(CardsHapticEvent.release);
+    _sound(cardsSoundOf(sound: action.sound, tone: action.tone, keep: action.keep));
     if (_fx.transitions != CardsTransitions.off) {
       final dir = side ?? action.direction;
       _leaving = _Leaving(card, _drag, dir, dir == cpb.Direction.DIRECTION_NONE ? null : action);
@@ -432,6 +440,7 @@ class _CardsScreenState extends State<CardsScreen> with TickerProviderStateMixin
   void _undo() {
     if (_client?.canUndo != true) return;
     _buzz(CardsHapticEvent.undo);
+    _sound(CardsSound.undo);
     _client?.undo();
     setState(() {
       _leaving = null;

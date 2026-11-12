@@ -137,5 +137,45 @@ class Icon extends $pb.ProtobufEnum {
   const Icon._(super.value, super.name);
 }
 
+/// El conjunto base de grupos de sonido. Cada valor es un concepto: el cliente
+/// elige el sonido concreto, corto (1 s o menos). Un valor que el cliente no
+/// conoce es SOUND_DEFAULT.
+class Sound extends $pb.ProtobufEnum {
+  /// El cliente elige por el tone y por keep de la acción (cards.md, 5.5).
+  static const Sound SOUND_DEFAULT =
+      Sound._(0, _omitEnumNames ? '' : 'SOUND_DEFAULT');
+
+  /// Se acepta, se hace, se confirma.
+  static const Sound SOUND_CONFIRM =
+      Sound._(1, _omitEnumNames ? '' : 'SOUND_CONFIRM');
+
+  /// Se rechaza, se quita, se borra.
+  static const Sound SOUND_REJECT =
+      Sound._(2, _omitEnumNames ? '' : 'SOUND_REJECT');
+
+  /// Se deja para después: la carta vuelve más tarde.
+  static const Sound SOUND_LATER =
+      Sound._(3, _omitEnumNames ? '' : 'SOUND_LATER');
+
+  /// Una decisión que destaca: favorito, urgente, importante.
+  static const Sound SOUND_SPECIAL =
+      Sound._(4, _omitEnumNames ? '' : 'SOUND_SPECIAL');
+
+  static const $core.List<Sound> values = <Sound>[
+    SOUND_DEFAULT,
+    SOUND_CONFIRM,
+    SOUND_REJECT,
+    SOUND_LATER,
+    SOUND_SPECIAL,
+  ];
+
+  static final $core.List<Sound?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static Sound? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const Sound._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

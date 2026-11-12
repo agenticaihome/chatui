@@ -6,6 +6,9 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioTrack
 import android.os.Build
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -23,9 +26,13 @@ import io.flutter.plugin.common.MethodChannel
 /// the test of the settings) listens; nothing is kept here. Android needs no permission for
 /// the gyroscope at this rate (SENSOR_DELAY_GAME, ~50 Hz), and none for the haptics of the
 /// views that the app uses.
+///
+/// `argus/cards_sound` plays one short synthetic sound (`play`: 16-bit mono PCM, the rate and
+/// a gain) on the stream of the system sounds. It needs no permission.
 object CardsSensorsHandler {
     private const val DEVICE = "argus/cards_device"
     private const val GYRO = "argus/cards_gyro"
+    private const val SOUND = "argus/cards_sound"
 
     fun registerWith(engine: FlutterEngine, activity: Activity) {
         val messenger = engine.dartExecutor.binaryMessenger
@@ -38,6 +45,55 @@ object CardsSensorsHandler {
             }
         }
         EventChannel(messenger, GYRO).setStreamHandler(Gyro(activity))
+        MethodChannel(messenger, SOUND).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "play" -> {
+                    val pcm = call.argument<ByteArray>("pcm")
+                    val rate = call.argument<Int>("rate")
+                    val gain = call.argument<Double>("gain") ?: 1.0
+                    if (pcm == null || rate == null) result.error("bad_args", "pcm and rate are needed", null)
+                    else result.success(play(pcm, rate, gain.toFloat()))
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    /// Plays a short sound (16-bit mono PCM) on the stream of the system sounds: it follows
+    /// the volume and the silent mode of the phone. It needs no permission. The track is
+    /// released when it ends. Returns false when the phone cannot play it.
+    private fun play(pcm: ByteArray, rate: Int, gain: Float): Boolean {
+        if (pcm.isEmpty() || pcm.size > 64 * 1024) return false
+        return try {
+            val track = AudioTrack.Builder()
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build(),
+                )
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(rate)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build(),
+                )
+                .setBufferSizeInBytes(pcm.size)
+                .setTransferMode(AudioTrack.MODE_STATIC)
+                .build()
+            track.write(pcm, 0, pcm.size)
+            track.setVolume(gain.coerceIn(0f, 1f))
+            track.setNotificationMarkerPosition(pcm.size / 2)
+            track.setPlaybackPositionUpdateListener(object : AudioTrack.OnPlaybackPositionUpdateListener {
+                override fun onMarkerReached(t: AudioTrack) = t.release()
+                override fun onPeriodicNotification(t: AudioTrack) {}
+            })
+            track.play()
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun hasGyroscope(context: Context): Boolean {

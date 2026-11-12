@@ -143,6 +143,12 @@ message DeckAction {
   // vuelve a salir cuando se han recorrido las demás, hasta que el usuario
   // haga otra acción (por ejemplo "Quizá"). El cliente envía la decisión igual.
   bool keep = 6;
+
+  // El sonido corto que el cliente da al hacer esta acción. Un grupo de
+  // sonidos, no un sonido concreto: el cliente elige el sonido. Sin valor
+  // (SOUND_DEFAULT), el cliente toma el sonido del tone y de keep (cards.md,
+  // 5.5).
+  Sound sound = 7;
 }
 
 message Card {
@@ -190,6 +196,9 @@ message CardButton {
 
   Icon icon = 3;
   Tone tone = 4;
+
+  // Como DeckAction.sound.
+  Sound sound = 5;
 }
 
 enum Direction {
@@ -233,6 +242,22 @@ enum Icon {
   ICON_DELETE = 7;
   ICON_FLAG = 8;
   ICON_INFO = 9;
+}
+
+// El conjunto base de grupos de sonido. Cada valor es un concepto: el cliente
+// elige el sonido concreto, corto (1 s o menos). Un valor que el cliente no
+// conoce es SOUND_DEFAULT.
+enum Sound {
+  // El cliente elige por el tone y por keep de la acción (cards.md, 5.5).
+  SOUND_DEFAULT = 0;
+  // Se acepta, se hace, se confirma.
+  SOUND_CONFIRM = 1;
+  // Se rechaza, se quita, se borra.
+  SOUND_REJECT = 2;
+  // Se deja para después: la carta vuelve más tarde.
+  SOUND_LATER = 3;
+  // Una decisión que destaca: favorito, urgente, importante.
+  SOUND_SPECIAL = 4;
 }
 
 // ============================================================

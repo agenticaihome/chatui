@@ -86,6 +86,27 @@ void main() {
     expect(client.canUndo, isFalse);
   });
 
+  test('the sound of an action reaches the client, also on a button of a card and on a side that lost its action', () async {
+    final deck = svc.shoppingList();
+    deck.actions.clear();
+    deck.actions.addAll([
+      DeckAction(actionId: 'want', label: 'Want', direction: Direction.DIRECTION_RIGHT, sound: Sound.SOUND_SPECIAL),
+      DeckAction(actionId: 'also', label: 'Also', direction: Direction.DIRECTION_RIGHT, sound: Sound.SOUND_REJECT),
+      DeckAction(actionId: 'no', label: 'No', direction: Direction.DIRECTION_LEFT),
+    ]);
+    deck.cards.first.buttons
+      ..clear()
+      ..add(CardButton(actionId: 'remove', label: 'Remove', sound: Sound.SOUND_REJECT));
+    svc.replace(deck);
+    client.start();
+    await until(() => client.deck.actions.length == 3);
+    final byId = {for (final a in client.deck.actions) a.id: a};
+    expect(byId['want']!.sound, Sound.SOUND_SPECIAL);
+    expect(byId['also']!.sound, Sound.SOUND_REJECT); // the second one on a side is a button only
+    expect(byId['no']!.sound, Sound.SOUND_DEFAULT);
+    expect(client.deck.cards.first.buttons.single.sound, Sound.SOUND_REJECT);
+  });
+
   test('a keep action sends the card to the end of the loop until another action is made', () async {
     final deck = svc.shoppingList();
     deck.actions.clear();

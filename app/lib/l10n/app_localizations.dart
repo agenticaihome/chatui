@@ -13130,7 +13130,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardsSettingsRowSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Reflections, vibration, transitions, frames, motion gestures'**
+  /// **'Reflections, vibration, sounds, transitions, frames, motion gestures'**
   String get cardsSettingsRowSubtitle;
 
   /// No description provided for @cardsSettingsGroup.
@@ -13192,6 +13192,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Short vibrations at the decision point of a swipe, the release, a cancel and an undo. They follow the touch feedback setting of the system.'**
   String get cardsSettingsVibrationSubtitle;
+
+  /// No description provided for @cardsSettingsSounds.
+  ///
+  /// In en, this message translates to:
+  /// **'Sounds'**
+  String get cardsSettingsSounds;
+
+  /// No description provided for @cardsSettingsSoundsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A short sound for each decision and for an undo, so you know the move with no look at the screen. They follow the volume of the system sounds.'**
+  String get cardsSettingsSoundsSubtitle;
+
+  /// No description provided for @cardsSettingsSoundVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get cardsSettingsSoundVolume;
+
+  /// No description provided for @cardsSoundConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get cardsSoundConfirm;
+
+  /// No description provided for @cardsSoundReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get cardsSoundReject;
+
+  /// No description provided for @cardsSoundLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get cardsSoundLater;
+
+  /// No description provided for @cardsSoundSpecial.
+  ///
+  /// In en, this message translates to:
+  /// **'Special'**
+  String get cardsSoundSpecial;
+
+  /// No description provided for @cardsSoundUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get cardsSoundUndo;
 
   /// No description provided for @cardsSettingsTransitions.
   ///

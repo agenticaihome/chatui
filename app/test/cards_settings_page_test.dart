@@ -30,6 +30,8 @@ Map<String, Object?> _snap(CardsSettings s) => {
       'gestures': s.gestures,
       'sensitivity': s.sensitivity,
       'swapSides': s.swapSides,
+      'sounds': s.sounds,
+      'soundVolume': s.soundVolume,
     };
 
 Future<void> _open(WidgetTester tester, CardsSettings s, {CardsSensors? sensors, bool reduceMotion = false}) async {
@@ -102,6 +104,24 @@ void main() {
     final again = CardsSettings(device: both);
     await again.load();
     expect(_snap(again), _snap(s));
+  });
+
+  testWidgets('the sounds: off by default; on shows the volume and a button for each group', (tester) async {
+    final s = CardsSettings(device: both);
+    await _open(tester, s);
+    expect(s.sounds, isFalse);
+    expect(find.byKey(const Key('cards-set-sound-volume')), findsNothing);
+    final before = _snap(s);
+    await tester.tap(find.byKey(const Key('cards-set-sounds')));
+    await tester.pump();
+    expect(s.sounds, isTrue);
+    expect(_snap(s)..remove('sounds'), before..remove('sounds')); // only its own setting moved
+    expect(find.byKey(const Key('cards-set-sound-volume')), findsOneWidget);
+    for (final g in CardsSound.values) {
+      expect(find.byKey(Key('cards-sound-test-${g.name}')), findsOneWidget);
+    }
+    await _tapIn(tester, 'cards-set-sound-volume', 'High');
+    expect(s.soundVolume, CardsStrength.high);
   });
 
   testWidgets('no vibration motor: no vibration item; no gyroscope: no motion gestures (U3)', (tester) async {

@@ -44,6 +44,7 @@ section 1. More terms:
 | Transport | 2026-11-10 | Proposal. gRPC over h2c, as `chat.md`, sections 3 and 4, on its own slot. The events have a version and the decisions have an `idempotency_key`, so another transport (QUIC, WebRTC) can come later with a new `Protocol` in the stack and the same meaning |
 | One deck at a time | 2026-11-10 | Proposal (open question of the issue). A slot shows one deck at a time. A new `deck_id` replaces the old deck. A service that needs two decks at the same time declares two slots |
 | Files | 2026-11-10 | Proposal. An image is an `ImageContent` of `chat.proto`. The client reads it with `FileService.DownloadFile` on the same slot, only when it needs it (`chat.md`, section 6.4) |
+| Sounds | 2026-11-12 | The service chooses only a group of sounds for an action: `Sound` (`DEFAULT`, `CONFIRM`, `REJECT`, `LATER`, `SPECIAL`), a concept like `Tone`. The client makes the sound. No audio file goes over the wire. The default comes from the `tone` and `keep` of the action, so the assistant can set the tone only |
 | Look | 2026-11-10 | Proposal. The service chooses the look only from fixed sets: `Tone` (a role, not a color), `Layout` and `Icon`. The client takes the colors from its theme. No script, no markup, no network resource |
 | Pointer from the chat | 2026-11-10 | Proposal. A chat message can point to the slot (`slot_link`, `chat.md`, section 5.8). The app shows a button. The deck opens only when the user taps it |
 
@@ -124,6 +125,7 @@ for one card. Both have:
 | `label` | 1 to 32 characters, one line. The client shows it on the button, and gives it to a screen reader |
 | `icon` | A value of `Icon`. A value that the client does not know is `ICON_NONE` |
 | `tone` | A value of `Tone`. A value that the client does not know is `TONE_NEUTRAL` |
+| `sound` | A value of `Sound` (section 5.5), optional. A value that the client does not know, or no value, is `SOUND_DEFAULT` |
 
 A `DeckAction` also has `direction`. With `DIRECTION_LEFT`, `DIRECTION_RIGHT`, `DIRECTION_UP`
 or `DIRECTION_DOWN`, a swipe of the card to that side makes the action. With `DIRECTION_NONE`,
@@ -155,6 +157,36 @@ theme (light or dark). A client must support each value of the sets of revision 
 - The client must not run a script, must not read a network resource, and must not parse
   markup in a text of a deck. Each text is plain text.
 - The client must keep the contrast and the size of the text and of the buttons in each theme.
+
+### 5.5 Sound
+
+The service can say what group of sounds the client gives to an action. This helps the user
+who does not look at the screen, for example with a motion gesture. A decision makes a short
+sound, and each group has a different shape, so the user knows which action was done.
+
+`Sound` is a fixed set of **concepts**. The service chooses a concept. The client chooses the
+sound itself. The service cannot send an audio file, and the client must not read one from
+the network.
+
+| Value | Concept | The user hears |
+|---|---|---|
+| `SOUND_DEFAULT` | The client chooses from `tone` and `keep` (see below) | One of the four sounds below |
+| `SOUND_CONFIRM` | The action accepts, does or confirms | A positive sound, for example two notes that go up |
+| `SOUND_REJECT` | The action rejects, removes or deletes | A negative sound, for example two low notes that go down |
+| `SOUND_LATER` | The action puts the card off: it comes back later | A neutral, soft sound, for example two equal ticks |
+| `SOUND_SPECIAL` | The decision stands out: a favourite, an urgent or an important card | A bright sound, for example a run of notes that goes up |
+
+- With `SOUND_DEFAULT`, the client uses `SOUND_LATER` if the action has `keep`. If not, it
+  uses the sound of the `tone`: `TONE_POSITIVE` and `TONE_NEUTRAL` are `SOUND_CONFIRM`,
+  `TONE_NEGATIVE` is `SOUND_REJECT`, `TONE_WARNING` is `SOUND_LATER` and `TONE_ACCENT` is
+  `SOUND_SPECIAL`. A service that sets the `tone` of its actions gets the right sound with no
+  `sound` value.
+- An undo has its own sound. The service cannot choose it.
+- The sound is 1 second long or less. A client that has no sound, or has it off, uses no
+  sound: the field only helps the user. A decision never depends on it.
+- A sound follows the sound settings of the user and of the system (section 13.2).
+- The meaning of a group is the same for all clients. The notes, the timbre and the length
+  can be different.
 
 ## 6. Calls
 
@@ -334,12 +366,14 @@ The rules of `chat.md`, section 9, for `DownloadFile` apply.
 | 29 | An image of a card that is not on screen | No `DownloadFile` for it |
 | 30 | All cards done | The end of the deck shows, with undo and the button to go back |
 | 31 | The button to go back at the end of a deck with `done_text` | The chat gets that text as a message of the user. With no `done_text`, or with the back arrow, no message |
+| 32 | An action with `sound` set, and one with `SOUND_DEFAULT` (with each `tone`, and with `keep`) | With the sounds on, each decision plays the group of section 5.5; undo plays its own sound. With the sounds off, none plays. The decision is the same |
 
 ## 11. Changes to the interface
 
 The tag is `cards` and it has no version. The rules of `chat.md`, section 12, apply: a new field
-is optional and has a new number; a new value of `Tone`, `Layout` or `Icon` is permitted,
-because a client that does not know it uses the default value of its set (section 5.4).
+is optional and has a new number; a new value of `Tone`, `Layout`, `Icon` or `Sound` is
+permitted, because a client that does not know it uses the default value of its set (sections
+5.4 and 5.5).
 
 ## 12. Reference service
 
@@ -354,8 +388,8 @@ to its log, and gives no chat message for it.
 ## 13. Last phase: UX of the widget (not normative for the wire)
 
 Issue #120 plans a last phase for the quality of the widget. Everything in it is a feature of
-the client: the wire of this document does not change, and the service cannot require any of
-it. Revision 1 of chatui has the base widget only (sections 5 to 7). The last phase adds:
+the client. The wire of this document does not change, except the optional `sound` of an
+action (section 5.5), and the service cannot require any of it. Revision 1 of chatui has the base widget only (sections 5 to 7). The last phase adds:
 
 - a reflection on the image (or, on a card with no image, behind the texts) that follows the gyroscope (low-pass, limited angle) and the
   finger;
@@ -364,13 +398,14 @@ it. Revision 1 of chatui has the base widget only (sections 5 to 7). The last ph
 - transitions for the next card, the end of the deck and a refresh, with a style that the user
   chooses;
 - frames that come from the theme of the app;
+- a short sound for each decision, in a group that the service can choose (section 5.5);
 - motion gestures (a sharp turn of the wrist is a swipe), off by default, armed by the user,
   with a pause after each gesture, a test in the settings, and undo always on screen;
 - a group "Cards" in the settings for each effect.
 
 Rules for the last phase: the effects never change the function; "reduce motion" of the system
 turns the transitions and the reflections down; vibration follows the haptics setting of the
-system; the sensors run only while the deck is on screen, and their data never leaves the
+system; the sounds follow the sound volume of the system and are off by default; the sensors run only while the deck is on screen, and their data never leaves the
 phone; a device with no gyroscope or no vibration motor hides the setting and uses a fallback;
 the effects keep 60 frames per second or turn themselves down.
 
@@ -390,13 +425,14 @@ the effects keep 60 frames per second or turn themselves down.
 ### 13.2 What chatui does
 
 The last phase is built in chatui (`app/lib/celaut/cards_effects.dart`,
-`app/lib/ui/celaut/cards_look.dart`, `cards_screen.dart`, Settings > Cards). The wire of this
-document does not change.
+`app/lib/ui/celaut/cards_look.dart`, `cards_screen.dart`, Settings > Cards). The only change to the wire is the
+optional `sound` of an action (section 5.5).
 
 | Effect | Behaviour | Setting (default) |
 |---|---|---|
 | Reflection | A light on the image of the top card; a card with no image has it as the background of its texts. Never over the texts. The gyroscope turn is summed, pulled back to the centre in about 1.5 s, smoothed and limited to 0.35 rad; the finger adds to it during a drag. With no gyroscope it follows the finger (and a mouse pointer). | on / off, strength low · medium · high (on, medium) |
 | Vibration | Once at the decision point of a swipe (not per frame), at a release that decides (also a button, a key or a motion gesture), at a cancel (the card comes back) and at an undo. Decision > undo > decision point = cancel; the strength moves each one step. The haptics of the view: they follow the touch feedback setting of the system, with no permission. No vibration motor: the item is hidden. | on / off, strength (on, medium) |
+| Sounds | A short sound (0.5 s or less) at each decision that is not an undo: a swipe, a button, a key or a motion gesture. The group is `Sound` of the action (section 5.5); an undo has its own. The sounds are synthetic: the app has no sound file. Each group has its own pitch shape (confirm: two notes up; reject: two low notes down; later: two equal ticks; special: a run of four notes up; undo: one glide down). They play on the stream of the system sounds, so they follow its volume and the silent mode; no permission. The settings page has a button for each group. | on / off, volume low · medium · high (off, medium) |
 | Transitions | Full: the card leaves to its side with the style (throw = move and turn, slide, fade = fade and shrink), the next card grows from under it, a third card shows the depth of the deck; the end of the deck, a refresh and an undo fade in with a small scale. Simple: a fade only, no movement. The action goes to the client at once: the effect is only drawn over the new state. | off / simple / full, style (full, throw) |
 | Frames | From the active theme: a border of the theme (the tone border stays), the corner of the cards of the app, a soft shadow (light themes) or a soft light of the accent (dark themes). None: no shadow, no neutral border. The face of the card is the same surface in both: the texts keep their contrast. | follow the theme / none (theme) |
 | Motion gestures | A turn around the long axis of the screen (left or right) or around the short axis (up or down) faster than the threshold, then the return (half the threshold, other side) within 0.6 s, is a swipe to the side where the screen turns to face; then 0.8 s of pause. While one turn waits for its return, the other axis does not count. A side with no action does nothing. Thresholds 4.5 / 3.0 / 2.0 rad/s. Armed with a button in the deck; it ends after 30 s with no gesture, when the app leaves the front or the screen goes off. Undo is on screen while armed. The card leaves to that side with the same vibration as a swipe. No gyroscope: the item is hidden. | on / off (off), sensitivity (medium), swap the sides (left and right only; off), a test |

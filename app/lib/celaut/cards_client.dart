@@ -23,6 +23,7 @@ class CardsAction {
     this.tone = cpb.Tone.TONE_NEUTRAL,
     this.direction = cpb.Direction.DIRECTION_NONE,
     this.keep = false,
+    this.sound = cpb.Sound.SOUND_DEFAULT,
   });
 
   final String id;
@@ -37,6 +38,10 @@ class CardsAction {
   /// The card is not done with this action: it goes to the end of the deck and comes back
   /// after the other cards, until the user makes an action that is not a keep.
   final bool keep;
+
+  /// The group of sounds that the service chose (section 5.5). [cpb.Sound.SOUND_DEFAULT]:
+  /// the client decides from [tone] and [keep].
+  final cpb.Sound sound;
 }
 
 /// One card of a deck (`docs/celaut/cards.md`, section 5.2), with its texts cut to the
@@ -378,10 +383,13 @@ class CardsClient extends ChangeNotifier {
   }
 
   static CardsAction? _actionOf(String id, String label, cpb.Icon icon, cpb.Tone tone,
-      [cpb.Direction direction = cpb.Direction.DIRECTION_NONE, bool keep = false]) {
+      [cpb.Direction direction = cpb.Direction.DIRECTION_NONE,
+      bool keep = false,
+      cpb.Sound sound = cpb.Sound.SOUND_DEFAULT]) {
     final text = _line(label, 32);
     if (!_id.hasMatch(id) || text.isEmpty) return null;
-    return CardsAction(id: id, label: text, icon: icon, tone: tone, direction: direction, keep: keep);
+    return CardsAction(
+        id: id, label: text, icon: icon, tone: tone, direction: direction, keep: keep, sound: sound);
   }
 
   CardsDeck _deckOf(cpb.Deck d) {
@@ -391,14 +399,20 @@ class CardsClient extends ChangeNotifier {
     final sides = <cpb.Direction>{};
     for (final a in d.actions) {
       if (actions.length == maxActions) break;
-      final action = _actionOf(a.actionId, a.label, a.icon, a.tone, a.direction, a.keep);
+      final action = _actionOf(a.actionId, a.label, a.icon, a.tone, a.direction, a.keep, a.sound);
       if (action == null || actions.any((x) => x.id == action.id)) continue;
       // Two actions on one side: the first one keeps it.
       final side = action.direction;
       final keep = side == cpb.Direction.DIRECTION_NONE || sides.add(side);
       actions.add(keep
           ? action
-          : CardsAction(id: action.id, label: action.label, icon: action.icon, tone: action.tone, keep: action.keep));
+          : CardsAction(
+              id: action.id,
+              label: action.label,
+              icon: action.icon,
+              tone: action.tone,
+              keep: action.keep,
+              sound: action.sound));
     }
     final cards = <DeckCard>[];
     final ids = <String>{};
@@ -443,7 +457,7 @@ class CardsClient extends ChangeNotifier {
       altText: _line(c.image.altText, 256),
       detail: _cut(c.detail, 16384),
       buttons: [
-        for (final b in c.buttons.take(maxButtons)) _actionOf(b.actionId, b.label, b.icon, b.tone),
+        for (final b in c.buttons.take(maxButtons)) _actionOf(b.actionId, b.label, b.icon, b.tone, cpb.Direction.DIRECTION_NONE, false, b.sound),
       ].whereType<CardsAction>().toList(),
       tone: c.tone,
       // IMAGE_FULL with no image is IMAGE_TOP (section 5.4).
