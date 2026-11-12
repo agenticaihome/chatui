@@ -23,13 +23,17 @@ final _imageRef = pb.ImageContent(
   ),
 );
 
-cpb.Deck _deck() => cpb.Deck(
+cpb.Deck _deck({bool vertical = false}) => cpb.Deck(
       deckId: 'shopping-list',
       title: 'Shopping list',
       showProgress: true,
       actions: [
         cpb.DeckAction(actionId: 'later', label: 'Not yet', direction: cpb.Direction.DIRECTION_LEFT),
         cpb.DeckAction(actionId: 'basket', label: 'In the basket', direction: cpb.Direction.DIRECTION_RIGHT),
+        if (vertical) ...[
+          cpb.DeckAction(actionId: 'skip', label: 'Skip', direction: cpb.Direction.DIRECTION_UP),
+          cpb.DeckAction(actionId: 'star', label: 'Star', direction: cpb.Direction.DIRECTION_DOWN),
+        ],
       ],
       cards: [
         cpb.Card(itemId: 'milk', title: 'Milk', image: _imageRef),
@@ -70,9 +74,13 @@ class FakeSensors implements CardsSensors {
   void wristLeft() => _samples([-1, -5, -6, -3, 1, 3.5, 0.5]);
   void wristRight() => _samples([1, 5, 6, 3, -1, -3.5, -0.5]);
 
-  void _samples(List<double> wy) {
+  /// A sharp tilt of the phone so that the screen turns to face up, or down, and back.
+  void wristUp() => _samples([-1, -5, -6, -3, 1, 3.5, 0.5], pitch: true);
+  void wristDown() => _samples([1, 5, 6, 3, -1, -3.5, -0.5], pitch: true);
+
+  void _samples(List<double> wy, {bool pitch = false}) {
     for (final w in wy) {
-      _ctrl?.add(GyroSample(0, w, 0, _t));
+      _ctrl?.add(pitch ? GyroSample(w, 0, 0, _t) : GyroSample(0, w, 0, _t));
       _t += 0.02;
     }
     _t += 2; // after the pause
@@ -87,10 +95,13 @@ class FakeSensors implements CardsSensors {
 }
 
 class _Harness {
-  _Harness({CardsDevice device = const CardsDevice(hasGyroscope: true, hasVibrator: true)})
+  _Harness({CardsDevice device = const CardsDevice(hasGyroscope: true, hasVibrator: true), this.vertical = false})
       : settings = CardsSettings(device: device);
 
   final CardsSettings settings;
+
+  /// The deck has actions up and down.
+  final bool vertical;
   final sensors = FakeSensors();
   final buzz = <HapticLevel>[];
   final events = StreamController<cpb.DeckEvent>();
@@ -118,7 +129,7 @@ class _Harness {
       ),
     ));
     await tester.pump();
-    events.add(cpb.DeckEvent(version: Int64(1), deckId: 'shopping-list', deck: _deck()));
+    events.add(cpb.DeckEvent(version: Int64(1), deckId: 'shopping-list', deck: _deck(vertical: vertical)));
     await tester.pump();
     await tester.pump();
   }
@@ -313,6 +324,37 @@ void main() {
       h.sensors.wristLeft();
       await tester.pumpAndSettle();
       expect(h.moves, ['milk:basket', 'bread:later']);
+      await h.close(tester);
+    });
+
+    testWidgets('armed: a tilt up or down is the swipe up or down; the swap does not move them', (tester) async {
+      final h = _Harness(vertical: true)
+        ..settings.gestures = true
+        ..settings.swapSides = true
+        ..settings.reflections = false;
+      await h.open(tester);
+      await tester.tap(find.byKey(const Key('cards-arm')));
+      await tester.pump();
+      h.sensors.wristUp();
+      await tester.pumpAndSettle();
+      h.sensors.wristDown();
+      await tester.pumpAndSettle();
+      expect(h.moves, ['milk:skip', 'bread:star']);
+      expect(h.buzz, [HapticLevel.medium, HapticLevel.medium]);
+      await h.close(tester);
+    });
+
+    testWidgets('a tilt toward a side with no action does nothing and keeps the mode armed', (tester) async {
+      final h = _Harness()
+        ..settings.gestures = true
+        ..settings.reflections = false;
+      await h.open(tester);
+      await tester.tap(find.byKey(const Key('cards-arm')));
+      await tester.pump();
+      h.sensors.wristUp();
+      await tester.pumpAndSettle();
+      expect(h.moves, isEmpty);
+      expect(find.byKey(const Key('cards-armed')), findsOneWidget);
       await h.close(tester);
     });
 

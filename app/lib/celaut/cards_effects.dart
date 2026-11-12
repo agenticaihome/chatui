@@ -345,9 +345,14 @@ class TiltFilter {
   }
 }
 
+/// The side of a motion gesture: where the screen turns to face.
+enum WristTurn { none, left, right, up, down }
+
 /// A motion gesture: a sharp turn of the wrist to one side, then the return (section 13).
-/// A slow tilt (the reflections) and a walk stay under the threshold or do not come back
-/// in time. After a gesture, nothing counts for [cooldown].
+/// A turn around the long axis of the screen is left or right; a turn around the short axis
+/// is up or down. A slow tilt (the reflections) and a walk stay under the threshold or do
+/// not come back in time. While one turn waits for its return, the other axis does not
+/// count; after a gesture, nothing counts for [cooldown].
 class WristGestureDetector {
   WristGestureDetector({
     required this.threshold,
@@ -363,7 +368,7 @@ class WristGestureDetector {
         CardsStrength.high => 2.0,
       };
 
-  /// rad/s around the long axis of the screen for the first turn.
+  /// rad/s around an axis of the screen for the first turn.
   final double threshold;
 
   /// Seconds for the return after the first turn.
@@ -375,6 +380,8 @@ class WristGestureDetector {
   /// The return needs this part of [threshold], on the other side.
   final double returnPart;
 
+  /// 0 for no turn yet; else the axis of the first turn (1 long axis, 2 short axis).
+  int _axis = 0;
   int _side = 0;
   double _since = 0;
   double _quietUntil = -double.infinity;
@@ -383,40 +390,49 @@ class WristGestureDetector {
   /// The largest turn rate (rad/s) of the last turn: the test of the settings shows it.
   double get peak => _peak;
 
-  /// -1 for a turn to the left (the screen turns to face the left), 1 to the right, 0 for
-  /// no gesture yet.
-  int add(GyroSample s) {
-    final w = s.y;
-    if (s.t < _quietUntil) return 0;
-    if (_side == 0) {
+  /// The side of a finished gesture, [WristTurn.none] for no gesture yet. A turn around the
+  /// long axis to the left (the screen turns to face the left) is [WristTurn.left]; around
+  /// the short axis, the screen turning to face down is [WristTurn.down].
+  WristTurn add(GyroSample s) {
+    if (s.t < _quietUntil) return WristTurn.none;
+    if (_axis == 0) {
+      final horizontal = s.y.abs() >= s.x.abs();
+      final w = horizontal ? s.y : s.x;
       if (w.abs() >= threshold) {
+        _axis = horizontal ? 1 : 2;
         _side = w < 0 ? -1 : 1;
         _since = s.t;
         _peak = w.abs();
       }
-      return 0;
+      return WristTurn.none;
     }
     if (s.t - _since > window) {
+      _axis = 0;
       _side = 0;
       return add(s);
     }
+    final w = _axis == 1 ? s.y : s.x;
     if (w * _side > 0) {
       _peak = math.max(_peak, w.abs());
-      return 0;
+      return WristTurn.none;
     }
     if (-w * _side >= threshold * returnPart) {
-      final side = _side;
+      final turn = _axis == 1
+          ? (_side < 0 ? WristTurn.left : WristTurn.right)
+          : (_side < 0 ? WristTurn.up : WristTurn.down);
+      _axis = 0;
       _side = 0;
       _quietUntil = s.t + cooldown;
-      return side;
+      return turn;
     }
-    return 0;
+    return WristTurn.none;
   }
 
   /// Notes the turn rate of [s] for the test of the settings (no gesture logic).
-  double observe(GyroSample s) => _peak = math.max(_peak * 0.9, s.y.abs());
+  double observe(GyroSample s) => _peak = math.max(_peak * 0.9, math.max(s.y.abs(), s.x.abs()));
 
   void reset() {
+    _axis = 0;
     _side = 0;
     _peak = 0;
     _quietUntil = -double.infinity;

@@ -11,11 +11,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 List<GyroSample> turn(List<double> wy, {double t0 = 0}) =>
     [for (var i = 0; i < wy.length; i++) GyroSample(0, wy[i], 0, t0 + i * 0.02)];
 
-int detect(WristGestureDetector d, List<GyroSample> samples) {
-  var out = 0;
+/// Samples of the short axis of the screen, 20 ms apart, from [t0].
+List<GyroSample> pitch(List<double> wx, {double t0 = 0}) =>
+    [for (var i = 0; i < wx.length; i++) GyroSample(wx[i], 0, 0, t0 + i * 0.02)];
+
+WristTurn detect(WristGestureDetector d, List<GyroSample> samples) {
+  var out = WristTurn.none;
   for (final s in samples) {
     final r = d.add(s);
-    if (r != 0) out = r;
+    if (r != WristTurn.none) out = r;
   }
   return out;
 }
@@ -141,35 +145,57 @@ void main() {
   group('motion gestures (wrist turn)', () {
     test('a sharp turn and the return is a gesture to that side', () {
       final d = WristGestureDetector(threshold: 3);
-      expect(detect(d, turn([-0.5, -4, -6, -3, 1, 3, 0.5])), -1);
+      expect(detect(d, turn([-0.5, -4, -6, -3, 1, 3, 0.5])), WristTurn.left);
       final r = WristGestureDetector(threshold: 3);
-      expect(detect(r, turn([0.5, 4, 6, 2, -2, -4, 0])), 1);
+      expect(detect(r, turn([0.5, 4, 6, 2, -2, -4, 0])), WristTurn.right);
     });
 
     test('a slow tilt, a turn with no return and a walk are not gestures', () {
       final d = WristGestureDetector(threshold: 3);
       // Slow tilt: under the threshold.
-      expect(detect(d, turn([for (var i = 0; i < 100; i++) 0.6 * math.sin(i / 10)])), 0);
+      expect(detect(d, turn([for (var i = 0; i < 100; i++) 0.6 * math.sin(i / 10)])), WristTurn.none);
       // A sharp turn that stays (no return in the window).
       expect(detect(d, turn([-5, -5, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3])),
-          0);
+          WristTurn.none);
       // A walk: about 2 steps per second, ±1.2 rad/s.
-      expect(detect(d, turn([for (var i = 0; i < 300; i++) 1.2 * math.sin(i * 0.02 * 2 * math.pi * 2)], t0: 10)), 0);
+      expect(detect(d, turn([for (var i = 0; i < 300; i++) 1.2 * math.sin(i * 0.02 * 2 * math.pi * 2)], t0: 10)), WristTurn.none);
     });
 
     test('a pause after each gesture', () {
       final d = WristGestureDetector(threshold: 3, cooldown: 0.8);
-      expect(detect(d, turn([-5, -5, 3])), -1);
+      expect(detect(d, turn([-5, -5, 3])), WristTurn.left);
       // At once again: inside the pause.
-      expect(detect(d, turn([-5, -5, 3], t0: 0.2)), 0);
-      expect(detect(d, turn([-5, -5, 3], t0: 1.2)), -1);
+      expect(detect(d, turn([-5, -5, 3], t0: 0.2)), WristTurn.none);
+      expect(detect(d, turn([-5, -5, 3], t0: 1.2)), WristTurn.left);
+    });
+
+    test('a turn around the short axis is up or down, where the screen turns to face', () {
+      expect(detect(WristGestureDetector(threshold: 3), pitch([-0.5, -4, -6, -3, 1, 3, 0.5])), WristTurn.up);
+      expect(detect(WristGestureDetector(threshold: 3), pitch([0.5, 4, 6, 2, -2, -4, 0])), WristTurn.down);
+    });
+
+    test('a slow pitch, a pitch with no return and a walk are not vertical gestures', () {
+      final d = WristGestureDetector(threshold: 3);
+      expect(detect(d, pitch([for (var i = 0; i < 100; i++) 0.6 * math.sin(i / 10)])), WristTurn.none);
+      expect(detect(d, pitch([-5, -5, -2, ...List.filled(40, 0.0), 3], t0: 5)), WristTurn.none);
+      expect(detect(d, pitch([for (var i = 0; i < 300; i++) 1.2 * math.sin(i * 0.02 * 2 * math.pi * 2)], t0: 10)),
+          WristTurn.none);
+    });
+
+    test('the second axis does not count while a turn waits for its return', () {
+      final d = WristGestureDetector(threshold: 3);
+      // A turn to the left with a rebound on the other axis: one gesture, to the left.
+      final samples = [
+        for (final s in turn([-0.5, -4, -6, -3, 1, 3, 0.5])) GyroSample(s.y == -4 ? 3.5 : 0, s.y, 0, s.t),
+      ];
+      expect(detect(d, samples), WristTurn.left);
     });
 
     test('the sensitivity sets the threshold', () {
       final weak = turn([-2.5, -2.5, 1.5]);
-      expect(detect(WristGestureDetector(threshold: WristGestureDetector.thresholdOf(CardsStrength.low)), weak), 0);
-      expect(detect(WristGestureDetector(threshold: WristGestureDetector.thresholdOf(CardsStrength.medium)), weak), 0);
-      expect(detect(WristGestureDetector(threshold: WristGestureDetector.thresholdOf(CardsStrength.high)), weak), -1);
+      expect(detect(WristGestureDetector(threshold: WristGestureDetector.thresholdOf(CardsStrength.low)), weak), WristTurn.none);
+      expect(detect(WristGestureDetector(threshold: WristGestureDetector.thresholdOf(CardsStrength.medium)), weak), WristTurn.none);
+      expect(detect(WristGestureDetector(threshold: WristGestureDetector.thresholdOf(CardsStrength.high)), weak), WristTurn.left);
     });
   });
 

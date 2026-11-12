@@ -325,9 +325,15 @@ class _CardsScreenState extends State<CardsScreen> with TickerProviderStateMixin
     final client = _client;
     if (!_armed || wrist == null || client == null) return;
     final turn = wrist.add(s);
-    if (turn == 0) return;
-    final left = _fx.swapSides ? turn > 0 : turn < 0;
-    final side = left ? cpb.Direction.DIRECTION_LEFT : cpb.Direction.DIRECTION_RIGHT;
+    if (turn == WristTurn.none) return;
+    // The swap is for left and right; up and down stay where the screen turns.
+    final side = switch (turn) {
+      WristTurn.left => _fx.swapSides ? cpb.Direction.DIRECTION_RIGHT : cpb.Direction.DIRECTION_LEFT,
+      WristTurn.right => _fx.swapSides ? cpb.Direction.DIRECTION_LEFT : cpb.Direction.DIRECTION_RIGHT,
+      WristTurn.up => cpb.Direction.DIRECTION_UP,
+      WristTurn.down => cpb.Direction.DIRECTION_DOWN,
+      WristTurn.none => cpb.Direction.DIRECTION_NONE,
+    };
     final action = client.actionFor(side);
     if (action == null || client.current == null) return;
     _restartArmTimer();

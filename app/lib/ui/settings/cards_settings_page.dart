@@ -213,8 +213,8 @@ class _GestureTestState extends State<GestureTest> with WidgetsBindingObserver {
   WristGestureDetector? _detector;
   double _peak = 0;
 
-  /// -1 left, 1 right (after the swap), 0 none yet.
-  int _seen = 0;
+  /// The side of the last gesture (after the swap), none yet.
+  WristTurn _seen = WristTurn.none;
 
   @override
   void initState() {
@@ -240,7 +240,7 @@ class _GestureTestState extends State<GestureTest> with WidgetsBindingObserver {
     setState(() {
       _detector = d;
       _peak = 0;
-      _seen = 0;
+      _seen = WristTurn.none;
     });
     _sub = widget.sensors.gyro().listen((s) {
       final turn = d.add(s);
@@ -248,7 +248,16 @@ class _GestureTestState extends State<GestureTest> with WidgetsBindingObserver {
       setState(() {
         _peak = d.peak > _peak ? d.peak : _peak;
         if (s.y.abs() > _peak) _peak = s.y.abs();
-        if (turn != 0) _seen = (widget.swapSides ? -turn : turn);
+        if (s.x.abs() > _peak) _peak = s.x.abs();
+        if (turn != WristTurn.none) {
+          _seen = !widget.swapSides
+              ? turn
+              : switch (turn) {
+                  WristTurn.left => WristTurn.right,
+                  WristTurn.right => WristTurn.left,
+                  _ => turn,
+                };
+        }
       });
     }, onError: (Object _) => _end());
     _stop = Timer(widget.maxTime, _end);
@@ -287,12 +296,14 @@ class _GestureTestState extends State<GestureTest> with WidgetsBindingObserver {
           const SizedBox(height: 4),
           Text(
             switch (_seen) {
-              -1 => l.cardsSettingsTestLeft,
-              1 => l.cardsSettingsTestRight,
-              _ => l.cardsSettingsTestIdle,
+              WristTurn.left => l.cardsSettingsTestLeft,
+              WristTurn.right => l.cardsSettingsTestRight,
+              WristTurn.up => l.cardsSettingsTestUp,
+              WristTurn.down => l.cardsSettingsTestDown,
+              WristTurn.none => l.cardsSettingsTestIdle,
             },
             key: const Key('cards-test-result'),
-            style: theme.textTheme.titleSmall?.copyWith(color: _seen == 0 ? null : theme.colorScheme.primary),
+            style: theme.textTheme.titleSmall?.copyWith(color: _seen == WristTurn.none ? null : theme.colorScheme.primary),
           ),
         ],
       ]),

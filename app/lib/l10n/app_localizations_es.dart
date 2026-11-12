@@ -8268,7 +8268,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cardsGesturesArmed =>
-      'Gestos de movimiento activos: gira la muñeca a un lado y vuelve';
+      'Gestos de movimiento activos: gira la muñeca a un lado y vuelve, o inclínala hacia delante o atrás';
 
   @override
   String get cardsSettingsTitle => 'Tarjetas';
@@ -8348,7 +8348,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cardsSettingsGesturesSubtitle =>
-      'Un giro rápido de la muñeca a un lado y de vuelta es un deslizamiento a ese lado. Actívalo en el mazo cada vez; se apaga solo.';
+      'Un giro rápido de la muñeca a un lado y de vuelta es un deslizamiento a ese lado: izquierda, derecha, arriba o abajo. Actívalo en el mazo cada vez; se apaga solo.';
 
   @override
   String get cardsSettingsSensitivity => 'Sensibilidad';
@@ -8358,7 +8358,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cardsSettingsSwapSidesSubtitle =>
-      'Un giro a la izquierda es un deslizamiento a la derecha';
+      'Un giro a la izquierda es un deslizamiento a la derecha (arriba y abajo no cambian)';
 
   @override
   String get cardsSettingsTest => 'Probar el gesto';
@@ -8368,7 +8368,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cardsSettingsTestIdle =>
-      'Gira la muñeca rápido a un lado y vuelve.';
+      'Gira la muñeca rápido a un lado, o inclínala hacia delante o atrás, y vuelve.';
 
   @override
   String get cardsSettingsTestLeft =>
@@ -8377,6 +8377,12 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get cardsSettingsTestRight =>
       'Detectado: un deslizamiento a la derecha';
+
+  @override
+  String get cardsSettingsTestUp => 'Detectado: un deslizamiento hacia arriba';
+
+  @override
+  String get cardsSettingsTestDown => 'Detectado: un deslizamiento hacia abajo';
 
   @override
   String get cardsSettingsReduceMotion =>

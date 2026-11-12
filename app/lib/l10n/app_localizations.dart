@@ -13118,7 +13118,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardsGesturesArmed.
   ///
   /// In en, this message translates to:
-  /// **'Motion gestures on: turn your wrist to one side and back'**
+  /// **'Motion gestures on: turn your wrist to one side and back, or tilt it forward or back'**
   String get cardsGesturesArmed;
 
   /// No description provided for @cardsSettingsTitle.
@@ -13268,7 +13268,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardsSettingsGesturesSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'A sharp turn of the wrist to one side and back is a swipe to that side. Arm it in the deck each time; it ends by itself.'**
+  /// **'A sharp turn of the wrist to a side and back is a swipe to that side, to the left, right, up or down. Arm it in the deck each time; it ends by itself.'**
   String get cardsSettingsGesturesSubtitle;
 
   /// No description provided for @cardsSettingsSensitivity.
@@ -13286,7 +13286,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardsSettingsSwapSidesSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'A turn to the left is a swipe to the right'**
+  /// **'A turn to the left is a swipe to the right (up and down stay)'**
   String get cardsSettingsSwapSidesSubtitle;
 
   /// No description provided for @cardsSettingsTest.
@@ -13304,7 +13304,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardsSettingsTestIdle.
   ///
   /// In en, this message translates to:
-  /// **'Turn your wrist sharply to one side and back.'**
+  /// **'Turn your wrist sharply to one side, or tilt it forward or back, and return.'**
   String get cardsSettingsTestIdle;
 
   /// No description provided for @cardsSettingsTestLeft.
@@ -13318,6 +13318,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Detected: a swipe to the right'**
   String get cardsSettingsTestRight;
+
+  /// No description provided for @cardsSettingsTestUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Detected: a swipe up'**
+  String get cardsSettingsTestUp;
+
+  /// No description provided for @cardsSettingsTestDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Detected: a swipe down'**
+  String get cardsSettingsTestDown;
 
   /// No description provided for @cardsSettingsReduceMotion.
   ///

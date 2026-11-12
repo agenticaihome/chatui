@@ -8186,7 +8186,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardsGesturesArmed =>
-      'Motion gestures on: turn your wrist to one side and back';
+      'Motion gestures on: turn your wrist to one side and back, or tilt it forward or back';
 
   @override
   String get cardsSettingsTitle => 'Cards';
@@ -8266,7 +8266,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardsSettingsGesturesSubtitle =>
-      'A sharp turn of the wrist to one side and back is a swipe to that side. Arm it in the deck each time; it ends by itself.';
+      'A sharp turn of the wrist to a side and back is a swipe to that side, to the left, right, up or down. Arm it in the deck each time; it ends by itself.';
 
   @override
   String get cardsSettingsSensitivity => 'Sensitivity';
@@ -8276,7 +8276,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardsSettingsSwapSidesSubtitle =>
-      'A turn to the left is a swipe to the right';
+      'A turn to the left is a swipe to the right (up and down stay)';
 
   @override
   String get cardsSettingsTest => 'Try the gesture';
@@ -8286,13 +8286,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardsSettingsTestIdle =>
-      'Turn your wrist sharply to one side and back.';
+      'Turn your wrist sharply to one side, or tilt it forward or back, and return.';
 
   @override
   String get cardsSettingsTestLeft => 'Detected: a swipe to the left';
 
   @override
   String get cardsSettingsTestRight => 'Detected: a swipe to the right';
+
+  @override
+  String get cardsSettingsTestUp => 'Detected: a swipe up';
+
+  @override
+  String get cardsSettingsTestDown => 'Detected: a swipe down';
 
   @override
   String get cardsSettingsReduceMotion =>
