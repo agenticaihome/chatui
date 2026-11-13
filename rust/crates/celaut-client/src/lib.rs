@@ -51,6 +51,7 @@ pub mod env;
 pub mod health;
 pub mod hibernation;
 pub mod invite;
+pub mod link;
 pub mod local_port;
 pub mod overview;
 pub mod package;

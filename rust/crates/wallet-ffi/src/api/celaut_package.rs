@@ -15,6 +15,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use celaut_client::db::PackageRecord;
+use celaut_client::link::{self, LinkOptions, LinkProgress, Scheme};
 use celaut_client::package::{
     import, inspect, read, remove_file, save, Cancel, Layout, PackageError, PackageInfo,
 };
@@ -179,6 +180,258 @@ pub async fn celaut_remove_package(service_id_hex: String) -> Result<(), CelautE
     Ok(())
 }
 
+/// A link that the user gave, before the download (issue #135).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LinkView {
+    /// The link, without the spaces around it.
+    pub url: String,
+    /// True for `http://`: not encrypted. The app warns before it downloads.
+    pub insecure: bool,
+    /// The name that the service gets in the library, from the path of the link; empty if
+    /// the link has none (the library then uses the start of the service id).
+    pub name: String,
+    /// The id of the service that the link asks for (its fragment), if it says one.
+    pub service_id: Option<String>,
+}
+
+/// A download of a link that stopped and can go on.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PendingLinkView {
+    pub url: String,
+    /// The bytes that are on the phone.
+    pub bytes: u64,
+}
+
+/// Check a link that the user typed, pasted, scanned or opened: `https://` (or `http://`,
+/// with [`LinkView::insecure`]), with a host. Refused with the kind `invalidInput`.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_check_link(url: String) -> Result<LinkView, CelautError> {
+    let url = url.trim().to_string();
+    let scheme = link::check_url(&url).map_err(package_error)?;
+    let name = link::name_of(&url);
+    Ok(LinkView {
+        insecure: scheme == Scheme::Http,
+        name: if name.is_empty() { String::new() } else { clean_name(&name, "") },
+        service_id: link::expected_id(&url).map(hex::encode),
+        url,
+    })
+}
+
+/// The download of a link that stopped (no network, the app closed), if any. It goes on
+/// when the user imports the same link again.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_pending_link(dir: String) -> Option<PendingLinkView> {
+    if dir.trim().is_empty() {
+        return None;
+    }
+    link::pending(&PathBuf::from(dir)).map(|p| PendingLinkView {
+        url: p.url,
+        bytes: p.bytes,
+    })
+}
+
+/// Delete the files of a download that stopped.
+#[flutter_rust_bridge::frb]
+pub async fn celaut_discard_link(dir: String) -> Result<(), CelautError> {
+    if dir.trim().is_empty() {
+        return Ok(());
+    }
+    link::discard(&PathBuf::from(dir)).map_err(package_error)
+}
+
+/// The time that a download through Tor or another proxy waits for a byte.
+const LINK_IDLE_PROXY: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// Download the service at `url` (a `.celaut.bee` file, or a manifest: one link of a chunk
+/// on each line) into the library of the app in `dir`, and check it while the bytes arrive:
+/// each block, and the hash of the whole Service against the id of the service. See
+/// `celaut_client::link`. The requests follow the network route of the app (Tor).
+///
+/// - `allow_http`: the user said yes to the warning for `http://`.
+/// - `max_bytes`: the largest file. A larger one stops, and its bytes are deleted
+///   (kind `limitReached`, the message is the limit).
+///
+/// A failed request is tried again. A download that still fails (kind `unreachable`) stays
+/// on the phone, and the same link goes on from there ([`celaut_pending_link`]). A cancel
+/// ([`celaut_cancel_transfer`]) and a file that fails the check (kind `invalidInput`)
+/// delete it. [`celaut_transfer_progress`] gives the bytes and the chunk.
+#[flutter_rust_bridge::frb]
+pub async fn celaut_import_link(
+    url: String,
+    dir: String,
+    allow_http: bool,
+    max_bytes: u64,
+) -> Result<LibraryPackageView, CelautError> {
+    if dir.trim().is_empty() {
+        return Err(invalid("the app has no directory for the package"));
+    }
+    let checked = celaut_check_link(url)?;
+    let cancel = begin(TransferStage::Downloading, None)?;
+    let progress = LinkProgress::new();
+    if let Some(r) = transfer().as_mut() {
+        r.link = Some(progress.clone());
+    }
+    let mut options = LinkOptions {
+        max_bytes,
+        allow_http,
+        ..LinkOptions::default()
+    };
+    if !matches!(celaut_net::route(), celaut_net::Route::Direct) {
+        options.idle = LINK_IDLE_PROXY;
+    }
+    let source = HttpSource { allow_http };
+    let result = link::download(
+        &source,
+        &checked.url,
+        &PathBuf::from(&dir),
+        &options,
+        &cancel,
+        &progress,
+    )
+    .await;
+    end();
+    let downloaded = result.map_err(package_error)?;
+    let id = hex::encode(downloaded.service_id);
+    tracing::info!(
+        "service {id}: {} bytes from a link{}, {} retries{}",
+        downloaded.bytes,
+        if downloaded.chunks > 0 {
+            format!(" in {} chunks", downloaded.chunks)
+        } else {
+            String::new()
+        },
+        progress.retries(),
+        if downloaded.resumed { ", resumed" } else { "" }
+    );
+    let record = PackageRecord {
+        name: clean_name(&checked.name, &id),
+        path: downloaded.path.display().to_string(),
+        bytes: downloaded.bytes,
+        imported_at: now_seconds(),
+        nodo_export: downloaded.layout == Layout::NodoExport,
+    };
+    let view = library_view(&id, &record);
+    db().update(|d| {
+        d.packages.insert(id.clone(), record);
+    })
+    .map_err(super::celaut_db::storage_error)?;
+    Ok(view)
+}
+
+/// The requests of a download, on the HTTP client of the app (its TLS roots and its network
+/// route). A redirect to `http://` is refused unless the user allowed `http://`.
+struct HttpSource {
+    allow_http: bool,
+}
+
+impl HttpSource {
+    fn client(&self) -> Result<reqwest::Client, link::FetchError> {
+        let allow_http = self.allow_http;
+        wallet_net::http::client_builder()
+            .connect_timeout(std::time::Duration::from_secs(30))
+            .redirect(reqwest::redirect::Policy::custom(move |attempt| {
+                if attempt.previous().len() >= 10 {
+                    attempt.error("too many redirects")
+                } else if attempt.url().scheme() == "https"
+                    || (allow_http && attempt.url().scheme() == "http")
+                {
+                    attempt.follow()
+                } else {
+                    attempt.error("a redirect to a link that is not https://")
+                }
+            }))
+            .build()
+            .map_err(|e| link::FetchError::Fatal(describe(&e)))
+    }
+}
+
+/// The error with its causes: "error sending request" alone does not say why.
+fn describe(error: &dyn std::error::Error) -> String {
+    let mut text = error.to_string();
+    let mut source = error.source();
+    while let Some(cause) = source {
+        text.push_str(": ");
+        text.push_str(&cause.to_string());
+        source = cause.source();
+    }
+    text
+}
+
+/// The start and the total of a `Content-Range: bytes a-b/total` (or `bytes */total`).
+fn content_range(value: &str) -> Option<(Option<u64>, Option<u64>)> {
+    let rest = value.trim().strip_prefix("bytes")?.trim();
+    let (range, total) = rest.split_once('/')?;
+    let total = total.trim().parse::<u64>().ok();
+    let start = match range.trim() {
+        "*" => None,
+        r => Some(r.split_once('-')?.0.trim().parse::<u64>().ok()?),
+    };
+    Some((start, total))
+}
+
+impl link::Source for HttpSource {
+    fn open(
+        &self,
+        url: &str,
+        from: u64,
+    ) -> futures::future::BoxFuture<'static, Result<link::Opened, link::FetchError>> {
+        use link::FetchError::{Fatal, Retry};
+        let client = self.client();
+        // The fragment names the service for the app; it does not go to the server.
+        let url = url.split('#').next().unwrap_or_default().to_string();
+        Box::pin(async move {
+            let client = client?;
+            let mut request = client.get(&url);
+            if from > 0 {
+                request = request.header(reqwest::header::RANGE, format!("bytes={from}-"));
+            }
+            let response = request.send().await.map_err(|e| {
+                if e.is_redirect() || e.is_builder() {
+                    Fatal(describe(&e))
+                } else {
+                    Retry(describe(&e))
+                }
+            })?;
+            let status = response.status();
+            let range = response
+                .headers()
+                .get(reqwest::header::CONTENT_RANGE)
+                .and_then(|v| v.to_str().ok())
+                .and_then(content_range);
+            let (start, total) = match status.as_u16() {
+                200 => (0, response.content_length()),
+                206 => match range {
+                    Some((Some(start), total)) => (start, total),
+                    _ => return Err(Retry("a partial answer with no Content-Range".into())),
+                },
+                // The Range starts at the end: the resource is already complete.
+                416 if from > 0 && range.and_then(|r| r.1) == Some(from) => {
+                    return Ok(link::Opened {
+                        start: from,
+                        total: Some(from),
+                        body: Box::pin(futures::stream::empty()),
+                    });
+                }
+                408 | 425 | 429 | 500..=599 => return Err(Retry(format!("HTTP {status}"))),
+                _ => return Err(Fatal(format!("HTTP {status}"))),
+            };
+            let body = futures::stream::unfold(Some(response), |response| async move {
+                let mut response = response?;
+                match response.chunk().await {
+                    Ok(Some(bytes)) => Some((Ok(bytes.to_vec()), Some(response))),
+                    Ok(None) => None,
+                    Err(e) => Some((Err(Retry(describe(&e))), None)),
+                }
+            });
+            Ok(link::Opened {
+                start,
+                total,
+                body: Box::pin(body),
+            })
+        })
+    }
+}
+
 /// What a transfer does now.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransferStage {
@@ -191,6 +444,9 @@ pub enum TransferStage {
     /// The app checks the blocks of a file that the user loads: the bytes that it read
     /// so far, of the size of the file.
     Checking,
+    /// The app downloads a service from a link and checks it while the bytes arrive
+    /// (`celaut_import_link`): the bytes on disk, of the size when the server says it.
+    Downloading,
 }
 
 /// The transfer that runs, if any.
@@ -201,12 +457,19 @@ pub struct TransferView {
     pub bytes: u64,
     /// The size of the whole package, when the app knows it (a send of a file).
     pub total: Option<u64>,
+    /// For a download of a manifest: the chunk that downloads now, from 1. 0 otherwise.
+    pub chunk: u32,
+    /// For a download of a manifest: the number of chunks. 0 otherwise.
+    pub chunks: u32,
+    /// For a download: the tries that failed and were tried again.
+    pub retries: u32,
 }
 
 struct Running {
     stage: TransferStage,
     cancel: Cancel,
     total: Option<u64>,
+    link: Option<LinkProgress>,
 }
 
 static TRANSFER: Mutex<Option<Running>> = Mutex::new(None);
@@ -226,6 +489,7 @@ fn begin(stage: TransferStage, total: Option<u64>) -> Result<Cancel, CelautError
         stage,
         cancel: cancel.clone(),
         total,
+        link: None,
     });
     Ok(cancel)
 }
@@ -247,6 +511,14 @@ pub(crate) fn package_error(e: PackageError) -> CelautError {
         PackageError::Cancelled => CelautError {
             kind: CelautErrorKind::TransferFailed,
             message: "the transfer was cancelled".into(),
+        },
+        PackageError::Network(text) => CelautError {
+            kind: CelautErrorKind::Unreachable,
+            message: text,
+        },
+        PackageError::TooLarge(limit) => CelautError {
+            kind: CelautErrorKind::LimitReached,
+            message: limit.to_string(),
         },
         PackageError::Wire(e) => error_of(e.into()),
     }
@@ -394,15 +666,24 @@ pub async fn celaut_send_service(
 #[flutter_rust_bridge::frb(sync)]
 pub fn celaut_transfer_progress() -> TransferView {
     match transfer().as_ref() {
-        Some(r) => TransferView {
-            stage: r.stage,
-            bytes: r.cancel.bytes(),
-            total: r.total,
-        },
+        Some(r) => {
+            let (chunk, chunks) = r.link.as_ref().map_or((0, 0), LinkProgress::chunk);
+            TransferView {
+                stage: r.stage,
+                bytes: r.cancel.bytes(),
+                total: r.total.or_else(|| r.link.as_ref().and_then(LinkProgress::total)),
+                chunk,
+                chunks,
+                retries: r.link.as_ref().map_or(0, LinkProgress::retries),
+            }
+        }
         None => TransferView {
             stage: TransferStage::Idle,
             bytes: 0,
             total: None,
+            chunk: 0,
+            chunks: 0,
+            retries: 0,
         },
     }
 }
@@ -476,6 +757,142 @@ mod tests {
         assert_eq!(celaut_transfer_progress().stage, TransferStage::Idle);
         // No transfer: cancel does nothing.
         celaut_cancel_transfer();
+    }
+
+    #[test]
+    fn content_ranges_are_read() {
+        assert_eq!(content_range("bytes 10-99/100"), Some((Some(10), Some(100))));
+        assert_eq!(content_range("bytes 10-99/*"), Some((Some(10), None)));
+        assert_eq!(content_range("bytes */100"), Some((None, Some(100))));
+        assert_eq!(content_range("items 1-2/3"), None);
+        assert_eq!(content_range("bytes x-2/3"), None);
+    }
+
+    #[test]
+    fn a_link_is_checked_and_named() {
+        let id = "ab".repeat(32);
+        let v = celaut_check_link(format!("  https://h/dir/Echo%20Chat.celaut.bee#{id} ")).unwrap();
+        assert_eq!(v.url, format!("https://h/dir/Echo%20Chat.celaut.bee#{id}"));
+        assert!(!v.insecure);
+        assert_eq!(v.name, "Echo Chat");
+        assert_eq!(v.service_id.as_deref(), Some(id.as_str()));
+        let v = celaut_check_link("http://h/x.celaut.bee.txt".into()).unwrap();
+        assert!(v.insecure);
+        assert_eq!(v.name, "x");
+        assert_eq!(celaut_check_link("https://h".into()).unwrap().name, "");
+        let e = celaut_check_link("ftp://h/x".into()).unwrap_err();
+        assert_eq!(e.kind, CelautErrorKind::InvalidInput);
+    }
+
+    /// A small HTTP/1.1 server on 127.0.0.1: `/file` (1000 bytes, takes a Range),
+    /// `/norange` (the same, no Range), `/missing` (404), `/busy` (503), `/to-http` (a
+    /// redirect to `http://…/file`). Gives its port.
+    async fn http_server() -> u16 {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            loop {
+                let Ok((mut tcp, _)) = listener.accept().await else { return };
+                tokio::spawn(async move {
+                    let mut request = Vec::new();
+                    let mut buf = [0u8; 1024];
+                    while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                        match tcp.read(&mut buf).await {
+                            Ok(0) | Err(_) => return,
+                            Ok(n) => request.extend_from_slice(&buf[..n]),
+                        }
+                    }
+                    let text = String::from_utf8_lossy(&request).to_string();
+                    let path = text.split_whitespace().nth(1).unwrap_or("/").to_string();
+                    let from = text
+                        .lines()
+                        .find_map(|l| l.to_ascii_lowercase().strip_prefix("range: bytes=").map(str::to_string))
+                        .and_then(|r| r.trim_end_matches('-').trim().parse::<usize>().ok());
+                    let file: Vec<u8> = (0..1000u32).map(|i| (i % 251) as u8).collect();
+                    let (head, body) = match (path.as_str(), from) {
+                        ("/file", Some(f)) if f >= file.len() => (
+                            format!("HTTP/1.1 416 Range Not Satisfiable\r\nContent-Range: bytes */{}\r\nContent-Length: 0\r\n", file.len()),
+                            Vec::new(),
+                        ),
+                        ("/file", Some(f)) => (
+                            format!(
+                                "HTTP/1.1 206 Partial Content\r\nContent-Range: bytes {f}-{}/{}\r\nContent-Length: {}\r\n",
+                                file.len() - 1,
+                                file.len(),
+                                file.len() - f
+                            ),
+                            file[f..].to_vec(),
+                        ),
+                        ("/file" | "/norange", _) => (
+                            format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n", file.len()),
+                            file,
+                        ),
+                        ("/busy", _) => ("HTTP/1.1 503 Busy\r\nContent-Length: 0\r\n".into(), Vec::new()),
+                        ("/to-http", _) => (
+                            format!("HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:{port}/file\r\nContent-Length: 0\r\n"),
+                            Vec::new(),
+                        ),
+                        _ => ("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n".into(), Vec::new()),
+                    };
+                    let _ = tcp.write_all(format!("{head}Connection: close\r\n\r\n").as_bytes()).await;
+                    let _ = tcp.write_all(&body).await;
+                    let _ = tcp.shutdown().await;
+                });
+            }
+        });
+        port
+    }
+
+    async fn body_of(opened: link::Opened) -> Vec<u8> {
+        use futures::StreamExt;
+        let mut out = Vec::new();
+        let mut body = opened.body;
+        while let Some(piece) = body.next().await {
+            out.extend(piece.unwrap());
+        }
+        out
+    }
+
+    #[tokio::test]
+    async fn the_http_source_takes_ranges_and_sorts_the_errors() {
+        use link::Source;
+        let port = http_server().await;
+        let url = |p: &str| format!("http://127.0.0.1:{port}{p}");
+        let strict = HttpSource { allow_http: false };
+        let file: Vec<u8> = (0..1000u32).map(|i| (i % 251) as u8).collect();
+
+        let whole = strict.open(&url("/file"), 0).await.unwrap();
+        assert_eq!((whole.start, whole.total), (0, Some(1000)));
+        assert_eq!(body_of(whole).await, file);
+
+        let rest = strict.open(&url("/file#ignored"), 600).await.unwrap();
+        assert_eq!((rest.start, rest.total), (600, Some(1000)));
+        assert_eq!(body_of(rest).await, file[600..]);
+
+        // A server with no Range gives the whole file: the download starts it again.
+        let again = strict.open(&url("/norange"), 600).await.unwrap();
+        assert_eq!(again.start, 0);
+
+        // A Range at the end: the file is already complete.
+        let done = strict.open(&url("/file"), 1000).await.unwrap();
+        assert_eq!((done.start, done.total), (1000, Some(1000)));
+        assert!(body_of(done).await.is_empty());
+
+        assert!(matches!(strict.open(&url("/missing"), 0).await, Err(link::FetchError::Fatal(e)) if e.contains("404")));
+        assert!(matches!(strict.open(&url("/busy"), 0).await, Err(link::FetchError::Retry(e)) if e.contains("503")));
+        // A redirect to http:// only with the consent of the user.
+        assert!(matches!(strict.open(&url("/to-http"), 0).await, Err(link::FetchError::Fatal(_))));
+        let lax = HttpSource { allow_http: true };
+        assert_eq!(body_of(lax.open(&url("/to-http"), 0).await.unwrap()).await, file);
+        // No server: a retry.
+        let closed = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let dead = closed.local_addr().unwrap().port();
+        drop(closed);
+        assert!(matches!(
+            strict.open(&format!("http://127.0.0.1:{dead}/file"), 0).await,
+            Err(link::FetchError::Retry(_))
+        ));
     }
 
     #[test]

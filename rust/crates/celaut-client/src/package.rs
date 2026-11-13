@@ -46,6 +46,13 @@ pub enum PackageError {
     /// The transfer was cancelled.
     #[error("the transfer was cancelled")]
     Cancelled,
+    /// A download failed after its tries (no connection, a server error, a cut answer). It
+    /// can go on from the bytes on disk ([`crate::link`]).
+    #[error("the download failed: {0}")]
+    Network(String),
+    /// A download is larger than the limit, in bytes.
+    #[error("the file is larger than the limit of {0} bytes")]
+    TooLarge(u64),
     /// The node gave an error.
     #[error(transparent)]
     Wire(#[from] WireError),
@@ -118,6 +125,11 @@ impl Cancel {
     /// [`save`] wrote, or that the call took from [`read`].
     pub fn bytes(&self) -> u64 {
         self.bytes.load(Ordering::Acquire)
+    }
+
+    /// Set the bytes so far (a download: the bytes on disk).
+    pub fn set(&self, n: u64) {
+        self.bytes.store(n, Ordering::Release);
     }
 
     fn add(&self, n: u64) {
@@ -408,6 +420,241 @@ pub fn read(path: PathBuf, layout: Layout, cancel: Cancel) -> Buffers {
     )
 }
 
+/// The check of a package while its bytes arrive (a download, issue #135). Give it the
+/// bytes of the file in order ([`Check::feed`]), in pieces of any size; it keeps at most one
+/// record in memory. It checks what [`import`] checks, and more:
+///
+/// - each record is a Buffer of at most [`MAX_RECORD`] bytes;
+/// - each block holds what its id names (as [`verify_blocks`]);
+/// - the **whole Service** hashes (SHA3-256) to the id of the service that the Metadata or
+///   a hash part gives. The id of a service is the hash of its content with its blocks in
+///   place, which is the bytes of the chunks of the Service part in order (nodo
+///   `zip_with_dockerfile`: the digest of `read_multiblock_directory`).
+///
+/// A downloaded file is not trusted: only this check makes it valid. [`Check::finish`] says
+/// if the file was complete and valid.
+#[derive(Default)]
+pub struct Check {
+    /// The bytes of the record that is not complete yet (its length prefix too).
+    record: Vec<u8>,
+    layout: Option<Layout>,
+    /// The part that is open: its index.
+    part: Option<i32>,
+    /// The bytes of a small part (the Metadata or a hash), to read the id in it.
+    small: Vec<u8>,
+    service_id: Option<[u8; 32]>,
+    /// The hash of the Service part while it arrives, then its digest.
+    service: Option<bee_rpc::hash::Hasher>,
+    service_hash: Option<[u8; 32]>,
+    blocks: Vec<([u8; 32], bee_rpc::hash::Hasher)>,
+    bytes: u64,
+}
+
+impl std::fmt::Debug for Check {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Check")
+            .field("bytes", &self.bytes)
+            .field("part", &self.part)
+            .field("open_blocks", &self.blocks.len())
+            .finish()
+    }
+}
+
+/// What [`Check::finish`] found in a complete, valid package.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Checked {
+    pub service_id: [u8; 32],
+    pub layout: Layout,
+    /// The size of the file, in bytes.
+    pub bytes: u64,
+}
+
+impl Check {
+    pub fn new() -> Self {
+        Check::default()
+    }
+
+    /// The bytes that the check got so far.
+    pub fn bytes(&self) -> u64 {
+        self.bytes
+    }
+
+    /// The next bytes of the file. An error as soon as they show that the file is not a valid
+    /// package.
+    pub fn feed(&mut self, mut data: &[u8]) -> Result<(), PackageError> {
+        self.bytes += data.len() as u64;
+        while !data.is_empty() {
+            if self.record.len() < 4 {
+                let take = (4 - self.record.len()).min(data.len());
+                self.record.extend_from_slice(&data[..take]);
+                data = &data[take..];
+                if self.record.len() == 4 && self.length() > MAX_RECORD {
+                    return Err(PackageError::Invalid(format!(
+                        "a record of {} bytes",
+                        self.length()
+                    )));
+                }
+                continue;
+            }
+            let want = 4 + self.length() as usize;
+            let take = (want - self.record.len()).min(data.len());
+            self.record.extend_from_slice(&data[..take]);
+            data = &data[take..];
+            if self.record.len() == want {
+                let buffer = Buffer::decode(&self.record[4..])
+                    .map_err(|e| PackageError::Invalid(format!("a record is not a Buffer: {e}")))?;
+                self.record.clear();
+                self.take(buffer)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn length(&self) -> u32 {
+        u32::from_be_bytes([self.record[0], self.record[1], self.record[2], self.record[3]])
+    }
+
+    fn take(&mut self, buffer: Buffer) -> Result<(), PackageError> {
+        if let Some(head) = &buffer.head {
+            if self.part.is_none() {
+                let index = head.index;
+                let layout = *self.layout.get_or_insert(match index {
+                    1 | 2 => Layout::NodoExport,
+                    _ => Layout::Gateway,
+                });
+                if index == layout.indices().1 {
+                    if self.service.is_some() || self.service_hash.is_some() {
+                        return Err(PackageError::Invalid("two Service parts".into()));
+                    }
+                    self.service = Some(bee_rpc::hash::HashAlgorithm::Sha3_256.hasher());
+                }
+                self.part = Some(index);
+                self.small.clear();
+            }
+        }
+        if let Some(block) = &buffer.block {
+            if self.service.is_none() {
+                return Err(PackageError::Invalid("a block outside of the Service".into()));
+            }
+            let id = block
+                .hashes
+                .iter()
+                .find_map(|h| {
+                    (h.r#type == SHA3_256_TYPE).then(|| h.value.as_slice().try_into().ok())?
+                })
+                .ok_or_else(|| PackageError::Invalid("a block has no SHA3-256 id".into()))?;
+            if let Some((_, hasher)) = self.blocks.pop_if(|(last, _)| *last == id) {
+                let got = hasher.finalize();
+                if got != id {
+                    return Err(PackageError::Invalid(format!(
+                        "the block {} holds other bytes: they hash to {}",
+                        hex::encode(id),
+                        hex::encode(got)
+                    )));
+                }
+            } else if self.blocks.iter().any(|(other, _)| *other == id) {
+                return Err(PackageError::Invalid(format!(
+                    "the block {} ends inside a block that it holds",
+                    hex::encode(id)
+                )));
+            } else {
+                self.blocks
+                    .push((id, bee_rpc::hash::HashAlgorithm::Sha3_256.hasher()));
+            }
+        }
+        if let Some(chunk) = &buffer.chunk {
+            if self.part.is_none() {
+                return Err(PackageError::Invalid("bytes outside of a part".into()));
+            }
+            for (_, hasher) in self.blocks.iter_mut() {
+                hasher.update(chunk);
+            }
+            match self.service.as_mut() {
+                Some(hasher) => hasher.update(chunk),
+                None => {
+                    self.small.extend_from_slice(chunk);
+                    if self.small.len() > MAX_RECORD as usize {
+                        return Err(PackageError::Invalid(
+                            "a part before the Service is too large".into(),
+                        ));
+                    }
+                }
+            }
+        }
+        if buffer.separator == Some(true) {
+            self.close_part()?;
+        }
+        Ok(())
+    }
+
+    fn close_part(&mut self) -> Result<(), PackageError> {
+        let (Some(index), Some(layout)) = (self.part.take(), self.layout) else {
+            return Ok(());
+        };
+        if let Some(hasher) = self.service.take() {
+            if let Some((id, _)) = self.blocks.last() {
+                return Err(PackageError::Invalid(format!(
+                    "the Service ends inside the block {}",
+                    hex::encode(id)
+                )));
+            }
+            let digest = hasher.finalize();
+            self.service_hash = digest.as_slice().try_into().ok();
+            return Ok(());
+        }
+        let data = std::mem::take(&mut self.small);
+        if index == layout.indices().0 {
+            let metadata = Metadata::decode(data.as_slice())
+                .map_err(|e| PackageError::Invalid(format!("the Metadata: {e}")))?;
+            self.service_id = self.service_id.or(id_in_metadata(&metadata));
+        } else if index == 4 {
+            if let Ok(hash) = Hash::decode(data.as_slice()) {
+                self.service_id = self.service_id.or(id_in_hash(&hash));
+            }
+        }
+        Ok(())
+    }
+
+    /// The end of the file: it must be complete, have a Service part, say which service it
+    /// is, and the Service must hash to that id.
+    pub fn finish(mut self) -> Result<Checked, PackageError> {
+        if !self.record.is_empty() {
+            return Err(PackageError::Invalid("the file is cut".into()));
+        }
+        if let Some((id, _)) = self.blocks.last() {
+            return Err(PackageError::Invalid(format!(
+                "the file is cut inside the block {}",
+                hex::encode(id)
+            )));
+        }
+        // A Service at the end of the file with no separator is complete too.
+        if self.service.is_some() {
+            self.close_part()?;
+        }
+        let layout = self
+            .layout
+            .ok_or_else(|| PackageError::Invalid("the file is empty".into()))?;
+        let got = self
+            .service_hash
+            .ok_or_else(|| PackageError::Invalid("the file has no Service part".into()))?;
+        let service_id = self.service_id.ok_or_else(|| {
+            PackageError::Invalid("the file does not say which service it is".into())
+        })?;
+        if got != service_id {
+            return Err(PackageError::Invalid(format!(
+                "the Service hashes to {}, not to the id {} that the file gives",
+                hex::encode(got),
+                hex::encode(service_id)
+            )));
+        }
+        Ok(Checked {
+            service_id,
+            layout,
+            bytes: self.bytes,
+        })
+    }
+}
+
 /// The folder of the library inside `dir`, a private directory of the app.
 pub fn library_dir(dir: &Path) -> PathBuf {
     dir.join("packages").join("library")
@@ -452,9 +699,24 @@ pub async fn import(
         PackageError::Invalid("the file does not say which service it is".into())
     })?;
     verify_blocks(source, cancel).await?;
+    let path = into_library(source, dir, &service_id).await?;
+    Ok(Imported {
+        service_id,
+        path,
+        info,
+    })
+}
+
+/// Move (or copy, from another disk) the checked package at `source` into the library under
+/// `dir`, as the file of `service_id`. Gives its path.
+pub async fn into_library(
+    source: &Path,
+    dir: &Path,
+    service_id: &[u8; 32],
+) -> Result<PathBuf, PackageError> {
     let folder = library_dir(dir);
     tokio::fs::create_dir_all(&folder).await?;
-    let target = library_path(dir, &service_id);
+    let target = library_path(dir, service_id);
     // The new file is written next to the target and renamed, so the library never holds
     // a cut file, also if the phone stops in the middle.
     let partial = partial_path(&target);
@@ -469,11 +731,7 @@ pub async fn import(
         }
     }
     tokio::fs::rename(&partial, &target).await?;
-    Ok(Imported {
-        service_id,
-        path: target,
-        info,
-    })
+    Ok(target)
 }
 
 /// Delete the file of a package in the library. A file that is not there is not an error.
