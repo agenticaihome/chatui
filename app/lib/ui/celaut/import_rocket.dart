@@ -123,7 +123,7 @@ class _ImportCardState extends State<_ImportCard> {
     final done = view?.bytes ?? 0;
     final total = view?.total;
     final fraction = view?.fraction;
-    final reading = view == null || view.phase == ImportPhase.reading;
+    final phase = view?.phase ?? ImportPhase.reading;
     final amount = fraction != null
         ? l.celautSendProgress(
             CelautStrings.bytes(done),
@@ -144,14 +144,22 @@ class _ImportCardState extends State<_ImportCard> {
             Center(child: RaiseStage(key: widget.stage)),
             const SizedBox(height: 12),
             Text(
-              reading ? l.celautImportReading : l.celautImportChecking,
+              switch (phase) {
+                ImportPhase.reading => l.celautImportReading,
+                ImportPhase.checking => l.celautImportChecking,
+                ImportPhase.downloading => l.celautLinkDownloading,
+              },
               key: const Key('import-step'),
               style: t.title,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
-              reading ? l.celautImportReadingNote : l.celautImportNote,
+              switch (phase) {
+                ImportPhase.reading => l.celautImportReadingNote,
+                ImportPhase.checking => l.celautImportNote,
+                ImportPhase.downloading => l.celautLinkDownloadingNote,
+              },
               style: t.secondary,
               textAlign: TextAlign.center,
             ),
@@ -166,6 +174,20 @@ class _ImportCardState extends State<_ImportCard> {
               key: const Key('import-amount'),
               textAlign: TextAlign.center,
             ),
+            if (view != null && view.chunks > 0)
+              Text(
+                l.celautLinkChunk(view.chunk, view.chunks),
+                key: const Key('import-chunk'),
+                style: t.secondary,
+                textAlign: TextAlign.center,
+              ),
+            if (view != null && view.retries > 0)
+              Text(
+                l.celautLinkRetries(view.retries),
+                key: const Key('import-retries'),
+                style: t.secondary,
+                textAlign: TextAlign.center,
+              ),
             const SizedBox(height: 4),
             TextButton(
               key: const Key('import-cancel'),

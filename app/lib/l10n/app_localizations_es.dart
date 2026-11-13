@@ -8424,4 +8424,106 @@ class AppLocalizationsEs extends AppLocalizations {
   String cardsSettingsTestValue(String value, String needed) {
     return 'Giro: $value rad/s (un gesto necesita $needed)';
   }
+
+  @override
+  String get celautLinkSheetTitle => 'Importar un servicio';
+
+  @override
+  String get celautLinkChooseFile => 'Elegir un archivo de este teléfono';
+
+  @override
+  String get celautLinkFromLink => 'Importar desde un enlace';
+
+  @override
+  String get celautLinkFromLinkNote =>
+      'Un enlace a un archivo .celaut.bee, o a una lista de los enlaces de sus partes. La app comprueba el archivo mientras lo descarga.';
+
+  @override
+  String get celautLinkHint => 'https://…/servicio.celaut.bee';
+
+  @override
+  String get celautLinkPaste => 'Pegar';
+
+  @override
+  String get celautLinkScan => 'Escanear un código QR';
+
+  @override
+  String get celautLinkDownload => 'Descargar';
+
+  @override
+  String get celautLinkClipboardEmpty => 'El portapapeles no tiene texto.';
+
+  @override
+  String get celautLinkNotALink => 'Esto no es un enlace https:// ni http://.';
+
+  @override
+  String get celautLinkPendingTitle => 'Una descarga se detuvo';
+
+  @override
+  String celautLinkPendingBody(String bytes) {
+    return 'Hay $bytes en este teléfono. Continuar sigue desde ahí.';
+  }
+
+  @override
+  String get celautLinkPendingContinue => 'Continuar';
+
+  @override
+  String get celautLinkPendingDelete => 'Borrar';
+
+  @override
+  String get celautLinkDownloading => 'Descargando el servicio…';
+
+  @override
+  String get celautLinkDownloadingNote =>
+      'La app comprueba cada parte mientras llega. El servicio se guarda solo si todo el archivo es válido.';
+
+  @override
+  String celautLinkChunk(int chunk, int chunks) {
+    return 'Parte $chunk de $chunks';
+  }
+
+  @override
+  String celautLinkRetries(int count) {
+    return 'Problemas de conexión: se intentó de nuevo $count veces';
+  }
+
+  @override
+  String celautLinkInvalid(String reason) {
+    return 'Este enlace no se puede usar: $reason';
+  }
+
+  @override
+  String get celautLinkCancelled =>
+      'Descarga cancelada. Sus bytes se borraron.';
+
+  @override
+  String celautLinkStopped(String reason) {
+    return 'La descarga se detuvo: $reason. Los bytes que llegaron se quedan en el teléfono: Continuar sigue desde ahí.';
+  }
+
+  @override
+  String celautLinkTooLarge(String limit) {
+    return 'El archivo es mayor que $limit, el límite de una descarga. Sus bytes se borraron.';
+  }
+
+  @override
+  String celautLinkBadFile(String reason) {
+    return 'El enlace no da un servicio válido: $reason. Sus bytes se borraron.';
+  }
+
+  @override
+  String celautLinkFailed(String kind, String reason) {
+    return 'La descarga falló: $kind ($reason)';
+  }
+
+  @override
+  String get celautLinkHttpTitle => 'Sin cifrar';
+
+  @override
+  String celautLinkHttpBody(String url) {
+    return '$url es un enlace http://. Otros en la red pueden ver lo que descargas. La app igual comprueba el archivo, así que rechaza un archivo cambiado.';
+  }
+
+  @override
+  String get celautLinkHttpConfirm => 'Descargar igualmente';
 }

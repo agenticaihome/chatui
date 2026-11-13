@@ -8340,4 +8340,106 @@ class AppLocalizationsEn extends AppLocalizations {
   String cardsSettingsTestValue(String value, String needed) {
     return 'Turn: $value rad/s (a gesture needs $needed)';
   }
+
+  @override
+  String get celautLinkSheetTitle => 'Import a service';
+
+  @override
+  String get celautLinkChooseFile => 'Choose a file on this phone';
+
+  @override
+  String get celautLinkFromLink => 'Import from a link';
+
+  @override
+  String get celautLinkFromLinkNote =>
+      'A link to a .celaut.bee file, or to a list of the links of its parts. The app checks the file while it downloads it.';
+
+  @override
+  String get celautLinkHint => 'https://…/service.celaut.bee';
+
+  @override
+  String get celautLinkPaste => 'Paste';
+
+  @override
+  String get celautLinkScan => 'Scan a QR code';
+
+  @override
+  String get celautLinkDownload => 'Download';
+
+  @override
+  String get celautLinkClipboardEmpty => 'The clipboard has no text.';
+
+  @override
+  String get celautLinkNotALink => 'This is not an https:// or http:// link.';
+
+  @override
+  String get celautLinkPendingTitle => 'A download stopped';
+
+  @override
+  String celautLinkPendingBody(String bytes) {
+    return '$bytes are on this phone. Continue goes on from there.';
+  }
+
+  @override
+  String get celautLinkPendingContinue => 'Continue';
+
+  @override
+  String get celautLinkPendingDelete => 'Delete';
+
+  @override
+  String get celautLinkDownloading => 'Downloading the service…';
+
+  @override
+  String get celautLinkDownloadingNote =>
+      'The app checks each part while it arrives. The service is saved only if the whole file is valid.';
+
+  @override
+  String celautLinkChunk(int chunk, int chunks) {
+    return 'Part $chunk of $chunks';
+  }
+
+  @override
+  String celautLinkRetries(int count) {
+    return 'Connection problems: tried again $count times';
+  }
+
+  @override
+  String celautLinkInvalid(String reason) {
+    return 'This link cannot be used: $reason';
+  }
+
+  @override
+  String get celautLinkCancelled =>
+      'Download cancelled. Its bytes were deleted.';
+
+  @override
+  String celautLinkStopped(String reason) {
+    return 'The download stopped: $reason. The bytes that arrived stay on the phone: Continue goes on from there.';
+  }
+
+  @override
+  String celautLinkTooLarge(String limit) {
+    return 'The file is larger than $limit, the limit of a download. Its bytes were deleted.';
+  }
+
+  @override
+  String celautLinkBadFile(String reason) {
+    return 'The link does not give a valid service: $reason. Its bytes were deleted.';
+  }
+
+  @override
+  String celautLinkFailed(String kind, String reason) {
+    return 'The download failed: $kind ($reason)';
+  }
+
+  @override
+  String get celautLinkHttpTitle => 'Not encrypted';
+
+  @override
+  String celautLinkHttpBody(String url) {
+    return '$url is an http:// link. Others on the network can see what you download. The app still checks the file, so a changed file is refused.';
+  }
+
+  @override
+  String get celautLinkHttpConfirm => 'Download anyway';
 }

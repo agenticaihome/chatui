@@ -6013,5 +6013,101 @@
         "type": "String"
       }
     }
-  }
+  },
+  "celautLinkSheetTitle": "Import a service",
+  "celautLinkChooseFile": "Choose a file on this phone",
+  "celautLinkFromLink": "Import from a link",
+  "celautLinkFromLinkNote": "A link to a .celaut.bee file, or to a list of the links of its parts. The app checks the file while it downloads it.",
+  "celautLinkHint": "https://…/service.celaut.bee",
+  "celautLinkPaste": "Paste",
+  "celautLinkScan": "Scan a QR code",
+  "celautLinkDownload": "Download",
+  "celautLinkClipboardEmpty": "The clipboard has no text.",
+  "celautLinkNotALink": "This is not an https:// or http:// link.",
+  "celautLinkPendingTitle": "A download stopped",
+  "celautLinkPendingBody": "{bytes} are on this phone. Continue goes on from there.",
+  "@celautLinkPendingBody": {
+    "placeholders": {
+      "bytes": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkPendingContinue": "Continue",
+  "celautLinkPendingDelete": "Delete",
+  "celautLinkDownloading": "Downloading the service…",
+  "celautLinkDownloadingNote": "The app checks each part while it arrives. The service is saved only if the whole file is valid.",
+  "celautLinkChunk": "Part {chunk} of {chunks}",
+  "@celautLinkChunk": {
+    "placeholders": {
+      "chunk": {
+        "type": "int"
+      },
+      "chunks": {
+        "type": "int"
+      }
+    }
+  },
+  "celautLinkRetries": "Connection problems: tried again {count} times",
+  "@celautLinkRetries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautLinkInvalid": "This link cannot be used: {reason}",
+  "@celautLinkInvalid": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkCancelled": "Download cancelled. Its bytes were deleted.",
+  "celautLinkStopped": "The download stopped: {reason}. The bytes that arrived stay on the phone: Continue goes on from there.",
+  "@celautLinkStopped": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkTooLarge": "The file is larger than {limit}, the limit of a download. Its bytes were deleted.",
+  "@celautLinkTooLarge": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkBadFile": "The link does not give a valid service: {reason}. Its bytes were deleted.",
+  "@celautLinkBadFile": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkFailed": "The download failed: {kind} ({reason})",
+  "@celautLinkFailed": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkHttpTitle": "Not encrypted",
+  "celautLinkHttpBody": "{url} is an http:// link. Others on the network can see what you download. The app still checks the file, so a changed file is refused.",
+  "@celautLinkHttpBody": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkHttpConfirm": "Download anyway"
 }

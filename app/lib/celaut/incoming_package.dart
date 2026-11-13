@@ -2,9 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'package_channel.dart';
+import 'service_link.dart';
 
-/// The `.celaut.bee` files that the user opened in a file manager, or shared with the app
-/// (`docs/celaut/package.md`). A file waits here until the home screen opens the import
+/// The `.celaut.bee` files that the user opened in a file manager, or shared with the app,
+/// and the links to a service that another app opened or shared (`docs/celaut/package.md`). A file waits here until the home screen opens the import
 /// for it, and while an import runs ([busy]): one import at a time.
 class IncomingPackages extends ChangeNotifier {
   ChosenFile? _pending;
@@ -45,9 +46,15 @@ class IncomingPackages extends ChangeNotifier {
 
 final incomingPackages = IncomingPackages();
 
-/// The file of an `incoming` message of the Android side, or null.
+/// The file of an `incoming` message of the Android side, or null. A message with a `link`
+/// is a link to a service that another app opened or shared (issue #135).
 ChosenFile? chosenFileOf(Object? answer) {
   if (answer is! Map) return null;
+  final link = answer['link'];
+  if (link is String) {
+    final url = serviceLinkOf(link);
+    return url == null ? null : ChosenFile.link(url);
+  }
   final uri = answer['uri'];
   if (uri is! String || uri.isEmpty) return null;
   final name = answer['name'];

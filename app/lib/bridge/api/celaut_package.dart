@@ -8,9 +8,9 @@ import 'celaut.dart';
 import 'celaut_service.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `begin`, `clean_name`, `end`, `library_view`, `package_error`, `transfer`, `view_of`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Running`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `begin`, `clean_name`, `client`, `content_range`, `describe`, `end`, `library_view`, `package_error`, `transfer`, `view_of`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `HttpSource`, `Running`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `open`
 
 /// Load the service file at `path` (a copy of the file that the user chose, in the cache of
 /// the app) into the library of the app, which keeps it in a private directory `dir` under
@@ -41,6 +41,45 @@ Future<void> celautRemovePackage({required String serviceIdHex}) => RustLib
     .instance
     .api
     .crateApiCelautPackageCelautRemovePackage(serviceIdHex: serviceIdHex);
+
+/// Check a link that the user typed, pasted, scanned or opened: `https://` (or `http://`,
+/// with [`LinkView::insecure`]), with a host. Refused with the kind `invalidInput`.
+LinkView celautCheckLink({required String url}) =>
+    RustLib.instance.api.crateApiCelautPackageCelautCheckLink(url: url);
+
+/// The download of a link that stopped (no network, the app closed), if any. It goes on
+/// when the user imports the same link again.
+PendingLinkView? celautPendingLink({required String dir}) =>
+    RustLib.instance.api.crateApiCelautPackageCelautPendingLink(dir: dir);
+
+/// Delete the files of a download that stopped.
+Future<void> celautDiscardLink({required String dir}) =>
+    RustLib.instance.api.crateApiCelautPackageCelautDiscardLink(dir: dir);
+
+/// Download the service at `url` (a `.celaut.bee` file, or a manifest: one link of a chunk
+/// on each line) into the library of the app in `dir`, and check it while the bytes arrive:
+/// each block, and the hash of the whole Service against the id of the service. See
+/// `celaut_client::link`. The requests follow the network route of the app (Tor).
+///
+/// - `allow_http`: the user said yes to the warning for `http://`.
+/// - `max_bytes`: the largest file. A larger one stops, and its bytes are deleted
+///   (kind `limitReached`, the message is the limit).
+///
+/// A failed request is tried again. A download that still fails (kind `unreachable`) stays
+/// on the phone, and the same link goes on from there ([`celaut_pending_link`]). A cancel
+/// ([`celaut_cancel_transfer`]) and a file that fails the check (kind `invalidInput`)
+/// delete it. [`celaut_transfer_progress`] gives the bytes and the chunk.
+Future<LibraryPackageView> celautImportLink({
+  required String url,
+  required String dir,
+  required bool allowHttp,
+  required BigInt maxBytes,
+}) => RustLib.instance.api.crateApiCelautPackageCelautImportLink(
+  url: url,
+  dir: dir,
+  allowHttp: allowHttp,
+  maxBytes: maxBytes,
+);
 
 /// Get the service from `source`, a node that has it, into a file in `dir` (a
 /// directory of the app), and say what the file holds. A node that does not have the
@@ -144,6 +183,43 @@ class LibraryPackageView {
           present == other.present;
 }
 
+/// A link that the user gave, before the download (issue #135).
+class LinkView {
+  /// The link, without the spaces around it.
+  final String url;
+
+  /// True for `http://`: not encrypted. The app warns before it downloads.
+  final bool insecure;
+
+  /// The name that the service gets in the library, from the path of the link; empty if
+  /// the link has none (the library then uses the start of the service id).
+  final String name;
+
+  /// The id of the service that the link asks for (its fragment), if it says one.
+  final String? serviceId;
+
+  const LinkView({
+    required this.url,
+    required this.insecure,
+    required this.name,
+    this.serviceId,
+  });
+
+  @override
+  int get hashCode =>
+      url.hashCode ^ insecure.hashCode ^ name.hashCode ^ serviceId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LinkView &&
+          runtimeType == other.runtimeType &&
+          url == other.url &&
+          insecure == other.insecure &&
+          name == other.name &&
+          serviceId == other.serviceId;
+}
+
 /// What a package file holds.
 class PackageView {
   /// Where the file is.
@@ -189,6 +265,27 @@ class PackageView {
           nodoExport == other.nodoExport;
 }
 
+/// A download of a link that stopped and can go on.
+class PendingLinkView {
+  final String url;
+
+  /// The bytes that are on the phone.
+  final BigInt bytes;
+
+  const PendingLinkView({required this.url, required this.bytes});
+
+  @override
+  int get hashCode => url.hashCode ^ bytes.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PendingLinkView &&
+          runtimeType == other.runtimeType &&
+          url == other.url &&
+          bytes == other.bytes;
+}
+
 /// What a transfer does now.
 enum TransferStage {
   /// No transfer.
@@ -203,6 +300,10 @@ enum TransferStage {
   /// The app checks the blocks of a file that the user loads: the bytes that it read
   /// so far, of the size of the file.
   checking,
+
+  /// The app downloads a service from a link and checks it while the bytes arrive
+  /// (`celaut_import_link`): the bytes on disk, of the size when the server says it.
+  downloading,
 }
 
 /// The transfer that runs, if any.
@@ -215,10 +316,32 @@ class TransferView {
   /// The size of the whole package, when the app knows it (a send of a file).
   final BigInt? total;
 
-  const TransferView({required this.stage, required this.bytes, this.total});
+  /// For a download of a manifest: the chunk that downloads now, from 1. 0 otherwise.
+  final int chunk;
+
+  /// For a download of a manifest: the number of chunks. 0 otherwise.
+  final int chunks;
+
+  /// For a download: the tries that failed and were tried again.
+  final int retries;
+
+  const TransferView({
+    required this.stage,
+    required this.bytes,
+    this.total,
+    required this.chunk,
+    required this.chunks,
+    required this.retries,
+  });
 
   @override
-  int get hashCode => stage.hashCode ^ bytes.hashCode ^ total.hashCode;
+  int get hashCode =>
+      stage.hashCode ^
+      bytes.hashCode ^
+      total.hashCode ^
+      chunk.hashCode ^
+      chunks.hashCode ^
+      retries.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -227,5 +350,8 @@ class TransferView {
           runtimeType == other.runtimeType &&
           stage == other.stage &&
           bytes == other.bytes &&
-          total == other.total;
+          total == other.total &&
+          chunk == other.chunk &&
+          chunks == other.chunks &&
+          retries == other.retries;
 }

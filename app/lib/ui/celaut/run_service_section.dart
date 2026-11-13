@@ -24,6 +24,7 @@ import '../../celaut/service_transfer.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
+import '../scan_screen.dart';
 import 'chat_screen.dart';
 import 'client_unknown_dialog.dart';
 import 'deposit_screen.dart';
@@ -31,6 +32,7 @@ import 'env_questions_screen.dart';
 import 'instance_list.dart' show instanceOfLaunch;
 import 'launch_failure_sheet.dart';
 import 'import_rocket.dart';
+import 'import_sheet.dart';
 import 'launch_rocket.dart';
 import 'run_confirm_dialog.dart';
 import 'service_info_screen.dart';
@@ -90,7 +92,11 @@ class RunServiceSection extends StatefulWidget {
     this.envStore,
     this.trustedNodes,
     this.work,
+    this.scan,
   });
+
+  /// Read a QR code for the import from a link. Tests give their own.
+  final Future<String?> Function(BuildContext context)? scan;
 
   /// The launch, the transfer and the import run as background work. Tests give their own.
   final BackgroundWork? work;
@@ -669,6 +675,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   }
 
   Future<LibraryPackageView?> _loadChosen(ChosenFile file) async {
+    if (file.isLink) return _loadLink(file.uri);
     final packages = widget.packages ?? const AndroidPackageChannel();
     if (_seemsLoaded(file) && !await _confirmAgain(file)) return null;
     if (!mounted) return null;
@@ -713,8 +720,119 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     ));
   }
 
-  /// Load a service file into the app, from the "Import" button.
-  Future<void> _import() => _importAndTell(_pick);
+  /// Load a service file into the app, from the "Import a service file" button.
+  Future<void> _importPicked() => _importAndTell(_pick);
+
+  /// The "Import" button: a file on the phone, or a link (issue #135).
+  Future<void> _import({String? link}) async {
+    final library = _library;
+    final request = await showModalBottomSheet<ImportRequest>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => ImportSheet(
+        pending: library.pendingLink,
+        discard: library.discardLink,
+        scan: widget.scan ?? _scanCode,
+        initialLink: link,
+      ),
+    );
+    if (!mounted || request == null) return;
+    switch (request) {
+      case ImportFileRequest():
+        await _importPicked();
+      case ImportLinkRequest(:final url):
+        await _importAndTell(() async => ChosenFile.link(url));
+    }
+  }
+
+  static Future<String?> _scanCode(BuildContext context) =>
+      Navigator.push<String>(context, fadeRoute(const ScanScreen()));
+
+  /// Download the service at [url] into the library, under the card of the import, with the
+  /// warning for `http://` first. Gives the loaded service, or null (the user was told).
+  Future<LibraryPackageView?> _loadLink(String url) async {
+    final l = context.l10n;
+    final LinkView link;
+    try {
+      link = _library.checkLink(url);
+    } on CelautError catch (e) {
+      _showLinkProblem(l.celautLinkInvalid(e.message));
+      return null;
+    }
+    if (link.insecure && !await _confirmHttp(link.url)) return null;
+    if (!mounted) return null;
+    try {
+      final loaded = await runWithImportRocket(
+        context,
+        work: () => _library.importLink(link.url, allowHttp: link.insecure),
+        progress: _library.importProgress,
+        cancel: _library.cancelImport,
+      );
+      if (mounted) setState(_readPackages);
+      return loaded;
+    } on ImportCancelled {
+      if (mounted) _showLinkProblem(l.celautLinkCancelled);
+    } on CelautError catch (e) {
+      if (!mounted) return null;
+      switch (e.kind) {
+        case CelautErrorKind.unreachable || CelautErrorKind.timeout:
+          _showLinkProblem(
+            l.celautLinkStopped(e.message),
+            action: SnackBarAction(
+              key: const Key('link-retry'),
+              label: l.celautLinkPendingContinue,
+              onPressed: () => unawaited(_importAndTell(() async => ChosenFile.link(link.url))),
+            ),
+          );
+        case CelautErrorKind.limitReached:
+          _showLinkProblem(l.celautLinkTooLarge(CelautStrings.bytes(maxLinkBytes)));
+        case CelautErrorKind.invalidInput:
+          _showLinkProblem(l.celautLinkBadFile(e.message));
+        case CelautErrorKind.transferFailed:
+          _showLinkProblem(l.celautLinkCancelled);
+        default:
+          _showLinkProblem(l.celautLinkFailed(CelautStrings.errorText(e.kind), e.message));
+      }
+    } on PackageRefused {
+      if (mounted) await showTransferFailure(context, const PackageRefused(PackageRefusal.noDirectory));
+    }
+    return null;
+  }
+
+  Future<bool> _confirmHttp(String url) async {
+    final l = context.l10n;
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const Key('link-http-dialog'),
+        title: Text(l.celautLinkHttpTitle),
+        content: Text(l.celautLinkHttpBody(url)),
+        actions: [
+          TextButton(
+            key: const Key('link-http-cancel'),
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.celautSendCancel),
+          ),
+          FilledButton(
+            key: const Key('link-http-confirm'),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.celautLinkHttpConfirm),
+          ),
+        ],
+      ),
+    );
+    return yes == true;
+  }
+
+  void _showLinkProblem(String text, {SnackBarAction? action}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      key: const Key('link-problem'),
+      duration: const Duration(seconds: 8),
+      content: Text(text),
+      action: action,
+    ));
+  }
 
   /// Load the file that [choose] gives, and say that it is loaded, or that it replaced the
   /// file of the same service.
@@ -845,7 +963,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
           _readPackages();
           return _packages;
         },
-        import: _import,
+        import: _importPicked,
+        importLink: () => _import(),
         remove: _removePackage,
       ),
     );
@@ -1068,12 +1187,20 @@ class _RunServiceSectionState extends State<RunServiceSection> {
 /// import of another file, which then shows in the list. It returns the file to run; the
 /// section runs it.
 class _PhoneServicesSheet extends StatefulWidget {
-  const _PhoneServicesSheet({required this.list, required this.import, required this.remove});
+  const _PhoneServicesSheet({
+    required this.list,
+    required this.import,
+    required this.importLink,
+    required this.remove,
+  });
 
   final List<LibraryPackageView> Function() list;
 
   /// Pick and load a file. The sheet reads the list again after it.
   final Future<void> Function() import;
+
+  /// The import sheet: a file or a link. The sheet reads the list again after it.
+  final Future<void> Function() importLink;
 
   /// Ask, then remove a file. The sheet reads the list again after it.
   final Future<void> Function(LibraryPackageView package) remove;
@@ -1153,6 +1280,18 @@ class _PhoneServicesSheetState extends State<_PhoneServicesSheet> {
                 },
                 icon: const Icon(Icons.upload_file_outlined, size: 18),
                 label: Text(l.celautPkgImport),
+              ),
+            ),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                key: const Key('pkg-import-link'),
+                onPressed: () async {
+                  await widget.importLink();
+                  if (mounted) setState(() {});
+                },
+                icon: const Icon(Icons.link, size: 18),
+                label: Text(l.celautLinkFromLink),
               ),
             ),
           ],

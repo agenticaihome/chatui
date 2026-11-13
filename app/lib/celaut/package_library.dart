@@ -31,16 +31,37 @@ enum ImportPhase {
 
   /// The app checks the blocks of its copy.
   checking,
+
+  /// The app downloads a service from a link, and checks it while the bytes arrive.
+  downloading,
 }
+
+/// The largest service that the app downloads from a link: 4 GiB. A bad link must not fill
+/// the storage of the phone.
+const maxLinkBytes = 4 * 1024 * 1024 * 1024;
 
 /// How far an import is: the bytes of its phase, of [total] (null while not known).
 @immutable
 class ImportProgress {
-  const ImportProgress({required this.phase, required this.bytes, this.total});
+  const ImportProgress({
+    required this.phase,
+    required this.bytes,
+    this.total,
+    this.chunk = 0,
+    this.chunks = 0,
+    this.retries = 0,
+  });
 
   final ImportPhase phase;
   final int bytes;
   final int? total;
+
+  /// A download of a manifest: the chunk (from 1) and the number of chunks. 0 otherwise.
+  final int chunk;
+  final int chunks;
+
+  /// A download: the tries that failed and were tried again.
+  final int retries;
 
   /// The share of the phase that is done, or null while the total is not known.
   double? get fraction {
@@ -54,6 +75,11 @@ class ImportProgress {
   /// not know the size of the file.
   double? get overall {
     final f = fraction;
+    if (phase == ImportPhase.downloading) {
+      // The download is the check too: one pass. A manifest gives no size, only chunks.
+      if (f != null) return f;
+      return chunks > 0 ? ((chunk - 1) / chunks).clamp(0.0, 1.0).toDouble() : null;
+    }
     if (f == null) return phase == ImportPhase.checking ? 0.5 : null;
     return phase == ImportPhase.reading ? f / 2 : 0.5 + f / 2;
   }
@@ -73,7 +99,22 @@ class PackageLibrary {
     Future<String?> Function()? privateDir,
     TransferView Function()? progress,
     void Function()? cancel,
-  })  : _import = importPackage ??
+    Future<LibraryPackageView> Function(String url, String dir, bool allowHttp, int maxBytes)?
+        importLink,
+    LinkView Function(String url)? checkLink,
+    PendingLinkView? Function(String dir)? pendingLink,
+    Future<void> Function(String dir)? discardLink,
+  })  : _importLink = importLink ??
+            ((url, dir, allowHttp, maxBytes) => celautImportLink(
+                  url: url,
+                  dir: dir,
+                  allowHttp: allowHttp,
+                  maxBytes: BigInt.from(maxBytes),
+                )),
+        _checkLink = checkLink ?? ((url) => celautCheckLink(url: url)),
+        _pendingLink = pendingLink ?? ((dir) => celautPendingLink(dir: dir)),
+        _discardLink = discardLink ?? ((dir) => celautDiscardLink(dir: dir)),
+        _import = importPackage ??
             ((path, name, dir) => celautImportPackage(path: path, name: name, dir: dir)),
         _list = list ?? celautPackages,
         _remove = remove ?? ((id) => celautRemovePackage(serviceIdHex: id)),
@@ -82,6 +123,10 @@ class PackageLibrary {
         cancel = cancel ?? celautCancelTransfer;
 
   final Future<LibraryPackageView> Function(String, String, String) _import;
+  final Future<LibraryPackageView> Function(String, String, bool, int) _importLink;
+  final LinkView Function(String) _checkLink;
+  final PendingLinkView? Function(String) _pendingLink;
+  final Future<void> Function(String) _discardLink;
   final List<LibraryPackageView> Function() _list;
   final Future<void> Function(String) _remove;
   final Future<String?> Function() _privateDir;
@@ -123,6 +168,17 @@ class PackageLibrary {
 
   /// The import that runs now ([importChosen]).
   ImportProgress importProgress() {
+    if (_phase == ImportPhase.downloading) {
+      final view = progress();
+      return ImportProgress(
+        phase: _phase,
+        bytes: view.bytes.toInt(),
+        total: view.total?.toInt(),
+        chunk: view.chunk,
+        chunks: view.chunks,
+        retries: view.retries,
+      );
+    }
     if (_phase == ImportPhase.reading) {
       return ImportProgress(phase: _phase, bytes: _channel?.copied ?? 0, total: _size);
     }
@@ -182,6 +238,38 @@ class PackageLibrary {
     final dir = await _privateDir();
     if (dir == null || dir.isEmpty) throw const PackageRefused(PackageRefusal.noDirectory);
     return _import(picked.path, picked.name, dir);
+  }
+
+  /// Check a link that the user gave (`celautCheckLink`). Throws [CelautError]
+  /// (`invalidInput`) for a link that the app does not download.
+  LinkView checkLink(String url) => _checkLink(url);
+
+  /// Download the service at [url] into the library, and check it while it arrives
+  /// (`celautImportLink`). [allowHttp]: the user said yes to the warning for `http://`.
+  /// Throws [CelautError]: `invalidInput` (not a valid service; its bytes are deleted),
+  /// `unreachable` (the download stopped; the same link goes on from there),
+  /// `limitReached` (larger than [maxLinkBytes]), `transferFailed` (cancelled; deleted).
+  Future<LibraryPackageView> importLink(String url, {required bool allowHttp}) async {
+    final dir = await _privateDir();
+    if (dir == null || dir.isEmpty) throw const PackageRefused(PackageRefusal.noDirectory);
+    _phase = ImportPhase.downloading;
+    _size = null;
+    _cancelled = false;
+    return _importLink(url, dir, allowHttp, maxLinkBytes);
+  }
+
+  /// The download of a link that stopped, if any: the same link goes on from there.
+  Future<PendingLinkView?> pendingLink() async {
+    final dir = await _privateDir();
+    if (dir == null || dir.isEmpty) return null;
+    return _pendingLink(dir);
+  }
+
+  /// Delete the download that stopped.
+  Future<void> discardLink() async {
+    final dir = await _privateDir();
+    if (dir == null || dir.isEmpty) return;
+    await _discardLink(dir);
   }
 
   /// Remove a loaded service: its file is deleted. The nodes that have it keep it.

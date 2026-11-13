@@ -108,6 +108,35 @@
                 <data android:pathPattern=".*\\..*\\.celaut\\.bee"/>
                 <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
             </intent-filter>
+            <!-- A link to a service (issue #135): chatui://import?url=<the link>, from a web
+                 page, a QR code or another app. The app downloads the service and checks
+                 it while the bytes arrive. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="chatui" android:host="import"/>
+            </intent-filter>
+            <!-- An http(s) link to a .celaut.bee file, when the browser or another app
+                 offers the app for it (no domain is verified, so Android 12+ opens such a
+                 link in the browser unless an app asks for a chooser). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"/>
+                <data android:scheme="http"/>
+                <data android:host="*"/>
+                <data android:pathPattern=".*\\.celaut\\.bee"/>
+                <data android:pathPattern=".*\\..*\\.celaut\\.bee"/>
+                <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
+            </intent-filter>
+            <!-- A link that the user shares with the app as text ("Share" of a browser). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
         </activity>
         <service
             android:name=".ConversationService"

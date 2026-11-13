@@ -178,7 +178,7 @@ void main() {
         calls.add('send ${node.host} $id $initialMu $path');
         return _quote(node);
       },
-      progress: () => TransferView(stage: TransferStage.idle, bytes: BigInt.zero),
+      progress: () => TransferView(stage: TransferStage.idle, bytes: BigInt.zero, chunk: 0, chunks: 0, retries: 0),
       cancel: () => calls.add('cancel'),
       privateDir: () async => dir,
     );
@@ -218,7 +218,7 @@ void main() {
       final transfer = ServiceTransfer(
         send: (node, id, initialMu, path) async =>
             throw const CelautError(kind: CelautErrorKind.transferFailed, message: 'cut'),
-        progress: () => TransferView(stage: TransferStage.idle, bytes: BigInt.zero),
+        progress: () => TransferView(stage: TransferStage.idle, bytes: BigInt.zero, chunk: 0, chunks: 0, retries: 0),
         cancel: () {},
       );
       await expectLater(
@@ -252,7 +252,7 @@ void main() {
         }
         return _quote(node);
       },
-      progress: () => TransferView(stage: TransferStage.idle, bytes: BigInt.zero),
+      progress: () => TransferView(stage: TransferStage.idle, bytes: BigInt.zero, chunk: 0, chunks: 0, retries: 0),
       cancel: () {},
       privateDir: () async => dir.path,
     );
