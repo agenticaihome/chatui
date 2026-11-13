@@ -64,6 +64,14 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- The app gives links to Dart itself (DeepLinkHandler: ergopay:, celaut:). The
+                 deep linking of Flutter, on by default, would also push the link as a route
+                 while the app runs: an unknown route is a second home screen, over the
+                 dialog that the link opened. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false"
+              />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

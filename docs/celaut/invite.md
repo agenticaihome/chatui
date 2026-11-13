@@ -153,6 +153,10 @@ for a file: no second Flutter engine in the task of the camera app. `DeepLinkHan
 it to Flutter (`argus/deeplink`, with the ErgoPay links); only the first 4097 characters of
 a longer link cross the channel, enough to see that it is too long. A link that Android
 gives again from the recent apps is not opened again.
+MainActivity turns off the deep linking of Flutter (`flutter_deeplinking_enabled`): it is
+on by default since Flutter 3.27 and pushed every link that came while the app ran as a
+route, which is unknown, so a second home screen covered the dialog of the link. The ErgoPay
+links had the same fault.
 
 **In the app** the home screen takes the link when it is ready; no wallet is needed. Then:
 
