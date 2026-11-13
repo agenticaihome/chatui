@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 import 'deep_link_controller.dart';
 
-/// Receives `ergopay:` links from the Android side (cold start via
+/// Receives `ergopay:` and `celaut:` links from the Android side (cold start via
 /// `getInitialLink`, warm start via `onLink`) and parks them in
 /// [deepLinkController].
 class DeepLinkChannel {

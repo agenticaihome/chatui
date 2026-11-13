@@ -2760,5 +2760,16 @@
   "cardsSettingsReduceMotion": "\"Quitar animaciones\" está activado en el sistema, así que los reflejos y las transiciones son menores hasta que elijas.",
   "cardsSettingsFollowSystem": "Seguir al sistema",
   "cardsSettingsNote": "Los efectos nunca cambian lo que hace una tarjeta. Los sensores funcionan solo mientras las tarjetas están en pantalla, y sus datos se quedan en el teléfono.",
-  "cardsSettingsTestValue": "Giro: {value} rad/s (un gesto necesita {needed})"
+  "cardsSettingsTestValue": "Giro: {value} rad/s (un gesto necesita {needed})",
+  "celautLinkConfirmTitle": "¿Añadir este nodo?",
+  "celautLinkConfirmInvite": "Un enlace te invita a un nodo. La app se conecta a él y comprueba que tiene esta clave antes de añadirlo a tu lista.",
+  "celautLinkConfirmKey": "Clave del nodo",
+  "celautLinkConfirmAddresses": "Direcciones, en el orden en que la app las prueba",
+  "celautLinkConfirmSkipped": "No se prueba en la ruta actual",
+  "celautLinkConfirmListed": "Este nodo ya está en tu lista.",
+  "celautLinkRefusedTitle": "No se puede abrir este enlace",
+  "celautLinkTooLong": "El enlace es demasiado largo para una invitación a un nodo. La app no leyó nada de él.",
+  "celautLinkInvalid": "El enlace no es un enlace a un nodo que esta app pueda leer.",
+  "celautLinkDamaged": "La invitación del enlace está dañada.",
+  "celautLinkConfirmAddress": "Un enlace pide añadir el nodo en {address}. La app se conecta a él y lo comprueba antes de añadirlo a tu lista."
 }

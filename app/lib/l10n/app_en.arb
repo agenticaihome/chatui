@@ -6013,5 +6013,23 @@
         "type": "String"
       }
     }
+  },
+  "celautLinkConfirmTitle": "Add this node?",
+  "celautLinkConfirmInvite": "A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.",
+  "celautLinkConfirmKey": "Key of the node",
+  "celautLinkConfirmAddresses": "Addresses, in the order that the app tries them",
+  "celautLinkConfirmSkipped": "Not tried on the current route",
+  "celautLinkConfirmListed": "This node is already in your list.",
+  "celautLinkRefusedTitle": "This link cannot be opened",
+  "celautLinkTooLong": "The link is too long for a node invitation. The app read nothing from it.",
+  "celautLinkInvalid": "The link is not a node link that this app can read.",
+  "celautLinkDamaged": "The invitation in the link is damaged.",
+  "celautLinkConfirmAddress": "A link asks to add the node at {address}. The app connects to it and checks it before it adds it to your list.",
+  "@celautLinkConfirmAddress": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../bitcoin/bitcoin_coin_wallet.dart';
 import '../bridge/argus_error.dart';
+import '../celaut/celaut_link.dart';
 import '../celaut/compute_home_flag.dart';
 import '../celaut/incoming_package.dart';
 import '../format.dart';
@@ -32,6 +33,7 @@ import 'assets_screen.dart';
 import '../celaut/wallet_money.dart';
 import 'celaut/deposit_screen.dart';
 import 'celaut/home_tabs.dart';
+import 'celaut/node_link.dart';
 import 'create_wallet_screen.dart';
 import 'ergopay_screen.dart';
 import 'home/erg_price_feed.dart';
@@ -253,6 +255,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     // A file that the user opened in a file manager launched the app: its import starts
     // when the home screen is there.
     WidgetsBinding.instance.addPostFrameCallback((_) => _openIncomingPackage());
+    // The same for a `celaut://` link (a node invitation) that launched the app.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openPendingDeepLink());
     if (_overview.wallets.isNotEmpty) unawaited(_bitcoin.refreshIfDue());
   }
 
@@ -311,7 +315,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!_openPendingDeepLink() && mounted) {
       // Parked until a wallet unlocks; tell the user why nothing happened.
       final link = deepLinkController.pending;
-      if (!_walletUnlocked && link != null && argusChatInstance(link) == null) {
+      if (!_walletUnlocked &&
+          link != null &&
+          argusChatInstance(link) == null &&
+          !isCelautLink(link)) {
         setState(() {
           _notice = isErgoPayLink(link)
               ? context.l10n.dashboardUnlockForErgoPay
@@ -330,6 +337,15 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!mounted || _ergoPayOpen) return false;
     final link = deepLinkController.pending;
     if (link == null) return false;
+    // A `celaut://` link (a node invitation, issue #138) does not need a wallet either: it
+    // asks the user and opens the node list, once the home screen is there.
+    if (isCelautLink(link)) {
+      if (_loading) return false;
+      deepLinkController.take();
+      Navigator.of(context).popUntil((r) => r.isFirst);
+      unawaited(openCelautLink(context, link));
+      return true;
+    }
     // A chat does not need a wallet: the notice of an answer opens it at once, when the
     // home screen is there.
     final chat = argusChatInstance(link);

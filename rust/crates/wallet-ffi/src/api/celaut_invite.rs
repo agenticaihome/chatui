@@ -12,6 +12,7 @@ use std::time::Duration;
 use celaut_client::invite::{self, InviteAddr, Skip, Via};
 
 use super::celaut::{invalid, CelautError, CelautErrorKind};
+use super::celaut_db::db;
 use super::celaut_home::{list_node, KnownNodeView};
 use super::celaut_network::{celaut_network_status, NetworkChoice};
 use super::celaut_service::{forget_if_broken_key, key, session_pinned, NodeAddress};
@@ -150,6 +151,60 @@ where
         node,
         attempts,
     })
+}
+
+/// One address of an invitation, before any connection.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InviteAddrView {
+    /// `host:port`, with brackets for IPv6.
+    pub address: String,
+    /// Why the app will not try it on the current route, or none if it will.
+    pub skipped: Option<InviteAttemptKind>,
+}
+
+/// What an invitation says, read without any connection: for the confirmation that the
+/// user sees before the app connects (a `celaut://` link, `docs/celaut/invite.md`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InviteReadView {
+    /// The `peer_id` of the invitation: its key in lowercase hex.
+    pub peer_id: String,
+    /// The addresses that the app knows, in the order that it would use: the ones that it
+    /// tries on the current route, then the ones that it skips.
+    pub addresses: Vec<InviteAddrView>,
+    /// True if the node is already in the node list.
+    pub listed: bool,
+}
+
+/// Read the invitation `invite` without connecting: the key, the addresses and what the
+/// app would do with each one on the current route. Bytes that are not an invitation are
+/// an `InvalidInput` error.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_read_invite(invite: Vec<u8>) -> Result<InviteReadView, CelautError> {
+    let parsed = invite::parse(&invite).map_err(|e| invalid(&e.to_string()))?;
+    let listed = db().read(|d| d.nodes.get(&parsed.peer_id).is_some_and(|n| n.listed));
+    Ok(read(parsed, via_now(), listed))
+}
+
+/// The part of [`celaut_read_invite`] that does not depend on the route of the app.
+fn read(parsed: invite::Invite, via: Via, listed: bool) -> InviteReadView {
+    let plan = invite::plan(&parsed.addrs, via);
+    let mut addresses: Vec<InviteAddrView> = plan
+        .order
+        .iter()
+        .map(|a| InviteAddrView {
+            address: a.text(),
+            skipped: None,
+        })
+        .collect();
+    addresses.extend(plan.skipped.iter().map(|(a, why)| InviteAddrView {
+        address: a.text(),
+        skipped: Some(skipped(a, *why).kind),
+    }));
+    InviteReadView {
+        peer_id: parsed.peer_id,
+        addresses,
+        listed,
+    }
 }
 
 #[cfg(test)]
@@ -325,5 +380,89 @@ mod tests {
         assert_eq!(e.kind, CelautErrorKind::InvalidInput);
         let e = celaut_connect_invite(vec![]).await.unwrap_err();
         assert_eq!(e.kind, CelautErrorKind::InvalidInput);
+    }
+
+    #[test]
+    fn reading_an_invitation_gives_the_addresses_in_the_order_of_the_route() {
+        let peer = "ab".repeat(32);
+        let parsed = invite_of(
+            &peer,
+            vec![
+                addr(Kind::Ip4, "203.0.113.7", 1),
+                addr(Kind::Onion, "x.onion", 2),
+                addr(Kind::Ip4, "10.0.0.2", 3),
+            ],
+        );
+        let direct = read(parsed.clone(), Via::Direct, false);
+        assert_eq!(direct.peer_id, peer);
+        assert!(!direct.listed);
+        let shown: Vec<_> = direct
+            .addresses
+            .iter()
+            .map(|a| (a.address.as_str(), a.skipped))
+            .collect();
+        assert_eq!(
+            shown,
+            [
+                ("203.0.113.7:1", None),
+                ("10.0.0.2:3", None),
+                ("x.onion:2", Some(InviteAttemptKind::OnionNeedsProxy)),
+            ]
+        );
+        let proxy = read(parsed, Via::TorProxy, true);
+        assert!(proxy.listed);
+        let shown: Vec<_> = proxy
+            .addresses
+            .iter()
+            .map(|a| (a.address.as_str(), a.skipped))
+            .collect();
+        assert_eq!(
+            shown,
+            [
+                ("x.onion:2", None),
+                ("203.0.113.7:1", None),
+                ("10.0.0.2:3", Some(InviteAttemptKind::PrivateOverTor)),
+            ]
+        );
+    }
+
+    #[test]
+    fn reading_says_whether_the_node_is_in_the_list_and_refuses_junk() {
+        // A real invitation: field 1 with a key of 32 bytes, and one ip4 address.
+        let key = [0x5au8; 32];
+        let mut addr_msg = vec![0x0a, 0x03];
+        addr_msg.extend_from_slice(b"ip4");
+        addr_msg.extend_from_slice(&[0x1a, 0x06, 192, 0, 2, 1, 0xd0, 0xd4]);
+        let mut raw = vec![0x0a, 0x20];
+        raw.extend_from_slice(&key);
+        raw.push(0x12);
+        raw.push(addr_msg.len() as u8);
+        raw.extend_from_slice(&addr_msg);
+        let peer = "5a".repeat(32);
+        let view = celaut_read_invite(raw.clone()).unwrap();
+        assert_eq!(view.peer_id, peer);
+        assert_eq!(view.addresses.len(), 1);
+        assert_eq!(view.addresses[0].address, "192.0.2.1:53460");
+        assert!(!view.listed);
+        db().update(|d| {
+            d.nodes.insert(
+                peer.clone(),
+                NodeRecord {
+                    client_id: "c-read-1".into(),
+                    listed: true,
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
+        assert!(celaut_read_invite(raw).unwrap().listed);
+        db().update(|d| {
+            d.nodes.remove(&peer);
+        })
+        .unwrap();
+        for junk in [vec![], vec![1, 2, 3], vec![0x0a, 0x20, 1]] {
+            let e = celaut_read_invite(junk).unwrap_err();
+            assert_eq!(e.kind, CelautErrorKind::InvalidInput);
+        }
     }
 }

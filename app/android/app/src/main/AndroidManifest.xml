@@ -109,6 +109,23 @@
                 <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
             </intent-filter>
         </activity>
+        <!-- Gives a celaut:// link (a node invitation, docs/celaut/invite.md section 6) that
+             another app opens to MainActivity, in the task of the app, and shows nothing
+             (OpenLinkActivity). The app asks the user before it connects to the node. -->
+        <activity
+            android:name=".OpenLinkActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="celaut"/>
+            </intent-filter>
+        </activity>
         <service
             android:name=".ConversationService"
             android:exported="false"

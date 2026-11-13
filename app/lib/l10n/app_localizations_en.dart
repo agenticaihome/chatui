@@ -8340,4 +8340,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String cardsSettingsTestValue(String value, String needed) {
     return 'Turn: $value rad/s (a gesture needs $needed)';
   }
+
+  @override
+  String get celautLinkConfirmTitle => 'Add this node?';
+
+  @override
+  String get celautLinkConfirmInvite =>
+      'A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.';
+
+  @override
+  String get celautLinkConfirmKey => 'Key of the node';
+
+  @override
+  String get celautLinkConfirmAddresses =>
+      'Addresses, in the order that the app tries them';
+
+  @override
+  String get celautLinkConfirmSkipped => 'Not tried on the current route';
+
+  @override
+  String get celautLinkConfirmListed => 'This node is already in your list.';
+
+  @override
+  String get celautLinkRefusedTitle => 'This link cannot be opened';
+
+  @override
+  String get celautLinkTooLong =>
+      'The link is too long for a node invitation. The app read nothing from it.';
+
+  @override
+  String get celautLinkInvalid =>
+      'The link is not a node link that this app can read.';
+
+  @override
+  String get celautLinkDamaged => 'The invitation in the link is damaged.';
+
+  @override
+  String celautLinkConfirmAddress(String address) {
+    return 'A link asks to add the node at $address. The app connects to it and checks it before it adds it to your list.';
+  }
 }

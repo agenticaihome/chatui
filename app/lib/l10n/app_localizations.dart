@@ -13402,6 +13402,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turn: {value} rad/s (a gesture needs {needed})'**
   String cardsSettingsTestValue(String value, String needed);
+
+  /// No description provided for @celautLinkConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add this node?'**
+  String get celautLinkConfirmTitle;
+
+  /// No description provided for @celautLinkConfirmInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.'**
+  String get celautLinkConfirmInvite;
+
+  /// No description provided for @celautLinkConfirmKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key of the node'**
+  String get celautLinkConfirmKey;
+
+  /// No description provided for @celautLinkConfirmAddresses.
+  ///
+  /// In en, this message translates to:
+  /// **'Addresses, in the order that the app tries them'**
+  String get celautLinkConfirmAddresses;
+
+  /// No description provided for @celautLinkConfirmSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Not tried on the current route'**
+  String get celautLinkConfirmSkipped;
+
+  /// No description provided for @celautLinkConfirmListed.
+  ///
+  /// In en, this message translates to:
+  /// **'This node is already in your list.'**
+  String get celautLinkConfirmListed;
+
+  /// No description provided for @celautLinkRefusedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This link cannot be opened'**
+  String get celautLinkRefusedTitle;
+
+  /// No description provided for @celautLinkTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'The link is too long for a node invitation. The app read nothing from it.'**
+  String get celautLinkTooLong;
+
+  /// No description provided for @celautLinkInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The link is not a node link that this app can read.'**
+  String get celautLinkInvalid;
+
+  /// No description provided for @celautLinkDamaged.
+  ///
+  /// In en, this message translates to:
+  /// **'The invitation in the link is damaged.'**
+  String get celautLinkDamaged;
+
+  /// No description provided for @celautLinkConfirmAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'A link asks to add the node at {address}. The app connects to it and checks it before it adds it to your list.'**
+  String celautLinkConfirmAddress(String address);
 }
 
 class _AppLocalizationsDelegate

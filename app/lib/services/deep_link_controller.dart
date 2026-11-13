@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// Parks an incoming deep link (ErgoPay today) until a screen that can act
+/// Parks an incoming deep link (ErgoPay, a `celaut://` node link) until a screen that can act
 /// on it is ready, e.g. after the wallet unlocks.
 class DeepLinkController extends ChangeNotifier {
   String? _pending;
