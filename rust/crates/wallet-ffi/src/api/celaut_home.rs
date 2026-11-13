@@ -12,10 +12,13 @@ use std::time::Duration;
 use celaut_client::overview::{
     credit_nano_erg, nano_erg_of, offer_of, offered, split_credit, Offer, Shown, Total,
 };
+use celaut_client::race::{self, race, Outcome};
 
 use super::celaut::{invalid, CelautError, CelautErrorKind};
 use super::celaut_db::{db, now_seconds, storage_error};
-use super::celaut_service::{address_of_key, cost_so_far, key, session, NodeAddress, Session};
+use super::celaut_service::{
+    address_of_key, close_unused, cost_so_far, is_open, key, session, NodeAddress, Session,
+};
 
 /// How long the overview waits for each step of one node (the connection, then the
 /// balance). Short, because the home screen waits for the slowest node: a node that does
@@ -172,42 +175,70 @@ pub(crate) struct Reached {
     pub(crate) latency_ms: u32,
 }
 
-/// A session on the node at one of its addresses, the last one first.
-async fn reach(addresses: &[String]) -> Reached {
-    reach_within(addresses, node_timeout()).await
+/// A session on the node `peer_id` at one of its addresses, the last one first.
+async fn reach(peer_id: &str, addresses: &[String]) -> Reached {
+    reach_within(peer_id, addresses, node_timeout()).await
 }
 
 /// [`reach`] with a limit of `limit` for each step of each address.
+///
+/// The addresses race ([`celaut_client::race`]): the first two start at the same time,
+/// the first session of `peer_id` is used, and the order (the last address that worked
+/// first) wins when two answer at nearly the same time. An address where another node
+/// answers is a failure, so it never wins over the node.
 #[flutter_rust_bridge::frb(ignore)]
-pub(crate) async fn reach_within(addresses: &[String], limit: Duration) -> Reached {
-    let mut last_error = None;
-    for text in addresses {
-        let Some(address) = address_of_key(text) else {
-            continue;
-        };
-        let started = std::time::Instant::now();
-        match tokio::time::timeout(limit, session(&address)).await {
-            Ok(Ok(s)) => {
-                let credit_mu = match tokio::time::timeout(limit, s.balance()).await {
-                    Ok(Ok(b)) => Some(b),
-                    _ => None,
-                };
-                return Reached {
-                    session: Some(s),
-                    address: text.clone(),
-                    error: None,
-                    credit_mu,
-                    latency_ms: u32::try_from(started.elapsed().as_millis()).unwrap_or(u32::MAX),
-                };
-            }
-            Ok(Err(e)) => last_error = Some(e),
-            Err(_) => {
-                last_error = Some(CelautError {
+pub(crate) async fn reach_within(peer_id: &str, addresses: &[String], limit: Duration) -> Reached {
+    let usable: Vec<(&String, NodeAddress)> = addresses
+        .iter()
+        .filter_map(|text| address_of_key(text).map(|a| (text, a)))
+        .collect();
+    let was_open: Vec<bool> = usable.iter().map(|(_, a)| is_open(&key(a))).collect();
+    let outcomes = race(usable.len(), race::WIDTH, race::GRACE, |i| {
+        let address = usable[i].1.clone();
+        async move {
+            let started = std::time::Instant::now();
+            match tokio::time::timeout(limit, session(&address)).await {
+                Ok(Ok(s)) if s.peer_id() == peer_id => Ok((s, started.elapsed())),
+                Ok(Ok(_)) => Err(CelautError {
+                    kind: CelautErrorKind::IdentityMismatch,
+                    message: "the node is now another node".into(),
+                }),
+                Ok(Err(e)) => Err(e),
+                Err(_) => Err(CelautError {
                     kind: CelautErrorKind::Timeout,
                     message: "the node did not answer in time".into(),
-                })
+                }),
             }
         }
+    })
+    .await;
+    let used = outcomes
+        .iter()
+        .position(|o| matches!(o, Outcome::Won(_)))
+        .map(|i| key(&usable[i].1))
+        .unwrap_or_default();
+    let mut won = None;
+    let mut last_error = None;
+    for (i, outcome) in outcomes.into_iter().enumerate() {
+        match outcome {
+            Outcome::Won(w) => won = Some((usable[i].0, w)),
+            Outcome::Failed(e) => last_error = Some(e),
+            Outcome::Unused(_) => close_unused(&key(&usable[i].1), was_open[i], &used),
+            Outcome::Stopped | Outcome::NotStarted => {}
+        }
+    }
+    if let Some((text, (s, took))) = won {
+        let credit_mu = match tokio::time::timeout(limit, s.balance()).await {
+            Ok(Ok(b)) => Some(b),
+            _ => None,
+        };
+        return Reached {
+            session: Some(s),
+            address: text.clone(),
+            error: None,
+            credit_mu,
+            latency_ms: u32::try_from(took.as_millis()).unwrap_or(u32::MAX),
+        };
     }
     Reached {
         session: None,
@@ -237,7 +268,7 @@ pub async fn celaut_compute_overview() -> Result<ComputeOverviewView, CelautErro
         .map(|(peer_id, node)| async move {
             let mut addresses = node.addresses.clone();
             addresses.dedup();
-            (peer_id.clone(), reach(&addresses).await)
+            (peer_id.clone(), reach(peer_id, &addresses).await)
         });
     let reached = futures::future::join_all(asks).await;
     // What this reach says about each node is also its last check (`celaut_health`).
@@ -735,11 +766,12 @@ mod tests {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let port = listener.local_addr().unwrap().port();
         drop(listener);
-        let r = reach(&[format!("127.0.0.1:{port}"), "not an address".into()]).await;
+        let peer = "ab".repeat(32);
+        let r = reach(&peer, &[format!("127.0.0.1:{port}"), "not an address".into()]).await;
         assert!(r.session.is_none());
         assert!(r.error.is_some());
         assert_eq!(r.credit_mu, None);
-        let none = reach(&[]).await;
+        let none = reach(&peer, &[]).await;
         assert!(none.error.is_some());
     }
 }

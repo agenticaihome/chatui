@@ -327,6 +327,23 @@ pub(crate) fn forget_if_broken_key(key: &str) {
     }
 }
 
+/// Whether the app has a connection open to the address `key` (`host:port`).
+pub(crate) fn is_open(key: &str) -> bool {
+    STATE
+        .lock()
+        .map(|s| s.sessions.contains_key(key))
+        .unwrap_or(false)
+}
+
+/// After a race of the addresses of a node ([`celaut_client::race`]): close the
+/// connection of the address `key` that also worked but is not used, unless it was open
+/// before the race (`was_open`) or it is the address that is used (`used`).
+pub(crate) fn close_unused(key: &str, was_open: bool, used: &str) {
+    if !was_open && key != used {
+        forget_if_broken_key(key);
+    }
+}
+
 /// The unix time, in seconds, at which the schedule that the node of `address` announced
 /// (`Peer.activity_window`, nodo#344) opens next, if it says that the node is closed now.
 /// The node is asked for its current `Peer` first: the one of the connection can be older

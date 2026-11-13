@@ -38,9 +38,13 @@ enum InviteAttemptKind {
 
   /// Tried and failed: `error` and `message` say why.
   failed,
+
+  /// Tried at the same time as another address, which connected first: this one was
+  /// stopped, or it connected too but after an address before it in the order.
+  notNeeded,
 }
 
-/// One address of the invitation, in the order that the app used.
+/// One address of the invitation. The tried ones are in the order of preference.
 class InviteAttemptView {
   /// `host:port`, with brackets for IPv6.
   final String address;

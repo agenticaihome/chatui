@@ -423,6 +423,47 @@ void main() {
       expect(find.byKey(const Key('nodes-error')), findsNothing);
     });
 
+    testWidgets('the raced addresses: the note names the one that connected, not the first', (tester) async {
+      // #139: the first two addresses start at the same time; the second connected first
+      // and the first was stopped.
+      final db = _Db();
+      db.invites.add(
+        InviteConnectView(
+          peerId: _b,
+          node: nodeB('b.example:2'),
+          attempts: [
+            attempt('203.0.113.7:1', InviteAttemptKind.notNeeded),
+            attempt('b.example:2', InviteAttemptKind.connected),
+          ],
+        ),
+      );
+      await pump(tester, with_: db, codes: [ScannedCode(bytes: invite())]);
+      await tester.tap(find.byKey(const Key('nodes-scan')));
+      await tester.pumpAndSettle();
+      expect(find.text(appL10n.celautInviteConnected('b.example:2')), findsOneWidget);
+      expect(find.byKey(const Key('nodes-invite-failed')), findsNothing);
+      expect(find.byKey(Key('nodes-row-$_b')), findsOneWidget);
+    });
+
+    testWidgets('an address that was not needed never shows a reason', (tester) async {
+      final db = _Db();
+      db.invites.add(
+        InviteConnectView(
+          peerId: _b,
+          attempts: [
+            attempt('203.0.113.7:1', InviteAttemptKind.failed, error: CelautErrorKind.timeout),
+            attempt('198.51.100.9:2', InviteAttemptKind.notNeeded),
+          ],
+        ),
+      );
+      await pump(tester, with_: db, codes: [ScannedCode(bytes: invite())]);
+      await tester.tap(find.byKey(const Key('nodes-scan')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('nodes-invite-failed')), findsOneWidget);
+      expect(find.text('203.0.113.7:1'), findsOneWidget);
+      expect(find.text('198.51.100.9:2'), findsNothing);
+    });
+
     testWidgets('when no address works, each one says why', (tester) async {
       final db = _Db();
       db.invites.add(

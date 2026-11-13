@@ -331,7 +331,9 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
           Text(l.celautInviteFailedTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           if (view.attempts.isEmpty) Text(l.celautInviteNoAddress),
-          for (final a in view.attempts) ...[
+          // An address that was not needed (another one connected first, #139) has no
+          // reason to show; the card shows only when no address worked.
+          for (final a in view.attempts.where((a) => a.kind != InviteAttemptKind.notNeeded)) ...[
             Text(a.address, style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 13)),
             Text(
               switch (a.kind) {
