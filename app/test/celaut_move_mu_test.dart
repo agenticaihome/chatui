@@ -212,6 +212,40 @@ void main() {
     expect(ok(tester).onPressed, isNotNull);
   });
 
+  testWidgets('the button stays above the navigation bar of the system', (tester) async {
+    tester.view.physicalSize = const Size(390, 900);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(bottom: 48);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: argusTheme(watchful: false),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => showMoveMuSheet(
+                  context,
+                  instanceId: 'i',
+                  takeBack: false,
+                  node: 'n',
+                  balance: BigInt.from(10),
+                  credit: BigInt.from(10),
+                  autoTopUp: false,
+                  move: move,
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byKey(const Key('move-mu-ok'))).bottom, lessThanOrEqualTo(900 - 48));
+  });
+
   testWidgets('a balance that the app could not read: nothing moves', (tester) async {
     await pumpSheet(tester, takeBack: true, balance: null);
     expect(find.byKey(const Key('move-mu-no-balance')), findsOneWidget);

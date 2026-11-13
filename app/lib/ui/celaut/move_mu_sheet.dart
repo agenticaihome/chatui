@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -244,7 +246,14 @@ class _MoveMuSheetState extends State<MoveMuSheet> {
         );
     return Padding(
       key: Key(take ? 'move-mu-sheet-back' : 'move-mu-sheet-add'),
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
+      // The keyboard, or else the navigation bar of the system: the button must stay
+      // above both (a tap under the bar is a tap on Home).
+      padding: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        16 + max(MediaQuery.viewInsetsOf(context).bottom, MediaQuery.paddingOf(context).bottom),
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,

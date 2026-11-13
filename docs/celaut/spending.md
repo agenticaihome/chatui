@@ -67,7 +67,7 @@ On the info page of a running instance, "Time and credit" has two buttons: **Add
 ### Two accounts
 
 - **The client.** `BalanceStatementRequest` with no token. It gives the balance, what came
-  in (`deposit`, `credit`), what the operator took (`debit`), the reads of statements, and
+  in (`deposit`, `credit`) less what the operator took back (`debit`), the reads of statements, and
   for each instance the MU that went to it (`child_start` with its `child_bound`, `top_up`)
   and that came back (`withdrawal`, `refund`). A `child_start` with no `child_bound` yet is
   "starting"; a `refund` that names it (`refunds_seq`) ends it.
@@ -78,7 +78,8 @@ On the info page of a running instance, "Time and credit" has two buttons: **Add
 
 ### Spent
 
-Spent = what the account had before the first movement read + what came in − what went
+Spent = what the account had before the first movement read + what came in (less what
+the operator took back with a `debit`: that is not a spending of the user) − what went
 back to the father − the balance at the head. For the client, the MU that a running instance
 still holds counts as spent: it comes back as a `refund` when the instance stops. The note
 under the sums says this. When the node no longer holds the first movements (its retention;

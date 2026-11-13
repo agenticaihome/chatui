@@ -258,6 +258,29 @@ async fn a_failed_start_given_back_is_not_spending() {
 }
 
 #[tokio::test]
+async fn credit_that_the_operator_takes_back_is_not_spending() {
+    // The rows of a real node (n538e, 2026-11-13): a test credit, then the operator takes
+    // most of it back with a debit.
+    let rows = vec![
+        row("credit", 9_000_000),
+        row("credit", 20_000_000),
+        row("child_start", -11_378_234),
+        ("child_bound", 0, instance_ref("t1"), starts_seq(3)),
+        row_of("refund", 71_481, &instance_ref("t1")),
+        row("debit", -8_693_247),
+        row("statement_query", -114),
+    ];
+    let (s, _) = statement(CLIENT, None, &rows, 1);
+    let p = peer(Some("100"), Some("1"));
+    let q = quote_client_read(&p, CLIENT, None).unwrap();
+    let (tally, _) = read(&Fixed::new(vec![s]), &peer_id(), CLIENT, &q, None, u128::MAX, now())
+        .await
+        .unwrap();
+    assert_eq!(tally.received_mu(), 29_000_000 - 8_693_247);
+    assert_eq!(tally.spent_mu(), Some(11_306_753 + 114));
+}
+
+#[tokio::test]
 async fn a_node_that_deleted_the_first_movements_gives_a_partial_tally() {
     // The node holds movements from seq 3 on: the first two are gone.
     let (full, _) = statement(

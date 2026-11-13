@@ -201,10 +201,12 @@ impl Tally {
     }
 
     /// The MU that came into the account from outside the node's instances: payments
-    /// (`deposit`) and credit that nobody paid in (`credit`). For an instance, also what
-    /// its father gave it (`start`, `top_up`).
+    /// (`deposit`) and credit that nobody paid in (`credit`), less what the operator took
+    /// back (`debit`): an operator that takes back credit is not a spending of the user.
+    /// For an instance, also what its father gave it (`start`, `top_up`).
     pub fn received_mu(&self) -> i128 {
-        let mut total = self.kind("deposit").in_mu + self.kind("credit").in_mu;
+        let mut total = self.kind("deposit").in_mu + self.kind("credit").in_mu
+            - self.kind("debit").out_mu;
         if self.owner == Owner::Instance {
             total += self.kind("start").in_mu + self.kind("top_up").in_mu;
         }
