@@ -198,7 +198,7 @@ pub(crate) async fn reach_within(peer_id: &str, addresses: &[String], limit: Dur
         async move {
             let started = std::time::Instant::now();
             match tokio::time::timeout(limit, session(&address)).await {
-                Ok(Ok(s)) if s.peer_id() == peer_id => Ok((s, started.elapsed())),
+                Ok(Ok(s)) if s.peer_id() == peer_id => Ok((s, started)),
                 Ok(Ok(_)) => Err(CelautError {
                     kind: CelautErrorKind::IdentityMismatch,
                     message: "the node is now another node".into(),
@@ -227,7 +227,9 @@ pub(crate) async fn reach_within(peer_id: &str, addresses: &[String], limit: Dur
             Outcome::Stopped | Outcome::NotStarted => {}
         }
     }
-    if let Some((text, (s, took))) = won {
+    // The latency is the time of the address that won, with the balance: a session that
+    // was already open still makes one call to the node.
+    if let Some((text, (s, started))) = won {
         let credit_mu = match tokio::time::timeout(limit, s.balance()).await {
             Ok(Ok(b)) => Some(b),
             _ => None,
@@ -237,7 +239,7 @@ pub(crate) async fn reach_within(peer_id: &str, addresses: &[String], limit: Dur
             address: text.clone(),
             error: None,
             credit_mu,
-            latency_ms: u32::try_from(took.as_millis()).unwrap_or(u32::MAX),
+            latency_ms: u32::try_from(started.elapsed().as_millis()).unwrap_or(u32::MAX),
         };
     }
     Reached {
