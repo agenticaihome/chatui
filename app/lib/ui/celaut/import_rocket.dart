@@ -166,7 +166,8 @@ class _ImportCardState extends State<_ImportCard> {
             const SizedBox(height: 16),
             LinearProgressIndicator(
               key: const Key('import-bar'),
-              value: fraction,
+              // A manifest gives no size: the bar goes by its parts.
+              value: phase == ImportPhase.downloading ? view?.overall : fraction,
             ),
             const SizedBox(height: 8),
             Text(

@@ -1074,7 +1074,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
             ),
             const SizedBox(width: 8),
             Tooltip(
-              message: l.celautPkgImport,
+              message: l.celautLinkSheetTitle,
               child: labels
                   ? OutlinedButton.icon(
                       key: const Key('run-import'),

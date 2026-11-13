@@ -192,6 +192,8 @@ void main() {
       await download(tester, 'https://example.org/echo.txt');
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text(appL10n.celautLinkChunk(3, 8)), findsOneWidget);
+      // The bar goes by the parts: 2 of 8 done.
+      expect(tester.widget<LinearProgressIndicator>(find.byKey(const Key('import-bar'))).value, 0.25);
       expect(find.text(appL10n.celautLinkRetries(2)), findsOneWidget);
       lib.gate!.complete();
       await tester.pumpAndSettle();
