@@ -481,6 +481,81 @@ mod tests {
             .all(|a| a.kind == InviteAttemptKind::Failed));
     }
 
+    /// The race against a real node (#139). `CELAUT_RACE_HANG` is a `host:port` that
+    /// accepts the TCP connection and never answers; `CELAUT_RACE_NODE` is the `host:port`
+    /// of a running node. The app makes a client on that node (free credit, no payment).
+    ///
+    /// `cargo test -p wallet-ffi --lib real_node_race -- --ignored --nocapture`
+    #[tokio::test]
+    #[ignore = "needs a running node and an address that hangs; see the comment"]
+    async fn real_node_race() {
+        use super::super::celaut_home::reach_within;
+        use super::super::celaut_service::{address_of_key, session};
+        let hang = std::env::var("CELAUT_RACE_HANG").expect("CELAUT_RACE_HANG");
+        let real = std::env::var("CELAUT_RACE_NODE").expect("CELAUT_RACE_NODE");
+        let (h, n) = (address_of_key(&hang).unwrap(), address_of_key(&real).unwrap());
+        let peer = session(&n).await.expect("the node").peer_id().to_string();
+        forget_if_broken_key(&real);
+        let invite = |peer: &str| {
+            invite_of(
+                peer,
+                vec![
+                    addr(Kind::Ip4, &h.host, h.port),
+                    addr(Kind::Ip4, &n.host, n.port),
+                ],
+            )
+        };
+        let dial = |address: NodeAddress, peer_id: String, timeout| async move {
+            session_pinned(&address, &peer_id, timeout)
+                .await
+                .map(|s| s.peer_id().to_string())
+        };
+
+        // The invitation: the hanging address is first.
+        let t0 = std::time::Instant::now();
+        let view = connect(invite(&peer), Via::Direct, dial).await.unwrap();
+        let raced = t0.elapsed();
+        println!("invite, raced:   {raced:?} {:?}", kinds(&view));
+        assert_eq!(view.node.as_ref().unwrap().peer_id, peer);
+        assert_eq!(
+            kinds(&view),
+            [
+                (hang.as_str(), InviteAttemptKind::NotNeeded),
+                (real.as_str(), InviteAttemptKind::Connected),
+            ]
+        );
+        assert!(raced < DIRECT_TIMEOUT / 2, "{raced:?}");
+
+        // The same two, one after another (the old way), for comparison.
+        forget_if_broken_key(&real);
+        let t0 = std::time::Instant::now();
+        let old = race(2, 1, race::GRACE, |i| {
+            let a = if i == 0 { h.clone() } else { n.clone() };
+            dial(a, peer.clone(), DIRECT_TIMEOUT)
+        })
+        .await;
+        let one_by_one = t0.elapsed();
+        println!(
+            "invite, one by one: {one_by_one:?} {:?}",
+            old.iter().map(Outcome::started).collect::<Vec<_>>()
+        );
+        assert!(matches!(old[1], Outcome::Won(_)));
+        assert!(one_by_one >= DIRECT_TIMEOUT);
+
+        // A node of the node list (compute overview, checks of the nodes).
+        forget_if_broken_key(&real);
+        let t0 = std::time::Instant::now();
+        let r = reach_within(&peer, &[hang.clone(), real.clone()], Duration::from_secs(5)).await;
+        let reached = t0.elapsed();
+        println!(
+            "node list, raced: {reached:?} address {} latency {} ms credit {:?}",
+            r.address, r.latency_ms, r.credit_mu
+        );
+        assert!(r.session.is_some() && r.error.is_none());
+        assert_eq!(r.address, real);
+        assert!(reached < Duration::from_secs(4), "{reached:?}");
+    }
+
     #[tokio::test]
     async fn bytes_that_are_not_an_invitation_are_refused() {
         let e = celaut_connect_invite(vec![1, 2, 3]).await.unwrap_err();
