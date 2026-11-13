@@ -4752,7 +4752,7 @@
   },
   "celautInviteFailedTitle": "Could not connect to the invited node",
   "celautInviteNoAddress": "The invitation has no address that this app can use.",
-  "celautInviteOnionNeedsProxy": "Not tried. An onion address needs Tor through an external proxy such as Orbot. A direct connection and the Tor client of the app cannot open it.",
+  "celautInviteOnionNeedsTor": "Not tried. An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.",
   "celautInvitePrivateOverTor": "Not tried. An address on a private network cannot be reached through Tor.",
   "serviceInfoTitle": "Service details",
   "serviceInfoLoading": "Reading the service…",

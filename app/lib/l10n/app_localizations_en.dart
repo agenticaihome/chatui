@@ -6488,8 +6488,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'The invitation has no address that this app can use.';
 
   @override
-  String get celautInviteOnionNeedsProxy =>
-      'Not tried. An onion address needs Tor through an external proxy such as Orbot. A direct connection and the Tor client of the app cannot open it.';
+  String get celautInviteOnionNeedsTor =>
+      'Not tried. An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.';
 
   @override
   String get celautInvitePrivateOverTor =>

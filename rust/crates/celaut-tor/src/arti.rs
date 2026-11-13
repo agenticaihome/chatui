@@ -54,6 +54,9 @@ pub(crate) async fn start(
     // The directories are in the private storage of the app. On Android the checks of the
     // parent directories (owners and groups of /data) would refuse them.
     builder.storage().permissions().dangerously_trust_everyone();
+    // Onion addresses of nodes. This is the default of Arti with `onion-service-client`;
+    // it is written here so that a change of the default does not turn them off.
+    builder.address_filter().allow_onion_addrs(true);
     let config = builder.build().map_err(|e| format!("the Tor settings: {e}"))?;
     let client = TorClient::builder()
         .config(config)

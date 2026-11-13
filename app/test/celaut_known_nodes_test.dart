@@ -430,7 +430,7 @@ void main() {
           peerId: _b,
           attempts: [
             attempt('203.0.113.7:1', InviteAttemptKind.failed, error: CelautErrorKind.identityMismatch),
-            attempt('x.onion:2', InviteAttemptKind.onionNeedsProxy),
+            attempt('x.onion:2', InviteAttemptKind.onionNeedsTor),
             attempt('[fd00::1]:3', InviteAttemptKind.privateOverTor),
           ],
         ),
@@ -442,7 +442,7 @@ void main() {
       expect(find.text(appL10n.celautInviteFailedTitle), findsOneWidget);
       expect(find.text('203.0.113.7:1'), findsOneWidget);
       expect(find.text(CelautStrings.errorText(CelautErrorKind.identityMismatch)), findsOneWidget);
-      expect(find.text(appL10n.celautInviteOnionNeedsProxy), findsOneWidget);
+      expect(find.text(appL10n.celautInviteOnionNeedsTor), findsOneWidget);
       expect(find.text(appL10n.celautInvitePrivateOverTor), findsOneWidget);
       expect(find.byKey(Key('nodes-row-$_b')), findsNothing);
       expect(db.records.keys, [_a]);

@@ -6446,7 +6446,7 @@ impl SseDecode for crate::api::celaut_invite::InviteAttemptKind {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
             0 => crate::api::celaut_invite::InviteAttemptKind::Connected,
-            1 => crate::api::celaut_invite::InviteAttemptKind::OnionNeedsProxy,
+            1 => crate::api::celaut_invite::InviteAttemptKind::OnionNeedsTor,
             2 => crate::api::celaut_invite::InviteAttemptKind::PrivateOverTor,
             3 => crate::api::celaut_invite::InviteAttemptKind::Failed,
             _ => unreachable!("Invalid variant for InviteAttemptKind: {}", inner),
@@ -9746,7 +9746,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_invite::InviteAttemptK
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             Self::Connected => 0.into_dart(),
-            Self::OnionNeedsProxy => 1.into_dart(),
+            Self::OnionNeedsTor => 1.into_dart(),
             Self::PrivateOverTor => 2.into_dart(),
             Self::Failed => 3.into_dart(),
             _ => unreachable!(),
@@ -11662,7 +11662,7 @@ impl SseEncode for crate::api::celaut_invite::InviteAttemptKind {
         <i32>::sse_encode(
             match self {
                 crate::api::celaut_invite::InviteAttemptKind::Connected => 0,
-                crate::api::celaut_invite::InviteAttemptKind::OnionNeedsProxy => 1,
+                crate::api::celaut_invite::InviteAttemptKind::OnionNeedsTor => 1,
                 crate::api::celaut_invite::InviteAttemptKind::PrivateOverTor => 2,
                 crate::api::celaut_invite::InviteAttemptKind::Failed => 3,
                 _ => {

@@ -260,7 +260,8 @@ fn literal_kind(host: &str) -> Option<Kind> {
 pub enum Via {
     /// A TCP connection from the phone.
     Direct,
-    /// Through the Tor client inside the app. It has no support for onion services.
+    /// Through the Tor client inside the app. It is built with `onion-service-client`, so
+    /// it reaches onion services too.
     TorEmbedded,
     /// Through an external SOCKS5 proxy, which the user says is Tor (Orbot).
     TorProxy,
@@ -269,9 +270,8 @@ pub enum Via {
 /// Why an address is not tried.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Skip {
-    /// An onion address needs a Tor proxy that resolves them. The route has none: it is
-    /// direct, or it is the Tor client of the app.
-    OnionNeedsProxy,
+    /// An onion address needs Tor, and the route is direct.
+    OnionNeedsTor,
     /// The address is on a private network, and a Tor exit cannot reach it.
     PrivateOverTor,
 }
@@ -286,16 +286,16 @@ pub struct Plan {
 /// Choose the addresses that can work on `via`, and the order to try them.
 ///
 /// - A direct route cannot reach an onion address.
-/// - The Tor client inside the app cannot either: it is built without onion services.
 /// - Through Tor, an address on a private network is out of reach.
-/// - Through a Tor proxy, an onion address goes first: it never leaves the Tor network.
+/// - Through Tor (the client of the app or an external proxy), an onion address goes
+///   first: it never leaves the Tor network.
 /// - The rest keeps the order of the invitation, which is the preference of the node.
 pub fn plan(addrs: &[InviteAddr], via: Via) -> Plan {
     let mut order = Vec::new();
     let mut skipped = Vec::new();
     for a in addrs {
         let skip = match (via, a.kind) {
-            (Via::Direct | Via::TorEmbedded, Kind::Onion) => Some(Skip::OnionNeedsProxy),
+            (Via::Direct, Kind::Onion) => Some(Skip::OnionNeedsTor),
             (Via::TorEmbedded | Via::TorProxy, _) if is_private(a) => Some(Skip::PrivateOverTor),
             _ => None,
         };
@@ -304,7 +304,7 @@ pub fn plan(addrs: &[InviteAddr], via: Via) -> Plan {
             None => order.push(a.clone()),
         }
     }
-    if via == Via::TorProxy {
+    if via != Via::Direct {
         // A stable sort: onion first, the others in their order.
         order.sort_by_key(|a| a.kind != Kind::Onion);
     }
@@ -448,7 +448,7 @@ mod tests {
             p.order.iter().map(|a| a.port).collect::<Vec<_>>(),
             [2, 3, 4]
         );
-        assert_eq!(p.skipped, vec![(list[0].clone(), Skip::OnionNeedsProxy)]);
+        assert_eq!(p.skipped, vec![(list[0].clone(), Skip::OnionNeedsTor)]);
     }
 
     #[test]
@@ -463,21 +463,19 @@ mod tests {
     }
 
     #[test]
-    fn the_tor_client_of_the_app_skips_the_onion_and_the_private_network() {
+    fn the_tor_client_of_the_app_tries_the_onion_first_and_skips_the_private_network() {
         let list = [
             addr(Kind::Ip4, "10.0.2.2", 1),
-            addr(Kind::Onion, "x.onion", 2),
-            addr(Kind::Ip4, "203.0.113.7", 3),
+            addr(Kind::Ip4, "203.0.113.7", 2),
+            addr(Kind::Dns, "node.example.org", 3),
+            addr(Kind::Onion, "x.onion", 4),
         ];
         let p = plan(&list, Via::TorEmbedded);
-        assert_eq!(p.order, vec![list[2].clone()]);
         assert_eq!(
-            p.skipped,
-            vec![
-                (list[0].clone(), Skip::PrivateOverTor),
-                (list[1].clone(), Skip::OnionNeedsProxy)
-            ]
+            p.order.iter().map(|a| a.port).collect::<Vec<_>>(),
+            [4, 2, 3]
         );
+        assert_eq!(p.skipped, vec![(list[0].clone(), Skip::PrivateOverTor)]);
     }
 
     #[test]

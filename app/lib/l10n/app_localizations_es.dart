@@ -6565,8 +6565,8 @@ class AppLocalizationsEs extends AppLocalizations {
       'La invitación no tiene ninguna dirección que esta app pueda usar.';
 
   @override
-  String get celautInviteOnionNeedsProxy =>
-      'No se probó. Una dirección onion necesita Tor mediante un proxy externo, como Orbot. Una conexión directa y el cliente Tor de la app no pueden abrirla.';
+  String get celautInviteOnionNeedsTor =>
+      'No se probó. Una dirección onion necesita Tor. Activa Tor en los ajustes de red: el cliente Tor de la app o un proxy externo, como Orbot.';
 
   @override
   String get celautInvitePrivateOverTor =>

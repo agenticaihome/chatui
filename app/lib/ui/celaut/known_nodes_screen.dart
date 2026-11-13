@@ -335,7 +335,7 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
             Text(a.address, style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 13)),
             Text(
               switch (a.kind) {
-                InviteAttemptKind.onionNeedsProxy => l.celautInviteOnionNeedsProxy,
+                InviteAttemptKind.onionNeedsTor => l.celautInviteOnionNeedsTor,
                 InviteAttemptKind.privateOverTor => l.celautInvitePrivateOverTor,
                 _ => CelautStrings.errorText(a.error ?? CelautErrorKind.unreachable),
               },

@@ -29,9 +29,8 @@ enum InviteAttemptKind {
   /// The node proved the invited key and is in the node list.
   connected,
 
-  /// Not tried: an onion address needs a Tor proxy that resolves them, and the route
-  /// is direct or the Tor client of the app.
-  onionNeedsProxy,
+  /// Not tried: an onion address needs Tor, and the route is direct.
+  onionNeedsTor,
 
   /// Not tried: a private network address cannot be reached through Tor.
   privateOverTor,
