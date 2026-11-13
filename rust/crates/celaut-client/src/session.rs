@@ -23,6 +23,7 @@ use crate::deposit::{check_deposit_token, BtcPayment, ErgPayment};
 use crate::descendants::{
     self, quote_read, read_statement, DescendantError, DescendantRecord, ReadQuote,
 };
+use crate::spending;
 use crate::{
     fetch_node_info_as, obtain_client_id, ClientError, NodeInfo, PeerStore, ResourcesError,
 };
@@ -434,7 +435,22 @@ impl<T: Transport> NodeSession<T> {
     /// `ModifyDeposit`: move `mu` MU of the credit of this client on the node to the
     /// instance `token`. Nothing goes on a ledger. An error if the node did not move it.
     pub async fn top_up(&self, token: &str, mu: u128) -> Result<(), ClientError> {
-        let answer = modify_deposit(&self.transport, token, &self.client_id, mu).await?;
+        let mu = i128::try_from(mu)
+            .map_err(|_| ClientError::Protocol("the amount is too large".into()))?;
+        self.move_deposit(token, mu).await
+    }
+
+    /// `ModifyDeposit` with a negative difference: move `mu` MU of the balance of the
+    /// instance `token` back to the credit of this client on the node (issue #136). An
+    /// error if the node did not move it, for example when the instance has less.
+    pub async fn take_back(&self, token: &str, mu: u128) -> Result<(), ClientError> {
+        let mu = i128::try_from(mu)
+            .map_err(|_| ClientError::Protocol("the amount is too large".into()))?;
+        self.move_deposit(token, -mu).await
+    }
+
+    async fn move_deposit(&self, token: &str, difference: i128) -> Result<(), ClientError> {
+        let answer = modify_deposit(&self.transport, token, &self.client_id, difference).await?;
         if answer.success {
             Ok(())
         } else {
@@ -562,6 +578,48 @@ impl<T: Transport> NodeSession<T> {
             unix_now(),
         )
         .await
+    }
+}
+
+impl<T: Transport> NodeSession<T> {
+    /// The quote for the next read of the account of this client: the most MU that it can
+    /// cost (issue #136). It sends nothing.
+    pub fn quote_client_statement(
+        &self,
+        tally: Option<&spending::Tally>,
+    ) -> Result<spending::AccountRead, spending::SpendingError> {
+        spending::quote_client_read(&self.info.peer, &self.client_id, tally)
+    }
+
+    /// The quote for the next read of the account of the instance `token`, running or
+    /// stopped. It sends nothing.
+    pub fn quote_instance_statement(
+        &self,
+        token: &str,
+        tally: Option<&spending::Tally>,
+    ) -> Result<spending::AccountRead, spending::SpendingError> {
+        spending::quote_instance_read(&self.info.peer, token, tally)
+    }
+
+    /// Read one statement of an account of the app and add it to `tally`. This is one paid
+    /// call: the caller asks the user for each read, with the most MU of `quote`.
+    pub async fn read_account(
+        &self,
+        quote: &spending::AccountRead,
+        tally: Option<&spending::Tally>,
+        max_mu: u128,
+    ) -> Result<spending::Tally, spending::SpendingError> {
+        spending::read(
+            &self.transport,
+            &self.info.peer_id,
+            &self.client_id,
+            quote,
+            tally,
+            max_mu,
+            unix_now(),
+        )
+        .await
+        .map(|(tally, _)| tally)
     }
 }
 

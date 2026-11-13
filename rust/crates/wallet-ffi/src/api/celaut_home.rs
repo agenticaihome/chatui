@@ -334,11 +334,7 @@ pub async fn celaut_compute_overview() -> Result<ComputeOverviewView, CelautErro
             None => None,
         };
         let cost = balance.and_then(|b| {
-            cost_so_far(
-                record.start_charge_mu.as_deref(),
-                record.topped_up_mu.as_deref(),
-                b,
-            )
+            cost_so_far(record, b)
         });
         let rate = found.as_ref().and_then(|s| s.mu_per_nano_erg());
         instances.push(RunningInstanceView {

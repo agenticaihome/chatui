@@ -321,17 +321,19 @@ pub async fn get_client_metrics<T: Transport>(
 }
 
 /// `ModifyDeposit`: move `difference_mu` MU from the parent of the instance (the client
-/// that started it) to the instance of the token `token`. The call has the
+/// that started it) to the instance of the token `token`; a negative `difference_mu`
+/// moves MU from the instance back to the parent. The call has the
 /// `ModifyDepositInput` (index 1) and the `Client` (2), which must be that parent. The
 /// node moves nothing if the
-/// parent has less (`nodo:src/manager/manager.py`, `modify_deposit`): then `success` is
-/// false and `message` says why. Nothing goes on a ledger: this moves credit that the
+/// parent has less, or the instance has less than it gives back
+/// (`nodo:src/manager/manager.py`, `modify_deposit`): then `success` is false and
+/// `message` says why. The node charges no fee for the call. Nothing goes on a ledger: this moves credit that the
 /// client already has on the node.
 pub async fn modify_deposit<T: Transport>(
     transport: &T,
     token: &str,
     client_id: &str,
-    difference_mu: u128,
+    difference_mu: i128,
 ) -> Result<ModifyDepositOutput, WireError> {
     let input = ModifyDepositInput {
         difference: Some(Amount {

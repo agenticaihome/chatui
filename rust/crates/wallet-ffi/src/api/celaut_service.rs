@@ -661,6 +661,8 @@ pub async fn celaut_start_service(
         alias: None,
         title: None,
         topped_up_mu: None,
+        added_mu: None,
+        withdrawn_mu: None,
         stopped_at: None,
         refund_mu: None,
         pricing: None,
@@ -911,7 +913,9 @@ pub fn celaut_forget_instance(instance_id: String) -> Result<(), CelautError> {
             Some(r) if r.stopped_at.is_none() => Err(invalid(
                 "This instance was not stopped. Stop it before you delete it.",
             )),
-            Some(_) => {
+            Some(r) => {
+                let record = r.clone();
+                super::celaut_spending::forget_instance_tally(d, &record);
                 d.instances.remove(&instance_id);
                 d.receipts.remove(&instance_id);
                 d.remove_descendants_of(&instance_id);
@@ -1006,16 +1010,19 @@ pub struct InstanceStatusView {
 }
 
 /// What an instance cost so far: the charge of the start, plus what the app moved to it
-/// later (the automatic top-up), less the balance that the instance still has. `None` if
-/// the charge is not known.
-pub(crate) fn cost_so_far(
-    start_charge_mu: Option<&str>,
-    topped_up_mu: Option<&str>,
-    instance_balance: u128,
-) -> Option<u128> {
-    let charge: u128 = start_charge_mu?.parse().ok()?;
-    let topped: u128 = topped_up_mu.and_then(|t| t.parse().ok()).unwrap_or(0);
-    Some((charge + topped).saturating_sub(instance_balance))
+/// later (the automatic top-up and "Add MU"), less what the user took back and less the
+/// balance that the instance still has. `None` if the charge is not known.
+pub(crate) fn cost_so_far(record: &InstanceRecord, instance_balance: u128) -> Option<u128> {
+    let mu = |t: Option<&str>| -> u128 { t.and_then(|t| t.parse().ok()).unwrap_or(0) };
+    let charge: u128 = record.start_charge_mu.as_deref()?.parse().ok()?;
+    let moved_in = charge
+        .saturating_add(mu(record.topped_up_mu.as_deref()))
+        .saturating_add(mu(record.added_mu.as_deref()));
+    Some(
+        moved_in
+            .saturating_sub(mu(record.withdrawn_mu.as_deref()))
+            .saturating_sub(instance_balance),
+    )
 }
 
 /// The node answered that the token of a hibernated instance is not one of its instances:
@@ -1070,11 +1077,7 @@ pub async fn celaut_instance_status(
     };
     Ok(InstanceStatusView {
         instance_balance_mu: balance.to_string(),
-        cost_so_far_mu: cost_so_far(
-            record.start_charge_mu.as_deref(),
-            record.topped_up_mu.as_deref(),
-            balance,
-        )
+        cost_so_far_mu: cost_so_far(&record, balance)
         .map(|c| c.to_string())
         .unwrap_or_default(),
         streams_opened: streams,
@@ -1987,6 +1990,8 @@ mod tests {
                     peer_id: "ab".repeat(32),
                     token: "token".into(),
                     topped_up_mu: Some("700".into()),
+                    added_mu: None,
+                    withdrawn_mu: None,
                     started_at: 1_700_000_000,
                     ..Default::default()
                 },
@@ -2047,10 +2052,23 @@ mod tests {
 
     #[test]
     fn the_cost_so_far_counts_the_top_ups() {
-        assert_eq!(cost_so_far(Some("1000"), None, 400), Some(600));
-        // 1000 at the start, 500 moved later, 700 left: 800 spent.
-        assert_eq!(cost_so_far(Some("1000"), Some("500"), 700), Some(800));
-        assert_eq!(cost_so_far(None, Some("500"), 700), None);
+        let r = |start: Option<&str>, topped: Option<&str>, added: Option<&str>, back: Option<&str>| {
+            InstanceRecord {
+                start_charge_mu: start.map(Into::into),
+                topped_up_mu: topped.map(Into::into),
+                added_mu: added.map(Into::into),
+                withdrawn_mu: back.map(Into::into),
+                ..Default::default()
+            }
+        };
+        assert_eq!(cost_so_far(&r(Some("1000"), None, None, None), 400), Some(600));
+        assert_eq!(cost_so_far(&r(Some("1000"), Some("500"), None, None), 700), Some(800));
+        assert_eq!(cost_so_far(&r(None, Some("500"), None, None), 700), None);
+        // "Add MU" counts as a top-up, and what the user took back is not a cost.
+        assert_eq!(
+            cost_so_far(&r(Some("1000"), Some("500"), Some("300"), Some("200")), 700),
+            Some(900)
+        );
     }
 
     #[tokio::test]

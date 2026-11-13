@@ -215,6 +215,14 @@ pub struct InstanceRecord {
     /// in MU (the automatic top-up, `ModifyDeposit`). The cost so far counts it.
     #[serde(default)]
     pub topped_up_mu: Option<String>,
+    /// What the user added to the instance by hand after the start, in MU ("Add MU",
+    /// issue #136). The automatic top-up is in [`InstanceRecord::topped_up_mu`].
+    #[serde(default)]
+    pub added_mu: Option<String>,
+    /// What the user took back from the instance to the credit, in MU ("Take back MU",
+    /// issue #136).
+    #[serde(default)]
+    pub withdrawn_mu: Option<String>,
     /// The time of the stop, in Unix seconds. A stopped instance stays in the database
     /// until the user deletes it (`docs/celaut/ui-chat-first.md`). An old record has
     /// none: it runs.
@@ -501,6 +509,11 @@ pub struct CelautData {
     /// `instance_ref`, not by token.
     #[serde(default)]
     pub descendant_receipts: BTreeMap<String, crate::receipts::InstanceReceipts>,
+    /// The sums of the balance statements that the app read (issue #136), by the
+    /// `account_ref` of the account: the client of the app on a node, or an instance.
+    /// They hold sums and the signed head, never a movement or a credential.
+    #[serde(default)]
+    pub tallies: BTreeMap<String, crate::spending::Tally>,
 }
 
 /// One environment variable of the container of the app.
@@ -1004,6 +1017,8 @@ mod tests {
                 alias: Some("My echo".into()),
                 title: Some("Trip to Lisbon".into()),
                 topped_up_mu: Some("50".into()),
+                added_mu: None,
+                withdrawn_mu: None,
                 stopped_at: None,
                 refund_mu: None,
                 pricing: None,

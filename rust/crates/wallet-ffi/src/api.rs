@@ -68,6 +68,10 @@ pub mod celaut_receipts;
 /// and the tunnel (`docs/celaut/descendants.md`).
 pub mod celaut_descendants;
 
+/// Add MU to an instance or take it back, and the balance and the spending of each node,
+/// from the signed statements of the node (issue #136, `docs/celaut/spending.md`).
+pub mod celaut_spending;
+
 /// The Bitcoin wallet of the open wallet's seed (issue #92).
 pub mod btc;
 
