@@ -35,6 +35,13 @@ largest. A larger value is not shared: the dialog says so.
   scans the code reads the value (a stronger text if the variable is sensitive).
 - The value is shown only after the user taps **Share**. The code is not kept, and the
   text of the code is not given to a screen reader.
+- **No capture of the code** (issue #141). While the dialog with the code is open, the
+  window is secure (`FLAG_SECURE`): no screenshot, no screen recording, no thumbnail in the
+  recent apps. This holds even if the user turned off Settings, Security, "Block screenshots",
+  as the seed phrase screens do. The flag is set before the code is drawn; when the dialog
+  closes (Done, back, tap outside) the window goes back to the setting
+  (`PrivacyService.holdSecure` / `releaseSecure`, `showEnvShare`). If the phone cannot set
+  the flag, the dialog says that a screenshot of the code holds the value.
 - A received value is shown hidden (eye to show it) and is saved only if the user accepts.
 - A received variable does not change the sensitive mark by itself: the user sees the mark
   of the sender and can change it before saving.
@@ -70,14 +77,17 @@ that the form shows.
 | Change | File |
 |---|---|
 | Format of the code, `EnvShare` | `app/lib/celaut/env_share.dart` |
-| Share dialog, scan | `app/lib/ui/celaut/env_share_ui.dart` |
+| Share dialog (secure window), scan | `app/lib/ui/celaut/env_share_ui.dart` |
+| Hold of the secure window | `app/lib/services/privacy_service.dart` |
 | Row action, scan, the form with `prefill` | `app/lib/ui/celaut/env_variables_screen.dart` |
 | Scan button, share in the list, the name to save under (`EnvTyped.saveAs`) | `app/lib/ui/celaut/env_questions_screen.dart` |
-| Strings (`celautEnvShare*`, `celautEnvScan*`, `celautEnvAskScan`) | `app/lib/l10n/app_en.arb`, `app_es.arb` |
-| Tests | `app/test/celaut_env_share_test.dart` |
+| Strings (`celautEnvShare*`, `celautEnvScan*`, `celautEnvAskScan`, `celautEnvShareNotSecure`) | `app/lib/l10n/app_en.arb`, `app_es.arb` |
+| Tests | `app/test/celaut_env_share_test.dart`, `app/test/celaut_env_share_secure_test.dart` |
 
 ## 6. Open items
 
 - A typed value that is not saved cannot be shared. The user saves it first.
 - Many variables in one code are not supported. Each variable is one code.
-- The screen that shows a code does not block screenshots (`FLAG_SECURE`).
+- Only the dialog with the code forces `FLAG_SECURE`. The value of a variable shown with the
+  eye (the list of variables, the forms) follows the setting "Block screenshots" (on by
+  default), as the rest of the app does.

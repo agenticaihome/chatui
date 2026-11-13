@@ -3,15 +3,37 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../celaut/env_share.dart';
 import '../../l10n/l10n.dart';
+import '../../services/privacy_service.dart';
 import '../../theme/argus_theme.dart';
 import '../scan_screen.dart';
 
 /// Show the QR code that shares the variable [name] (`docs/celaut/env-share.md`).
+///
+/// The code can hold a secret, so the window is secure (`FLAG_SECURE`) while it is open,
+/// whatever the setting "Block screenshots" says: no screenshot, no screen recording, no
+/// recents thumbnail. The flag is set before the code is drawn and the setting is applied
+/// again when the dialog closes (issue #141).
 Future<void> showEnvShare(
   BuildContext context, {
   required String name,
   required String value,
   required bool sensitive,
+}) async {
+  final secure = await privacyService.holdSecure();
+  try {
+    if (!context.mounted) return;
+    await _showEnvShareDialog(context, name: name, value: value, sensitive: sensitive, secure: secure);
+  } finally {
+    await privacyService.releaseSecure();
+  }
+}
+
+Future<void> _showEnvShareDialog(
+  BuildContext context, {
+  required String name,
+  required String value,
+  required bool sensitive,
+  required bool secure,
 }) {
   final share = EnvShare(name: name, value: value, sensitive: sensitive);
   final l = context.l10n;
@@ -60,6 +82,14 @@ Future<void> showEnvShare(
               key: const Key('env-share-warning'),
               style: TextStyle(fontSize: 12.5, color: colors.muted),
             ),
+            if (!secure && share.fits) ...[
+              const SizedBox(height: 8),
+              Text(
+                l.celautEnvShareNotSecure,
+                key: const Key('env-share-not-secure'),
+                style: TextStyle(fontSize: 12.5, color: rustFor(context)),
+              ),
+            ],
           ],
         ),
       ),

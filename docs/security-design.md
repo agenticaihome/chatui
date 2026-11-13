@@ -22,7 +22,9 @@ migration; it can go once no wallet has a PIN wrap.
 No mnemonic is persisted. Create/restore require the user to enter or confirm
 the BIP-39 phrase in the UI (Dart treats that string as secret: no logging,
 controllers cleared on dispose). Phrase screens set `FLAG_SECURE` / hide
-captured content. The wallet locks when the app backgrounds.
+captured content. The dialog with the QR code of an environment variable
+holds `FLAG_SECURE` too while it is open (`PrivacyService.holdSecure`,
+[env-share.md](celaut/env-share.md)). The wallet locks when the app backgrounds.
 
 ## Lifecycle
 
