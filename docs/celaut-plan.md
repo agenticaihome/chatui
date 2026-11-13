@@ -36,7 +36,7 @@ These items need a device, a second node or nodo work. They are not part of this
 |---|---|
 | Check the app on a phone (GrapheneOS, no Play Services): a conversation with `echo-chat`, the foreground service with the screen off, Tor inside the app, the QR scan | Josemi or Nate, with a phone |
 | A node on the internet, and a list of more than one node (the choice of the balancer, the nodes left out of a launch) | Josemi or Nate, with a second node that has a public address |
-| Onion addresses for nodes. Through Tor, the app cannot reach a node in a private network (`10.0.2.2`, `192.168.x.x`) | nodo work (decision 7 in section 7) |
+| Onion addresses for nodes. Through Tor, the app cannot reach a node in a private network (`10.0.2.2`, `192.168.x.x`) | Done. nodo announces an onion address (`nodo tor`, `routing.tor.ANNOUNCE`), and since #140 both Tor routes of the app open it, the onion first (`docs/celaut/invite.md`, section 7). A phone and nodo's own onion service: Josemi or Nate |
 | Error codes in the answers of nodo, so that the app does not classify the texts | nodo work |
 | A tunnel stream to a stopped instance stays open on the node while the client keeps the TCP connection (seen in `nodo tunnels --inbound` after a phone lost its network) | nodo work |
 | `GET /chat/messages?from=²` (a digit that is not ASCII) closes the connection instead of status 400 | `echo-chat` in celaut-basics |
@@ -462,7 +462,9 @@ credit of 4 500 000 MU. No transaction.
 
 **M5: privacy** (after M4). Optional Tor (Arti, off by default) for outbound connections,
 so that a node does not see the IP address of the phone. It does not hide the node;
-onion addresses for nodes are nodo work (decision 7 in section 7).
+onion addresses for nodes are nodo work (decision 7 in section 7). nodo has them now
+(`nodo tor`), and since #140 the Arti client of the app opens them too
+(`docs/celaut/invite.md`, section 7).
 Done: see `docs/celaut/network.md`. The user can choose Arti inside the app or an
 external SOCKS5 proxy, for the nodes, the explorer and the updater of the app. With Tor
 on, the app blocks the connections instead of going direct.
@@ -511,7 +513,9 @@ the host got 404 (no latest release) and its GitHub counter did not move. With T
    size and warn on mobile data. This needs the send side of blocks in
    `bee-rpc-over-grpc-rs`, which is not in its current plan. (Done in PR #35 to #37:
    `docs/celaut/package.md`.)
-7. **Tor:** optional, with Arti (Rust), off by default, in M5 after M4.
+7. **Tor:** optional, with Arti (Rust), off by default, in M5 after M4. Onion addresses
+   of nodes: nodo announces them (`nodo tor`), and the Arti client of the app is built
+   with `onion-service-client` (#140).
 8. **Node directory:** no bootstrap list in the app. Only on-chain node boxes and
    nodes that the user adds by address or QR code.
 9. **Release key:** changed on 2026-10-12. CI signs the release APKs with a key used

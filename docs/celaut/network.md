@@ -9,7 +9,7 @@ they see a Tor exit.
 | Choice | What it does |
 |---|---|
 | Off | Direct connections. The default |
-| Tor inside the app | An Arti client (`arti-client`) in the app, behind a SOCKS5 port on the loopback. The first start takes about 15 seconds on a good network, and up to a minute |
+| Tor inside the app | An Arti client (`arti-client`) in the app, behind a SOCKS5 port on the loopback. The first start takes about 15 seconds on a good network, and up to a minute. It reaches `.onion` addresses of nodes too |
 | External SOCKS5 proxy | Any SOCKS5 proxy at an IP address and a port, for example Orbot at `127.0.0.1:9050`. The app trusts that it is a Tor proxy |
 
 The choice is kept in the preferences and is applied at the start of the app, after
@@ -59,9 +59,14 @@ With Tor on, the app never falls back to a direct connection.
 - A node on a private network (`10.0.2.2` of the emulator, `192.168.x.x`) cannot be reached
   through Tor. The app does not try such an address of a peer invitation on a Tor route
   ([invite.md](invite.md), section 3).
-- Tor hides the IP address of the phone from the node. It does not hide the node, and a
-  node still links the calls of one client id. Onion addresses for nodes are nodo work
-  (decision 7 in `docs/celaut-plan.md`).
+- Tor hides the IP address of the phone from the node, and a node still links the calls of
+  one client id. A node that announces an onion address (`nodo tor`, `routing.tor.ANNOUNCE`
+  or `routing.HIDDEN`) is hidden too: both Tor routes open `.onion` addresses (the Arti
+  client is built with `onion-service-client`), and a peer invitation tries the onion first
+  on them ([invite.md](invite.md), sections 3 and 7).
+- A direct route refuses a `.onion` name before any lookup (`celaut_net::connect`): the
+  system resolver cannot answer it, and the query would tell the DNS server which onion
+  service the phone wants.
 - The native library gets bigger with Arti.
 - An open `ServiceTunnel` stream does not move when the route changes. It keeps the route
   that it had; a new connection uses the new one.
@@ -71,7 +76,7 @@ With Tor on, the app never falls back to a direct connection.
 | Where | What |
 |---|---|
 | `rust/crates/celaut-net` | `Route` (`Direct`, `Socks`, `Blocked`), `connect`, and a small SOCKS5 client and server with user name and password. 10 tests |
-| `rust/crates/celaut-tor` | `Manager`: the modes, the state, the Arti client and its SOCKS5 port. The port has a random user name and password, so another app on the phone cannot use it |
+| `rust/crates/celaut-tor` | `Manager`: the modes, the state, the Arti client (with `onion-service-client`) and its SOCKS5 port. The port has a random user name and password, so another app on the phone cannot use it |
 | `rust/crates/celaut-wire` | The TCP dial of a node goes through `celaut_net::connect` |
 | `rust/crates/wallet-net` | `http::client_builder` follows the route |
 | `rust/crates/wallet-ffi/src/api/celaut_network.rs` | `celaut_set_network`, `celaut_network_status`, and `celaut_network_proxy` (the route for the Dart side) |
@@ -86,7 +91,8 @@ With Tor on, the app never falls back to a direct connection.
 - A real test on the Tor network is ignored in the CI because it needs the Internet:
   `cargo test -p celaut-tor --test real_tor -- --ignored --nocapture`. On 2026-10-15 it
   started Arti in 15 seconds, and a request through the HTTP client of the app got
-  `{"IsTor":true}` from `check.torproject.org`.
+  `{"IsTor":true}` from `check.torproject.org`. Since #140 it also opens the onion service
+  of `www.torproject.org` twice through `celaut_net::connect`, as the dial of a node does.
 - The client of the updater has tests with a local HTTPS server and a local SOCKS5 proxy
   with a password: direct, through the proxy, a wrong password, no proxy, blocked, and
   plain HTTP refused; in each failure nothing reaches the server
@@ -95,4 +101,5 @@ With Tor on, the app never falls back to a direct connection.
   transport of the session and no other (`celaut-client/tests/descendants.rs`). The real
   descendant test is ignored (`celaut-client/tests/real_node.rs`) and was not run through Tor.
 - Not checked: a phone, Android (the Arti client builds for the Android targets in the CI,
-  but it was not run there), the battery use, and a Celaut node through Tor.
+  but it was not run there), and the battery use. A Celaut node through Tor was
+  checked in the emulator for #140, by its onion address ([invite.md](invite.md), section 7).
