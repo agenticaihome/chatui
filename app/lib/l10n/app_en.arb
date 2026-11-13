@@ -6013,5 +6013,181 @@
         "type": "String"
       }
     }
-  }
+  },
+  "celautMoveAdd": "Add MU",
+  "celautMoveTakeBack": "Take back MU",
+  "celautMoveAddNote": "Move credit that you have on the node to the instance, or take back what it does not need. Nothing goes on the blockchain.",
+  "celautMoveAmount": "Amount",
+  "celautMoveHalf": "Half",
+  "celautMoveAll": "All",
+  "celautMoveInstanceRow": "Balance of the instance",
+  "celautMoveCreditRow": "Your credit on the node",
+  "celautMoveFee": "The node charges no fee for this move.",
+  "celautMoveAutoOnAdd": "Automatic top-up is on for this instance. It goes on adding MU when the balance is low.",
+  "celautMoveAutoOnTakeBack": "Automatic top-up is on for this instance: when the balance gets low, it moves MU to the instance again. Turn it off first to keep this MU on your credit.",
+  "celautMoveZero": "Type an amount above 0.",
+  "celautMoveOverCredit": "Your credit on this node is {credit}.",
+  "@celautMoveOverCredit": {
+    "placeholders": {
+      "credit": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveOverBalance": "The instance has {balance}.",
+  "@celautMoveOverBalance": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveLasts": "Then the instance has about {time} left, at the price of the node now.",
+  "@celautMoveLasts": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveStops": "Then the instance has less than one period left: the node stops it at its next charge.",
+  "celautMoveConfirmAddTitle": "Add MU to the instance?",
+  "celautMoveConfirmTakeBackTitle": "Take back MU from the instance?",
+  "celautMoveConfirmAddBody": "{amount} moves from your credit on {node} to the instance.",
+  "@celautMoveConfirmAddBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "node": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveConfirmTakeBackBody": "{amount} moves from the instance back to your credit on {node}.",
+  "@celautMoveConfirmTakeBackBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "node": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveConfirm": "Move",
+  "celautMoveDone": "Done. Instance: {balance}. Credit: {credit}.",
+  "@celautMoveDone": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "credit": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveRefused": "The node refused: {reason}",
+  "@celautMoveRefused": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveNoBalance": "The app could not read the balance of the instance. Try again.",
+  "celautSpendTitle": "Balance and spending",
+  "celautSpendBalanceNow": "Balance now",
+  "celautSpendBalanceRead": "Balance at the last read",
+  "celautSpendSpent": "Spent",
+  "celautSpendSince": "{value}, since {date}",
+  "@celautSpendSince": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSpendReads": "What the reads of statements cost",
+  "celautSpendLastRead": "Last read",
+  "celautSpendNeverRead": "The app has not read the statement of this node yet.",
+  "celautSpendNote": "The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that went to your instances: the balance of a running instance is in it, and comes back when it stops.",
+  "celautSpendRead": "Read the statement",
+  "celautSpendReadMore": "Read the rest",
+  "celautSpendNoRates": "This node does not say what a statement costs, so the app does not read it.",
+  "celautSpendReadTitle": "Read the statement?",
+  "celautSpendReadBody": "The node {node} charges the read to your credit: up to {max}. It writes the read as a movement. The app reads only the movements after its last read.",
+  "@celautSpendReadBody": {
+    "placeholders": {
+      "node": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSpendReadConfirm": "Read",
+  "celautSpendReadDone": "The statement is verified.",
+  "celautSpendReadFailed": "The statement could not be read: {reason}",
+  "@celautSpendReadFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSpendInstances": "Spending by instance ({count})",
+  "@celautSpendInstances": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautSpendRunning": "Running",
+  "celautSpendStopped": "Stopped",
+  "celautSpendDeleted": "Deleted from the app",
+  "celautSpendNotRead": "not read yet",
+  "celautSpendCosts": "Costs of the instance",
+  "celautSpendCostsNote": "The statement of the instance splits what it spent: resources, traffic, build and the rest.",
+  "celautSpendReadCosts": "Read the costs",
+  "celautSpendReadCostsTitle": "Read the costs of the instance?",
+  "celautSpendMovedRow": "Moved to the instance",
+  "celautSpendPartial": "The node no longer keeps the older movements: the sums start at the first one that it keeps.",
+  "celautSpendIncomplete": "The node gave part of the movements. Read the rest to complete the sums.",
+  "celautSpendStarting": "Starting: {value}",
+  "@celautSpendStarting": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSpendKindMaintenance": "Resources (maintenance)",
+  "celautSpendKindTunnel": "Traffic (tunnels)",
+  "celautSpendKindBuild": "Build",
+  "celautSpendKindResourceChange": "Changes of resources",
+  "celautSpendKindStatement": "Reads of statements",
+  "celautSpendKindChildStart": "Child instances",
+  "celautSpendKindStart": "Start",
+  "celautSpendKindTopUp": "Added",
+  "celautSpendKindWithdrawal": "Taken back",
+  "celautSpendKindRefund": "Refund",
+  "celautSpendKindDeposit": "Deposits",
+  "celautSpendKindCredit": "Free credit",
+  "celautSpendKindDebit": "Taken by the operator",
+  "celautHomeSpent": "spent {value}",
+  "@celautHomeSpent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "celautHomeBalancesTitle": "Balance and spending by node",
+  "celautHomeBalancesNote": "The balance is what the node says now. The spending comes from the last statement that the app read on each node: open a node to read it."
 }

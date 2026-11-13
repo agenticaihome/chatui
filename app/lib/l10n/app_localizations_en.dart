@@ -8340,4 +8340,253 @@ class AppLocalizationsEn extends AppLocalizations {
   String cardsSettingsTestValue(String value, String needed) {
     return 'Turn: $value rad/s (a gesture needs $needed)';
   }
+
+  @override
+  String get celautMoveAdd => 'Add MU';
+
+  @override
+  String get celautMoveTakeBack => 'Take back MU';
+
+  @override
+  String get celautMoveAddNote =>
+      'Move credit that you have on the node to the instance, or take back what it does not need. Nothing goes on the blockchain.';
+
+  @override
+  String get celautMoveAmount => 'Amount';
+
+  @override
+  String get celautMoveHalf => 'Half';
+
+  @override
+  String get celautMoveAll => 'All';
+
+  @override
+  String get celautMoveInstanceRow => 'Balance of the instance';
+
+  @override
+  String get celautMoveCreditRow => 'Your credit on the node';
+
+  @override
+  String get celautMoveFee => 'The node charges no fee for this move.';
+
+  @override
+  String get celautMoveAutoOnAdd =>
+      'Automatic top-up is on for this instance. It goes on adding MU when the balance is low.';
+
+  @override
+  String get celautMoveAutoOnTakeBack =>
+      'Automatic top-up is on for this instance: when the balance gets low, it moves MU to the instance again. Turn it off first to keep this MU on your credit.';
+
+  @override
+  String get celautMoveZero => 'Type an amount above 0.';
+
+  @override
+  String celautMoveOverCredit(String credit) {
+    return 'Your credit on this node is $credit.';
+  }
+
+  @override
+  String celautMoveOverBalance(String balance) {
+    return 'The instance has $balance.';
+  }
+
+  @override
+  String celautMoveLasts(String time) {
+    return 'Then the instance has about $time left, at the price of the node now.';
+  }
+
+  @override
+  String get celautMoveStops =>
+      'Then the instance has less than one period left: the node stops it at its next charge.';
+
+  @override
+  String get celautMoveConfirmAddTitle => 'Add MU to the instance?';
+
+  @override
+  String get celautMoveConfirmTakeBackTitle =>
+      'Take back MU from the instance?';
+
+  @override
+  String celautMoveConfirmAddBody(String amount, String node) {
+    return '$amount moves from your credit on $node to the instance.';
+  }
+
+  @override
+  String celautMoveConfirmTakeBackBody(String amount, String node) {
+    return '$amount moves from the instance back to your credit on $node.';
+  }
+
+  @override
+  String get celautMoveConfirm => 'Move';
+
+  @override
+  String celautMoveDone(String balance, String credit) {
+    return 'Done. Instance: $balance. Credit: $credit.';
+  }
+
+  @override
+  String celautMoveRefused(String reason) {
+    return 'The node refused: $reason';
+  }
+
+  @override
+  String get celautMoveNoBalance =>
+      'The app could not read the balance of the instance. Try again.';
+
+  @override
+  String get celautSpendTitle => 'Balance and spending';
+
+  @override
+  String get celautSpendBalanceNow => 'Balance now';
+
+  @override
+  String get celautSpendBalanceRead => 'Balance at the last read';
+
+  @override
+  String get celautSpendSpent => 'Spent';
+
+  @override
+  String celautSpendSince(String value, String date) {
+    return '$value, since $date';
+  }
+
+  @override
+  String get celautSpendReads => 'What the reads of statements cost';
+
+  @override
+  String get celautSpendLastRead => 'Last read';
+
+  @override
+  String get celautSpendNeverRead =>
+      'The app has not read the statement of this node yet.';
+
+  @override
+  String get celautSpendNote =>
+      'The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that went to your instances: the balance of a running instance is in it, and comes back when it stops.';
+
+  @override
+  String get celautSpendRead => 'Read the statement';
+
+  @override
+  String get celautSpendReadMore => 'Read the rest';
+
+  @override
+  String get celautSpendNoRates =>
+      'This node does not say what a statement costs, so the app does not read it.';
+
+  @override
+  String get celautSpendReadTitle => 'Read the statement?';
+
+  @override
+  String celautSpendReadBody(String node, String max) {
+    return 'The node $node charges the read to your credit: up to $max. It writes the read as a movement. The app reads only the movements after its last read.';
+  }
+
+  @override
+  String get celautSpendReadConfirm => 'Read';
+
+  @override
+  String get celautSpendReadDone => 'The statement is verified.';
+
+  @override
+  String celautSpendReadFailed(String reason) {
+    return 'The statement could not be read: $reason';
+  }
+
+  @override
+  String celautSpendInstances(int count) {
+    return 'Spending by instance ($count)';
+  }
+
+  @override
+  String get celautSpendRunning => 'Running';
+
+  @override
+  String get celautSpendStopped => 'Stopped';
+
+  @override
+  String get celautSpendDeleted => 'Deleted from the app';
+
+  @override
+  String get celautSpendNotRead => 'not read yet';
+
+  @override
+  String get celautSpendCosts => 'Costs of the instance';
+
+  @override
+  String get celautSpendCostsNote =>
+      'The statement of the instance splits what it spent: resources, traffic, build and the rest.';
+
+  @override
+  String get celautSpendReadCosts => 'Read the costs';
+
+  @override
+  String get celautSpendReadCostsTitle => 'Read the costs of the instance?';
+
+  @override
+  String get celautSpendMovedRow => 'Moved to the instance';
+
+  @override
+  String get celautSpendPartial =>
+      'The node no longer keeps the older movements: the sums start at the first one that it keeps.';
+
+  @override
+  String get celautSpendIncomplete =>
+      'The node gave part of the movements. Read the rest to complete the sums.';
+
+  @override
+  String celautSpendStarting(String value) {
+    return 'Starting: $value';
+  }
+
+  @override
+  String get celautSpendKindMaintenance => 'Resources (maintenance)';
+
+  @override
+  String get celautSpendKindTunnel => 'Traffic (tunnels)';
+
+  @override
+  String get celautSpendKindBuild => 'Build';
+
+  @override
+  String get celautSpendKindResourceChange => 'Changes of resources';
+
+  @override
+  String get celautSpendKindStatement => 'Reads of statements';
+
+  @override
+  String get celautSpendKindChildStart => 'Child instances';
+
+  @override
+  String get celautSpendKindStart => 'Start';
+
+  @override
+  String get celautSpendKindTopUp => 'Added';
+
+  @override
+  String get celautSpendKindWithdrawal => 'Taken back';
+
+  @override
+  String get celautSpendKindRefund => 'Refund';
+
+  @override
+  String get celautSpendKindDeposit => 'Deposits';
+
+  @override
+  String get celautSpendKindCredit => 'Free credit';
+
+  @override
+  String get celautSpendKindDebit => 'Taken by the operator';
+
+  @override
+  String celautHomeSpent(String value) {
+    return 'spent $value';
+  }
+
+  @override
+  String get celautHomeBalancesTitle => 'Balance and spending by node';
+
+  @override
+  String get celautHomeBalancesNote =>
+      'The balance is what the node says now. The spending comes from the last statement that the app read on each node: open a node to read it.';
 }

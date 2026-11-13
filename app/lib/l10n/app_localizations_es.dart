@@ -8424,4 +8424,252 @@ class AppLocalizationsEs extends AppLocalizations {
   String cardsSettingsTestValue(String value, String needed) {
     return 'Giro: $value rad/s (un gesto necesita $needed)';
   }
+
+  @override
+  String get celautMoveAdd => 'Añadir MU';
+
+  @override
+  String get celautMoveTakeBack => 'Recuperar MU';
+
+  @override
+  String get celautMoveAddNote =>
+      'Mueve a la instancia crédito que tienes en el nodo, o recupera lo que no necesita. Nada va a la cadena de bloques.';
+
+  @override
+  String get celautMoveAmount => 'Cantidad';
+
+  @override
+  String get celautMoveHalf => 'La mitad';
+
+  @override
+  String get celautMoveAll => 'Todo';
+
+  @override
+  String get celautMoveInstanceRow => 'Saldo de la instancia';
+
+  @override
+  String get celautMoveCreditRow => 'Tu crédito en el nodo';
+
+  @override
+  String get celautMoveFee => 'El nodo no cobra comisión por este movimiento.';
+
+  @override
+  String get celautMoveAutoOnAdd =>
+      'La recarga automática está activada para esta instancia. Sigue añadiendo MU cuando el saldo es bajo.';
+
+  @override
+  String get celautMoveAutoOnTakeBack =>
+      'La recarga automática está activada para esta instancia: cuando el saldo baja, vuelve a mover MU a la instancia. Desactívala antes para conservar estos MU en tu crédito.';
+
+  @override
+  String get celautMoveZero => 'Escribe una cantidad mayor que 0.';
+
+  @override
+  String celautMoveOverCredit(String credit) {
+    return 'Tu crédito en este nodo es $credit.';
+  }
+
+  @override
+  String celautMoveOverBalance(String balance) {
+    return 'La instancia tiene $balance.';
+  }
+
+  @override
+  String celautMoveLasts(String time) {
+    return 'Entonces a la instancia le quedan unos $time, al precio actual del nodo.';
+  }
+
+  @override
+  String get celautMoveStops =>
+      'Entonces a la instancia le queda menos de un periodo: el nodo la detiene en el próximo cobro.';
+
+  @override
+  String get celautMoveConfirmAddTitle => '¿Añadir MU a la instancia?';
+
+  @override
+  String get celautMoveConfirmTakeBackTitle => '¿Recuperar MU de la instancia?';
+
+  @override
+  String celautMoveConfirmAddBody(String amount, String node) {
+    return '$amount pasan de tu crédito en $node a la instancia.';
+  }
+
+  @override
+  String celautMoveConfirmTakeBackBody(String amount, String node) {
+    return '$amount vuelven de la instancia a tu crédito en $node.';
+  }
+
+  @override
+  String get celautMoveConfirm => 'Mover';
+
+  @override
+  String celautMoveDone(String balance, String credit) {
+    return 'Hecho. Instancia: $balance. Crédito: $credit.';
+  }
+
+  @override
+  String celautMoveRefused(String reason) {
+    return 'El nodo lo rechazó: $reason';
+  }
+
+  @override
+  String get celautMoveNoBalance =>
+      'La app no pudo leer el saldo de la instancia. Inténtalo de nuevo.';
+
+  @override
+  String get celautSpendTitle => 'Saldo y gasto';
+
+  @override
+  String get celautSpendBalanceNow => 'Saldo ahora';
+
+  @override
+  String get celautSpendBalanceRead => 'Saldo en la última lectura';
+
+  @override
+  String get celautSpendSpent => 'Gastado';
+
+  @override
+  String celautSpendSince(String value, String date) {
+    return '$value, desde $date';
+  }
+
+  @override
+  String get celautSpendReads => 'Lo que costaron las lecturas de extractos';
+
+  @override
+  String get celautSpendLastRead => 'Última lectura';
+
+  @override
+  String get celautSpendNeverRead =>
+      'La app aún no ha leído el extracto de este nodo.';
+
+  @override
+  String get celautSpendNote =>
+      'El gasto sale del extracto que firma el nodo. La app comprueba la firma, la cadena de movimientos y el saldo. Gastado cuenta los MU que fueron a tus instancias: el saldo de una instancia en marcha está incluido y vuelve cuando se detiene.';
+
+  @override
+  String get celautSpendRead => 'Leer el extracto';
+
+  @override
+  String get celautSpendReadMore => 'Leer el resto';
+
+  @override
+  String get celautSpendNoRates =>
+      'Este nodo no dice cuánto cuesta un extracto, así que la app no lo lee.';
+
+  @override
+  String get celautSpendReadTitle => '¿Leer el extracto?';
+
+  @override
+  String celautSpendReadBody(String node, String max) {
+    return 'El nodo $node cobra la lectura de tu crédito: hasta $max. Anota la lectura como un movimiento. La app solo lee los movimientos posteriores a su última lectura.';
+  }
+
+  @override
+  String get celautSpendReadConfirm => 'Leer';
+
+  @override
+  String get celautSpendReadDone => 'El extracto está verificado.';
+
+  @override
+  String celautSpendReadFailed(String reason) {
+    return 'No se pudo leer el extracto: $reason';
+  }
+
+  @override
+  String celautSpendInstances(int count) {
+    return 'Gasto por instancia ($count)';
+  }
+
+  @override
+  String get celautSpendRunning => 'En marcha';
+
+  @override
+  String get celautSpendStopped => 'Detenida';
+
+  @override
+  String get celautSpendDeleted => 'Borrada de la app';
+
+  @override
+  String get celautSpendNotRead => 'aún sin leer';
+
+  @override
+  String get celautSpendCosts => 'Costes de la instancia';
+
+  @override
+  String get celautSpendCostsNote =>
+      'El extracto de la instancia separa lo que gastó: recursos, tráfico, compilación y el resto.';
+
+  @override
+  String get celautSpendReadCosts => 'Leer los costes';
+
+  @override
+  String get celautSpendReadCostsTitle => '¿Leer los costes de la instancia?';
+
+  @override
+  String get celautSpendMovedRow => 'Movido a la instancia';
+
+  @override
+  String get celautSpendPartial =>
+      'El nodo ya no guarda los movimientos antiguos: las sumas empiezan en el primero que guarda.';
+
+  @override
+  String get celautSpendIncomplete =>
+      'El nodo dio parte de los movimientos. Lee el resto para completar las sumas.';
+
+  @override
+  String celautSpendStarting(String value) {
+    return 'Arrancando: $value';
+  }
+
+  @override
+  String get celautSpendKindMaintenance => 'Recursos (mantenimiento)';
+
+  @override
+  String get celautSpendKindTunnel => 'Tráfico (túneles)';
+
+  @override
+  String get celautSpendKindBuild => 'Compilación';
+
+  @override
+  String get celautSpendKindResourceChange => 'Cambios de recursos';
+
+  @override
+  String get celautSpendKindStatement => 'Lecturas de extractos';
+
+  @override
+  String get celautSpendKindChildStart => 'Instancias hijas';
+
+  @override
+  String get celautSpendKindStart => 'Arranque';
+
+  @override
+  String get celautSpendKindTopUp => 'Añadido';
+
+  @override
+  String get celautSpendKindWithdrawal => 'Recuperado';
+
+  @override
+  String get celautSpendKindRefund => 'Reembolso';
+
+  @override
+  String get celautSpendKindDeposit => 'Depósitos';
+
+  @override
+  String get celautSpendKindCredit => 'Crédito gratuito';
+
+  @override
+  String get celautSpendKindDebit => 'Retirado por el operador';
+
+  @override
+  String celautHomeSpent(String value) {
+    return 'gastado $value';
+  }
+
+  @override
+  String get celautHomeBalancesTitle => 'Saldo y gasto por nodo';
+
+  @override
+  String get celautHomeBalancesNote =>
+      'El saldo es lo que dice el nodo ahora. El gasto sale del último extracto que la app leyó en cada nodo: abre un nodo para leerlo.';
 }

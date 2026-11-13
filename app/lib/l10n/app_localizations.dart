@@ -13402,6 +13402,426 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turn: {value} rad/s (a gesture needs {needed})'**
   String cardsSettingsTestValue(String value, String needed);
+
+  /// No description provided for @celautMoveAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add MU'**
+  String get celautMoveAdd;
+
+  /// No description provided for @celautMoveTakeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Take back MU'**
+  String get celautMoveTakeBack;
+
+  /// No description provided for @celautMoveAddNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Move credit that you have on the node to the instance, or take back what it does not need. Nothing goes on the blockchain.'**
+  String get celautMoveAddNote;
+
+  /// No description provided for @celautMoveAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get celautMoveAmount;
+
+  /// No description provided for @celautMoveHalf.
+  ///
+  /// In en, this message translates to:
+  /// **'Half'**
+  String get celautMoveHalf;
+
+  /// No description provided for @celautMoveAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get celautMoveAll;
+
+  /// No description provided for @celautMoveInstanceRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance of the instance'**
+  String get celautMoveInstanceRow;
+
+  /// No description provided for @celautMoveCreditRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Your credit on the node'**
+  String get celautMoveCreditRow;
+
+  /// No description provided for @celautMoveFee.
+  ///
+  /// In en, this message translates to:
+  /// **'The node charges no fee for this move.'**
+  String get celautMoveFee;
+
+  /// No description provided for @celautMoveAutoOnAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic top-up is on for this instance. It goes on adding MU when the balance is low.'**
+  String get celautMoveAutoOnAdd;
+
+  /// No description provided for @celautMoveAutoOnTakeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic top-up is on for this instance: when the balance gets low, it moves MU to the instance again. Turn it off first to keep this MU on your credit.'**
+  String get celautMoveAutoOnTakeBack;
+
+  /// No description provided for @celautMoveZero.
+  ///
+  /// In en, this message translates to:
+  /// **'Type an amount above 0.'**
+  String get celautMoveZero;
+
+  /// No description provided for @celautMoveOverCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Your credit on this node is {credit}.'**
+  String celautMoveOverCredit(String credit);
+
+  /// No description provided for @celautMoveOverBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance has {balance}.'**
+  String celautMoveOverBalance(String balance);
+
+  /// No description provided for @celautMoveLasts.
+  ///
+  /// In en, this message translates to:
+  /// **'Then the instance has about {time} left, at the price of the node now.'**
+  String celautMoveLasts(String time);
+
+  /// No description provided for @celautMoveStops.
+  ///
+  /// In en, this message translates to:
+  /// **'Then the instance has less than one period left: the node stops it at its next charge.'**
+  String get celautMoveStops;
+
+  /// No description provided for @celautMoveConfirmAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add MU to the instance?'**
+  String get celautMoveConfirmAddTitle;
+
+  /// No description provided for @celautMoveConfirmTakeBackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Take back MU from the instance?'**
+  String get celautMoveConfirmTakeBackTitle;
+
+  /// No description provided for @celautMoveConfirmAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} moves from your credit on {node} to the instance.'**
+  String celautMoveConfirmAddBody(String amount, String node);
+
+  /// No description provided for @celautMoveConfirmTakeBackBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} moves from the instance back to your credit on {node}.'**
+  String celautMoveConfirmTakeBackBody(String amount, String node);
+
+  /// No description provided for @celautMoveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get celautMoveConfirm;
+
+  /// No description provided for @celautMoveDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done. Instance: {balance}. Credit: {credit}.'**
+  String celautMoveDone(String balance, String credit);
+
+  /// No description provided for @celautMoveRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The node refused: {reason}'**
+  String celautMoveRefused(String reason);
+
+  /// No description provided for @celautMoveNoBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'The app could not read the balance of the instance. Try again.'**
+  String get celautMoveNoBalance;
+
+  /// No description provided for @celautSpendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance and spending'**
+  String get celautSpendTitle;
+
+  /// No description provided for @celautSpendBalanceNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance now'**
+  String get celautSpendBalanceNow;
+
+  /// No description provided for @celautSpendBalanceRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance at the last read'**
+  String get celautSpendBalanceRead;
+
+  /// No description provided for @celautSpendSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent'**
+  String get celautSpendSpent;
+
+  /// No description provided for @celautSpendSince.
+  ///
+  /// In en, this message translates to:
+  /// **'{value}, since {date}'**
+  String celautSpendSince(String value, String date);
+
+  /// No description provided for @celautSpendReads.
+  ///
+  /// In en, this message translates to:
+  /// **'What the reads of statements cost'**
+  String get celautSpendReads;
+
+  /// No description provided for @celautSpendLastRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Last read'**
+  String get celautSpendLastRead;
+
+  /// No description provided for @celautSpendNeverRead.
+  ///
+  /// In en, this message translates to:
+  /// **'The app has not read the statement of this node yet.'**
+  String get celautSpendNeverRead;
+
+  /// No description provided for @celautSpendNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that went to your instances: the balance of a running instance is in it, and comes back when it stops.'**
+  String get celautSpendNote;
+
+  /// No description provided for @celautSpendRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the statement'**
+  String get celautSpendRead;
+
+  /// No description provided for @celautSpendReadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the rest'**
+  String get celautSpendReadMore;
+
+  /// No description provided for @celautSpendNoRates.
+  ///
+  /// In en, this message translates to:
+  /// **'This node does not say what a statement costs, so the app does not read it.'**
+  String get celautSpendNoRates;
+
+  /// No description provided for @celautSpendReadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the statement?'**
+  String get celautSpendReadTitle;
+
+  /// No description provided for @celautSpendReadBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The node {node} charges the read to your credit: up to {max}. It writes the read as a movement. The app reads only the movements after its last read.'**
+  String celautSpendReadBody(String node, String max);
+
+  /// No description provided for @celautSpendReadConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get celautSpendReadConfirm;
+
+  /// No description provided for @celautSpendReadDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The statement is verified.'**
+  String get celautSpendReadDone;
+
+  /// No description provided for @celautSpendReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The statement could not be read: {reason}'**
+  String celautSpendReadFailed(String reason);
+
+  /// No description provided for @celautSpendInstances.
+  ///
+  /// In en, this message translates to:
+  /// **'Spending by instance ({count})'**
+  String celautSpendInstances(int count);
+
+  /// No description provided for @celautSpendRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get celautSpendRunning;
+
+  /// No description provided for @celautSpendStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get celautSpendStopped;
+
+  /// No description provided for @celautSpendDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted from the app'**
+  String get celautSpendDeleted;
+
+  /// No description provided for @celautSpendNotRead.
+  ///
+  /// In en, this message translates to:
+  /// **'not read yet'**
+  String get celautSpendNotRead;
+
+  /// No description provided for @celautSpendCosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Costs of the instance'**
+  String get celautSpendCosts;
+
+  /// No description provided for @celautSpendCostsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The statement of the instance splits what it spent: resources, traffic, build and the rest.'**
+  String get celautSpendCostsNote;
+
+  /// No description provided for @celautSpendReadCosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the costs'**
+  String get celautSpendReadCosts;
+
+  /// No description provided for @celautSpendReadCostsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the costs of the instance?'**
+  String get celautSpendReadCostsTitle;
+
+  /// No description provided for @celautSpendMovedRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to the instance'**
+  String get celautSpendMovedRow;
+
+  /// No description provided for @celautSpendPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'The node no longer keeps the older movements: the sums start at the first one that it keeps.'**
+  String get celautSpendPartial;
+
+  /// No description provided for @celautSpendIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'The node gave part of the movements. Read the rest to complete the sums.'**
+  String get celautSpendIncomplete;
+
+  /// No description provided for @celautSpendStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting: {value}'**
+  String celautSpendStarting(String value);
+
+  /// No description provided for @celautSpendKindMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Resources (maintenance)'**
+  String get celautSpendKindMaintenance;
+
+  /// No description provided for @celautSpendKindTunnel.
+  ///
+  /// In en, this message translates to:
+  /// **'Traffic (tunnels)'**
+  String get celautSpendKindTunnel;
+
+  /// No description provided for @celautSpendKindBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'Build'**
+  String get celautSpendKindBuild;
+
+  /// No description provided for @celautSpendKindResourceChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes of resources'**
+  String get celautSpendKindResourceChange;
+
+  /// No description provided for @celautSpendKindStatement.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads of statements'**
+  String get celautSpendKindStatement;
+
+  /// No description provided for @celautSpendKindChildStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Child instances'**
+  String get celautSpendKindChildStart;
+
+  /// No description provided for @celautSpendKindStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get celautSpendKindStart;
+
+  /// No description provided for @celautSpendKindTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get celautSpendKindTopUp;
+
+  /// No description provided for @celautSpendKindWithdrawal.
+  ///
+  /// In en, this message translates to:
+  /// **'Taken back'**
+  String get celautSpendKindWithdrawal;
+
+  /// No description provided for @celautSpendKindRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund'**
+  String get celautSpendKindRefund;
+
+  /// No description provided for @celautSpendKindDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposits'**
+  String get celautSpendKindDeposit;
+
+  /// No description provided for @celautSpendKindCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Free credit'**
+  String get celautSpendKindCredit;
+
+  /// No description provided for @celautSpendKindDebit.
+  ///
+  /// In en, this message translates to:
+  /// **'Taken by the operator'**
+  String get celautSpendKindDebit;
+
+  /// No description provided for @celautHomeSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'spent {value}'**
+  String celautHomeSpent(String value);
+
+  /// No description provided for @celautHomeBalancesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance and spending by node'**
+  String get celautHomeBalancesTitle;
+
+  /// No description provided for @celautHomeBalancesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The balance is what the node says now. The spending comes from the last statement that the app read on each node: open a node to read it.'**
+  String get celautHomeBalancesNote;
 }
 
 class _AppLocalizationsDelegate

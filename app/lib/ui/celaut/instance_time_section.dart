@@ -15,6 +15,7 @@ import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 import 'closing_text.dart';
 import 'deposit_screen.dart';
+import 'move_mu_sheet.dart';
 import 'run_confirm_dialog.dart' show formatSurvival;
 
 /// "Time and credit" on the info page of a running instance (Josemi, 2026-10-29): how long
@@ -35,9 +36,17 @@ class InstanceTimeSection extends StatefulWidget {
     this.loadStatus,
     this.loadCredit,
     this.openDeposit,
+    this.node = '',
+    this.move,
   });
 
   final String instanceId;
+
+  /// The node of the instance (`host:port`), for the question before a move of MU.
+  final String node;
+
+  /// Move MU to the instance or back (issue #136). Tests give their own.
+  final MoveMu? move;
 
   /// The keep-alive engine. Tests give their own.
   final AutoTopUp? topUp;
@@ -143,6 +152,38 @@ class _InstanceTimeSectionState extends State<InstanceTimeSection> {
     if (added == true) await _reload();
   }
 
+  /// "Add MU" or "Take back MU" (issue #136): the sheet asks the amount and a second yes.
+  /// It moves money, so it needs a full wallet open, as the keep-alive switch does.
+  Future<void> _move({required bool takeBack}) async {
+    final l = context.l10n;
+    if (!await ensureOpenFullWallet(context, widget.wallets) || !mounted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.celautOpenFullWalletNeeded)));
+      }
+      return;
+    }
+    final plan = _plan;
+    final moved = await showMoveMuSheet(
+      context,
+      instanceId: widget.instanceId,
+      takeBack: takeBack,
+      node: widget.node,
+      balance: _balance,
+      credit: _credit,
+      autoTopUp: plan?.keepAlive ?? false,
+      price: _price,
+      move: widget.move,
+      openDeposit: widget.openDeposit ??
+          () => Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => const DepositScreen())),
+    );
+    if (moved == null || !mounted) return;
+    setState(() {
+      _balance = BigInt.tryParse(moved.instanceBalanceMu) ?? _balance;
+      _credit = BigInt.tryParse(moved.clientBalanceMu) ?? _credit;
+    });
+    await _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     final plan = _plan;
@@ -233,6 +274,32 @@ class _InstanceTimeSectionState extends State<InstanceTimeSection> {
               label: Text(l.celautAddTime),
             ),
           ),
+        // Issue #136: move MU by hand, in both directions. The automatic top-up and these
+        // do not fight: the sheet says when it is on.
+        const SizedBox(height: 8),
+        Text(l.celautMoveAddNote, style: t.secondary),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                key: const Key('info-add-mu'),
+                onPressed: () => _move(takeBack: false),
+                icon: const Icon(Icons.add_circle_outline),
+                label: Text(l.celautMoveAdd),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                key: const Key('info-take-back-mu'),
+                onPressed: _balance == null || _balance! <= BigInt.zero ? null : () => _move(takeBack: true),
+                icon: const Icon(Icons.remove_circle_outline),
+                label: Text(l.celautMoveTakeBack),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
