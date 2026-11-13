@@ -20,8 +20,9 @@ app then:
    "Reading the service file…" with these bytes; Cancel stops the copy and deletes it. A
    file that the app cannot read is refused with the reason;
 2. checks it: the file must be a package of a service, with a Service part, and it must say
-   which service it is, in its Metadata or in a hash part. The app does not hash a whole
-   service on the phone, so a file with no id is refused, with that reason. It hashes each
+   which service it is, in its Metadata or in a hash part. The app does not hash the whole
+   Service of a picked file (a download from a link is hashed whole, see "From a link"),
+   so a file with no id is refused, with that reason. It hashes each
    block (SHA3-256, with the blocks inside it) and refuses a file with a block that does
    not hash to its id, or that is cut inside a block: a node refuses that block, but only
    after the whole file was sent to it. While it checks, a card with the rocket (the one of
@@ -64,6 +65,78 @@ One import at a time: a file that comes while an import runs waits until it ends
 - a file of the same name and size as a loaded file: the app asks first ("Already in the
   app"), because the check names the service only after the whole file was read. A file
   of a service that the library has under another name replaces it, and the app says so.
+
+### From a link (issue #135)
+
+The user can also give a **link** to a service. "Import" (at the top of the Services
+page) opens a sheet with two ways: **Choose a file on this phone** (the picker, as
+above), or **Import from a link**: a field for the link, with **Paste** and **Scan a QR
+code**, and **Download**. The files sheet ("On this phone") has "Import from a link" too.
+Other ways in, all to the same import:
+
+- `chatui://import?url=<the link, URL-encoded>`: a web page, a QR code of another app, or
+  the camera app opens it (`OpenPackageActivity`, BROWSABLE);
+- an `http(s)` link whose path ends with `.celaut.bee`, when an app offers Chatui for it
+  (no domain is verified, so Android 12+ opens such a link in the browser by itself);
+- a text that the user shares with the app (`SEND`, `text/plain`) with a link in it: the
+  first `http(s)://` link of the text;
+- a QR code that holds the link or the `chatui://import` link (the scan button of the
+  sheet).
+
+The link can give two things. The app tells them apart by the **content**, not by the
+name or the `Content-Type`:
+
+1. **a `.celaut.bee` file.** It starts with the length of its first record (4 bytes,
+   big-endian), which is at most 16 MiB, so its first byte is `0x00` or `0x01`;
+2. **a manifest**: UTF-8 text (a byte order mark is allowed) with the link of one chunk on
+   each line (empty lines are skipped). The chunks, joined in the order of the lines, are
+   the `.celaut.bee` file. Text never starts with `0x00` or `0x01`. A manifest has at most
+   1 MiB and 10 000 links, and each link must be `https://` (or `http://`, below).
+
+A link is `https://`; an `http://` link (also a chunk of a manifest, and a redirect to
+`http://`) needs a yes to a warning: others on the network see what the app downloads. The
+check of the hash still refuses a changed file. Other schemes are refused. The requests go
+through the network route of the app (Tor, when it is on), with the HTTP client and the TLS
+roots of the app.
+
+**The check while it downloads** (`celaut_client::link`, `package::Check`). The app
+writes the bytes to `<private dir>/packages/downloads/<key>/service.bee.partial` as they
+arrive, and checks them at the same time. It keeps at most one record in memory. It checks
+what the import of a file checks (each record is a Buffer of at most 16 MiB, each block
+hashes to its id, the file is not cut), and also the **whole Service**: the id of a service
+is the SHA3-256 of its content with its blocks in place, which is the chunks of the Service
+part in order (nodo `zip_with_dockerfile`, the digest of `read_multiblock_directory`). At the
+end that hash must be the id of the service that the Metadata (or a hash part) gives. A link
+can also name the service: a fragment of 64 hexadecimal characters
+(`https://host/echo.celaut.bee#<id>`, the fragment does not go to the server); the file must
+then be that service. A file that fails a check is refused with the reason, and its bytes
+are deleted. A file that passes is moved into the library, as a loaded file.
+
+Checked on a real `nodo export` (echo-chat `b4e043`, 138 MB): the hash of its Service is
+`b4e0438b…`, its id.
+
+**Progress and cancel.** The card of the import (the rocket) says "Downloading the
+service…" with the bytes (and the percent when the server gives the size), "Part N of M"
+for a manifest, and the number of tries that failed. Cancel stops the download and deletes
+its files.
+
+**Retry.** Each request (the file, or one chunk) is tried up to 5 times, with a wait of 1,
+2, 4 and 8 seconds. A connection error, a cut answer, no byte for 60 seconds (120 through a
+proxy), and HTTP 408, 425, 429 and 5xx are tried again; another status (404, 403…) stops at
+once. A try asks for the rest of the request with `Range: bytes=<n>-`: the bytes that came
+are not downloaded again. A server that does not take the `Range` (200) gives the request
+again from its start; for a manifest, only that chunk.
+
+**Resume.** A download that still fails stays on the phone, with a small `state.json` (the
+link, the links of the chunks, and the end of each complete chunk). "The download
+stopped… Continue" on the message, a "Continue" on top of the import sheet, or the same
+link again, go on from there: a file from its last byte, a manifest from its last complete
+chunk, and from the byte inside the next one. The check reads the bytes on disk again (a
+local read, no download). Only one download is kept: a download of another link deletes
+the one before, and the sheet has "Delete".
+
+**Size limit.** 4 GiB. A file that the server says is larger stops before a byte is written;
+a manifest stops when its chunks pass the limit. Its bytes are deleted.
 
 "Your services" lists the loaded files with Run and Remove. Run launches the service by
 its id, like a service of the catalog. If no node has it, the failure sheet offers to send
@@ -225,13 +298,23 @@ when the node refuses the markers before its first answer, as nodo does.
 |---|---|
 | `rust/crates/celaut-wire` | `Transport::call_buffers`, `call_with_service` and `call_raw`; `relay::call_with_service` (stops when the node answers first); `SendCounter`; `gateway::get_service_raw` and `get_service_estimated_cost_with_service`; `WireError::Relay` |
 | `rust/crates/celaut-client/src/package.rs` | Save the answer of `GetService` to a `.bee` file, inspect a file (layout, service id), read it for a node, cancel, and load a file into the library (`import`) |
-| `rust/crates/wallet-ffi/src/api/celaut_package.rs` | `celaut_fetch_service`, `celaut_inspect_package`, `celaut_send_service`, `celaut_transfer_progress`, `celaut_cancel_transfer`; the library: `celaut_import_package`, `celaut_packages`, `celaut_remove_package` |
+| `rust/crates/celaut-client/src/link.rs` | Download a service from a link: tell a file from a manifest, write and check as the bytes arrive (`package::Check`), retry with `Range`, resume, cancel, the size limit |
+| `rust/crates/wallet-ffi/src/api/celaut_package.rs` | `celaut_fetch_service`, `celaut_inspect_package`, `celaut_send_service`, `celaut_transfer_progress`, `celaut_cancel_transfer`; the library: `celaut_import_package`, `celaut_packages`, `celaut_remove_package`; links: `celaut_check_link`, `celaut_import_link`, `celaut_pending_link`, `celaut_discard_link` (the HTTP requests on `wallet_net::http`) |
 
 ## Checks
 
 - `celaut-client/tests/package.rs`: save, inspect, read with the indices of a node, a
   `nodo export` file, a node that does not have the service, an error and a cancel that
   leave no file, a cut file, files that are not packages.
+- `celaut-client/tests/link.rs`: a file and a manifest are downloaded, checked and loaded;
+  a failed chunk is tried again from its byte (no byte twice); a server with no `Range`; a
+  download that stops goes on from the disk (no chunk again); only one download is kept; a
+  cancel and the size limit delete the files; a lie in the Metadata, a changed byte, a cut
+  file, text that is not a manifest and an empty answer are refused; the link names the
+  service; `http://` and 404. With `CELAUT_BEE=<file>`, the check of a real export.
+- `wallet-ffi` (`celaut_package` tests): the HTTP requests against a server on 127.0.0.1:
+  `Range`, a server with no `Range`, 416 at the end, 404, 503, a redirect to `http://`, no
+  server.
 - `celaut-wire/tests/relay_calls.rs`: what the node gets, in order.
 - `celaut-wire/tests/early_answer.rs`, against an in-process gRPC server that answers as
   nodo does: a node that lacks the service gets all of it and a clean end; a node that
