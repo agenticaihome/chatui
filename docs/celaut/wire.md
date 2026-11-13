@@ -302,6 +302,9 @@ address. The app reads two forms. The text is trimmed first.
 
 A third form is binary, not text: the peer invitation of nodo (`protos/invite.proto`). The
 app tells it apart by its first bytes and reads it as [invite.md](invite.md) says.
+The same invitation can be text: `celaut://node?invite=<URL-safe base64>`, the link that
+opens the app ([invite.md](invite.md), section 6). With `invite`, the app reads the
+invitation and ignores `addr`.
 
 Any other text is not a node address (for example an Ergo address, an ErgoPay link or
 a web link). The app shows the same error as for a bad typed address and stores
