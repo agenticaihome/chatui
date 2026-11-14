@@ -438,4 +438,7 @@ class _Nodes implements KnownNodes {
 
   @override
   Future<InviteConnectView> connectInvite(Uint8List invite) => throw UnimplementedError();
+
+  @override
+  InviteReadView readInvite(Uint8List invite) => throw UnimplementedError();
 }

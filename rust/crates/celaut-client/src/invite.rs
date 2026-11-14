@@ -94,6 +94,120 @@ pub enum InviteError {
     Host(String),
     #[error("The host of a 'tor-onion-v3' address is not valid.")]
     Onion,
+    #[error("No address of the node can go into an invitation.")]
+    NoAddress,
+}
+
+/// nodo refuses an invitation of more than 1000 bytes.
+pub const MAX_INVITE_BYTES: usize = 1000;
+
+/// The invitation to the node `peer_id` (the lowercase hex of its key) at `addresses`
+/// (`host:port`, with brackets for IPv6), in their order. It is written as nodo's
+/// `build_invite` writes it: one tag for each address and no formal. The app shares it in a
+/// `celaut://` link (`docs/celaut/invite.md`, section 6).
+///
+/// Some addresses are left out:
+/// - an address that is not `host:port` of an IP, an onion name or a DNS name;
+/// - a loopback address, which would point at the device that opens the link;
+/// - an address that is already in the invitation;
+/// - an address that would make the invitation longer than [`MAX_INVITE_BYTES`].
+///
+/// If no address is left, the answer is [`InviteError::NoAddress`].
+pub fn build(peer_id: &str, addresses: &[String]) -> Result<Vec<u8>, InviteError> {
+    let key = hex::decode(peer_id.trim()).unwrap_or_default();
+    if key.len() != KEY_LEN {
+        return Err(InviteError::Key(key.len()));
+    }
+    let mut invite = PeerInvite {
+        public_key: key,
+        addr: Vec::new(),
+    };
+    for text in addresses {
+        let Some((kind, data)) = encode(text) else {
+            continue;
+        };
+        let addr = celaut_proto::invite::Addr {
+            tags: vec![tag_of(kind).to_string()],
+            formal: Vec::new(),
+            data,
+        };
+        if invite.addr.contains(&addr) {
+            continue;
+        }
+        invite.addr.push(addr);
+        if invite.encoded_len() > MAX_INVITE_BYTES {
+            invite.addr.pop();
+        }
+    }
+    if invite.addr.is_empty() {
+        return Err(InviteError::NoAddress);
+    }
+    Ok(invite.encode_to_vec())
+}
+
+fn tag_of(kind: Kind) -> &'static str {
+    match kind {
+        Kind::Ip4 => TAG_IP4,
+        Kind::Ip6 => TAG_IP6,
+        Kind::Onion => TAG_ONION,
+        Kind::Dns => TAG_DNS,
+    }
+}
+
+/// `host:port` as the kind and the `data` of an `Addr`, or `None` if the text is not such an
+/// address, or if it is a loopback address.
+fn encode(text: &str) -> Option<(Kind, Vec<u8>)> {
+    let text = text.trim();
+    let (host, port) = match text.strip_prefix('[') {
+        Some(rest) => rest.split_once("]:")?,
+        None => {
+            let (host, port) = text.rsplit_once(':')?;
+            if host.contains(':') {
+                return None;
+            }
+            (host, port)
+        }
+    };
+    let port: u16 = port.parse().ok().filter(|p| *p != 0)?;
+    let kind = literal_kind(host).unwrap_or(Kind::Dns);
+    let mut data = match kind {
+        Kind::Ip4 => {
+            let ip = host.parse::<Ipv4Addr>().ok()?;
+            if ip.is_loopback() || ip.is_unspecified() {
+                return None;
+            }
+            ip.octets().to_vec()
+        }
+        Kind::Ip6 => {
+            let ip = host.parse::<Ipv6Addr>().ok()?;
+            if ip.is_loopback() || ip.is_unspecified() {
+                return None;
+            }
+            ip.octets().to_vec()
+        }
+        Kind::Onion => {
+            let name = host.to_ascii_lowercase();
+            let raw = BASE32_NOPAD
+                .decode(name.trim_end_matches(".onion").to_ascii_uppercase().as_bytes())
+                .ok()?;
+            let key = raw.get(..KEY_LEN)?;
+            // The name must be the one of its key: the checksum and the version.
+            if onion_text(key) != name {
+                return None;
+            }
+            key.to_vec()
+        }
+        Kind::Dns => {
+            let lower = host.to_ascii_lowercase();
+            let bare = lower.trim_end_matches('.');
+            if !valid_hostname(host) || bare == "localhost" || bare.ends_with(".localhost") {
+                return None;
+            }
+            host.as_bytes().to_vec()
+        }
+    };
+    data.extend_from_slice(&port.to_be_bytes());
+    Some((kind, data))
 }
 
 /// Read an invitation. Addresses of a kind that the app does not know are dropped.
@@ -385,6 +499,92 @@ mod tests {
             assert_eq!(got, want, "{name}");
             assert_eq!(invite.peer_id, v["key"].as_str().unwrap(), "{name}");
         }
+    }
+
+    #[test]
+    fn build_writes_the_bytes_of_nodo_and_parse_reads_them_back() {
+        let v = vectors();
+        let key = v["key"].as_str().unwrap();
+        for name in ["ip4", "all_kinds"] {
+            let case = &v["valid"][name];
+            let targets: Vec<String> = case["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|t| t.as_str().unwrap().to_string())
+                .collect();
+            let raw = build(key, &targets).unwrap();
+            // Byte for byte what nodo's build_invite writes for the same addresses.
+            assert_eq!(hex::encode(&raw), case["hex"].as_str().unwrap(), "{name}");
+            let back = parse(&raw).unwrap();
+            assert_eq!(back.peer_id, key);
+            let got: Vec<String> = back.addrs.iter().map(InviteAddr::text).collect();
+            assert_eq!(got, targets, "{name}");
+        }
+        // The real invitation of a test node (nodo dev 76dcac3b, `nodo invite --raw`).
+        let real = "0a2076c4f416b0bab037f6d4b223ae897a4e4a538959deb2e53a5684c1dfb1ac9e2a\
+                    120d0a036970341a06c0a8c801e49e120d0a036970341a060ad5c302e49e";
+        let raw = build(
+            "76c4f416b0bab037f6d4b223ae897a4e4a538959deb2e53a5684c1dfb1ac9e2a",
+            &["192.168.200.1:58526".into(), "10.213.195.2:58526".into()],
+        )
+        .unwrap();
+        assert_eq!(hex::encode(raw), real);
+    }
+
+    #[test]
+    fn build_leaves_out_loopback_bad_and_repeated_addresses() {
+        let key = "ab".repeat(32);
+        let addresses: Vec<String> = [
+            "127.0.0.1:1",
+            "[::1]:2",
+            "0.0.0.0:3",
+            "localhost:4",
+            "x.localhost:5",
+            "no-port",
+            "1.2.3.4:0",
+            "1.2.3.4:70000",
+            "::1:5",
+            "bad host:6",
+            "abc.onion:7",
+            "203.0.113.7:8",
+            "[2001:db8::1]:9",
+            "203.0.113.7:8",
+            "Node.Example.org:10",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        let back = parse(&build(&key, &addresses).unwrap()).unwrap();
+        let got: Vec<String> = back.addrs.iter().map(InviteAddr::text).collect();
+        assert_eq!(
+            got,
+            ["203.0.113.7:8", "[2001:db8::1]:9", "Node.Example.org:10"]
+        );
+        // Nothing to share, or no key.
+        assert_eq!(
+            build(&key, &["127.0.0.1:1".into()]),
+            Err(InviteError::NoAddress)
+        );
+        assert_eq!(build(&key, &[]), Err(InviteError::NoAddress));
+        assert_eq!(build("abcd", &["1.2.3.4:5".into()]), Err(InviteError::Key(2)));
+        assert_eq!(build("zz", &["1.2.3.4:5".into()]), Err(InviteError::Key(0)));
+    }
+
+    #[test]
+    fn build_stays_within_the_limit_of_nodo() {
+        let key = "ab".repeat(32);
+        // 200 DNS names of 60 bytes: far more than 1000 bytes.
+        let addresses: Vec<String> = (0..200)
+            .map(|i| format!("{}{i:03}.example.org:1", "a".repeat(45)))
+            .collect();
+        let raw = build(&key, &addresses).unwrap();
+        assert!(raw.len() <= MAX_INVITE_BYTES, "{}", raw.len());
+        let back = parse(&raw).unwrap();
+        assert!(back.addrs.len() > 10);
+        // The first ones are kept, in their order.
+        assert_eq!(back.addrs[0].text(), addresses[0]);
+        assert_eq!(back.addrs[1].text(), addresses[1]);
     }
 
     #[test]

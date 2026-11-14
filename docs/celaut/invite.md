@@ -3,7 +3,9 @@
 nodo#579 (issue nodo#572, "QR for Chatui") lets a node show a compact invitation to itself as
 a QR code: `nodo invite`, or `i` on the PEERS screen of its TUI. The app reads it and
 connects to the node. This note says what the app reads and how it chooses an address.
-It adds to the two text forms of [wire.md](wire.md), section 6, which stay.
+It adds to the two text forms of [wire.md](wire.md), section 6, which stay. Section 6 is
+the `celaut://` link that opens the app with an invitation (issue #138), and the Share
+action that makes one.
 
 Sources: `protos/invite.proto` and `src/utils/peer_invite.py` of nodo dev at `f4dcb3b2`.
 
@@ -53,14 +55,14 @@ the error of a bad address.
 
 ## 3. The way that is most feasible
 
-`celaut_connect_invite(bytes)` reads the invitation and tries the addresses that can work
-**on the current route** (`celaut-client/src/invite.rs`, `plan`), in order, and stops at the
-first node that proves the key.
+`celaut_connect_invite(bytes)` reads the invitation and races the addresses that can work
+**on the current route** (`celaut-client/src/invite.rs`, `plan`), in that order, and uses the
+first node that proves the key (section 3.1).
 
 | Route | Onion | Private network (10.x, 192.168.x, fd00::, `.local`, no dot) | Order |
 |---|---|---|---|
 | Direct | skipped: no way to reach it | tried: the QR code is often shown on the same network | the one of the invitation |
-| Tor inside the app | tried **first**: it never leaves the Tor network (Arti with `onion-service-client`, section 7) | skipped: a Tor exit cannot reach it | onion, then the one of the invitation |
+| Tor inside the app | tried **first**: it never leaves the Tor network (Arti with `onion-service-client`, section 8) | skipped: a Tor exit cannot reach it | onion, then the one of the invitation |
 | External SOCKS5 proxy (Orbot) | tried **first**: it never leaves the Tor network | skipped | onion, then the one of the invitation |
 
 An address that is skipped is not an error: the screen says why for each one that the app
@@ -77,8 +79,51 @@ forgot the client id gives the usual choice (a new client, or later).
 
 Timeouts: 10 seconds for a direct address, 45 for a route through Tor (a circuit takes
 longer), and 60 for an onion address (its descriptor, an introduction and a rendezvous come
-before the first byte; section 7). The tries are one after another, so the worst case with four unreachable
-addresses on a direct route is 40 seconds.
+before the first byte; section 8).
+
+### 3.1 The race of the addresses
+
+Tried one after another, an address that hangs made the user wait for its whole timeout
+before the next one was tried: four addresses that hang on a direct route took 40
+seconds. Now the addresses race (`celaut-client/src/race.rs`, issue #139):
+
+- The first address starts alone, with a head start of 250 ms (`HEAD_START`, the
+  "Connection Attempt Delay" of Happy Eyeballs, RFC 8305). The second address starts when
+  the head start is over, or at once if the first fails before. So a healthy first address
+  is the only one that is dialed. The same holds between each try and the next.
+- At most two tries run at once; when one fails, the next address of the order starts.
+- When a try proves the key, no new try starts and the tries after it in the order are
+  stopped (their future is dropped, so the dial or the handshake ends there).
+- A try before it in the order can still be running. It has 250 ms more (`GRACE`): if it
+  proves the key in that time, it is used instead, so the order of preference wins when two
+  addresses answer at nearly the same time. After that it is stopped. A second address that
+  worked but is not used has its connection closed, unless it was open before.
+- The screen lists the tried addresses in the order of preference. A try that was stopped,
+  or that worked after an address before it, is `NotNeeded`. It never shows: the list of
+  reasons shows only when no address worked.
+
+The worst case with four addresses that hang on a direct route is now about 20 seconds
+(two rounds of two), and a hanging first address with a working second one costs the head
+start, the time of the second one and the grace, not 10 seconds. The grace and the head
+start are the same through Tor. Through Tor the two tries build two circuits at once.
+
+A try that completed TLS still has to open a session: `GetPeerInfo` with the client id that
+the app has on the node, or `GenerateClient` first if it has none (`celaut_service.rs`,
+`open_session`). Two tries must not make two clients on one node, so making a client takes
+a lock of that node (`OPENING`, by `peer_id`):
+
+- A node where the app has a client takes no lock: resuming the client makes none. An
+  address that hangs in `GetPeerInfo` holds up nothing.
+- Without a client, a try takes the lock of the node, looks again (another try may have made
+  the client while it waited) and only then calls `GenerateClient`. An address that hangs
+  there holds up only the other tries on the same node, until it is stopped (its time
+  limit) — the price of one client per node. Other nodes are not held up.
+
+The same race connects to a node of the node list (`celaut_home.rs`, `reach_within`): the
+compute overview and the checks of the nodes (`celaut_health.rs`) race the addresses where
+the app reached the node, the last one first. There a try that reaches another node (the
+`peer_id` of the advertisement is not the one of the list) is a failure, so it never wins
+over the node.
 
 ## 4. Code
 
@@ -86,39 +131,181 @@ addresses on a direct route is 40 seconds.
 |---|---|
 | `rust/crates/celaut-proto/protos/invite.proto`, `src/gen/invite.rs` | The message, copied from nodo; `cargo run -p gen-protos` |
 | `rust/crates/celaut-client/src/invite.rs` | `parse`, the formats of each tag, `plan` (the route rules), `is_private` |
+| `rust/crates/celaut-client/src/race.rs` | `race`: the head start, two tries at a time, the first that works, the order within the grace |
 | `rust/crates/wallet-ffi/src/api/celaut_invite.rs` | `celaut_connect_invite`, the attempts for the screen |
-| `rust/crates/wallet-ffi/src/api/celaut_service.rs` | `session_pinned`: a session that only the invited key can open |
+| `rust/crates/wallet-ffi/src/api/celaut_home.rs` | `reach_within`: the same race for a node of the node list |
+| `rust/crates/wallet-ffi/src/api/celaut_service.rs` | `session_pinned`: a session that only the invited key can open; `open_on`, `OPENING`: one new client at a time on each node |
 | `app/lib/celaut/invite_scan.dart`, `app/lib/ui/scan_screen.dart` | `ScannedCode`, `looksLikeInvite`, the binary scanner |
-| `app/lib/ui/celaut/known_nodes_screen.dart` | The scan button, the result, the reason for each address |
+| `app/lib/ui/celaut/known_nodes_screen.dart` | The scan button, the confirmation, the result, the reason for each address |
+| `rust/crates/wallet-ffi/src/api/celaut_invite.rs` | `celaut_read_invite`: the key and the addresses for the confirmation, with no connection |
+| `app/lib/celaut/celaut_link.dart` | `parseCelautLink`: the `celaut://` link, its size checks and its base64 |
+| `app/lib/ui/celaut/node_link.dart` | `openNodeLink`, the confirmation of an invitation or an address, the refusal; `showNodeShare` |
+| `app/lib/ui/celaut/celaut_link_open.dart` | `openCelautLink` and `celautLinkOpeners`: the opener of each host |
+| `rust/crates/celaut-client/src/invite.rs`, `wallet-ffi/.../celaut_invite.rs` | `build`, `celaut_node_invite`: the invitation of a listed node, for Share |
+| `app/lib/ui/celaut/node_connect_screen.dart` | The Share action of the node detail |
+| `app/android/.../OpenLinkActivity.kt`, `DeepLinkHandler.kt` | The intent filter of `celaut:` and the way of a link into the app |
 
 ## 5. Checks
 
 - `invite.rs`: the vectors give the addresses that nodo gives, the refusals match, unknown
   tags are dropped, the onion name is the one of the key, junk never panics, and the private
   ranges and the route rules (one test per route).
+- `race.rs` (with a paused clock): a healthy first address is the only one dialed; the
+  second starts at the end of the head start, or at once when the first fails; each try has
+  its head start over the next; without a head start the first two start together; a first
+  address that hangs or waits for its whole timeout does not hold up a fast second one; the
+  first in the order wins when both answer within the grace and loses after it; a winner
+  stops the tries after it at once; never more than two at a time and a failure starts the
+  next; one at a time gives the old order and times.
+- `celaut_service.rs` (the lock of each node): a node that hangs while it makes a client
+  does not hold up another node; a known node whose first address hangs in `GetPeerInfo`
+  is reached by the second address in the race; two calls never make two clients on one
+  node; a new node whose first address hangs in `GenerateClient` makes one client, by the
+  second address, after the first is stopped; the locks that nobody uses are dropped.
 - `celaut_invite.rs`: the first address that works stops the tries and each try pins the key;
   nothing works gives a reason for each address; no usable address asks nobody; each Tor
   route (the client of the app and a proxy) tries the onion first with the long timeout; a
-  direct route says that the onion needs Tor; bytes that are not an invitation are refused.
-- `app/test/celaut_known_nodes_test.dart`: an invitation connects and lists the node; the
-  reasons are shown; a code of text never goes to the reader; a node that forgot the client
-  id asks and connects again.
+  direct route says that the onion needs Tor; bytes that are not an invitation are refused;
+  a slow fake address and a fast one connect by the fast one in well under the timeout; the
+  order of the invitation wins when both answer at nearly the same time; never more than two
+  addresses at a time.
+- `app/test/celaut_known_nodes_test.dart`: an invitation asks first (key, addresses, the
+  ones that the route skips, "already in your list") and Cancel connects nothing; then it
+  connects and lists the node; the reasons are shown; a code of text never goes to the
+  reader; a QR code with the text of an invitation link is an invitation; a node that forgot
+  the client id asks and connects again; opened from a confirmed link, the screen connects
+  at once.
+- `app/test/celaut_link_test.dart`: the link gives the bytes back (padding or not, `%3D`,
+  upper case, other parameters); a link of a megabyte and an invitation over 1000 bytes are
+  refused before they are decoded; malformed forms are refused with their reason;
+  3000 random links never throw; the confirmation, Cancel, the address form and each
+  refusal on screen.
+- `celaut_invite.rs`: the reader gives the addresses in the order of the route and the
+  skipped ones last, says whether the node is listed, and refuses junk.
+- `invite.rs` (`build`): the bytes are the ones of nodo for the vectors and for the real
+  invitation of a test node; loopback, malformed and repeated addresses are left out; the
+  invitation stays within 1000 bytes; no address or no key is an error.
+  `celaut_invite.rs`: the invitation of a listed node reads back with its addresses.
+- `celaut_link_test.dart`: `celautLinkHost`; a link goes to the opener of its host, a
+  second host is one entry, an unknown host says so; the Share dialog shows the link (QR
+  code and text) that opens the same invitation, Copy and Share give it, and a node with no
+  address says so. `celaut_node_screen_test.dart`: the detail has Share, the empty form
+  has not.
 - Not checked: a real node (`nodo invite --raw` into a phone), a scan with a camera, an onion
   address through Orbot, IPv6 on a phone. The vectors were written from the proto and the
   format of nodo and not made with its code, because nodo needs `bee-rpc-over-grpc-py` and the
   tool that installs it was refused in this environment. They match the figures of nodo#579
   (49 and 128 bytes) and its tests.
 
-## 6. Open items
+## 6. A link that opens the app
 
-- **Onion with the Tor client of the app.** Done (issue #140): section 7.
-- **Race the addresses.** The app tries one after another. Trying the first two at the same
-  time would save time when the first one hangs. Not built.
-- **A link to open the app.** `celaut://` for an invitation, so that a phone camera app can
-  open it. The invitation is binary, so it would need base64 and a size check; nodo says no
-  to a URL wrapper.
+A phone camera app opens a QR code of text that is a link, and a chat or a web page can
+hold one. The invitation of nodo is binary, and nodo says no to a URL wrapper, so the link
+is a format of the app:
 
-## 7. Onion with the Tor client of the app (#140, 2026-11-13)
+```
+celaut://node?invite=<the bytes of the invitation in URL-safe base64>
+```
+
+### 6.1 The format
+
+- The host is `node`, as in the address form of [wire.md](wire.md), section 6: a link to a
+  node, by an invitation or by an address (`celaut://node?addr=host:port`). The scheme and
+  the host are case-insensitive; a `/` after `node` is allowed; no fragment.
+- The base64 is the URL-safe alphabet of RFC 4648, section 5 (`-` and `_`), with or without
+  the `=` padding (also as `%3D`). `+`, `/` and any other character make the link invalid.
+- `invite` comes once. Other parameters are ignored, so that a later version can add one.
+  With `invite`, an `addr` is ignored.
+- Sizes, checked in this order and before anything is decoded: a link longer than 2048
+  characters; a base64 longer than 1336 characters (the base64 of 1000 bytes); then, after
+  decoding, more than 1000 bytes, the limit of nodo. An invitation of 49 bytes is a link of
+  87 characters, and one of 128 bytes a link of 192.
+- The bytes must then begin as an invitation (`0x0a 0x20`), and Rust reads them by the rules
+  of section 1.
+
+### 6.2 The way into the app
+
+**On Android** `OpenLinkActivity` has the intent filter (VIEW, BROWSABLE, scheme `celaut`)
+and gives the link to MainActivity in the task of the app, as `OpenPackageActivity` does
+for a file: no second Flutter engine in the task of the camera app. `DeepLinkHandler` gives
+it to Flutter (`argus/deeplink`, with the ErgoPay links); only the first 4097 characters of
+a longer link cross the channel, enough to see that it is too long. A link that Android
+gives again from the recent apps is not opened again.
+MainActivity turns off the deep linking of Flutter (`flutter_deeplinking_enabled`): it is
+on by default since Flutter 3.27 and pushed every link that came while the app ran as a
+route, which is unknown, so a second home screen covered the dialog of the link. The ErgoPay
+links had the same fault.
+
+**In the app** the home screen takes the link when it is ready; no wallet is needed.
+`openCelautLink` gives a `node` link to `openNodeLink` (section 6.3). Then:
+
+1. `parseCelautLink` reads it. A link that is too long, malformed or not an invitation
+   shows a dialog that says which, and nothing else happens. Nothing in a link can make the
+   parser throw.
+2. `celaut_read_invite` reads the invitation with no connection. A refusal of Rust is "the
+   invitation in the link is damaged".
+3. The confirmation shows the key of the node (short, with Copy and the full key), "already
+   in your list" if it is, and the addresses in the order that the app will try them, with
+   "not tried on the current route" for the ones that the route skips.
+4. Add opens the node list, which connects as for a scanned code (section 3) and shows the
+   result there. Cancel does nothing.
+
+The scanner of the node list shows the same confirmation before it connects, for the bytes
+of an invitation and for a QR code with the text of an invitation link. A link with an
+address (`addr`) asks "add the node at host:port?" and then adds it as a typed address.
+A link that comes while another screen is open closes the screens above home first, as an
+ErgoPay link or a tapped notification does.
+
+### 6.3 One handler for every host
+
+`celaut://` is the scheme of the app for all its links, not only for nodes: `celaut://import`
+(a service from a link, #135) is the next one. There is one way in for all of them:
+
+- **Android:** `OpenLinkActivity` has the only intent filter of the scheme, with no host, and
+  does not look at the host. `DeepLinkHandler` passes every `celaut:` link to Dart.
+- **Dart:** the home screen calls `openCelautLink` (`celaut_link_open.dart`). It reads only
+  the host (`celautLinkHost`: `celaut://<host>` then the end, `/`, `?` or `#`, case-
+  insensitive) and calls the opener of that host in `celautLinkOpeners`:
+
+  ```dart
+  const Map<String, CelautLinkOpener> celautLinkOpeners = {
+    'node': openNodeLink,
+    // 'import': openImportLink,   <- a new kind of link is one line
+  };
+  ```
+
+  A `CelautLinkOpener` gets the context and the whole link. It checks its own form and
+  sizes, asks the user, and shows `showCelautLinkRefused` for a link that it does not open.
+  A host with no opener shows "this app cannot open this kind of celaut link".
+
+### 6.4 Share: making a link
+
+The node detail (the node list, then a node) has a **Share** action in its app bar. It shows
+the `celaut://node?invite=` link of the node:
+
+- as a QR code, which a phone camera app opens;
+- as text, with **Copy**;
+- with **Share link**, the share sheet of the system (a chat, an e-mail).
+
+The invitation is made in Rust (`celaut_node_invite`, `invite::build`) as nodo's
+`build_invite` writes it: the key of the node, then the addresses where the app reached it,
+the last one first, one tag each and no formal. The bytes are the same as nodo's for the same
+addresses. Loopback addresses (`127.0.0.0/8`, `::1`, `localhost`) are left out, because they
+would point at the device that opens the link. So are repeated ones, and the ones that would
+pass the 1000 bytes of nodo. If no address is left, the dialog says that the app cannot make
+a link. The link holds no client id and no credit: it only says who the node is and where
+to find it, like the QR code of `nodo invite`.
+
+## 7. Open items
+
+- **Onion with the Tor client of the app.** Done (issue #140): section 8.
+- **The guest bridge in nodo's invitations.** `nodo invite` lists `192.168.200.1`, the
+  host side of nodo's guest bridge, first (seen on a test node, nodo dev 76dcac3b). No
+  client off the host can reach it; the app tries it and goes on. nodo#655 asks
+  `build_invite` to leave it out. The Share of the app does not add it: the app shares only the
+  addresses where it reached the node.
+
+## 8. Onion with the Tor client of the app (#140, 2026-11-13)
 
 The Arti client of the app is built with the `onion-service-client` feature of
 `arti-client` 0.47 (`rust/crates/celaut-tor/Cargo.toml`), and `address_filter.allow_onion_addrs`

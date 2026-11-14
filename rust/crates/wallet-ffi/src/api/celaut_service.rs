@@ -49,8 +49,19 @@ pub(crate) struct State {
 
 static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(State::default()));
 static QUOTES: Lazy<Mutex<QuoteCache>> = Lazy::new(|| Mutex::new(QuoteCache::new()));
-/// One new session at a time, so that two calls do not make two clients on one node.
-static OPENING: Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
+/// One new client at a time on each node, by `peer_id`, so that two calls (two addresses
+/// of a node in a race, or two screens) do not make two clients on one node. A node that
+/// hangs while it makes a client does not hold up the other nodes.
+static OPENING: Lazy<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+/// The lock of [`OPENING`] for the node `peer_id`.
+fn opening_lock(peer_id: &str) -> Arc<tokio::sync::Mutex<()>> {
+    let mut locks = OPENING.lock().unwrap_or_else(|e| e.into_inner());
+    // A lock that only this map holds has no call on it.
+    locks.retain(|_, lock| Arc::strong_count(lock) > 1);
+    locks.entry(peer_id.to_string()).or_default().clone()
+}
 
 /// Close every local port of the instance: its own ports and the ports to its descendants.
 /// Call it when the instance stops, hibernates or is gone. A port that stays open keeps
@@ -170,16 +181,19 @@ pub(crate) async fn open_session(
     connection: Connection,
     address_key: &str,
 ) -> Result<NodeSession<Connection>, CelautError> {
-    let _one = OPENING.lock().await;
-    let db = db();
     let peer_id = connection.peer_id().to_string();
-    let stored = db.read(|d| d.nodes.get(&peer_id).map(|n| n.client_id.clone()));
-    let session = match stored.filter(|c| !c.is_empty()) {
-        Some(client_id) => NodeSession::resume(connection, &peer_id, client_id, &*db)
-            .await
-            .map_err(error_of)?,
-        None => new_client_session(connection, &peer_id).await?,
-    };
+    let p = peer_id.as_str();
+    let session = open_on(
+        connection,
+        p,
+        |connection, client_id| async move {
+            NodeSession::resume(connection, p, client_id, &*db())
+                .await
+                .map_err(error_of)
+        },
+        |connection| new_client_session(connection, p),
+    )
+    .await?;
     note_reached(&session, address_key)?;
     Ok(session)
 }
@@ -195,6 +209,45 @@ fn note_reached(session: &NodeSession<Connection>, address_key: &str) -> Result<
         d.add_announced_addresses(peer_id, &announced);
     })
     .map_err(storage_error)
+}
+
+/// The client id that the database has for the node `peer_id`, if any.
+fn stored_client_id(peer_id: &str) -> Option<String> {
+    db().read(|d| d.nodes.get(peer_id).map(|n| n.client_id.clone()))
+        .filter(|c| !c.is_empty())
+}
+
+/// The order of [`open_session`], without the network (tests give their own `resume` and
+/// `new`): with a stored client id, `resume` at once, with no lock, because it makes no
+/// client. Without one, take the lock of the node ([`OPENING`]), look again (another call
+/// may have made the client while this one waited), and only then make a client with
+/// `new`. So an address that hangs in `GetPeerInfo` holds up nothing, and one that hangs
+/// in `GenerateClient` holds up only the other calls that would make a client on the same
+/// node.
+async fn open_on<C, S, R, RF, N, NF>(
+    connection: C,
+    peer_id: &str,
+    resume: R,
+    new: N,
+) -> Result<S, CelautError>
+where
+    R: FnOnce(C, String) -> RF,
+    RF: std::future::Future<Output = Result<S, CelautError>>,
+    N: FnOnce(C) -> NF,
+    NF: std::future::Future<Output = Result<S, CelautError>>,
+{
+    if let Some(client_id) = stored_client_id(peer_id) {
+        return resume(connection, client_id).await;
+    }
+    let lock = opening_lock(peer_id);
+    let one = lock.lock().await;
+    match stored_client_id(peer_id) {
+        Some(client_id) => {
+            drop(one);
+            resume(connection, client_id).await
+        }
+        None => new(connection).await,
+    }
 }
 
 /// A new client on the node (`GenerateClient`), kept in the database at once. An old
@@ -254,8 +307,9 @@ pub async fn celaut_new_client(node: NodeAddress) -> Result<NewClientView, Celau
         .await
         .map_err(|e| error_of(e.into()))?;
     let session = {
-        let _one = OPENING.lock().await;
         let peer_id = connection.peer_id().to_string();
+        let lock = opening_lock(&peer_id);
+        let _one = lock.lock().await;
         new_client_session(connection, &peer_id).await?
     };
     let peer_id = session.peer_id().to_string();
@@ -353,6 +407,23 @@ pub(crate) fn forget_if_broken(address: &NodeAddress, error: &ClientError) {
 pub(crate) fn forget_if_broken_key(key: &str) {
     if let Ok(mut s) = STATE.lock() {
         s.sessions.remove(key);
+    }
+}
+
+/// Whether the app has a connection open to the address `key` (`host:port`).
+pub(crate) fn is_open(key: &str) -> bool {
+    STATE
+        .lock()
+        .map(|s| s.sessions.contains_key(key))
+        .unwrap_or(false)
+}
+
+/// After a race of the addresses of a node ([`celaut_client::race`]): close the
+/// connection of the address `key` that also worked but is not used, unless it was open
+/// before the race (`was_open`) or it is the address that is used (`used`).
+pub(crate) fn close_unused(key: &str, was_open: bool, used: &str) {
+    if !was_open && key != used {
+        forget_if_broken_key(key);
     }
 }
 
@@ -2393,5 +2464,187 @@ mod tests {
                 .is_ok()
         );
         close_ports("keep-me").unwrap();
+    }
+
+    // The lock of each node (#139): an address that completes TLS and then hangs in
+    // `GetPeerInfo` (resume) or `GenerateClient` (new client).
+
+    use celaut_client::race::{self, race, Outcome};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::Duration;
+
+    /// Counts the clients that the fakes made, and the most that were being made at once.
+    #[derive(Default)]
+    struct Making {
+        made: AtomicUsize,
+        now: AtomicUsize,
+        most: AtomicUsize,
+    }
+
+    struct MakingNow<'a>(&'a Making);
+
+    impl Drop for MakingNow<'_> {
+        fn drop(&mut self) {
+            self.0.now.fetch_sub(1, Ordering::SeqCst);
+        }
+    }
+
+    /// A step of a fake node: it answers after `ms`, or never (`None`).
+    async fn step(ms: Option<u64>) {
+        match ms {
+            Some(ms) => tokio::time::sleep(Duration::from_millis(ms)).await,
+            None => std::future::pending().await,
+        }
+    }
+
+    fn forget_node(peer: &str) {
+        db().update(|d| {
+            d.nodes.remove(peer);
+        })
+        .unwrap();
+    }
+
+    /// [`open_on`] with a fake node: `GetPeerInfo` takes `resume_ms` and `GenerateClient`
+    /// takes `new_ms` (`None`: it hangs). A new client is stored as
+    /// [`new_client_session`] does. Gives the client id of the session.
+    async fn fake_open(
+        peer: &str,
+        resume_ms: Option<u64>,
+        new_ms: Option<u64>,
+        making: &Making,
+    ) -> Result<String, CelautError> {
+        open_on(
+            (),
+            peer,
+            |(), client_id| async move {
+                step(resume_ms).await;
+                Ok(client_id)
+            },
+            |()| async move {
+                let n = making.now.fetch_add(1, Ordering::SeqCst) + 1;
+                making.most.fetch_max(n, Ordering::SeqCst);
+                let _now = MakingNow(making);
+                step(new_ms).await;
+                let n = making.made.fetch_add(1, Ordering::SeqCst) + 1;
+                let client_id = format!("c-{}-{n}", &peer[..4]);
+                db().update(|d| {
+                    d.nodes.insert(
+                        peer.to_string(),
+                        NodeRecord::new_client(client_id.clone(), None),
+                    );
+                })
+                .map_err(storage_error)?;
+                Ok(client_id)
+            },
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn a_node_that_hangs_while_it_makes_a_client_does_not_hold_up_another_node() {
+        let (x, y) = ("f1".repeat(32), "f2".repeat(32));
+        forget_node(&x);
+        forget_node(&y);
+        let (on_x, on_y) = (Making::default(), Making::default());
+        let hung = fake_open(&x, Some(1), None, &on_x);
+        tokio::pin!(hung);
+        // It takes the lock of x and hangs in GenerateClient.
+        assert!(tokio::time::timeout(Duration::from_millis(50), &mut hung)
+            .await
+            .is_err());
+        assert_eq!(on_x.now.load(Ordering::SeqCst), 1);
+        // With one lock for every node, y waited for x.
+        let got = tokio::time::timeout(
+            Duration::from_secs(2),
+            fake_open(&y, Some(1), Some(5), &on_y),
+        )
+        .await
+        .expect("y waited for the lock of x")
+        .unwrap();
+        assert_eq!(got, format!("c-{}-1", &y[..4]));
+        assert_eq!(on_x.made.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn a_known_node_whose_first_address_hangs_in_get_peer_info_holds_up_nothing() {
+        // The node has a client: the session resumes it, which makes no client and takes
+        // no lock. The first address completes TLS and never answers GetPeerInfo.
+        let peer = "f3".repeat(32);
+        db().update(|d| {
+            d.nodes
+                .insert(peer.clone(), NodeRecord::new_client("c-known".into(), None));
+        })
+        .unwrap();
+        let making = Making::default();
+        let t0 = std::time::Instant::now();
+        let got = tokio::time::timeout(
+            Duration::from_secs(5),
+            race(2, race::WIDTH, race::HEAD_START, race::GRACE, |i| {
+                let resume_ms = if i == 0 { None } else { Some(10) };
+                fake_open(&peer, resume_ms, Some(1), &making)
+            }),
+        )
+        .await
+        .expect("the second address waited for the first");
+        assert_eq!(got, vec![Outcome::Stopped, Outcome::Won("c-known".into())]);
+        // The head start of the first, the answer of the second, and the grace.
+        assert!(t0.elapsed() < Duration::from_secs(2), "{:?}", t0.elapsed());
+        assert_eq!(making.made.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn two_calls_never_make_two_clients_on_one_node() {
+        let peer = "f4".repeat(32);
+        forget_node(&peer);
+        let making = Making::default();
+        // The first makes the client slowly; the second waits for it and resumes it.
+        let (a, b) = tokio::join!(fake_open(&peer, Some(1), Some(100), &making), async {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            fake_open(&peer, Some(1), Some(1), &making).await
+        });
+        let client = format!("c-{}-1", &peer[..4]);
+        assert_eq!((a.unwrap(), b.unwrap()), (client.clone(), client));
+        assert_eq!(making.made.load(Ordering::SeqCst), 1);
+        assert_eq!(making.most.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn a_new_node_whose_first_address_hangs_in_generate_client_keeps_one_client_at_a_time() {
+        // No client yet: the first address completes TLS and never answers
+        // GenerateClient. The second address of the same node may not make a client while
+        // the first one could still make one, so it waits until the first is stopped by
+        // its time limit (as `reach_within` does), then makes the only client.
+        let peer = "f5".repeat(32);
+        forget_node(&peer);
+        let making = Making::default();
+        let limit = Duration::from_millis(400);
+        let t0 = std::time::Instant::now();
+        let got = race(2, race::WIDTH, race::HEAD_START, race::GRACE, |i| {
+            let new_ms = if i == 0 { None } else { Some(5) };
+            let open = fake_open(&peer, Some(1), new_ms, &making);
+            async move {
+                tokio::time::timeout(limit, open)
+                    .await
+                    .unwrap_or_else(|_| Err(invalid("the time limit")))
+            }
+        })
+        .await;
+        assert!(matches!(got[0], Outcome::Failed(_)), "{got:?}");
+        assert_eq!(got[1], Outcome::Won(format!("c-{}-1", &peer[..4])));
+        assert!(t0.elapsed() >= limit, "{:?}", t0.elapsed());
+        assert_eq!(making.most.load(Ordering::SeqCst), 1);
+        assert_eq!(making.made.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn the_locks_of_the_nodes_that_nobody_uses_are_dropped() {
+        let held = opening_lock(&"f6".repeat(32));
+        drop(opening_lock(&"f7".repeat(32)));
+        // The next call drops the lock of f7, which nobody holds, and keeps the one of f6.
+        let _ = opening_lock(&"f8".repeat(32));
+        let locks = OPENING.lock().unwrap();
+        assert!(locks.contains_key(&"f6".repeat(32)));
+        assert!(!locks.contains_key(&"f7".repeat(32)));
+        drop(held);
     }
 }

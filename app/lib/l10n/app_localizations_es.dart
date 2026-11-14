@@ -8428,4 +8428,67 @@ class AppLocalizationsEs extends AppLocalizations {
   String cardsSettingsTestValue(String value, String needed) {
     return 'Giro: $value rad/s (un gesto necesita $needed)';
   }
+
+  @override
+  String get celautLinkConfirmTitle => '¿Añadir este nodo?';
+
+  @override
+  String get celautLinkConfirmInvite =>
+      'Un enlace te invita a un nodo. La app se conecta a él y comprueba que tiene esta clave antes de añadirlo a tu lista.';
+
+  @override
+  String get celautLinkConfirmKey => 'Clave del nodo';
+
+  @override
+  String get celautLinkConfirmAddresses =>
+      'Direcciones, en el orden en que la app las prueba';
+
+  @override
+  String get celautLinkConfirmSkipped => 'No se prueba en la ruta actual';
+
+  @override
+  String get celautLinkConfirmListed => 'Este nodo ya está en tu lista.';
+
+  @override
+  String get celautLinkRefusedTitle => 'No se puede abrir este enlace';
+
+  @override
+  String get celautLinkTooLong =>
+      'El enlace es demasiado largo para una invitación a un nodo. La app no leyó nada de él.';
+
+  @override
+  String get celautLinkInvalid =>
+      'El enlace no es un enlace a un nodo que esta app pueda leer.';
+
+  @override
+  String get celautLinkDamaged => 'La invitación del enlace está dañada.';
+
+  @override
+  String celautLinkConfirmAddress(String address) {
+    return 'Un enlace pide añadir el nodo en $address. La app se conecta a él y lo comprueba antes de añadirlo a tu lista.';
+  }
+
+  @override
+  String get celautLinkUnknownKind =>
+      'Esta app no puede abrir este tipo de enlace celaut. Una versión más nueva quizá sí.';
+
+  @override
+  String get celautNodeShare => 'Compartir';
+
+  @override
+  String get celautNodeShareTitle => 'Compartir este nodo';
+
+  @override
+  String get celautNodeShareNote =>
+      'Una cámara de móvil que lee este código, o un toque en el enlace, abre la app y pide añadir el nodo. El enlace tiene la clave del nodo y las direcciones donde esta app lo alcanzó. No da acceso a tu cliente ni a tu crédito.';
+
+  @override
+  String get celautNodeShareLink => 'Compartir enlace';
+
+  @override
+  String get celautNodeShareCopied => 'Enlace copiado';
+
+  @override
+  String get celautNodeShareNone =>
+      'Esta app no tiene ninguna dirección del nodo que otro dispositivo pueda usar, así que no puede crear un enlace.';
 }

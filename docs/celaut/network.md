@@ -67,7 +67,7 @@ With Tor on, the app never falls back to a direct connection.
 - The onion that a node announces in its signed advertisement (a `Peer.Uri` whose transport
   has the tag `tor-onion-v3` and whose host is a valid v3 onion name) joins the addresses of
   the node when the app opens a session with it, so a node first added by its IP can be
-  reached by its onion later ([invite.md](invite.md), section 7). The app never removes it.
+  reached by its onion later ([invite.md](invite.md), section 8). The app never removes it.
 - The order in which the app tries the addresses of a node depends on the route
   (`celaut_client::node_addresses::order`): through Tor the onions go first; on a direct
   route they go last; otherwise the last address that worked goes first. The node list, the
@@ -112,4 +112,4 @@ With Tor on, the app never falls back to a direct connection.
   descendant test is ignored (`celaut-client/tests/real_node.rs`) and was not run through Tor.
 - Not checked: a phone, Android (the Arti client builds for the Android targets in the CI,
   but it was not run there), and the battery use. A Celaut node through Tor was
-  checked in the emulator for #140, by its onion address ([invite.md](invite.md), section 7).
+  checked in the emulator for #140, by its onion address ([invite.md](invite.md), section 8).

@@ -234,7 +234,7 @@ pub async fn celaut_check_nodes(force: bool) -> Vec<NodeHealthView> {
         let checks = due
             .iter()
             .map(|(peer_id, addresses)| async move {
-                (peer_id.as_str(), reach_within(addresses, limit).await)
+                (peer_id.as_str(), reach_within(peer_id, addresses, limit).await)
             });
         let reached = futures::future::join_all(checks).await;
         record(reached.iter().map(|(p, r)| (*p, r)), now_seconds());

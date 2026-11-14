@@ -36,7 +36,7 @@ These items need a device, a second node or nodo work. They are not part of this
 |---|---|
 | Check the app on a phone (GrapheneOS, no Play Services): a conversation with `echo-chat`, the foreground service with the screen off, Tor inside the app, the QR scan | Josemi or Nate, with a phone |
 | A node on the internet, and a list of more than one node (the choice of the balancer, the nodes left out of a launch) | Josemi or Nate, with a second node that has a public address |
-| Onion addresses for nodes. Through Tor, the app cannot reach a node in a private network (`10.0.2.2`, `192.168.x.x`) | Done. nodo announces an onion address (`nodo tor`, `routing.tor.ANNOUNCE`), and since #140 both Tor routes of the app open it, the onion first (`docs/celaut/invite.md`, section 7). A phone and nodo's own onion service: Josemi or Nate |
+| Onion addresses for nodes. Through Tor, the app cannot reach a node in a private network (`10.0.2.2`, `192.168.x.x`) | Done. nodo announces an onion address (`nodo tor`, `routing.tor.ANNOUNCE`), and since #140 both Tor routes of the app open it, the onion first (`docs/celaut/invite.md`, section 8). A phone and nodo's own onion service: Josemi or Nate |
 | Error codes in the answers of nodo, so that the app does not classify the texts | nodo work |
 | A tunnel stream to a stopped instance stays open on the node while the client keeps the TCP connection (seen in `nodo tunnels --inbound` after a phone lost its network) | nodo work |
 | `GET /chat/messages?from=²` (a digit that is not ASCII) closes the connection instead of status 400 | `echo-chat` in celaut-basics |
@@ -464,7 +464,7 @@ credit of 4 500 000 MU. No transaction.
 so that a node does not see the IP address of the phone. It does not hide the node;
 onion addresses for nodes are nodo work (decision 7 in section 7). nodo has them now
 (`nodo tor`), and since #140 the Arti client of the app opens them too
-(`docs/celaut/invite.md`, section 7).
+(`docs/celaut/invite.md`, section 8).
 Done: see `docs/celaut/network.md`. The user can choose Arti inside the app or an
 external SOCKS5 proxy, for the nodes, the explorer and the updater of the app. With Tor
 on, the app blocks the connections instead of going direct.
