@@ -20,12 +20,13 @@ app then:
    "Reading the service file…" with these bytes; Cancel stops the copy and deletes it. A
    file that the app cannot read is refused with the reason;
 2. checks it: the file must be a package of a service, with a Service part, and it must say
-   which service it is, in its Metadata or in a hash part. The app does not hash the whole
-   Service of a picked file (a download from a link is hashed whole, see "From a link"),
-   so a file with no id is refused, with that reason. It hashes each
+   which service it is, in its Metadata or in a hash part; a file with no id is refused,
+   with that reason. Then it reads the file once with the check of a download
+   (`package::check_file`, the same `package::Check` as "From a link"): it hashes each
    block (SHA3-256, with the blocks inside it) and refuses a file with a block that does
    not hash to its id, or that is cut inside a block: a node refuses that block, but only
-   after the whole file was sent to it. While it checks, a card with the rocket (the one of
+   after the whole file was sent to it. It also hashes the **whole Service** and refuses a
+   file whose Service does not hash to the id that the file gives. While it checks, a card with the rocket (the one of
    a launch, lying on its pad) shows the bytes read of the size of the file, and the pad
    raises the rocket from horizontal to vertical as they grow (`RaiseStage`): the read is the
    first half of the rise, and the check is the second half. Cancel stops the check and
@@ -74,14 +75,17 @@ above), or **Import from a link**: a field for the link, with **Paste** and **Sc
 code**, and **Download**. The files sheet ("On this phone") has "Import from a link" too.
 Other ways in, all to the same import:
 
-- `chatui://import?url=<the link, URL-encoded>`: a web page, a QR code of another app, or
-  the camera app opens it (`OpenPackageActivity`, BROWSABLE);
+- `celaut://import?url=<the link, URL-encoded>`: a web page, a QR code of another app, or
+  the camera app opens it (`OpenLinkActivity`, BROWSABLE). It is the `celaut://` scheme of
+  the node links (#138, [invite.md](invite.md)), with the host `import`;
 - an `http(s)` link whose path ends with `.celaut.bee`, when an app offers Chatui for it
-  (no domain is verified, so Android 12+ opens such a link in the browser by itself);
-- a text that the user shares with the app (`SEND`, `text/plain`) with a link in it: the
-  first `http(s)://` link of the text;
-- a QR code that holds the link or the `chatui://import` link (the scan button of the
+  (`OpenPackageActivity`; no domain is verified, so Android 12+ opens such a link in the
+  browser by itself);
+- a QR code that holds the link or the `celaut://import` link (the scan button of the
   sheet).
+
+The app is not a target of "Share" for text: a link that the user copied goes in with
+**Paste** (which takes the first `http(s)://` link of the text).
 
 The link can give two things. The app tells them apart by the **content**, not by the
 name or the `Content-Type`:
@@ -101,15 +105,26 @@ roots of the app.
 
 **The check while it downloads** (`celaut_client::link`, `package::Check`). The app
 writes the bytes to `<private dir>/packages/downloads/<key>/service.bee.partial` as they
-arrive, and checks them at the same time. It keeps at most one record in memory. It checks
-what the import of a file checks (each record is a Buffer of at most 16 MiB, each block
-hashes to its id, the file is not cut), and also the **whole Service**: the id of a service
+arrive, and checks them at the same time. It keeps at most one record in memory. It is the
+check of a picked file (each record is a Buffer of at most 16 MiB, each block hashes to its
+id, the file is not cut, and the **whole Service** hashes to the id): the id of a service
 is the SHA3-256 of its content with its blocks in place, which is the chunks of the Service
 part in order (nodo `zip_with_dockerfile`, the digest of `read_multiblock_directory`). At the
 end that hash must be the id of the service that the Metadata (or a hash part) gives. A link
 can also name the service: a fragment of 64 hexadecimal characters
 (`https://host/echo.celaut.bee#<id>`, the fragment does not go to the server); the file must
-then be that service. A file that fails a check is refused with the reason, and its bytes
+then be that service. Reading it is optional: a typed link without it is downloaded and
+checked all the same. But a link that is **made** for others always has it: a QR code, a
+`celaut://import` link on a web page, and a link in the catalog give
+`<link>#<64 hex service id>` (the app makes them with `serviceLinkWithId` and
+`importDeepLink` in `service_link.dart`), so the user gets the service that was named, not
+only a valid one. For example:
+
+```
+celaut://import?url=https%3A%2F%2Fgithub.com%2Fcelaut-basics%2Fecho-chat%2Freleases%2Fdownload%2Fv3%2Fb9a665.celaut.bee%23<the 64 hex characters of the service id>
+```
+
+A file that fails a check is refused with the reason, and its bytes
 are deleted. A file that passes is moved into the library, as a loaded file.
 
 Checked on a real `nodo export` (echo-chat `b4e043`, 138 MB): the hash of its Service is
@@ -297,7 +312,7 @@ when the node refuses the markers before its first answer, as nodo does.
 | Where | What |
 |---|---|
 | `rust/crates/celaut-wire` | `Transport::call_buffers`, `call_with_service` and `call_raw`; `relay::call_with_service` (stops when the node answers first); `SendCounter`; `gateway::get_service_raw` and `get_service_estimated_cost_with_service`; `WireError::Relay` |
-| `rust/crates/celaut-client/src/package.rs` | Save the answer of `GetService` to a `.bee` file, inspect a file (layout, service id), read it for a node, cancel, and load a file into the library (`import`) |
+| `rust/crates/celaut-client/src/package.rs` | Save the answer of `GetService` to a `.bee` file, inspect a file (layout, service id), read it for a node, cancel, check a file (`Check`, `check_file`: blocks and the whole Service), and load a file into the library (`import`) |
 | `rust/crates/celaut-client/src/link.rs` | Download a service from a link: tell a file from a manifest, write and check as the bytes arrive (`package::Check`), retry with `Range`, resume, cancel, the size limit |
 | `rust/crates/wallet-ffi/src/api/celaut_package.rs` | `celaut_fetch_service`, `celaut_inspect_package`, `celaut_send_service`, `celaut_transfer_progress`, `celaut_cancel_transfer`; the library: `celaut_import_package`, `celaut_packages`, `celaut_remove_package`; links: `celaut_check_link`, `celaut_import_link`, `celaut_pending_link`, `celaut_discard_link` (the HTTP requests on `wallet_net::http`) |
 
@@ -305,7 +320,8 @@ when the node refuses the markers before its first answer, as nodo does.
 
 - `celaut-client/tests/package.rs`: save, inspect, read with the indices of a node, a
   `nodo export` file, a node that does not have the service, an error and a cancel that
-  leave no file, a cut file, files that are not packages.
+  leave no file, a cut file, files that are not packages, a picked file whose Service does
+  not hash to the id that it gives (`check_file`).
 - `celaut-client/tests/link.rs`: a file and a manifest are downloaded, checked and loaded;
   a failed chunk is tried again from its byte (no byte twice); a server with no `Range`; a
   download that stops goes on from the disk (no chunk again); only one download is kept; a
