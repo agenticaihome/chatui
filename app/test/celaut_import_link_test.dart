@@ -61,6 +61,7 @@ class _Lib {
         importedAt: 1,
         nodoExport: true,
         present: true,
+        filesystemKept: true,
       );
       stored = [v];
       return v;

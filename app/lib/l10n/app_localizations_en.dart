@@ -5270,6 +5270,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'The app opens on the list of conversations. This is the default. Turn it off to see the wallets list first.';
 
   @override
+  String get celautKeepNoFilesystemTitle =>
+      'Do not keep the filesystem of a service';
+
+  @override
+  String get celautKeepNoFilesystemSubtitle =>
+      'Services that you load from a file or a link are kept without their filesystem, which is most of their size. They still run on the nodes that have them, but you cannot give them to a node that does not. Off by default; services already loaded do not change.';
+
+  @override
+  String get celautPkgNoFilesystem =>
+      'Without its filesystem: it cannot be given to a node';
+
+  @override
   String get celautHomeComputeTitle => 'Offered compute';
 
   @override

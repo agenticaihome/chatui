@@ -88,6 +88,10 @@ struct ServiceBytes {
     opened: Option<Vec<u8>>,
     /// How many blocks the node was asked to skip.
     blocks_skipped: u32,
+    /// A field that is a block is skipped whatever its length. For a package file, whose
+    /// blocks may have no content (a library file kept without its filesystem), and where
+    /// the length of a field is the one of the whole block, however small.
+    any_size: bool,
 }
 
 /// The id of a block, from its marker: the SHA3-256 hash that names it.
@@ -122,6 +126,7 @@ impl ServiceBytes {
             skipping: None,
             opened: None,
             blocks_skipped: 0,
+            any_size: false,
         }
     }
 
@@ -201,7 +206,7 @@ impl ServiceBytes {
     /// length of a field that is a block is the length of the block). If the field is not a
     /// block, or the node cannot skip, the bytes are read and dropped.
     async fn skip_field(&mut self, len: u64) -> Result<(), PackageError> {
-        if len >= SKIP_THRESHOLD && self.skipper.is_some() && self.pos >= self.buf.len() {
+        if (len >= SKIP_THRESHOLD || self.any_size) && self.skipper.is_some() && self.pos >= self.buf.len() {
             self.opened = None;
             // The next Buffer: a marker if the field is a block, else its first bytes.
             while self.pos >= self.buf.len() && self.opened.is_none() {
@@ -522,7 +527,10 @@ pub async fn read_service_info(
     limit: Option<u64>,
     skipper: Option<Skipper>,
 ) -> Result<ServiceInfo, PackageError> {
-    let mut src = ServiceBytes::new(input, limit, skipper);
+    read_info(ServiceBytes::new(input, limit, skipper)).await
+}
+
+async fn read_info(mut src: ServiceBytes) -> Result<ServiceInfo, PackageError> {
     let mut info = ServiceInfo::default();
     match scan(&mut src, &mut info).await {
         Ok(()) => {}
@@ -543,12 +551,16 @@ pub async fn read_service_info_of_file(path: &Path) -> Result<ServiceInfo, Packa
     if !info.has_service {
         return Err(invalid("the file has no Service part"));
     }
-    read_service_info(
+    // The file is local: the reader drops the content of the block of the filesystem as it
+    // goes, and a file kept without that content (no chunk between the markers) reads the
+    // same as a whole one.
+    let mut src = ServiceBytes::new(
         read(path.to_path_buf(), info.layout, Cancel::new()),
         None,
-        None,
-    )
-    .await
+        Some(std::sync::Arc::new(|_: &[u8]| true)),
+    );
+    src.any_size = true;
+    read_info(src).await
 }
 
 #[cfg(test)]
@@ -1126,6 +1138,31 @@ mod tests {
             ..Default::default()
         });
         out
+    }
+
+    #[tokio::test]
+    async fn a_package_kept_without_its_filesystem_gives_the_same_information() {
+        use crate::package::strip_filesystem;
+        let dir = std::env::temp_dir().join(format!("celaut-info-stripped-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let (whole, stripped) = (dir.join("whole.bee"), dir.join("stripped.bee"));
+        let mut raw = Vec::new();
+        for b in block_buffers(300_000, &["A", "B"]) {
+            let record = b.encode_to_vec();
+            raw.extend((record.len() as u32).to_be_bytes());
+            raw.extend(record);
+        }
+        std::fs::write(&whole, raw).unwrap();
+        let kept = strip_filesystem(&whole, &stripped, &Cancel::new()).await.unwrap();
+        assert!(kept < 10_000, "{kept} bytes");
+        let a = read_service_info_of_file(&whole).await.unwrap();
+        let b = read_service_info_of_file(&stripped).await.unwrap();
+        assert_eq!(a.filesystem_bytes, 300_000);
+        assert_eq!(b.filesystem_bytes, a.filesystem_bytes);
+        assert_eq!(b.environment, a.environment);
+        assert_eq!(b.environment.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(), ["A", "B"]);
+        assert!(!b.truncated);
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     /// A node that honours the skip requests, as the reference does: the stream is lazy, and

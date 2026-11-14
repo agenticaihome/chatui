@@ -8,9 +8,23 @@ import 'celaut.dart';
 import 'celaut_service.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `begin`, `clean_name`, `client`, `content_range`, `describe`, `end`, `library_view`, `package_error`, `transfer`, `view_of`
+// These functions are ignored because they are not marked as `pub`: `begin`, `clean_name`, `client`, `content_range`, `describe`, `end`, `library_view`, `package_error`, `storage_now`, `transfer`, `view_of`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `HttpSource`, `Running`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `open`
+
+/// The setting "Do not keep the filesystem of a service". It makes no connection.
+bool celautPackagesWithoutFilesystem() =>
+    RustLib.instance.api.crateApiCelautPackageCelautPackagesWithoutFilesystem();
+
+/// Turn the setting "Do not keep the filesystem of a service" on or off (`enabled`). On: a
+/// service that is loaded afterwards (a file or a link) is kept without the content of the blocks of its
+/// Service, which is the filesystem of its container. The file is still checked in full
+/// before; the service still runs on the nodes that have it; but it cannot be given to a
+/// node that does not have it. The services that are in the library do not change.
+void celautSetPackagesWithoutFilesystem({required bool enabled}) => RustLib
+    .instance
+    .api
+    .crateApiCelautPackageCelautSetPackagesWithoutFilesystem(enabled: enabled);
 
 /// Load the service file at `path` (a copy of the file that the user chose, in the cache of
 /// the app) into the library of the app, which keeps it in a private directory `dir` under
@@ -150,6 +164,10 @@ class LibraryPackageView {
   /// that the screen can say it, and the user can load the file again.
   final bool present;
 
+  /// True if the file holds the filesystem of the service. False if the user had "Do not
+  /// keep the filesystem" on when the file was loaded: it cannot be given to a node.
+  final bool filesystemKept;
+
   const LibraryPackageView({
     required this.serviceId,
     required this.name,
@@ -158,6 +176,7 @@ class LibraryPackageView {
     required this.importedAt,
     required this.nodoExport,
     required this.present,
+    required this.filesystemKept,
   });
 
   @override
@@ -168,7 +187,8 @@ class LibraryPackageView {
       bytes.hashCode ^
       importedAt.hashCode ^
       nodoExport.hashCode ^
-      present.hashCode;
+      present.hashCode ^
+      filesystemKept.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -181,7 +201,8 @@ class LibraryPackageView {
           bytes == other.bytes &&
           importedAt == other.importedAt &&
           nodoExport == other.nodoExport &&
-          present == other.present;
+          present == other.present &&
+          filesystemKept == other.filesystemKept;
 }
 
 /// A link that the user gave, before the download (issue #135).

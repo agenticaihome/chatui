@@ -15,6 +15,8 @@
 //!   the whole Service hashes to the service id.
 //! - [`read`] gives the Buffers of a `.bee` file for a node: the head indices of a
 //!   `nodo export` file (1 Metadata, 2 Service) become 5 and 6.
+//! - [`strip_filesystem`] copies a checked `.bee` file without the content of the blocks of
+//!   its Service (the filesystem of the container), to save space in the library.
 //!
 //! A [`Cancel`] stops a transfer: the stream gives an error, and the node gets markers
 //! that make it refuse the cut input (`bee_rpc::grpc::call_buffers`).
@@ -621,6 +623,86 @@ impl Check {
     }
 }
 
+/// Copy the package at `source` to `target` without the content of the blocks of its
+/// Service, which is the filesystem of the container (`docs/celaut/package.md`, "Without
+/// the filesystem"). Of each top-level block the file keeps the two markers, the one that
+/// opens it and the one that ends it, and nothing between them: no chunk and no marker of a
+/// block inside. The rest is copied as it is, so [`inspect`] and the reader of the service
+/// information (`service_info`) read the copy as before. The copy does not pass [`Check`] and
+/// [`read`] must not give it to a node: the library records that
+/// ([`Imported::filesystem_kept`]).
+///
+/// The copy is written next to `target` and renamed, so `target` never holds a cut file.
+/// Gives the size of the copy, in bytes. `source` is read in order, one record at a time;
+/// `cancel` stops it. Call it only on a package that [`check_file`] passed: a block that is
+/// not closed is an error.
+pub async fn strip_filesystem(
+    source: &Path,
+    target: &Path,
+    cancel: &Cancel,
+) -> Result<u64, PackageError> {
+    let partial = partial_path(target);
+    let result = async {
+        let mut reader = BufReader::new(tokio::fs::File::open(source).await?);
+        let mut writer = BufWriter::new(tokio::fs::File::create(&partial).await?);
+        let mut total = 0u64;
+        // The ids of the blocks that are open, the outermost first.
+        let mut open: Vec<Vec<u8>> = Vec::new();
+        while let Some(mut buffer) = next_record(&mut reader).await? {
+            if cancel.is_cancelled() {
+                return Err(PackageError::Cancelled);
+            }
+            if let Some(block) = &buffer.block {
+                let id = block
+                    .hashes
+                    .iter()
+                    .find_map(|h| (h.r#type == SHA3_256_TYPE).then(|| h.value.clone()))
+                    .ok_or_else(|| PackageError::Invalid("a block has no SHA3-256 id".into()))?;
+                if open.last() == Some(&id) {
+                    // The end of the innermost block: the marker of a top-level block stays.
+                    open.pop();
+                    if !open.is_empty() {
+                        continue;
+                    }
+                } else {
+                    open.push(id);
+                    if open.len() > 1 {
+                        continue;
+                    }
+                    // The bytes that come with the opening marker are in the block.
+                    buffer.chunk = None;
+                }
+            } else if !open.is_empty() {
+                continue;
+            }
+            let record = buffer.encode_to_vec();
+            let len = u32::try_from(record.len())
+                .ok()
+                .filter(|l| *l <= MAX_RECORD)
+                .ok_or_else(|| PackageError::Invalid("a Buffer is too large".into()))?;
+            writer.write_u32(len).await?;
+            writer.write_all(&record).await?;
+            total += 4 + u64::from(len);
+        }
+        if !open.is_empty() {
+            return Err(PackageError::Invalid("the file is cut inside a block".into()));
+        }
+        writer.flush().await?;
+        Ok(total)
+    }
+    .await;
+    match result {
+        Ok(total) => {
+            tokio::fs::rename(&partial, target).await?;
+            Ok(total)
+        }
+        Err(e) => {
+            let _ = tokio::fs::remove_file(&partial).await;
+            Err(e)
+        }
+    }
+}
+
 /// The folder of the library inside `dir`, a private directory of the app.
 pub fn library_dir(dir: &Path) -> PathBuf {
     dir.join("packages").join("library")
@@ -638,7 +720,25 @@ pub struct Imported {
     pub service_id: [u8; 32],
     /// Where the file is now.
     pub path: PathBuf,
+    /// The head of the package, as it was before it went into the library. Its `bytes` is
+    /// the size of the file that was loaded; `stored_bytes` is the size in the library.
     pub info: PackageInfo,
+    /// The size of the file in the library, in bytes.
+    pub stored_bytes: u64,
+    /// False if the content of the blocks of the Service was left out
+    /// ([`Storage::WithoutFilesystem`]): the library file cannot be given to a node.
+    pub filesystem_kept: bool,
+}
+
+/// What the library keeps of a checked package.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Storage {
+    /// The whole file: the service can be given to a node that does not have it.
+    #[default]
+    Whole,
+    /// The file without the content of the blocks of its Service ([`strip_filesystem`]).
+    /// The service is checked as before, but the file cannot be given to a node.
+    WithoutFilesystem,
 }
 
 /// Load the package at `source` into the library under `dir`: check it, then move it to
@@ -657,6 +757,19 @@ pub async fn import(
     dir: &Path,
     cancel: &Cancel,
 ) -> Result<Imported, PackageError> {
+    import_with(source, dir, cancel, Storage::Whole).await
+}
+
+/// [`import`], with the choice of what the library keeps. The check reads the whole file
+/// first, so a file with a false block is refused whatever `storage` says; with
+/// [`Storage::WithoutFilesystem`] the file that is checked is then copied to the library
+/// without the content of its blocks, and `source` is deleted.
+pub async fn import_with(
+    source: &Path,
+    dir: &Path,
+    cancel: &Cancel,
+    storage: Storage,
+) -> Result<Imported, PackageError> {
     let info = inspect(source).await?;
     if !info.has_service {
         return Err(PackageError::Invalid("the file has no Service part".into()));
@@ -666,17 +779,48 @@ pub async fn import(
     }
     // The head says what the file is at once; the check reads all of it.
     let service_id = check_file(source, cancel).await?.service_id;
-    let path = into_library(source, dir, &service_id).await?;
+    let path = into_library_with(source, dir, &service_id, storage).await?;
+    let stored_bytes = tokio::fs::metadata(&path).await?.len();
     Ok(Imported {
         service_id,
         path,
         info,
+        stored_bytes,
+        filesystem_kept: storage == Storage::Whole,
     })
 }
 
 /// Move (or copy, from another disk) the checked package at `source` into the library under
 /// `dir`, as the file of `service_id`. Gives its path.
 pub async fn into_library(
+    source: &Path,
+    dir: &Path,
+    service_id: &[u8; 32],
+) -> Result<PathBuf, PackageError> {
+    into_library_with(source, dir, service_id, Storage::Whole).await
+}
+
+/// [`into_library`], with the choice of what the library keeps. For
+/// [`Storage::WithoutFilesystem`] the library file is written from `source` by
+/// [`strip_filesystem`] and `source` is deleted; the library never holds a cut file.
+pub async fn into_library_with(
+    source: &Path,
+    dir: &Path,
+    service_id: &[u8; 32],
+    storage: Storage,
+) -> Result<PathBuf, PackageError> {
+    if storage == Storage::WithoutFilesystem {
+        let folder = library_dir(dir);
+        tokio::fs::create_dir_all(&folder).await?;
+        let target = library_path(dir, service_id);
+        strip_filesystem(source, &target, &Cancel::new()).await?;
+        let _ = tokio::fs::remove_file(source).await;
+        return Ok(target);
+    }
+    into_library_whole(source, dir, service_id).await
+}
+
+async fn into_library_whole(
     source: &Path,
     dir: &Path,
     service_id: &[u8; 32],

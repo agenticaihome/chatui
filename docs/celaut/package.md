@@ -163,6 +163,40 @@ cannot run until the file is loaded again.
 Only a copy that the app made for one transfer is deleted after it: the service that it
 fetched from another node (`celaut_fetch_service`).
 
+### Without the filesystem (optional)
+
+A service is mostly its filesystem: one top-level block of the Service part, with blocks of
+its own inside it (`service-info.md`, section 2). A user who is short of space can turn on
+**Settings, "Do not keep the filesystem of a service"**. It is **off by default**. The
+core keeps it in the Celaut database (`packages_without_filesystem`;
+`celaut_packages_without_filesystem`, `celaut_set_packages_without_filesystem`).
+
+With it on, a service that the user loads afterwards, from a file or from a link, is
+checked as before (the blocks, and the whole Service against its id) and then kept without
+the content of the filesystem (`package::strip_filesystem`):
+
+- Of each top-level block of the Service, the library file keeps the two markers, the one
+  that opens it and the one that ends it, and nothing between them: no chunk, and no marker
+  of a block inside. The rest of the file is the same. `inspect` and the reader of the
+  service information (`read_service_info_of_file`) read it as before, so the screens of the
+  service still show its information, its variables and its interface.
+- The file does not pass `check_file` any more (its blocks are empty), and it must not go to
+  a node. The record says it (`PackageRecord.without_filesystem`, `filesystem_kept` in
+  `LibraryPackageView`). `celaut_send_service` refuses the file with the kind
+  `invalidInput`; the list of "Your services" says "Without its filesystem: it cannot be
+  given to a node"; the launch failure sheet does not offer it as the source of a send, so it
+  offers a node that has the service, or a file to pick. The user can load the file again,
+  with the setting off, to have the whole service.
+- The service still **runs** on the nodes that have it: the node does not need the file.
+- The setting is read when a load starts. Services that are in the library do not change,
+  and loading the same service again replaces its file, as before.
+- **Space during the load.** The app still needs the whole file once: the picker copy, or
+  the download (it goes on from the disk if it stops, and the check needs every byte). The
+  library file is written from it, and the whole file is deleted after. So the peak is the
+  size of the file; what stays is the small part. A node-to-node transfer
+  (`celaut_fetch_service`) is not changed: its copy is deleted after the send, and the send
+  needs every byte.
+
 ## Where the app gets a service
 
 1. **A node that has it.** `GetService` gives the indices 4, 5 and 6, the same as
@@ -312,23 +346,30 @@ when the node refuses the markers before its first answer, as nodo does.
 | Where | What |
 |---|---|
 | `rust/crates/celaut-wire` | `Transport::call_buffers`, `call_with_service` and `call_raw`; `relay::call_with_service` (stops when the node answers first); `SendCounter`; `gateway::get_service_raw` and `get_service_estimated_cost_with_service`; `WireError::Relay` |
-| `rust/crates/celaut-client/src/package.rs` | Save the answer of `GetService` to a `.bee` file, inspect a file (layout, service id), read it for a node, cancel, check a file (`Check`, `check_file`: blocks and the whole Service), and load a file into the library (`import`) |
+| `rust/crates/celaut-client/src/package.rs` | Save the answer of `GetService` to a `.bee` file, inspect a file (layout, service id), read it for a node, cancel, check a file (`Check`, `check_file`: blocks and the whole Service), load a file into the library (`import`, `import_with`) and keep it without the content of its blocks (`strip_filesystem`, `Storage`) |
 | `rust/crates/celaut-client/src/link.rs` | Download a service from a link: tell a file from a manifest, write and check as the bytes arrive (`package::Check`), retry with `Range`, resume, cancel, the size limit |
-| `rust/crates/wallet-ffi/src/api/celaut_package.rs` | `celaut_fetch_service`, `celaut_inspect_package`, `celaut_send_service`, `celaut_transfer_progress`, `celaut_cancel_transfer`; the library: `celaut_import_package`, `celaut_packages`, `celaut_remove_package`; links: `celaut_check_link`, `celaut_import_link`, `celaut_pending_link`, `celaut_discard_link` (the HTTP requests on `wallet_net::http`) |
+| `rust/crates/wallet-ffi/src/api/celaut_package.rs` | `celaut_fetch_service`, `celaut_inspect_package`, `celaut_send_service`, `celaut_transfer_progress`, `celaut_cancel_transfer`; the library: `celaut_import_package`, `celaut_packages`, `celaut_remove_package`, `celaut_packages_without_filesystem`, `celaut_set_packages_without_filesystem`; links: `celaut_check_link`, `celaut_import_link`, `celaut_pending_link`, `celaut_discard_link` (the HTTP requests on `wallet_net::http`) |
 
 ## Checks
 
 - `celaut-client/tests/package.rs`: save, inspect, read with the indices of a node, a
   `nodo export` file, a node that does not have the service, an error and a cancel that
   leave no file, a cut file, files that are not packages, a picked file whose Service does
-  not hash to the id that it gives (`check_file`).
+  not hash to the id that it gives (`check_file`); a load without the content of the blocks
+  (`import_with`, `strip_filesystem`): the markers and the bytes outside the block stay, the
+  blocks inside a block go too, a false block is still refused, and a file cut inside a block
+  is an error that leaves no file.
 - `celaut-client/tests/link.rs`: a file and a manifest are downloaded, checked and loaded;
   a failed chunk is tried again from its byte (no byte twice); a server with no `Range`; a
   download that stops goes on from the disk (no chunk again); only one download is kept; a
   cancel and the size limit delete the files; a lie in the Metadata, a changed byte, a cut
   file, text that is not a manifest and an empty answer are refused; the link names the
-  service; `http://` and 404. With `CELAUT_BEE=<file>`, the check of a real export.
-- `wallet-ffi` (`celaut_package` tests): the HTTP requests against a server on 127.0.0.1:
+  service; `http://` and 404; a download kept without the content of its blocks. With
+  `CELAUT_BEE=<file>`, the check of a real export.
+- `celaut-client` (`service_info` tests): a package kept without its filesystem gives the
+  same service information as the whole one.
+- `wallet-ffi` (`celaut_package` tests): the setting is off until it is turned on; a
+  service kept without its filesystem is not given to a node; the HTTP requests against a server on 127.0.0.1:
   `Range`, a server with no `Range`, 416 at the end, 404, 503, a redirect to `http://`, no
   server.
 - `celaut-wire/tests/relay_calls.rs`: what the node gets, in order.

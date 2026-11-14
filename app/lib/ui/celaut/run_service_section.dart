@@ -577,10 +577,12 @@ class _RunServiceSectionState extends State<RunServiceSection> {
 
   Future<void> _showFailure(LaunchFailure failure, String serviceId) async {
     TransferOffer? chosen;
+    // A file kept without its filesystem cannot be given to a node: the user loads it again.
+    final libraryFile = _library.find(serviceId);
     await showLaunchFailureSheet(
       context,
       failure,
-      libraryPath: _library.find(serviceId)?.path,
+      libraryPath: libraryFile != null && libraryFile.filesystemKept ? libraryFile.path : null,
       onDeposit: widget.openDeposit ??
           () => Navigator.of(context).push<void>(
             MaterialPageRoute(builder: (_) => const DepositScreen()),
@@ -1245,6 +1247,12 @@ class _PhoneServicesSheetState extends State<_PhoneServicesSheet> {
                                   : l.celautPkgMissing,
                               style: t.secondary,
                             ),
+                            if (package.present && !package.filesystemKept)
+                              Text(
+                                l.celautPkgNoFilesystem,
+                                key: Key('pkg-no-filesystem-${package.serviceId}'),
+                                style: t.secondary,
+                              ),
                           ],
                         ),
                       ),

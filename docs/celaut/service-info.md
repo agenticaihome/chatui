@@ -60,6 +60,11 @@ for a node that does not skip: after it the reader gives what came before the fi
 A package that the user transfers to another node (`celaut_fetch_service`) needs every byte, and
 uses `get_service_raw`, which never asks to skip.
 
+A library file kept without its filesystem (`package.md`, "Without the filesystem") has the
+two markers of the block and nothing between them. The reader of a local file (`read_service_info_of_file`)
+skips a field that is a block whatever its length, so it reads that file as it reads a whole
+one, and the field counts as read.
+
 ## 3. What the app shows
 
 `ServiceInfoScreen` (`app/lib/ui/celaut/service_info_screen.dart`), with a banner on top:

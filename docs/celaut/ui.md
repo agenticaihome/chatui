@@ -110,6 +110,12 @@ the button "Run a service" of the Compute tab open this screen
 search field. A skill opens a sheet with its services, best first, and the node that the
 balancer would use with its start cost. Run needs the wallet open.
 
+Settings has a switch, **Do not keep the filesystem of a service**
+(`app/lib/ui/celaut/packages_storage_row.dart`), off by default. On, a service that the user
+loads from a file or a link is kept without its filesystem, to save space. In "Your
+services" such a service says "Without its filesystem: it cannot be given to a node"; it
+still runs on the nodes that have it (`docs/celaut/package.md`, "Without the filesystem").
+
 - The screen lists every skill of the catalog; the search narrows the list.
 - Run asks first: "Run <name>?", with what a running instance costs and the node that the
   balancer would use now with its start cost (or that no node gave a price yet). Run in

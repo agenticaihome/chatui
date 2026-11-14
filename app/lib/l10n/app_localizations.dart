@@ -8399,6 +8399,24 @@ abstract class AppLocalizations {
   /// **'The app opens on the list of conversations. This is the default. Turn it off to see the wallets list first.'**
   String get celautComputeHomeRowSubtitle;
 
+  /// No description provided for @celautKeepNoFilesystemTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Do not keep the filesystem of a service'**
+  String get celautKeepNoFilesystemTitle;
+
+  /// No description provided for @celautKeepNoFilesystemSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Services that you load from a file or a link are kept without their filesystem, which is most of their size. They still run on the nodes that have them, but you cannot give them to a node that does not. Off by default; services already loaded do not change.'**
+  String get celautKeepNoFilesystemSubtitle;
+
+  /// No description provided for @celautPkgNoFilesystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Without its filesystem: it cannot be given to a node'**
+  String get celautPkgNoFilesystem;
+
   /// No description provided for @celautHomeComputeTitle.
   ///
   /// In en, this message translates to:

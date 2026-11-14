@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
-use crate::package::{into_library, Cancel, Check, Layout, PackageError, MAX_RECORD};
+use crate::package::{into_library_with, Cancel, Check, Layout, PackageError, Storage, MAX_RECORD};
 
 /// The largest manifest, in bytes. 1 MiB holds thousands of links.
 pub const MAX_MANIFEST: usize = 1024 * 1024;
@@ -215,6 +215,9 @@ pub struct LinkOptions {
     pub backoff: Duration,
     /// A request that gives no byte for this long failed.
     pub idle: Duration,
+    /// What the library keeps of the file once it passed the check. The download itself is
+    /// always whole on disk (it goes on from there if it stops, and the check needs it).
+    pub storage: Storage,
 }
 
 impl Default for LinkOptions {
@@ -225,6 +228,7 @@ impl Default for LinkOptions {
             attempts: 5,
             backoff: Duration::from_secs(1),
             idle: Duration::from_secs(60),
+            storage: Storage::Whole,
         }
     }
 }
@@ -283,7 +287,11 @@ pub struct Downloaded {
     pub service_id: [u8; 32],
     /// The file in the library.
     pub path: PathBuf,
+    /// The size of the file in the library, in bytes.
     pub bytes: u64,
+    /// False if the library file has no content in the blocks of the Service
+    /// ([`LinkOptions::storage`]).
+    pub filesystem_kept: bool,
     pub layout: Layout,
     /// The number of chunks; 0 for a single file.
     pub chunks: u32,
@@ -540,7 +548,7 @@ async fn run<S: Source + ?Sized>(
         }
     }
     sink.sync().await?;
-    let Sink { check, pos, .. } = sink;
+    let Sink { check, .. } = sink;
     let checked = check.finish()?;
     if let Some(want) = expected_id(url) {
         if want != checked.service_id {
@@ -551,11 +559,13 @@ async fn run<S: Source + ?Sized>(
             )));
         }
     }
-    let path = into_library(&partial, dir, &checked.service_id).await?;
+    let path = into_library_with(&partial, dir, &checked.service_id, options.storage).await?;
+    let stored = tokio::fs::metadata(&path).await?.len();
     Ok(Downloaded {
         service_id: checked.service_id,
         path,
-        bytes: pos,
+        bytes: stored,
+        filesystem_kept: options.storage == Storage::Whole,
         layout: checked.layout,
         chunks: state.chunks.as_ref().map_or(0, |c| c.len() as u32),
         resumed,

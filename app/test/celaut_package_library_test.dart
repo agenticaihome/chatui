@@ -38,7 +38,12 @@ class _Copier implements PackageChannel {
   Future<bool> isMetered() async => false;
 }
 
-LibraryPackageView _view({String? id, String name = 'echo', bool present = true}) => LibraryPackageView(
+LibraryPackageView _view({
+  String? id,
+  String name = 'echo',
+  bool present = true,
+  bool filesystemKept = true,
+}) => LibraryPackageView(
   serviceId: id ?? _id,
   name: name,
   path: '/data/packages/library/${id ?? _id}.bee',
@@ -46,6 +51,7 @@ LibraryPackageView _view({String? id, String name = 'echo', bool present = true}
   importedAt: 5,
   nodoExport: true,
   present: present,
+  filesystemKept: filesystemKept,
 );
 
 void main() {

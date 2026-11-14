@@ -22,6 +22,7 @@ import 'celaut/deposit_screen.dart';
 import 'celaut/env_variables_screen.dart';
 import 'celaut/balancer_screen.dart';
 import 'celaut/known_nodes_screen.dart';
+import 'celaut/packages_storage_row.dart';
 import 'celaut/service_screen.dart';
 import 'home/home_scene.dart';
 import 'layout.dart';
@@ -322,6 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ),
+        const PackagesStorageRow(),
         SettingsRow(
           key: const Key('settings-about'),
           icon: Icons.info_outline,

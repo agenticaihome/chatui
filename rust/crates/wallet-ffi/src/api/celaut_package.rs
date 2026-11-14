@@ -17,7 +17,7 @@ use std::sync::Mutex;
 use celaut_client::db::PackageRecord;
 use celaut_client::link::{self, LinkOptions, LinkProgress, Scheme};
 use celaut_client::package::{
-    import, inspect, read, remove_file, save, Cancel, Layout, PackageError, PackageInfo,
+    import_with, inspect, read, remove_file, save, Cancel, Layout, PackageError, PackageInfo, Storage,
 };
 
 use super::celaut::{error_of, invalid, CelautError, CelautErrorKind};
@@ -60,6 +60,9 @@ pub struct LibraryPackageView {
     /// False if the file is gone (the user or the system deleted it): the record stays so
     /// that the screen can say it, and the user can load the file again.
     pub present: bool,
+    /// True if the file holds the filesystem of the service. False if the user had "Do not
+    /// keep the filesystem" on when the file was loaded: it cannot be given to a node.
+    pub filesystem_kept: bool,
 }
 
 /// The longest name that the library keeps, in characters.
@@ -100,7 +103,34 @@ fn library_view(service_id: &str, r: &PackageRecord) -> LibraryPackageView {
         imported_at: r.imported_at,
         nodo_export: r.nodo_export,
         present: std::path::Path::new(&r.path).is_file(),
+        filesystem_kept: !r.without_filesystem,
     }
+}
+
+/// What the library keeps of a service that is loaded now, by the setting.
+fn storage_now() -> Storage {
+    if db().read(|d| d.packages_without_filesystem) {
+        Storage::WithoutFilesystem
+    } else {
+        Storage::Whole
+    }
+}
+
+/// The setting "Do not keep the filesystem of a service". It makes no connection.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_packages_without_filesystem() -> bool {
+    db().read(|d| d.packages_without_filesystem)
+}
+
+/// Turn the setting "Do not keep the filesystem of a service" on or off (`enabled`). On: a
+/// service that is loaded afterwards (a file or a link) is kept without the content of the blocks of its
+/// Service, which is the filesystem of its container. The file is still checked in full
+/// before; the service still runs on the nodes that have it; but it cannot be given to a
+/// node that does not have it. The services that are in the library do not change.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_set_packages_without_filesystem(enabled: bool) -> Result<(), CelautError> {
+    db().update(|d| d.packages_without_filesystem = enabled)
+        .map_err(super::celaut_db::storage_error)
 }
 
 /// Load the service file at `path` (a copy of the file that the user chose, in the cache of
@@ -124,16 +154,17 @@ pub async fn celaut_import_package(
     let source = PathBuf::from(&path);
     let size = std::fs::metadata(&source).map_err(|e| package_error(e.into()))?.len();
     let cancel = begin(TransferStage::Checking, Some(size))?;
-    let imported = import(&source, &PathBuf::from(dir), &cancel).await;
+    let imported = import_with(&source, &PathBuf::from(dir), &cancel, storage_now()).await;
     end();
     let imported = imported.map_err(package_error)?;
     let id = hex::encode(imported.service_id);
     let record = PackageRecord {
         name: clean_name(&name, &id),
         path: imported.path.display().to_string(),
-        bytes: imported.info.bytes,
+        bytes: imported.stored_bytes,
         imported_at: now_seconds(),
         nodo_export: imported.info.layout == Layout::NodoExport,
+        without_filesystem: !imported.filesystem_kept,
     };
     let view = library_view(&id, &record);
     db().update(|d| {
@@ -275,6 +306,7 @@ pub async fn celaut_import_link(
     let mut options = LinkOptions {
         max_bytes,
         allow_http,
+        storage: storage_now(),
         ..LinkOptions::default()
     };
     if !matches!(celaut_net::route(), celaut_net::Route::Direct) {
@@ -310,6 +342,7 @@ pub async fn celaut_import_link(
         bytes: downloaded.bytes,
         imported_at: now_seconds(),
         nodo_export: downloaded.layout == Layout::NodoExport,
+        without_filesystem: !downloaded.filesystem_kept,
     };
     let view = library_view(&id, &record);
     db().update(|d| {
@@ -603,6 +636,16 @@ pub async fn celaut_send_service(
     let id = service_id(&service_id_hex)?;
     let configuration = configuration(initial_mu)?;
     let path = PathBuf::from(path);
+    // A library file kept without its filesystem would make the node refuse a cut service.
+    if db().read(|d| {
+        d.packages
+            .get(&hex::encode(id))
+            .is_some_and(|r| r.without_filesystem && std::path::Path::new(&r.path) == path)
+    }) {
+        return Err(invalid(
+            "this service was kept without its filesystem: load the file again to give it to a node",
+        ));
+    }
     let info = inspect(&path).await.map_err(package_error)?;
     if !info.has_service {
         return Err(invalid("the package has no Service part"));
@@ -735,15 +778,68 @@ mod tests {
             bytes: 9,
             imported_at: 3,
             nodo_export: true,
+            without_filesystem: false,
         };
         let view = library_view(&id, &record);
         assert_eq!((view.name.as_str(), view.bytes, view.nodo_export), ("echo", 9, true));
         assert!(!view.present);
+        assert!(view.filesystem_kept);
+        let stripped = PackageRecord { without_filesystem: true, ..record.clone() };
+        assert!(!library_view(&id, &stripped).filesystem_kept);
         let here = std::env::temp_dir().join(format!("celaut-view-{}", std::process::id()));
         std::fs::write(&here, b"x").unwrap();
         let present = library_view(&id, &PackageRecord { path: here.display().to_string(), ..record });
         assert!(present.present);
         std::fs::remove_file(here).unwrap();
+    }
+
+    #[test]
+    fn the_setting_to_keep_no_filesystem_is_off_until_it_is_turned_on() {
+        let before = celaut_packages_without_filesystem();
+        assert!(!before, "off by default");
+        assert_eq!(storage_now(), Storage::Whole);
+        celaut_set_packages_without_filesystem(true).unwrap();
+        assert!(celaut_packages_without_filesystem());
+        assert_eq!(storage_now(), Storage::WithoutFilesystem);
+        celaut_set_packages_without_filesystem(false).unwrap();
+        assert_eq!(storage_now(), Storage::Whole);
+    }
+
+    #[tokio::test]
+    async fn a_service_kept_without_its_filesystem_is_not_given_to_a_node() {
+        let id = "ef".repeat(32);
+        let path = std::env::temp_dir().join(format!("celaut-stripped-{}.bee", std::process::id()));
+        std::fs::write(&path, b"x").unwrap();
+        db().update(|d| {
+            d.packages.insert(
+                id.clone(),
+                PackageRecord {
+                    name: "stripped".into(),
+                    path: path.display().to_string(),
+                    without_filesystem: true,
+                    ..PackageRecord::default()
+                },
+            );
+        })
+        .unwrap();
+        let error = celaut_send_service(
+            NodeAddress {
+                host: "127.0.0.1".into(),
+                port: 1,
+            },
+            id.clone(),
+            None,
+            path.display().to_string(),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.kind, CelautErrorKind::InvalidInput);
+        assert!(error.message.contains("without its filesystem"), "{}", error.message);
+        db().update(|d| {
+            d.packages.remove(&id);
+        })
+        .unwrap();
+        std::fs::remove_file(path).unwrap();
     }
 
     #[test]

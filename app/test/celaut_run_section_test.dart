@@ -157,7 +157,12 @@ class _Lib {
   /// The service that an imported file holds.
   String imports = _best;
 
-  LibraryPackageView view({String? id, String name = 'echo', bool present = true}) =>
+  LibraryPackageView view({
+    String? id,
+    String name = 'echo',
+    bool present = true,
+    bool filesystemKept = true,
+  }) =>
       LibraryPackageView(
         serviceId: id ?? _best,
         name: name,
@@ -166,6 +171,7 @@ class _Lib {
         importedAt: 1,
         nodoExport: true,
         present: present,
+        filesystemKept: filesystemKept,
       );
 
   PackageLibrary get library => PackageLibrary(
@@ -1286,6 +1292,17 @@ void main() {
       expect(launched, hasLength(1));
     });
 
+    testWidgets('a service kept without its filesystem says it cannot be given to a node', (tester) async {
+      lib.stored = [lib.view(), lib.view(id: _other, name: 'small', filesystemKept: false)];
+      await open(tester, packages: packages, lib: lib);
+      await showFiles(tester);
+      expect(find.byKey(Key('pkg-no-filesystem-$_other')), findsOneWidget);
+      expect(find.text(appL10n.celautPkgNoFilesystem), findsOneWidget);
+      expect(find.byKey(Key('pkg-no-filesystem-$_best')), findsNothing);
+      // It still runs: the nodes that have it do not need the file.
+      expect(tester.widget<OutlinedButton>(find.byKey(Key('pkg-run-$_other'))).onPressed, isNotNull);
+    });
+
     testWidgets('a service whose file is gone cannot run and says so', (tester) async {
       lib.stored = [lib.view(present: false)];
       await open(tester, packages: packages, lib: lib);
@@ -1506,6 +1523,16 @@ void main() {
       expect(packages.picks, 0);
       expect(transfers, ['send q.example /data/packages/library/$_best.bee'], reason: 'no fetch from a node');
       expect(launched, hasLength(2));
+    });
+
+    testWidgets('a service kept without its filesystem is not offered from the library', (tester) async {
+      launchError = missingOn();
+      final lib = _Lib()..stored = [_Lib().view(filesystemKept: false)];
+      await open(tester, transfer: transfer(), packages: packages, lib: lib);
+      await run(tester);
+      expect(find.text(appL10n.celautSendFromLibrary('q.example:9')), findsNothing);
+      // The node that has it is the source, as when nothing was loaded.
+      expect(find.text(appL10n.celautSendFromNode('h.example:7', 'q.example:9')), findsOneWidget);
     });
 
     testWidgets('the progress shows the bytes and the percent, and Cancel stops the transfer', (tester) async {

@@ -5338,6 +5338,18 @@ class AppLocalizationsEs extends AppLocalizations {
       'La app se abre en la lista de conversaciones. Es lo predeterminado. Desactívalo para ver primero la lista de billeteras.';
 
   @override
+  String get celautKeepNoFilesystemTitle =>
+      'No guardar el sistema de archivos de un servicio';
+
+  @override
+  String get celautKeepNoFilesystemSubtitle =>
+      'Los servicios que cargas desde un archivo o un enlace se guardan sin su sistema de archivos, que es casi todo su tamaño. Siguen funcionando en los nodos que los tienen, pero no puedes dárselos a un nodo que no. Desactivado por defecto; los servicios ya cargados no cambian.';
+
+  @override
+  String get celautPkgNoFilesystem =>
+      'Sin su sistema de archivos: no se puede dar a un nodo';
+
+  @override
   String get celautHomeComputeTitle => 'Cómputo ofrecido';
 
   @override

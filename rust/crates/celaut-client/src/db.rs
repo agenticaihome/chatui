@@ -467,6 +467,11 @@ pub struct CelautData {
     /// the defaults. Use [`CelautData::balancer_weights`].
     #[serde(default)]
     pub balancer_weights_milli: Option<[u32; 5]>,
+    /// The setting "Do not keep the filesystem of a service": a service that the user loads
+    /// into the library is kept without the content of the blocks of its Service, which
+    /// saves space and takes away the option to give it to a node. Off by default.
+    #[serde(default)]
+    pub packages_without_filesystem: bool,
     /// The nodes, by peer_id.
     #[serde(default)]
     pub nodes: BTreeMap<String, NodeRecord>,
@@ -565,6 +570,11 @@ pub struct PackageRecord {
     /// True for a file of `nodo export` (its parts get the indices of a node).
     #[serde(default)]
     pub nodo_export: bool,
+    /// True if the file was kept without the content of the blocks of its Service
+    /// ([`CelautData::packages_without_filesystem`] was on when it was loaded). It runs and
+    /// shows its information as any other, but it cannot be given to a node.
+    #[serde(default)]
+    pub without_filesystem: bool,
 }
 
 impl CelautData {
@@ -1075,6 +1085,7 @@ mod tests {
                 bytes: 4096,
                 imported_at: 4,
                 nodo_export: true,
+                without_filesystem: false,
             },
         );
     }

@@ -519,3 +519,119 @@ async fn a_picked_file_whose_service_does_not_hash_to_its_id_is_refused_and_stay
     assert!(!d.join("packages/library").exists() || std::fs::read_dir(d.join("packages/library")).unwrap().count() == 0);
     std::fs::remove_dir_all(d).unwrap();
 }
+
+/// The records of a `.bee` file as Buffers.
+async fn records_of(path: &std::path::Path) -> Vec<Buffer> {
+    collect(read(path.to_path_buf(), Layout::Gateway, Cancel::new())).await.unwrap()
+}
+
+#[tokio::test]
+async fn a_package_can_be_loaded_without_the_content_of_its_blocks() {
+    use celaut_client::package::{import_with, library_path, Storage};
+    let d = dir();
+    let source = d.join("picked.bee");
+    let content = vec![5u8; 2 * 1024 * 1024];
+    let id = id_of(&service_buffers(6, &content));
+    save(stream(answer_for(&content, id)), &source, &Cancel::new()).await.unwrap();
+    let size = std::fs::metadata(&source).unwrap().len();
+
+    let imported = import_with(&source, &d, &Cancel::new(), Storage::WithoutFilesystem)
+        .await
+        .unwrap();
+    assert_eq!(imported.service_id, id);
+    assert_eq!(imported.path, library_path(&d, &id));
+    assert!(!imported.filesystem_kept);
+    assert_eq!(imported.info.bytes, size);
+    let stored = std::fs::metadata(&imported.path).unwrap().len();
+    assert_eq!(imported.stored_bytes, stored);
+    assert!(stored < 2_000, "the library file has {stored} bytes of {size}");
+    // The picked file is gone, and nothing partial stays.
+    assert!(!source.exists());
+    assert!(!d.join("packages/library").join(format!("{}.bee.partial", hex::encode(id))).exists());
+    // What is outside the block is still there, with the two markers and not the content.
+    let all = records_of(&imported.path).await;
+    let chunks: Vec<&[u8]> = all.iter().filter_map(|b| b.chunk.as_deref()).collect();
+    // (The other chunks are the hash and the Metadata, before the Service.)
+    let service_chunks: Vec<&[u8]> = chunks.iter().rev().take(2).rev().copied().collect();
+    assert_eq!(service_chunks, [&b"before"[..], &b"after"[..]]);
+    assert!(chunks.iter().all(|c| c.len() < 1_000), "the content of the block is in the file");
+    assert_eq!(all.iter().filter(|b| b.block.is_some()).count(), 2);
+    let info = inspect(&imported.path).await.unwrap();
+    assert_eq!(info.service_id, Some(id));
+    assert!(info.has_service);
+    // Loading the whole file again replaces it.
+    save(stream(answer_for(&content, id)), &source, &Cancel::new()).await.unwrap();
+    let again = import_with(&source, &d, &Cancel::new(), Storage::Whole).await.unwrap();
+    assert!(again.filesystem_kept);
+    assert_eq!(std::fs::metadata(&again.path).unwrap().len(), size);
+    std::fs::remove_dir_all(d).unwrap();
+}
+
+#[tokio::test]
+async fn without_the_filesystem_the_blocks_inside_a_block_go_too_and_a_false_block_is_still_refused() {
+    use celaut_client::package::{import_with, strip_filesystem, Storage};
+    let d = dir();
+    let marker = |id: &[u8]| Buffer {
+        block: Some(block_pointer(id, HashAlgorithm::Sha3_256, false)),
+        ..Default::default()
+    };
+    let chunk = |c: &[u8]| Buffer {
+        chunk: Some(c.to_vec()),
+        ..Default::default()
+    };
+    let inner = HashAlgorithm::Sha3_256.digest(b"inner");
+    let outer = HashAlgorithm::Sha3_256.digest(b"a-inner-b");
+    let service = |outer: &[u8]| {
+        vec![
+            Buffer {
+                head: Some(Head { index: 2, partitions: vec![] }),
+                chunk: Some(b"head".to_vec()),
+                ..Default::default()
+            },
+            marker(outer),
+            chunk(b"a-"),
+            marker(&inner),
+            chunk(b"inner"),
+            marker(&inner),
+            chunk(b"-b"),
+            marker(outer),
+            Buffer {
+                chunk: Some(b"tail".to_vec()),
+                separator: Some(true),
+                ..Default::default()
+            },
+        ]
+    };
+    let file = export_file(&d, "nested.celaut.bee", service(&outer));
+    let imported = import_with(&file, &d, &Cancel::new(), Storage::WithoutFilesystem).await.unwrap();
+    let all = records_of(&imported.path).await;
+    let chunks: Vec<&[u8]> = all.iter().filter_map(|b| b.chunk.as_deref()).collect();
+    for gone in [&b"a-"[..], &b"inner"[..], &b"-b"[..]] {
+        assert!(!chunks.contains(&gone), "{:?} is in the file", String::from_utf8_lossy(gone));
+    }
+    assert!(chunks.contains(&&b"head"[..]) && chunks.contains(&&b"tail"[..]));
+    let ids: Vec<Vec<u8>> = all
+        .iter()
+        .filter_map(|b| b.block.as_ref())
+        .map(|b| b.hashes[0].value.clone())
+        .collect();
+    assert_eq!(ids, [outer.to_vec(), outer.to_vec()]);
+
+    // A block that does not hold its id is refused by the check, before anything is cut.
+    let flat = HashAlgorithm::Sha3_256.digest(b"a--b");
+    let bad = export_file(&d, "bad.celaut.bee", service(&flat));
+    let error = import_with(&bad, &d, &Cancel::new(), Storage::WithoutFilesystem).await.unwrap_err();
+    assert!(matches!(&error, PackageError::Invalid(_)), "{error}");
+    assert!(bad.exists());
+
+    // A file cut inside a block is an error and leaves no file.
+    let mut cut = service(&outer);
+    cut.truncate(5);
+    let cut = export_file_of(&d, "cut.celaut.bee", cut, [1u8; 32]);
+    let target = d.join("stripped.bee");
+    let error = strip_filesystem(&cut, &target, &Cancel::new()).await.unwrap_err();
+    assert!(matches!(&error, PackageError::Invalid(t) if t.contains("cut inside a block")), "{error}");
+    assert!(!target.exists());
+    assert!(!d.join("stripped.bee.partial").exists());
+    std::fs::remove_dir_all(d).unwrap();
+}

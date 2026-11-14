@@ -228,6 +228,29 @@ async fn a_single_file_is_downloaded_checked_and_loaded() {
 }
 
 #[tokio::test]
+async fn a_download_can_be_kept_without_the_content_of_its_blocks() {
+    use celaut_client::package::Storage;
+    let (file, id) = package(&content(300_000), None);
+    let url = "https://h/echo.celaut.bee";
+    let source = FakeSource::with(&[(url, file.clone())]);
+    let d = dir();
+    let options = LinkOptions {
+        storage: Storage::WithoutFilesystem,
+        ..options()
+    };
+    let got = download(&source, url, &d, &options, &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap();
+    assert_eq!(got.service_id, id);
+    assert!(!got.filesystem_kept);
+    // The whole file was downloaded and checked; the library keeps the small part.
+    let stored = std::fs::metadata(&got.path).unwrap().len();
+    assert_eq!(got.bytes, stored);
+    assert!(stored < 1_000, "{stored} bytes of {}", file.len());
+    no_downloads_left(&d);
+}
+
+#[tokio::test]
 async fn a_manifest_gives_the_chunks_in_order() {
     let (file, id) = package(&content(500_000), None);
     let parts: Vec<Vec<u8>> = file.chunks(120_000).map(<[u8]>::to_vec).collect();
