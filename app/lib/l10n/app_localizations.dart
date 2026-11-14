@@ -12425,6 +12425,12 @@ abstract class AppLocalizations {
   /// **'This node does not support descendants.'**
   String get celautErrorNoDescendants;
 
+  /// No description provided for @celautErrorOnionNeedsTor.
+  ///
+  /// In en, this message translates to:
+  /// **'An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.'**
+  String get celautErrorOnionNeedsTor;
+
   /// No description provided for @descendantsTitle.
   ///
   /// In en, this message translates to:

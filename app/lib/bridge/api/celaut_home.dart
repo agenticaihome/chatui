@@ -269,7 +269,10 @@ class CoresTotalView {
 class KnownNodeView {
   final String peerId;
 
-  /// The addresses (`host:port`) where the app reached the node, the last first.
+  /// The addresses (`host:port`) of the node in the order that the app tries them on the
+  /// current route: the last one that worked first, except that through Tor the onions go
+  /// first and on a direct route last (`docs/celaut/network.md`). The onions that the node
+  /// announces in its advertisement are here too.
   final List<String> addresses;
 
   /// The deposits of the app to this node, from every wallet, in nanoERG.

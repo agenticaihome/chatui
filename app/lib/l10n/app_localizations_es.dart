@@ -7817,6 +7817,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautErrorNoDescendants => 'Este nodo no admite descendientes.';
 
   @override
+  String get celautErrorOnionNeedsTor =>
+      'Una dirección onion necesita Tor. Activa Tor en los ajustes de red: el cliente Tor de la app o un proxy externo, como Orbot.';
+
+  @override
   String get descendantsTitle => 'Descendientes';
 
   @override

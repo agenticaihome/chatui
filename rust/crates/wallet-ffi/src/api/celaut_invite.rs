@@ -61,7 +61,8 @@ pub struct InviteConnectView {
     pub attempts: Vec<InviteAttemptView>,
 }
 
-fn via_now() -> Via {
+/// The route of the connections now, as the address rules see it.
+pub(crate) fn via_now() -> Via {
     match celaut_network_status().choice {
         NetworkChoice::Off => Via::Direct,
         NetworkChoice::Embedded => Via::TorEmbedded,

@@ -289,6 +289,30 @@ void main() {
     expect(db.records.keys, [_a]);
   });
 
+  testWidgets('a typed onion on a direct route shows only the hint to turn on Tor', (
+    tester,
+  ) async {
+    final db = await pump(tester);
+    db.errors.add(
+      const CelautError(
+        kind: CelautErrorKind.onionNeedsTor,
+        message: 'an onion address needs Tor: turn on Tor in the network settings',
+      ),
+    );
+    const onion = 'a4ddngexample.onion:58526';
+    await tester.enterText(find.byKey(const Key('nodes-address')), onion);
+    await tester.tap(find.byKey(const Key('nodes-add')));
+    await tester.pumpAndSettle();
+    expect(db.adds, [onion]);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('nodes-error'))).data,
+      appL10n.celautErrorOnionNeedsTor,
+    );
+    expect(appL10n.celautErrorOnionNeedsTor, contains('Turn on Tor'));
+    expect(find.textContaining('turn on Tor in the network settings'), findsNothing);
+    expect(db.records.keys, [_a]);
+  });
+
   testWidgets('back from the scanner changes nothing; the address field still works', (
     tester,
   ) async {

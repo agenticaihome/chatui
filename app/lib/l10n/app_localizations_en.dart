@@ -7737,6 +7737,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This node does not support descendants.';
 
   @override
+  String get celautErrorOnionNeedsTor =>
+      'An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.';
+
+  @override
   String get descendantsTitle => 'Descendants';
 
   @override

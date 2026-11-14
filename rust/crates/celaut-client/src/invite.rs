@@ -215,7 +215,7 @@ fn decode(kind: Kind, data: &[u8]) -> Result<InviteAddr, InviteError> {
 }
 
 /// The `.onion` name of a v3 service: the key, a checksum and the version, in base32.
-fn onion_text(key: &[u8]) -> String {
+pub(crate) fn onion_text(key: &[u8]) -> String {
     let mut hasher = Sha3_256::new();
     hasher.update(b".onion checksum");
     hasher.update(key);

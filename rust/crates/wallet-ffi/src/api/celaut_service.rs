@@ -19,6 +19,7 @@ use celaut_client::db::{
     ResourcesSource,
 };
 use celaut_client::hibernation::{self, Hibernation, HibernationError};
+use celaut_client::node_addresses::advertised_onions;
 use celaut_client::receipts::{check_start, InstanceReceipts, StoredReceipt};
 use celaut_client::session::parse_service_id;
 use celaut_client::ResourceRefusal;
@@ -104,6 +105,21 @@ pub(crate) fn check(address: &NodeAddress) -> Result<(), CelautError> {
     Ok(())
 }
 
+/// An onion address on a direct route is refused before any connection, with its own kind
+/// ([`CelautErrorKind::OnionNeedsTor`]): the screen says to turn on Tor (issue #140). The
+/// name is never looked up, so no DNS server learns which onion the phone wants.
+pub(crate) fn check_route(address: &NodeAddress) -> Result<(), CelautError> {
+    if celaut_net::is_onion(address.host.trim())
+        && matches!(celaut_net::route(), celaut_net::Route::Direct)
+    {
+        return Err(CelautError {
+            kind: CelautErrorKind::OnionNeedsTor,
+            message: "an onion address needs Tor: turn on Tor in the network settings".into(),
+        });
+    }
+    Ok(())
+}
+
 /// The configuration of a start: the defaults of the node, and the balance of the
 /// instance at the start if `initial_mu` is given. The default of a node is one hour of
 /// the resources of the service, which can be more than the free credit of a client.
@@ -164,9 +180,21 @@ pub(crate) async fn open_session(
             .map_err(error_of)?,
         None => new_client_session(connection, &peer_id).await?,
     };
-    db.update(|d| d.note_address(&peer_id, address_key))
-        .map_err(storage_error)?;
+    note_reached(&session, address_key)?;
     Ok(session)
+}
+
+/// Remember that the node of `session` answered at `address_key` (it goes first), and add
+/// the onions that the node announces in its advertisement, which the session checked:
+/// through Tor they are tried first (issue #140).
+fn note_reached(session: &NodeSession<Connection>, address_key: &str) -> Result<(), CelautError> {
+    let peer_id = session.peer_id();
+    let announced = advertised_onions(&session.info().peer, now_seconds());
+    db().update(|d| {
+        d.note_address(peer_id, address_key);
+        d.add_announced_addresses(peer_id, &announced);
+    })
+    .map_err(storage_error)
 }
 
 /// A new client on the node (`GenerateClient`), kept in the database at once. An old
@@ -220,6 +248,7 @@ pub struct NewClientView {
 #[flutter_rust_bridge::frb]
 pub async fn celaut_new_client(node: NodeAddress) -> Result<NewClientView, CelautError> {
     check(&node)?;
+    check_route(&node)?;
     let key = key(&node);
     let connection = Connection::connect(node.host.trim(), node.port, ConnectOptions::default())
         .await
@@ -230,8 +259,7 @@ pub async fn celaut_new_client(node: NodeAddress) -> Result<NewClientView, Celau
         new_client_session(connection, &peer_id).await?
     };
     let peer_id = session.peer_id().to_string();
-    db().update(|d| d.note_address(&peer_id, &key))
-        .map_err(storage_error)?;
+    note_reached(&session, &key)?;
     {
         // A connection at another address of this node still has the old client id.
         let mut s = state()?;
@@ -281,6 +309,7 @@ async fn session_with(
     options: ConnectOptions,
 ) -> Result<Session, CelautError> {
     check(address)?;
+    check_route(address)?;
     let key = key(address);
     if let Some(s) = state()?.sessions.get(&key) {
         // A session that is open belongs to the node that it proved. With a pin, only the
