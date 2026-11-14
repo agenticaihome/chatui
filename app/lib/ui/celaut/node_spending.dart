@@ -623,18 +623,25 @@ class _InstanceCostsSheetState extends State<InstanceCostsSheet> {
 
 /// The split of the summary line of the home screen (issue #136): for each node, the
 /// balance now and what the last statement read says it spent. A tap opens the detail of
-/// the node, where the user can read the statement.
-class NodeBalancesScreen extends StatelessWidget {
+/// the node, where the user can read the statement. The spending is read again when the
+/// user comes back from a node: a read there changes it.
+class NodeBalancesScreen extends StatefulWidget {
   const NodeBalancesScreen({super.key, required this.overview, this.api = const SpendingApi()});
 
   final ComputeOverviewView overview;
   final SpendingApi api;
 
   @override
+  State<NodeBalancesScreen> createState() => _NodeBalancesScreenState();
+}
+
+class _NodeBalancesScreenState extends State<NodeBalancesScreen> {
+  @override
   Widget build(BuildContext context) {
     final l = context.l10n;
     final colors = ArgusColors.of(context);
-    final spending = {for (final s in api.overview()) s.peerId: s};
+    final overview = widget.overview;
+    final spending = {for (final s in widget.api.overview()) s.peerId: s};
     return SettingsPage(
       title: l.celautHomeBalancesTitle,
       children: [
@@ -645,15 +652,19 @@ class NodeBalancesScreen extends StatelessWidget {
               for (final n in overview.nodes)
                 InkWell(
                   key: Key('node-balance-${n.peerId}'),
-                  onTap: () => Navigator.of(context).push<void>(
-                    MaterialPageRoute(
-                      builder: (_) => NodeConnectScreen(
-                        address: n.address,
-                        expectedPeerId: n.peerId,
-                        overview: overview,
+                  onTap: () async {
+                    await Navigator.of(context).push<void>(
+                      MaterialPageRoute(
+                        builder: (_) => NodeConnectScreen(
+                          address: n.address,
+                          expectedPeerId: n.peerId,
+                          overview: overview,
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                    // A read on the node changed its spending.
+                    if (mounted) setState(() {});
+                  },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
