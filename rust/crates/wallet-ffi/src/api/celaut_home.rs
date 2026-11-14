@@ -182,8 +182,8 @@ async fn reach(peer_id: &str, addresses: &[String]) -> Reached {
 
 /// [`reach`] with a limit of `limit` for each step of each address.
 ///
-/// The addresses race ([`celaut_client::race`]): the first two start at the same time,
-/// the first session of `peer_id` is used, and the order (the last address that worked
+/// The addresses race ([`celaut_client::race`]): the first one has a head start, then
+/// two run at a time, the first session of `peer_id` is used, and the order (the last address that worked
 /// first) wins when two answer at nearly the same time. An address where another node
 /// answers is a failure, so it never wins over the node.
 #[flutter_rust_bridge::frb(ignore)]
@@ -193,24 +193,30 @@ pub(crate) async fn reach_within(peer_id: &str, addresses: &[String], limit: Dur
         .filter_map(|text| address_of_key(text).map(|a| (text, a)))
         .collect();
     let was_open: Vec<bool> = usable.iter().map(|(_, a)| is_open(&key(a))).collect();
-    let outcomes = race(usable.len(), race::WIDTH, race::GRACE, |i| {
-        let address = usable[i].1.clone();
-        async move {
-            let started = std::time::Instant::now();
-            match tokio::time::timeout(limit, session(&address)).await {
-                Ok(Ok(s)) if s.peer_id() == peer_id => Ok((s, started)),
-                Ok(Ok(_)) => Err(CelautError {
-                    kind: CelautErrorKind::IdentityMismatch,
-                    message: "the node is now another node".into(),
-                }),
-                Ok(Err(e)) => Err(e),
-                Err(_) => Err(CelautError {
-                    kind: CelautErrorKind::Timeout,
-                    message: "the node did not answer in time".into(),
-                }),
+    let outcomes = race(
+        usable.len(),
+        race::WIDTH,
+        race::HEAD_START,
+        race::GRACE,
+        |i| {
+            let address = usable[i].1.clone();
+            async move {
+                let started = std::time::Instant::now();
+                match tokio::time::timeout(limit, session(&address)).await {
+                    Ok(Ok(s)) if s.peer_id() == peer_id => Ok((s, started)),
+                    Ok(Ok(_)) => Err(CelautError {
+                        kind: CelautErrorKind::IdentityMismatch,
+                        message: "the node is now another node".into(),
+                    }),
+                    Ok(Err(e)) => Err(e),
+                    Err(_) => Err(CelautError {
+                        kind: CelautErrorKind::Timeout,
+                        message: "the node did not answer in time".into(),
+                    }),
+                }
             }
-        }
-    })
+        },
+    )
     .await;
     let used = outcomes
         .iter()
@@ -769,7 +775,11 @@ mod tests {
         let port = listener.local_addr().unwrap().port();
         drop(listener);
         let peer = "ab".repeat(32);
-        let r = reach(&peer, &[format!("127.0.0.1:{port}"), "not an address".into()]).await;
+        let r = reach(
+            &peer,
+            &[format!("127.0.0.1:{port}"), "not an address".into()],
+        )
+        .await;
         assert!(r.session.is_none());
         assert!(r.error.is_some());
         assert_eq!(r.credit_mu, None);

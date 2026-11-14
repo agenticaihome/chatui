@@ -2,8 +2,8 @@
 //! nodo#579).
 //!
 //! The invitation has the identity key of the node and its addresses. The app races the
-//! addresses that can work on the current route ([`celaut_client::invite::plan`]), two at
-//! a time in their order ([`celaut_client::race`]), and uses the first node that proves
+//! addresses that can work on the current route ([`celaut_client::invite::plan`]) in their
+//! order: the first has a head start, then two run at a time ([`celaut_client::race`]), and uses the first node that proves
 //! the invited key: the TLS handshake fails for any other key, so an address that another
 //! node holds is never used. Then the app does what it does for a typed address (client
 //! id, advertisement, node list).
@@ -130,9 +130,13 @@ where
         })
         .collect();
     let was_open: Vec<bool> = addresses.iter().map(|a| is_open(&key(a))).collect();
-    let outcomes = race(addresses.len(), race::WIDTH, race::GRACE, |i| {
-        dial(addresses[i].clone(), parsed.peer_id.clone(), timeout)
-    })
+    let outcomes = race(
+        addresses.len(),
+        race::WIDTH,
+        race::HEAD_START,
+        race::GRACE,
+        |i| dial(addresses[i].clone(), parsed.peer_id.clone(), timeout),
+    )
     .await;
     let used = outcomes
         .iter()
@@ -236,7 +240,7 @@ mod tests {
             let p = p.clone();
             async move {
                 if address.port == 1 {
-                    // It fails while the second one is in its grace.
+                    // It fails before the end of its head start: the second starts then.
                     tokio::time::sleep(Duration::from_millis(50)).await;
                     Err(refuse(CelautErrorKind::Timeout))
                 } else {
@@ -246,7 +250,7 @@ mod tests {
         })
         .await
         .unwrap();
-        // The first two start at the same time, each try pins the invited key, and the
+        // The second starts when the first fails, each try pins the invited key, and the
         // third address is not asked.
         assert_eq!(
             *asked.lock().unwrap(),
@@ -397,7 +401,11 @@ mod tests {
         .await
         .unwrap();
         // One after another this took the 10 seconds of the first address first.
-        assert!(started.elapsed() < Duration::from_secs(2), "{:?}", started.elapsed());
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "{:?}",
+            started.elapsed()
+        );
         assert_eq!(view.node.as_ref().unwrap().addresses[0], "198.51.100.9:2");
         assert_eq!(
             kinds(&view),
@@ -424,9 +432,14 @@ mod tests {
         let view = connect(parsed, Via::Direct, |address, _, _| {
             let p = p.clone();
             async move {
-                // The second answers a little sooner than the first.
-                let ms = if address.port == 1 { 60 } else { 30 };
-                tokio::time::sleep(Duration::from_millis(ms)).await;
+                // The second (which starts after the head start of the first) answers a
+                // little sooner than the first.
+                let wait = if address.port == 1 {
+                    race::HEAD_START + Duration::from_millis(60)
+                } else {
+                    Duration::from_millis(30)
+                };
+                tokio::time::sleep(wait).await;
                 Ok(p)
             }
         })
@@ -458,7 +471,9 @@ mod tests {
             async move {
                 let n = now.fetch_add(1, Ordering::SeqCst) + 1;
                 most.fetch_max(n, Ordering::SeqCst);
-                tokio::time::sleep(Duration::from_millis(5 * u64::from(address.port))).await;
+                // Each one runs past the head start of the one before it.
+                let ms = 5 * u64::from(address.port);
+                tokio::time::sleep(race::HEAD_START + Duration::from_millis(ms)).await;
                 now.fetch_sub(1, Ordering::SeqCst);
                 Err(refuse(CelautErrorKind::Unreachable))
             }
@@ -483,7 +498,7 @@ mod tests {
 
     /// The race against a real node (#139). `CELAUT_RACE_HANG` is a `host:port` that
     /// accepts the TCP connection and never answers; `CELAUT_RACE_NODE` is the `host:port`
-    /// of a running node. The app makes a client on that node (free credit, no payment).
+    /// of a running node; `CELAUT_RACE_STALL` (optional) is described below. The app makes a client on that node (free credit, no payment).
     ///
     /// `cargo test -p wallet-ffi --lib real_node_race -- --ignored --nocapture`
     #[tokio::test]
@@ -493,7 +508,10 @@ mod tests {
         use super::super::celaut_service::{address_of_key, session};
         let hang = std::env::var("CELAUT_RACE_HANG").expect("CELAUT_RACE_HANG");
         let real = std::env::var("CELAUT_RACE_NODE").expect("CELAUT_RACE_NODE");
-        let (h, n) = (address_of_key(&hang).unwrap(), address_of_key(&real).unwrap());
+        let (h, n) = (
+            address_of_key(&hang).unwrap(),
+            address_of_key(&real).unwrap(),
+        );
         let peer = session(&n).await.expect("the node").peer_id().to_string();
         forget_if_broken_key(&real);
         let invite = |peer: &str| {
@@ -529,7 +547,7 @@ mod tests {
         // The same two, one after another (the old way), for comparison.
         forget_if_broken_key(&real);
         let t0 = std::time::Instant::now();
-        let old = race(2, 1, race::GRACE, |i| {
+        let old = race(2, 1, race::HEAD_START, race::GRACE, |i| {
             let a = if i == 0 { h.clone() } else { n.clone() };
             dial(a, peer.clone(), DIRECT_TIMEOUT)
         })
@@ -554,6 +572,51 @@ mod tests {
         assert!(r.session.is_some() && r.error.is_none());
         assert_eq!(r.address, real);
         assert!(reached < Duration::from_secs(4), "{reached:?}");
+
+        // `CELAUT_RACE_STALL` (optional): a `host:port` that completes the TLS handshake of
+        // the node and then never passes a request on. The app has a client on the node,
+        // so the session resumes it and takes no lock: the stalled address does not hold
+        // up the real one.
+        let Ok(stall) = std::env::var("CELAUT_RACE_STALL") else {
+            return;
+        };
+        let s = address_of_key(&stall).unwrap();
+        forget_if_broken_key(&real);
+        let t0 = std::time::Instant::now();
+        let r = reach_within(
+            &peer,
+            &[stall.clone(), real.clone()],
+            Duration::from_secs(5),
+        )
+        .await;
+        let reached = t0.elapsed();
+        println!(
+            "node list, stalled first: {reached:?} address {} latency {} ms",
+            r.address, r.latency_ms
+        );
+        assert!(r.session.is_some() && r.error.is_none());
+        assert_eq!(r.address, real);
+        assert!(reached < Duration::from_secs(2), "{reached:?}");
+        forget_if_broken_key(&real);
+        let t0 = std::time::Instant::now();
+        let stalled = invite_of(
+            &peer,
+            vec![
+                addr(Kind::Ip4, &s.host, s.port),
+                addr(Kind::Ip4, &n.host, n.port),
+            ],
+        );
+        let view = connect(stalled, Via::Direct, dial).await.unwrap();
+        let raced = t0.elapsed();
+        println!("invite, stalled first: {raced:?} {:?}", kinds(&view));
+        assert_eq!(
+            kinds(&view),
+            [
+                (stall.as_str(), InviteAttemptKind::NotNeeded),
+                (real.as_str(), InviteAttemptKind::Connected),
+            ]
+        );
+        assert!(raced < Duration::from_secs(2), "{raced:?}");
     }
 
     #[tokio::test]
