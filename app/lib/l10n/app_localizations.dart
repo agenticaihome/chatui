@@ -10373,11 +10373,11 @@ abstract class AppLocalizations {
   /// **'The invitation has no address that this app can use.'**
   String get celautInviteNoAddress;
 
-  /// No description provided for @celautInviteOnionNeedsProxy.
+  /// No description provided for @celautInviteOnionNeedsTor.
   ///
   /// In en, this message translates to:
-  /// **'Not tried. An onion address needs Tor through an external proxy such as Orbot. A direct connection and the Tor client of the app cannot open it.'**
-  String get celautInviteOnionNeedsProxy;
+  /// **'Not tried. An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.'**
+  String get celautInviteOnionNeedsTor;
 
   /// No description provided for @celautInvitePrivateOverTor.
   ///
@@ -12425,6 +12425,12 @@ abstract class AppLocalizations {
   /// **'This node does not support descendants.'**
   String get celautErrorNoDescendants;
 
+  /// No description provided for @celautErrorOnionNeedsTor.
+  ///
+  /// In en, this message translates to:
+  /// **'An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.'**
+  String get celautErrorOnionNeedsTor;
+
   /// No description provided for @descendantsTitle.
   ///
   /// In en, this message translates to:
@@ -13402,6 +13408,276 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turn: {value} rad/s (a gesture needs {needed})'**
   String cardsSettingsTestValue(String value, String needed);
+
+  /// No description provided for @celautLinkConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add this node?'**
+  String get celautLinkConfirmTitle;
+
+  /// No description provided for @celautLinkConfirmInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.'**
+  String get celautLinkConfirmInvite;
+
+  /// No description provided for @celautLinkConfirmKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key of the node'**
+  String get celautLinkConfirmKey;
+
+  /// No description provided for @celautLinkConfirmAddresses.
+  ///
+  /// In en, this message translates to:
+  /// **'Addresses, in the order that the app tries them'**
+  String get celautLinkConfirmAddresses;
+
+  /// No description provided for @celautLinkConfirmSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Not tried on the current route'**
+  String get celautLinkConfirmSkipped;
+
+  /// No description provided for @celautLinkConfirmListed.
+  ///
+  /// In en, this message translates to:
+  /// **'This node is already in your list.'**
+  String get celautLinkConfirmListed;
+
+  /// No description provided for @celautLinkRefusedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This link cannot be opened'**
+  String get celautLinkRefusedTitle;
+
+  /// No description provided for @celautLinkTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'The link is too long for a node invitation. The app read nothing from it.'**
+  String get celautLinkTooLong;
+
+  /// No description provided for @celautLinkInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The link is not a node link that this app can read.'**
+  String get celautLinkInvalid;
+
+  /// No description provided for @celautLinkDamaged.
+  ///
+  /// In en, this message translates to:
+  /// **'The invitation in the link is damaged.'**
+  String get celautLinkDamaged;
+
+  /// No description provided for @celautLinkConfirmAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'A link asks to add the node at {address}. The app connects to it and checks it before it adds it to your list.'**
+  String celautLinkConfirmAddress(String address);
+
+  /// No description provided for @celautLinkUnknownKind.
+  ///
+  /// In en, this message translates to:
+  /// **'This app cannot open this kind of celaut link. A newer version may.'**
+  String get celautLinkUnknownKind;
+
+  /// No description provided for @celautNodeShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get celautNodeShare;
+
+  /// No description provided for @celautNodeShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this node'**
+  String get celautNodeShareTitle;
+
+  /// No description provided for @celautNodeShareNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A phone camera that reads this code, or a tap on the link, opens the app and asks to add the node. The link has the key of the node and the addresses where this app reached it. It gives no access to your client or your credit.'**
+  String get celautNodeShareNote;
+
+  /// No description provided for @celautNodeShareLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Share link'**
+  String get celautNodeShareLink;
+
+  /// No description provided for @celautNodeShareCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get celautNodeShareCopied;
+
+  /// No description provided for @celautNodeShareNone.
+  ///
+  /// In en, this message translates to:
+  /// **'This app has no address of the node that another device could use, so it cannot make a link.'**
+  String get celautNodeShareNone;
+
+  /// No description provided for @celautLinkSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a service'**
+  String get celautLinkSheetTitle;
+
+  /// No description provided for @celautLinkChooseFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a file on this phone'**
+  String get celautLinkChooseFile;
+
+  /// No description provided for @celautLinkFromLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from a link'**
+  String get celautLinkFromLink;
+
+  /// No description provided for @celautLinkFromLinkNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A link to a .celaut.bee file, or to a list of the links of its parts. The app checks the file while it downloads it.'**
+  String get celautLinkFromLinkNote;
+
+  /// No description provided for @celautLinkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://…/service.celaut.bee'**
+  String get celautLinkHint;
+
+  /// No description provided for @celautLinkPaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get celautLinkPaste;
+
+  /// No description provided for @celautLinkScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR code'**
+  String get celautLinkScan;
+
+  /// No description provided for @celautLinkDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get celautLinkDownload;
+
+  /// No description provided for @celautLinkClipboardEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The clipboard has no text.'**
+  String get celautLinkClipboardEmpty;
+
+  /// No description provided for @celautLinkNotALink.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not an https:// or http:// link.'**
+  String get celautLinkNotALink;
+
+  /// No description provided for @celautLinkPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A download stopped'**
+  String get celautLinkPendingTitle;
+
+  /// No description provided for @celautLinkPendingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{bytes} are on this phone. Continue goes on from there.'**
+  String celautLinkPendingBody(String bytes);
+
+  /// No description provided for @celautLinkPendingContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get celautLinkPendingContinue;
+
+  /// No description provided for @celautLinkPendingDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get celautLinkPendingDelete;
+
+  /// No description provided for @celautLinkDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading the service…'**
+  String get celautLinkDownloading;
+
+  /// No description provided for @celautLinkDownloadingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The app checks each part while it arrives. The service is saved only if the whole file is valid.'**
+  String get celautLinkDownloadingNote;
+
+  /// No description provided for @celautLinkChunk.
+  ///
+  /// In en, this message translates to:
+  /// **'Part {chunk} of {chunks}'**
+  String celautLinkChunk(int chunk, int chunks);
+
+  /// No description provided for @celautLinkRetries.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection problems: tried again {count} times'**
+  String celautLinkRetries(int count);
+
+  /// No description provided for @celautLinkCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Download cancelled. Its bytes were deleted.'**
+  String get celautLinkCancelled;
+
+  /// No description provided for @celautLinkStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'The download stopped: {reason}. The bytes that arrived stay on the phone: Continue goes on from there.'**
+  String celautLinkStopped(String reason);
+
+  /// No description provided for @celautLinkTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The file is larger than {limit}, the limit of a download. Its bytes were deleted.'**
+  String celautLinkTooLarge(String limit);
+
+  /// No description provided for @celautLinkBadFile.
+  ///
+  /// In en, this message translates to:
+  /// **'The link does not give a valid service: {reason}. Its bytes were deleted.'**
+  String celautLinkBadFile(String reason);
+
+  /// No description provided for @celautLinkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The download failed: {kind} ({reason})'**
+  String celautLinkFailed(String kind, String reason);
+
+  /// No description provided for @celautLinkHttpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Not encrypted'**
+  String get celautLinkHttpTitle;
+
+  /// No description provided for @celautLinkHttpBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{url} is an http:// link. Others on the network can see what you download. The app still checks the file, so a changed file is refused.'**
+  String celautLinkHttpBody(String url);
+
+  /// No description provided for @celautLinkHttpConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Download anyway'**
+  String get celautLinkHttpConfirm;
+
+  /// No description provided for @celautLinkImportInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This link cannot be used: {reason}'**
+  String celautLinkImportInvalid(String reason);
 
   /// No description provided for @celautMoveAdd.
   ///

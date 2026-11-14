@@ -8,8 +8,8 @@ import 'celaut.dart';
 import 'celaut_home.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `connect`, `skipped`, `via_now`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `connect`, `read`, `skipped`, `via_now`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// Read the invitation `invite` (the bytes of the QR code) and connect to the node that it
 /// names, by the first address that works on the current route. A node that proves the
@@ -24,23 +24,62 @@ Future<InviteConnectView> celautConnectInvite({required List<int> invite}) =>
       invite: invite,
     );
 
+/// Read the invitation `invite` without connecting: the key, the addresses and what the
+/// app would do with each one on the current route. Bytes that are not an invitation are
+/// an `InvalidInput` error.
+InviteReadView celautReadInvite({required List<int> invite}) =>
+    RustLib.instance.api.crateApiCelautInviteCelautReadInvite(invite: invite);
+
+/// The invitation to the node `peer_id` of the node list, for the Share action of its
+/// detail (`docs/celaut/invite.md`, section 6): its key and the addresses where the app
+/// reached it, the last first, as nodo writes an invitation (`invite::build`). A loopback
+/// address is left out. A node that the app does not know, or one with no address to share,
+/// is an `InvalidInput` error.
+Uint8List celautNodeInvite({required String peerId}) =>
+    RustLib.instance.api.crateApiCelautInviteCelautNodeInvite(peerId: peerId);
+
+/// One address of an invitation, before any connection.
+class InviteAddrView {
+  /// `host:port`, with brackets for IPv6.
+  final String address;
+
+  /// Why the app will not try it on the current route, or none if it will.
+  final InviteAttemptKind? skipped;
+
+  const InviteAddrView({required this.address, this.skipped});
+
+  @override
+  int get hashCode => address.hashCode ^ skipped.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is InviteAddrView &&
+          runtimeType == other.runtimeType &&
+          address == other.address &&
+          skipped == other.skipped;
+}
+
 /// What happened with one address of the invitation.
 enum InviteAttemptKind {
   /// The node proved the invited key and is in the node list.
   connected,
 
-  /// Not tried: an onion address needs a Tor proxy that resolves them, and the route
-  /// is direct or the Tor client of the app.
-  onionNeedsProxy,
+  /// Not tried: an onion address needs Tor, and the route is direct.
+  onionNeedsTor,
 
   /// Not tried: a private network address cannot be reached through Tor.
   privateOverTor,
 
   /// Tried and failed: `error` and `message` say why.
   failed,
+
+  /// Tried at the same time as another address, which connected first: this one was
+  /// stopped, or it connected too but after an address before it in the order.
+  notNeeded,
 }
 
-/// One address of the invitation, in the order that the app used.
+/// One address of the invitation. The tried ones are in the order of preference.
 class InviteAttemptView {
   /// `host:port`, with brackets for IPv6.
   final String address;
@@ -102,4 +141,36 @@ class InviteConnectView {
           peerId == other.peerId &&
           node == other.node &&
           attempts == other.attempts;
+}
+
+/// What an invitation says, read without any connection: for the confirmation that the
+/// user sees before the app connects (a `celaut://` link, `docs/celaut/invite.md`).
+class InviteReadView {
+  /// The `peer_id` of the invitation: its key in lowercase hex.
+  final String peerId;
+
+  /// The addresses that the app knows, in the order that it would use: the ones that it
+  /// tries on the current route, then the ones that it skips.
+  final List<InviteAddrView> addresses;
+
+  /// True if the node is already in the node list.
+  final bool listed;
+
+  const InviteReadView({
+    required this.peerId,
+    required this.addresses,
+    required this.listed,
+  });
+
+  @override
+  int get hashCode => peerId.hashCode ^ addresses.hashCode ^ listed.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is InviteReadView &&
+          runtimeType == other.runtimeType &&
+          peerId == other.peerId &&
+          addresses == other.addresses &&
+          listed == other.listed;
 }

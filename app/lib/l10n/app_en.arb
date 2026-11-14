@@ -4752,7 +4752,7 @@
   },
   "celautInviteFailedTitle": "Could not connect to the invited node",
   "celautInviteNoAddress": "The invitation has no address that this app can use.",
-  "celautInviteOnionNeedsProxy": "Not tried. An onion address needs Tor through an external proxy such as Orbot. A direct connection and the Tor client of the app cannot open it.",
+  "celautInviteOnionNeedsTor": "Not tried. An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.",
   "celautInvitePrivateOverTor": "Not tried. An address on a private network cannot be reached through Tor.",
   "serviceInfoTitle": "Service details",
   "serviceInfoLoading": "Reading the service…",
@@ -5603,6 +5603,7 @@
   "btcToolBackupBlurb": "The same words as the wallet",
   "btcToolLockBlurb": "Lock the wallet: Ergo and Bitcoin",
   "celautErrorNoDescendants": "This node does not support descendants.",
+  "celautErrorOnionNeedsTor": "An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.",
   "descendantsTitle": "Descendants",
   "descendantsNote": "Instances that this instance started, and the ones that they started. The app finds them when you check. A check asks the node and costs MU.",
   "descendantsThisInstance": "This instance",
@@ -6010,6 +6011,127 @@
         "type": "String"
       },
       "needed": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkConfirmTitle": "Add this node?",
+  "celautLinkConfirmInvite": "A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.",
+  "celautLinkConfirmKey": "Key of the node",
+  "celautLinkConfirmAddresses": "Addresses, in the order that the app tries them",
+  "celautLinkConfirmSkipped": "Not tried on the current route",
+  "celautLinkConfirmListed": "This node is already in your list.",
+  "celautLinkRefusedTitle": "This link cannot be opened",
+  "celautLinkTooLong": "The link is too long for a node invitation. The app read nothing from it.",
+  "celautLinkInvalid": "The link is not a node link that this app can read.",
+  "celautLinkDamaged": "The invitation in the link is damaged.",
+  "celautLinkConfirmAddress": "A link asks to add the node at {address}. The app connects to it and checks it before it adds it to your list.",
+  "@celautLinkConfirmAddress": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkUnknownKind": "This app cannot open this kind of celaut link. A newer version may.",
+  "celautNodeShare": "Share",
+  "celautNodeShareTitle": "Share this node",
+  "celautNodeShareNote": "A phone camera that reads this code, or a tap on the link, opens the app and asks to add the node. The link has the key of the node and the addresses where this app reached it. It gives no access to your client or your credit.",
+  "celautNodeShareLink": "Share link",
+  "celautNodeShareCopied": "Link copied",
+  "celautNodeShareNone": "This app has no address of the node that another device could use, so it cannot make a link.",
+  "celautLinkSheetTitle": "Import a service",
+  "celautLinkChooseFile": "Choose a file on this phone",
+  "celautLinkFromLink": "Import from a link",
+  "celautLinkFromLinkNote": "A link to a .celaut.bee file, or to a list of the links of its parts. The app checks the file while it downloads it.",
+  "celautLinkHint": "https://…/service.celaut.bee",
+  "celautLinkPaste": "Paste",
+  "celautLinkScan": "Scan a QR code",
+  "celautLinkDownload": "Download",
+  "celautLinkClipboardEmpty": "The clipboard has no text.",
+  "celautLinkNotALink": "This is not an https:// or http:// link.",
+  "celautLinkPendingTitle": "A download stopped",
+  "celautLinkPendingBody": "{bytes} are on this phone. Continue goes on from there.",
+  "@celautLinkPendingBody": {
+    "placeholders": {
+      "bytes": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkPendingContinue": "Continue",
+  "celautLinkPendingDelete": "Delete",
+  "celautLinkDownloading": "Downloading the service…",
+  "celautLinkDownloadingNote": "The app checks each part while it arrives. The service is saved only if the whole file is valid.",
+  "celautLinkChunk": "Part {chunk} of {chunks}",
+  "@celautLinkChunk": {
+    "placeholders": {
+      "chunk": {
+        "type": "int"
+      },
+      "chunks": {
+        "type": "int"
+      }
+    }
+  },
+  "celautLinkRetries": "Connection problems: tried again {count} times",
+  "@celautLinkRetries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautLinkCancelled": "Download cancelled. Its bytes were deleted.",
+  "celautLinkStopped": "The download stopped: {reason}. The bytes that arrived stay on the phone: Continue goes on from there.",
+  "@celautLinkStopped": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkTooLarge": "The file is larger than {limit}, the limit of a download. Its bytes were deleted.",
+  "@celautLinkTooLarge": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkBadFile": "The link does not give a valid service: {reason}. Its bytes were deleted.",
+  "@celautLinkBadFile": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkFailed": "The download failed: {kind} ({reason})",
+  "@celautLinkFailed": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkHttpTitle": "Not encrypted",
+  "celautLinkHttpBody": "{url} is an http:// link. Others on the network can see what you download. The app still checks the file, so a changed file is refused.",
+  "@celautLinkHttpBody": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkHttpConfirm": "Download anyway",
+  "celautLinkImportInvalid": "This link cannot be used: {reason}",
+  "@celautLinkImportInvalid": {
+    "placeholders": {
+      "reason": {
         "type": "String"
       }
     }

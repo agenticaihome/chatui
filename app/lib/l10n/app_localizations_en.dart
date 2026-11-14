@@ -6488,8 +6488,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'The invitation has no address that this app can use.';
 
   @override
-  String get celautInviteOnionNeedsProxy =>
-      'Not tried. An onion address needs Tor through an external proxy such as Orbot. A direct connection and the Tor client of the app cannot open it.';
+  String get celautInviteOnionNeedsTor =>
+      'Not tried. An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.';
 
   @override
   String get celautInvitePrivateOverTor =>
@@ -7737,6 +7737,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This node does not support descendants.';
 
   @override
+  String get celautErrorOnionNeedsTor =>
+      'An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.';
+
+  @override
   String get descendantsTitle => 'Descendants';
 
   @override
@@ -8339,6 +8343,171 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String cardsSettingsTestValue(String value, String needed) {
     return 'Turn: $value rad/s (a gesture needs $needed)';
+  }
+
+  @override
+  String get celautLinkConfirmTitle => 'Add this node?';
+
+  @override
+  String get celautLinkConfirmInvite =>
+      'A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.';
+
+  @override
+  String get celautLinkConfirmKey => 'Key of the node';
+
+  @override
+  String get celautLinkConfirmAddresses =>
+      'Addresses, in the order that the app tries them';
+
+  @override
+  String get celautLinkConfirmSkipped => 'Not tried on the current route';
+
+  @override
+  String get celautLinkConfirmListed => 'This node is already in your list.';
+
+  @override
+  String get celautLinkRefusedTitle => 'This link cannot be opened';
+
+  @override
+  String get celautLinkTooLong =>
+      'The link is too long for a node invitation. The app read nothing from it.';
+
+  @override
+  String get celautLinkInvalid =>
+      'The link is not a node link that this app can read.';
+
+  @override
+  String get celautLinkDamaged => 'The invitation in the link is damaged.';
+
+  @override
+  String celautLinkConfirmAddress(String address) {
+    return 'A link asks to add the node at $address. The app connects to it and checks it before it adds it to your list.';
+  }
+
+  @override
+  String get celautLinkUnknownKind =>
+      'This app cannot open this kind of celaut link. A newer version may.';
+
+  @override
+  String get celautNodeShare => 'Share';
+
+  @override
+  String get celautNodeShareTitle => 'Share this node';
+
+  @override
+  String get celautNodeShareNote =>
+      'A phone camera that reads this code, or a tap on the link, opens the app and asks to add the node. The link has the key of the node and the addresses where this app reached it. It gives no access to your client or your credit.';
+
+  @override
+  String get celautNodeShareLink => 'Share link';
+
+  @override
+  String get celautNodeShareCopied => 'Link copied';
+
+  @override
+  String get celautNodeShareNone =>
+      'This app has no address of the node that another device could use, so it cannot make a link.';
+
+  @override
+  String get celautLinkSheetTitle => 'Import a service';
+
+  @override
+  String get celautLinkChooseFile => 'Choose a file on this phone';
+
+  @override
+  String get celautLinkFromLink => 'Import from a link';
+
+  @override
+  String get celautLinkFromLinkNote =>
+      'A link to a .celaut.bee file, or to a list of the links of its parts. The app checks the file while it downloads it.';
+
+  @override
+  String get celautLinkHint => 'https://…/service.celaut.bee';
+
+  @override
+  String get celautLinkPaste => 'Paste';
+
+  @override
+  String get celautLinkScan => 'Scan a QR code';
+
+  @override
+  String get celautLinkDownload => 'Download';
+
+  @override
+  String get celautLinkClipboardEmpty => 'The clipboard has no text.';
+
+  @override
+  String get celautLinkNotALink => 'This is not an https:// or http:// link.';
+
+  @override
+  String get celautLinkPendingTitle => 'A download stopped';
+
+  @override
+  String celautLinkPendingBody(String bytes) {
+    return '$bytes are on this phone. Continue goes on from there.';
+  }
+
+  @override
+  String get celautLinkPendingContinue => 'Continue';
+
+  @override
+  String get celautLinkPendingDelete => 'Delete';
+
+  @override
+  String get celautLinkDownloading => 'Downloading the service…';
+
+  @override
+  String get celautLinkDownloadingNote =>
+      'The app checks each part while it arrives. The service is saved only if the whole file is valid.';
+
+  @override
+  String celautLinkChunk(int chunk, int chunks) {
+    return 'Part $chunk of $chunks';
+  }
+
+  @override
+  String celautLinkRetries(int count) {
+    return 'Connection problems: tried again $count times';
+  }
+
+  @override
+  String get celautLinkCancelled =>
+      'Download cancelled. Its bytes were deleted.';
+
+  @override
+  String celautLinkStopped(String reason) {
+    return 'The download stopped: $reason. The bytes that arrived stay on the phone: Continue goes on from there.';
+  }
+
+  @override
+  String celautLinkTooLarge(String limit) {
+    return 'The file is larger than $limit, the limit of a download. Its bytes were deleted.';
+  }
+
+  @override
+  String celautLinkBadFile(String reason) {
+    return 'The link does not give a valid service: $reason. Its bytes were deleted.';
+  }
+
+  @override
+  String celautLinkFailed(String kind, String reason) {
+    return 'The download failed: $kind ($reason)';
+  }
+
+  @override
+  String get celautLinkHttpTitle => 'Not encrypted';
+
+  @override
+  String celautLinkHttpBody(String url) {
+    return '$url is an http:// link. Others on the network can see what you download. The app still checks the file, so a changed file is refused.';
+  }
+
+  @override
+  String get celautLinkHttpConfirm => 'Download anyway';
+
+  @override
+  String celautLinkImportInvalid(String reason) {
+    return 'This link cannot be used: $reason';
   }
 
   @override

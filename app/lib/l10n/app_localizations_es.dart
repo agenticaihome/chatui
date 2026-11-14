@@ -6565,8 +6565,8 @@ class AppLocalizationsEs extends AppLocalizations {
       'La invitación no tiene ninguna dirección que esta app pueda usar.';
 
   @override
-  String get celautInviteOnionNeedsProxy =>
-      'No se probó. Una dirección onion necesita Tor mediante un proxy externo, como Orbot. Una conexión directa y el cliente Tor de la app no pueden abrirla.';
+  String get celautInviteOnionNeedsTor =>
+      'No se probó. Una dirección onion necesita Tor. Activa Tor en los ajustes de red: el cliente Tor de la app o un proxy externo, como Orbot.';
 
   @override
   String get celautInvitePrivateOverTor =>
@@ -7817,6 +7817,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautErrorNoDescendants => 'Este nodo no admite descendientes.';
 
   @override
+  String get celautErrorOnionNeedsTor =>
+      'Una dirección onion necesita Tor. Activa Tor en los ajustes de red: el cliente Tor de la app o un proxy externo, como Orbot.';
+
+  @override
   String get descendantsTitle => 'Descendientes';
 
   @override
@@ -8423,6 +8427,171 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String cardsSettingsTestValue(String value, String needed) {
     return 'Giro: $value rad/s (un gesto necesita $needed)';
+  }
+
+  @override
+  String get celautLinkConfirmTitle => '¿Añadir este nodo?';
+
+  @override
+  String get celautLinkConfirmInvite =>
+      'Un enlace te invita a un nodo. La app se conecta a él y comprueba que tiene esta clave antes de añadirlo a tu lista.';
+
+  @override
+  String get celautLinkConfirmKey => 'Clave del nodo';
+
+  @override
+  String get celautLinkConfirmAddresses =>
+      'Direcciones, en el orden en que la app las prueba';
+
+  @override
+  String get celautLinkConfirmSkipped => 'No se prueba en la ruta actual';
+
+  @override
+  String get celautLinkConfirmListed => 'Este nodo ya está en tu lista.';
+
+  @override
+  String get celautLinkRefusedTitle => 'No se puede abrir este enlace';
+
+  @override
+  String get celautLinkTooLong =>
+      'El enlace es demasiado largo para una invitación a un nodo. La app no leyó nada de él.';
+
+  @override
+  String get celautLinkInvalid =>
+      'El enlace no es un enlace a un nodo que esta app pueda leer.';
+
+  @override
+  String get celautLinkDamaged => 'La invitación del enlace está dañada.';
+
+  @override
+  String celautLinkConfirmAddress(String address) {
+    return 'Un enlace pide añadir el nodo en $address. La app se conecta a él y lo comprueba antes de añadirlo a tu lista.';
+  }
+
+  @override
+  String get celautLinkUnknownKind =>
+      'Esta app no puede abrir este tipo de enlace celaut. Una versión más nueva quizá sí.';
+
+  @override
+  String get celautNodeShare => 'Compartir';
+
+  @override
+  String get celautNodeShareTitle => 'Compartir este nodo';
+
+  @override
+  String get celautNodeShareNote =>
+      'Una cámara de móvil que lee este código, o un toque en el enlace, abre la app y pide añadir el nodo. El enlace tiene la clave del nodo y las direcciones donde esta app lo alcanzó. No da acceso a tu cliente ni a tu crédito.';
+
+  @override
+  String get celautNodeShareLink => 'Compartir enlace';
+
+  @override
+  String get celautNodeShareCopied => 'Enlace copiado';
+
+  @override
+  String get celautNodeShareNone =>
+      'Esta app no tiene ninguna dirección del nodo que otro dispositivo pueda usar, así que no puede crear un enlace.';
+
+  @override
+  String get celautLinkSheetTitle => 'Importar un servicio';
+
+  @override
+  String get celautLinkChooseFile => 'Elegir un archivo de este teléfono';
+
+  @override
+  String get celautLinkFromLink => 'Importar desde un enlace';
+
+  @override
+  String get celautLinkFromLinkNote =>
+      'Un enlace a un archivo .celaut.bee, o a una lista de los enlaces de sus partes. La app comprueba el archivo mientras lo descarga.';
+
+  @override
+  String get celautLinkHint => 'https://…/servicio.celaut.bee';
+
+  @override
+  String get celautLinkPaste => 'Pegar';
+
+  @override
+  String get celautLinkScan => 'Escanear un código QR';
+
+  @override
+  String get celautLinkDownload => 'Descargar';
+
+  @override
+  String get celautLinkClipboardEmpty => 'El portapapeles no tiene texto.';
+
+  @override
+  String get celautLinkNotALink => 'Esto no es un enlace https:// ni http://.';
+
+  @override
+  String get celautLinkPendingTitle => 'Una descarga se detuvo';
+
+  @override
+  String celautLinkPendingBody(String bytes) {
+    return 'Hay $bytes en este teléfono. Continuar sigue desde ahí.';
+  }
+
+  @override
+  String get celautLinkPendingContinue => 'Continuar';
+
+  @override
+  String get celautLinkPendingDelete => 'Borrar';
+
+  @override
+  String get celautLinkDownloading => 'Descargando el servicio…';
+
+  @override
+  String get celautLinkDownloadingNote =>
+      'La app comprueba cada parte mientras llega. El servicio se guarda solo si todo el archivo es válido.';
+
+  @override
+  String celautLinkChunk(int chunk, int chunks) {
+    return 'Parte $chunk de $chunks';
+  }
+
+  @override
+  String celautLinkRetries(int count) {
+    return 'Problemas de conexión: se intentó de nuevo $count veces';
+  }
+
+  @override
+  String get celautLinkCancelled =>
+      'Descarga cancelada. Sus bytes se borraron.';
+
+  @override
+  String celautLinkStopped(String reason) {
+    return 'La descarga se detuvo: $reason. Los bytes que llegaron se quedan en el teléfono: Continuar sigue desde ahí.';
+  }
+
+  @override
+  String celautLinkTooLarge(String limit) {
+    return 'El archivo es mayor que $limit, el límite de una descarga. Sus bytes se borraron.';
+  }
+
+  @override
+  String celautLinkBadFile(String reason) {
+    return 'El enlace no da un servicio válido: $reason. Sus bytes se borraron.';
+  }
+
+  @override
+  String celautLinkFailed(String kind, String reason) {
+    return 'La descarga falló: $kind ($reason)';
+  }
+
+  @override
+  String get celautLinkHttpTitle => 'Sin cifrar';
+
+  @override
+  String celautLinkHttpBody(String url) {
+    return '$url es un enlace http://. Otros en la red pueden ver lo que descargas. La app igual comprueba el archivo, así que rechaza un archivo cambiado.';
+  }
+
+  @override
+  String get celautLinkHttpConfirm => 'Descargar igualmente';
+
+  @override
+  String celautLinkImportInvalid(String reason) {
+    return 'Este enlace no se puede usar: $reason';
   }
 
   @override

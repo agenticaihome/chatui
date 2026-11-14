@@ -68,10 +68,25 @@ impl<T: AsyncRead + AsyncWrite + Unpin + Send + std::fmt::Debug> AsyncStream for
 
 pub type BoxStream = Box<dyn AsyncStream>;
 
+/// True for a `.onion` name, which only Tor can reach.
+pub fn is_onion(host: &str) -> bool {
+    host.trim_end_matches('.')
+        .to_ascii_lowercase()
+        .ends_with(".onion")
+}
+
 /// Open a TCP stream to `host:port` by the current [`route`]. `host` is a name or an IP
 /// literal, with no brackets.
+///
+/// A direct route refuses an onion name before any lookup: the system resolver cannot
+/// answer it, and the query would tell the DNS server which onion service the phone
+/// wants.
 pub async fn connect(host: &str, port: u16) -> io::Result<BoxStream> {
     match route() {
+        Route::Direct if is_onion(host) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "an onion address needs Tor: turn on Tor in the network settings",
+        )),
         Route::Direct => {
             let tcp = match host.parse::<IpAddr>() {
                 Ok(ip) => TcpStream::connect((ip, port)).await?,
