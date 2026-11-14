@@ -38,7 +38,8 @@ A list of named values that the user keeps in the app and uses in any launch.
   error.
 - **Screen:** Settings, Compute section, "Environment variables" (`EnvVariablesScreen`). It
   lists the names with dots in place of the values. Add, edit (the eye in the form shows the
-  value), delete (with a confirmation). A name that exists cannot be added twice: the form
+  value; a sensitive value is shown only with the window secure, `FLAG_SECURE`, whatever the
+  setting "Block screenshots" says: [env-share.md](env-share.md), section 2), delete (with a confirmation). A name that exists cannot be added twice: the form
   says so, and the row is the way to edit it. The screen checks the rules of a name and a
   value (`env_store.dart`) before it calls Rust, so each reason has its own text.
 - **Rust API** (`wallet-ffi/src/api/celaut_env.rs`):

@@ -1156,7 +1156,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get securitySeedScreensNote =>
-      'Seed phrase screens always block capture, whatever this setting says.';
+      'Seed phrase screens, the QR code of a variable and a sensitive value shown in clear always block capture, whatever this setting says.';
 
   @override
   String get securitySpending => 'Spending';
@@ -7467,6 +7467,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get celautEnvShareWarnSensitive =>
       'This variable is sensitive. Whoever scans this code gets the value in plain text. Show it only to people you trust, and make sure nobody else sees or records your screen.';
+
+  @override
+  String get celautEnvShareNotSecure =>
+      'This phone could not block screenshots of this screen. A screenshot of this code holds the value.';
+
+  @override
+  String get celautEnvValueNotSecure =>
+      'This phone could not block screenshots of this screen. A screenshot shows the value.';
 
   @override
   String get celautEnvShareTooBig => 'This value is too large for a QR code.';

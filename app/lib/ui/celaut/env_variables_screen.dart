@@ -5,6 +5,7 @@ import '../../bridge/api/celaut_env.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/env_store.dart';
 import '../../l10n/l10n.dart';
+import '../../services/privacy_service.dart';
 import '../../theme/argus_theme.dart';
 import '../layout.dart';
 import '../../celaut/env_share.dart';
@@ -198,6 +199,9 @@ class _EnvVariablesScreenState extends State<EnvVariablesScreen> {
 /// Add a variable (no [name]) or edit one. The value is hidden until the eye is tapped. A
 /// new variable is sensitive unless the user turns the switch off: the container is the
 /// place for the secrets that the user keeps.
+///
+/// While a sensitive value is shown in clear, the window is secure (`FLAG_SECURE`) whatever
+/// the setting "Block screenshots" says; the flag is set before the value is drawn (#141).
 class _EnvEditDialog extends StatefulWidget {
   const _EnvEditDialog({
     required this.store,
@@ -228,12 +232,31 @@ class _EnvEditDialogState extends State<_EnvEditDialog> {
   late bool _sensitive = widget.sensitive;
   String? _nameError;
   String? _valueError;
+  final _secure = SecureHold();
 
   @override
   void dispose() {
+    _secure.dispose();
     _nameCtrl.dispose();
     _valueCtrl.dispose();
     super.dispose();
+  }
+
+  /// Show or hide the value, or change its mark. A sensitive value is shown only once the
+  /// window is secure; the hold is given back when it is hidden or not sensitive any more.
+  Future<void> _show({bool? hidden, bool? sensitive}) async {
+    final h = hidden ?? _hidden;
+    final s = sensitive ?? _sensitive;
+    final clear = !h && s;
+    if (clear) {
+      await _secure.set(true);
+      if (!mounted) return;
+    }
+    setState(() {
+      _hidden = h;
+      _sensitive = s;
+    });
+    if (!clear) await _secure.set(false);
   }
 
   void _save() {
@@ -307,15 +330,24 @@ class _EnvEditDialogState extends State<_EnvEditDialog> {
                   key: const Key('env-eye'),
                   tooltip: _hidden ? l.celautEnvShow : l.celautEnvHide,
                   icon: Icon(_hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                  onPressed: () => setState(() => _hidden = !_hidden),
+                  onPressed: () => _show(hidden: !_hidden),
                 ),
               ),
             ),
+            if (_secure.held && !_secure.secure)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  l.celautEnvValueNotSecure,
+                  key: const Key('env-value-not-secure'),
+                  style: TextStyle(fontSize: 12.5, color: rustFor(context)),
+                ),
+              ),
             SwitchListTile(
               key: const Key('env-edit-sensitive'),
               contentPadding: EdgeInsets.zero,
               value: _sensitive,
-              onChanged: (v) => setState(() => _sensitive = v),
+              onChanged: (v) => _show(sensitive: v),
               title: Text(l.celautEnvSensitive),
               subtitle: Text(l.celautEnvSensitiveHint, style: const TextStyle(fontSize: 12.5)),
             ),
