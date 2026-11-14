@@ -4,7 +4,8 @@ nodo#579 (issue nodo#572, "QR for Chatui") lets a node show a compact invitation
 a QR code: `nodo invite`, or `i` on the PEERS screen of its TUI. The app reads it and
 connects to the node. This note says what the app reads and how it chooses an address.
 It adds to the two text forms of [wire.md](wire.md), section 6, which stay. Section 6 is
-the `celaut://` link that opens the app with an invitation (issue #138).
+the `celaut://` link that opens the app with an invitation (issue #138), and the Share
+action that makes one.
 
 Sources: `protos/invite.proto` and `src/utils/peer_invite.py` of nodo dev at `f4dcb3b2`.
 
@@ -93,7 +94,10 @@ addresses on a direct route is 40 seconds.
 | `app/lib/ui/celaut/known_nodes_screen.dart` | The scan button, the confirmation, the result, the reason for each address |
 | `rust/crates/wallet-ffi/src/api/celaut_invite.rs` | `celaut_read_invite`: the key and the addresses for the confirmation, with no connection |
 | `app/lib/celaut/celaut_link.dart` | `parseCelautLink`: the `celaut://` link, its size checks and its base64 |
-| `app/lib/ui/celaut/node_link.dart` | `openCelautLink`, the confirmation of an invitation or an address, the refusal |
+| `app/lib/ui/celaut/node_link.dart` | `openNodeLink`, the confirmation of an invitation or an address, the refusal; `showNodeShare` |
+| `app/lib/ui/celaut/celaut_link_open.dart` | `openCelautLink` and `celautLinkOpeners`: the opener of each host |
+| `rust/crates/celaut-client/src/invite.rs`, `wallet-ffi/.../celaut_invite.rs` | `build`, `celaut_node_invite`: the invitation of a listed node, for Share |
+| `app/lib/ui/celaut/node_connect_screen.dart` | The Share action of the node detail |
 | `app/android/.../OpenLinkActivity.kt`, `DeepLinkHandler.kt` | The intent filter of `celaut:` and the way of a link into the app |
 
 ## 5. Checks
@@ -117,6 +121,15 @@ addresses on a direct route is 40 seconds.
   refusal on screen.
 - `celaut_invite.rs`: the reader gives the addresses in the order of the route and the
   skipped ones last, says whether the node is listed, and refuses junk.
+- `invite.rs` (`build`): the bytes are the ones of nodo for the vectors and for the real
+  invitation of a test node; loopback, malformed and repeated addresses are left out; the
+  invitation stays within 1000 bytes; no address or no key is an error.
+  `celaut_invite.rs`: the invitation of a listed node reads back with its addresses.
+- `celaut_link_test.dart`: `celautLinkHost`; a link goes to the opener of its host, a
+  second host is one entry, an unknown host says so; the Share dialog shows the link (QR
+  code and text) that opens the same invitation, Copy and Share give it, and a node with no
+  address says so. `celaut_node_screen_test.dart`: the detail has Share, the empty form
+  has not.
 - Not checked: a real node (`nodo invite --raw` into a phone), a scan with a camera, an onion
   address through Orbot, IPv6 on a phone. The vectors were written from the proto and the
   format of nodo and not made with its code, because nodo needs `bee-rpc-over-grpc-py` and the
@@ -133,6 +146,8 @@ is a format of the app:
 celaut://node?invite=<the bytes of the invitation in URL-safe base64>
 ```
 
+### 6.1 The format
+
 - The host is `node`, as in the address form of [wire.md](wire.md), section 6: a link to a
   node, by an invitation or by an address (`celaut://node?addr=host:port`). The scheme and
   the host are case-insensitive; a `/` after `node` is allowed; no fragment.
@@ -147,6 +162,8 @@ celaut://node?invite=<the bytes of the invitation in URL-safe base64>
 - The bytes must then begin as an invitation (`0x0a 0x20`), and Rust reads them by the rules
   of section 1.
 
+### 6.2 The way into the app
+
 **On Android** `OpenLinkActivity` has the intent filter (VIEW, BROWSABLE, scheme `celaut`)
 and gives the link to MainActivity in the task of the app, as `OpenPackageActivity` does
 for a file: no second Flutter engine in the task of the camera app. `DeepLinkHandler` gives
@@ -158,7 +175,8 @@ on by default since Flutter 3.27 and pushed every link that came while the app r
 route, which is unknown, so a second home screen covered the dialog of the link. The ErgoPay
 links had the same fault.
 
-**In the app** the home screen takes the link when it is ready; no wallet is needed. Then:
+**In the app** the home screen takes the link when it is ready; no wallet is needed.
+`openCelautLink` gives a `node` link to `openNodeLink` (section 6.3). Then:
 
 1. `parseCelautLink` reads it. A link that is too long, malformed or not an invitation
    shows a dialog that says which, and nothing else happens. Nothing in a link can make the
@@ -174,6 +192,48 @@ links had the same fault.
 The scanner of the node list shows the same confirmation before it connects, for the bytes
 of an invitation and for a QR code with the text of an invitation link. A link with an
 address (`addr`) asks "add the node at host:port?" and then adds it as a typed address.
+A link that comes while another screen is open closes the screens above home first, as an
+ErgoPay link or a tapped notification does.
+
+### 6.3 One handler for every host
+
+`celaut://` is the scheme of the app for all its links, not only for nodes: `celaut://import`
+(a service from a link, #135) is the next one. There is one way in for all of them:
+
+- **Android:** `OpenLinkActivity` has the only intent filter of the scheme, with no host, and
+  does not look at the host. `DeepLinkHandler` passes every `celaut:` link to Dart.
+- **Dart:** the home screen calls `openCelautLink` (`celaut_link_open.dart`). It reads only
+  the host (`celautLinkHost`: `celaut://<host>` then the end, `/`, `?` or `#`, case-
+  insensitive) and calls the opener of that host in `celautLinkOpeners`:
+
+  ```dart
+  const Map<String, CelautLinkOpener> celautLinkOpeners = {
+    'node': openNodeLink,
+    // 'import': openImportLink,   <- a new kind of link is one line
+  };
+  ```
+
+  A `CelautLinkOpener` gets the context and the whole link. It checks its own form and
+  sizes, asks the user, and shows `showCelautLinkRefused` for a link that it does not open.
+  A host with no opener shows "this app cannot open this kind of celaut link".
+
+### 6.4 Share: making a link
+
+The node detail (the node list, then a node) has a **Share** action in its app bar. It shows
+the `celaut://node?invite=` link of the node:
+
+- as a QR code, which a phone camera app opens;
+- as text, with **Copy**;
+- with **Share link**, the share sheet of the system (a chat, an e-mail).
+
+The invitation is made in Rust (`celaut_node_invite`, `invite::build`) as nodo's
+`build_invite` writes it: the key of the node, then the addresses where the app reached it,
+the last one first, one tag each and no formal. The bytes are the same as nodo's for the same
+addresses. Loopback addresses (`127.0.0.0/8`, `::1`, `localhost`) are left out, because they
+would point at the device that opens the link. So are repeated ones, and the ones that would
+pass the 1000 bytes of nodo. If no address is left, the dialog says that the app cannot make
+a link. The link holds no client id and no credit: it only says who the node is and where
+to find it, like the QR code of `nodo invite`.
 
 ## 7. Open items
 
@@ -182,5 +242,8 @@ address (`addr`) asks "add the node at host:port?" and then adds it as a typed a
   there too. It makes the native library bigger and the feature is experimental in Arti.
 - **Race the addresses.** The app tries one after another. Trying the first two at the same
   time would save time when the first one hangs. Not built.
-- **A screen that shares an invitation link.** The app opens links but makes none: nodo
-  shows the QR code of bytes. `celautInviteLink` (Dart) writes the format, for the tests.
+- **The guest bridge in nodo's invitations.** `nodo invite` lists `192.168.200.1`, the
+  host side of nodo's guest bridge, first (seen on a test node, nodo dev 76dcac3b). No
+  client off the host can reach it; the app tries it and goes on. nodo#655 asks
+  `build_invite` to leave it out. The Share of the app does not add it: the app shares only the
+  addresses where it reached the node.
