@@ -117,9 +117,10 @@
                 <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
             </intent-filter>
         </activity>
-        <!-- Gives a celaut:// link (a node invitation, docs/celaut/invite.md section 6) that
-             another app opens to MainActivity, in the task of the app, and shows nothing
-             (OpenLinkActivity). The app asks the user before it connects to the node. -->
+        <!-- Gives every celaut:// link that another app opens to MainActivity, in the task
+             of the app, and shows nothing (OpenLinkActivity). The app chooses what to do by
+             the host (celaut://node: a node, docs/celaut/invite.md section 6) and asks the
+             user first. A new host needs no change here. -->
         <activity
             android:name=".OpenLinkActivity"
             android:exported="true"

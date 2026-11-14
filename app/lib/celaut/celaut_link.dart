@@ -41,6 +41,10 @@ enum CelautLinkError {
 
   /// Base64 that decodes, but not to an invitation.
   damaged,
+
+  /// A `celaut://` link of a host that this version of the app does not open
+  /// (`openCelautLink`).
+  unknownKind,
 }
 
 /// A link that the app does not open, and why.
@@ -65,7 +69,17 @@ final _base64Url = RegExp(r'^[A-Za-z0-9_-]*$');
 /// side gives only such links (and `ergopay:` ones) to the app.
 bool isCelautLink(String link) => link.trimLeft().toLowerCase().startsWith('celaut:');
 
-/// Read a `celaut://` link. See [CelautLink].
+/// The host of a `celaut://` link, in lower case: what kind of link it is (`node`, …).
+/// Null if the text is not `celaut://<host>`, followed by the end, `/`, `?` or `#`. Only the
+/// start of the link is read, so a link of any size is cheap.
+String? celautLinkHost(String link) {
+  final m = _host.firstMatch(link.trimLeft());
+  return m?.group(1)?.toLowerCase();
+}
+
+final _host = RegExp(r'^celaut://([A-Za-z0-9][A-Za-z0-9.-]{0,62})(?=$|[/?#])', caseSensitive: false);
+
+/// Read a `celaut://node` link. See [CelautLink].
 CelautLink parseCelautLink(String input) {
   final text = input.trim();
   // First the size: a link of a megabyte is refused without a look at its content.
@@ -123,6 +137,6 @@ CelautLink _invite(String encoded) {
 }
 
 /// The link of an invitation, as [parseCelautLink] reads it: URL-safe base64 with no
-/// padding. The tests use it; a screen that shares an invitation could.
+/// padding. The Share action of the node detail makes it (`showNodeShare`).
 String celautInviteLink(List<int> invite) =>
     'celaut://node?invite=${base64Url.encode(invite).replaceAll('=', '')}';

@@ -13468,6 +13468,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A link asks to add the node at {address}. The app connects to it and checks it before it adds it to your list.'**
   String celautLinkConfirmAddress(String address);
+
+  /// No description provided for @celautLinkUnknownKind.
+  ///
+  /// In en, this message translates to:
+  /// **'This app cannot open this kind of celaut link. A newer version may.'**
+  String get celautLinkUnknownKind;
+
+  /// No description provided for @celautNodeShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get celautNodeShare;
+
+  /// No description provided for @celautNodeShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this node'**
+  String get celautNodeShareTitle;
+
+  /// No description provided for @celautNodeShareNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A phone camera that reads this code, or a tap on the link, opens the app and asks to add the node. The link has the key of the node and the addresses where this app reached it. It gives no access to your client or your credit.'**
+  String get celautNodeShareNote;
+
+  /// No description provided for @celautNodeShareLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Share link'**
+  String get celautNodeShareLink;
+
+  /// No description provided for @celautNodeShareCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get celautNodeShareCopied;
+
+  /// No description provided for @celautNodeShareNone.
+  ///
+  /// In en, this message translates to:
+  /// **'This app has no address of the node that another device could use, so it cannot make a link.'**
+  String get celautNodeShareNone;
 }
 
 class _AppLocalizationsDelegate

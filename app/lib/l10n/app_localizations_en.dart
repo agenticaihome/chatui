@@ -8379,4 +8379,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String celautLinkConfirmAddress(String address) {
     return 'A link asks to add the node at $address. The app connects to it and checks it before it adds it to your list.';
   }
+
+  @override
+  String get celautLinkUnknownKind =>
+      'This app cannot open this kind of celaut link. A newer version may.';
+
+  @override
+  String get celautNodeShare => 'Share';
+
+  @override
+  String get celautNodeShareTitle => 'Share this node';
+
+  @override
+  String get celautNodeShareNote =>
+      'A phone camera that reads this code, or a tap on the link, opens the app and asks to add the node. The link has the key of the node and the addresses where this app reached it. It gives no access to your client or your credit.';
+
+  @override
+  String get celautNodeShareLink => 'Share link';
+
+  @override
+  String get celautNodeShareCopied => 'Link copied';
+
+  @override
+  String get celautNodeShareNone =>
+      'This app has no address of the node that another device could use, so it cannot make a link.';
 }

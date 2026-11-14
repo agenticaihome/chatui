@@ -1,14 +1,15 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:argus_wallet/bridge/api/celaut.dart';
 import 'package:argus_wallet/bridge/api/celaut_invite.dart';
 import 'package:argus_wallet/celaut/celaut_link.dart';
 import 'package:argus_wallet/celaut/host_port.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
+import 'package:argus_wallet/ui/celaut/celaut_link_open.dart';
 import 'package:argus_wallet/ui/celaut/node_link.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// An invitation as nodo writes it: field 1 with the 32-byte key, then one `ip4` address
@@ -129,7 +130,7 @@ void main() {
     });
   });
 
-  group('openCelautLink', () {
+  group('openNodeLink', () {
     InviteReadView view({bool listed = false}) => InviteReadView(
           peerId: _peer,
           addresses: const [
@@ -154,7 +155,7 @@ void main() {
             builder: (context) => Scaffold(
               body: TextButton(
                 key: const Key('open'),
-                onPressed: () => openCelautLink(
+                onPressed: () => openNodeLink(
                   context,
                   link,
                   read: read ?? (_) => view(),
@@ -242,6 +243,171 @@ void main() {
       expect(find.text(appL10n.celautLinkDamaged), findsOneWidget);
       expect(find.byKey(const Key('node-invite-confirm')), findsNothing);
       expect(opened, isEmpty);
+    });
+  });
+
+  group('celautLinkHost', () {
+    test('gives the host in lower case, and null for anything else', () {
+      expect(celautLinkHost('celaut://node?invite=AAAA'), 'node');
+      expect(celautLinkHost('  CELAUT://Node/?addr=1.2.3.4:5'), 'node');
+      expect(celautLinkHost('celaut://import?url=https%3A%2F%2Fx'), 'import');
+      expect(celautLinkHost('celaut://node'), 'node');
+      expect(celautLinkHost('celaut://node#x'), 'node');
+      expect(celautLinkHost('celaut://a.b-c'), 'a.b-c');
+      for (final l in [
+        'celaut:node?invite=AAAA',
+        'celaut:///node',
+        'celaut://',
+        'celaut://no de',
+        'celaut://node:80/x',
+        'ergopay://node',
+        'https://node',
+        '',
+      ]) {
+        expect(celautLinkHost(l), isNull, reason: l);
+      }
+      // Only the start is read: a link of a megabyte is cheap.
+      expect(celautLinkHost('celaut://node?invite=${'A' * 1000000}'), 'node');
+    });
+  });
+
+  group('openCelautLink', () {
+    /// The links that each opener got.
+    final got = <String>[];
+
+    Future<void> open(WidgetTester tester, String link, {Map<String, CelautLinkOpener>? openers}) async {
+      got.clear();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                key: const Key('open'),
+                onPressed: () => openers == null
+                    ? openCelautLink(context, link)
+                    : openCelautLink(context, link, openers: openers),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const Key('open')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> record(String kind, String link) async => got.add('$kind $link');
+
+    test('the app opens the node host, by openNodeLink', () {
+      expect(celautLinkOpeners.keys, ['node']);
+      expect(celautLinkOpeners['node'], same(openNodeLink));
+    });
+
+    testWidgets('a link goes to the opener of its host, whatever the case', (tester) async {
+      final openers = {'node': (BuildContext c, String l) => record('node', l)};
+      await open(tester, 'CELAUT://Node?addr=203.0.113.7:1', openers: openers);
+      expect(got, ['node CELAUT://Node?addr=203.0.113.7:1']);
+      expect(find.byKey(const Key('celaut-link-refused')), findsNothing);
+    });
+
+    testWidgets('a second host is one more entry (as celaut://import of #135 would be)', (tester) async {
+      final openers = {
+        ...celautLinkOpeners,
+        'import': (BuildContext c, String l) => record('import', l),
+      };
+      await open(tester, 'celaut://import?url=https%3A%2F%2Fexample.org%2Fa.celaut.bee', openers: openers);
+      expect(got, ['import celaut://import?url=https%3A%2F%2Fexample.org%2Fa.celaut.bee']);
+    });
+
+    testWidgets('a host that the app does not know says so and opens nothing', (tester) async {
+      for (final link in ['celaut://service?x=1', 'celaut:node?invite=AAAA', 'celaut://import?url=x']) {
+        await open(tester, link, openers: {'node': (BuildContext c, String l) => record('node', l)});
+        expect(find.byKey(const Key('celaut-link-refused')), findsOneWidget, reason: link);
+        expect(find.text(appL10n.celautLinkUnknownKind), findsOneWidget, reason: link);
+        expect(got, isEmpty, reason: link);
+        await tester.tap(find.byKey(const Key('celaut-link-refused-close')));
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('with the real openers, a node link goes to openNodeLink', (tester) async {
+      // openNodeLink with the parser only: a malformed node link is refused as malformed, not
+      // as an unknown kind.
+      await open(tester, 'celaut://node?invite=no+t/base64');
+      expect(find.text(appL10n.celautLinkInvalid), findsOneWidget);
+    });
+  });
+
+  group('showNodeShare', () {
+    final shared = <String>[];
+    String? clip;
+
+    setUp(() {
+      shared.clear();
+      clip = null;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') clip = (call.arguments as Map)['text'] as String?;
+          return null;
+        },
+      );
+    });
+
+    Future<void> show(WidgetTester tester, Uint8List Function(String) invite) async {
+      tester.view.physicalSize = const Size(400, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                key: const Key('open'),
+                onPressed: () => showNodeShare(context, _peer, invite: invite, share: (t) async => shared.add(t)),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const Key('open')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows the link of the invitation as a QR code and text; Copy and Share give it', (tester) async {
+      final asked = <String>[];
+      await show(tester, (id) {
+        asked.add(id);
+        return _invite;
+      });
+      expect(asked, [_peer]);
+      final link = celautInviteLink(_invite);
+      expect(find.byKey(const Key('node-share')), findsOneWidget);
+      expect(find.byKey(const Key('node-share-qr')), findsOneWidget);
+      expect(find.text(link), findsOneWidget);
+      // The link that the dialog shows opens the same invitation.
+      expect((parseCelautLink(link) as CelautInviteLink).bytes, _invite);
+
+      await tester.tap(find.byKey(const Key('node-share-copy')));
+      await tester.pumpAndSettle();
+      expect(clip, link);
+      expect(find.text(appL10n.celautNodeShareCopied), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('node-share-send')));
+      await tester.pumpAndSettle();
+      expect(shared, [link]);
+
+      await tester.tap(find.byKey(const Key('node-share-done')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('node-share')), findsNothing);
+    });
+
+    testWidgets('with no address to share it says so', (tester) async {
+      await show(tester, (_) => throw const CelautError(kind: CelautErrorKind.invalidInput, message: 'none'));
+      expect(find.byKey(const Key('node-share-none')), findsOneWidget);
+      expect(find.text(appL10n.celautNodeShareNone), findsOneWidget);
+      expect(find.byKey(const Key('node-share-qr')), findsNothing);
     });
   });
 }

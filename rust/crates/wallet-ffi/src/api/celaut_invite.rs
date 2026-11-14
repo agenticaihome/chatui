@@ -185,6 +185,20 @@ pub fn celaut_read_invite(invite: Vec<u8>) -> Result<InviteReadView, CelautError
     Ok(read(parsed, via_now(), listed))
 }
 
+/// The invitation to the node `peer_id` of the node list, for the Share action of its
+/// detail (`docs/celaut/invite.md`, section 6): its key and the addresses where the app
+/// reached it, the last first, as nodo writes an invitation (`invite::build`). A loopback
+/// address is left out. A node that the app does not know, or one with no address to share,
+/// is an `InvalidInput` error.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_node_invite(peer_id: String) -> Result<Vec<u8>, CelautError> {
+    let peer_id = peer_id.trim().to_lowercase();
+    let addresses = db()
+        .read(|d| d.nodes.get(&peer_id).map(|n| n.addresses.clone()))
+        .ok_or_else(|| invalid("The node is not in the node list."))?;
+    invite::build(&peer_id, &addresses).map_err(|e| invalid(&e.to_string()))
+}
+
 /// The part of [`celaut_read_invite`] that does not depend on the route of the app.
 fn read(parsed: invite::Invite, via: Via, listed: bool) -> InviteReadView {
     let plan = invite::plan(&parsed.addrs, via);
@@ -464,5 +478,45 @@ mod tests {
             let e = celaut_read_invite(junk).unwrap_err();
             assert_eq!(e.kind, CelautErrorKind::InvalidInput);
         }
+    }
+
+    #[test]
+    fn the_invitation_of_a_listed_node_has_its_addresses_and_reads_back() {
+        let peer = "6b".repeat(32);
+        let e = celaut_node_invite(peer.clone()).unwrap_err();
+        assert_eq!(e.kind, CelautErrorKind::InvalidInput);
+        db().update(|d| {
+            d.nodes.insert(
+                peer.clone(),
+                NodeRecord {
+                    client_id: "c-share-1".into(),
+                    addresses: vec![
+                        "10.213.195.2:58526".into(),
+                        "127.0.0.1:58526".into(),
+                        "node.example.org:58526".into(),
+                    ],
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
+        // The key in upper case is the same node.
+        let raw = celaut_node_invite(peer.to_uppercase()).unwrap();
+        let view = celaut_read_invite(raw).unwrap();
+        assert_eq!(view.peer_id, peer);
+        assert!(view.listed);
+        let shown: Vec<_> = view.addresses.iter().map(|a| a.address.as_str()).collect();
+        assert_eq!(shown, ["10.213.195.2:58526", "node.example.org:58526"]);
+        // Only a loopback address: nothing to share.
+        db().update(|d| {
+            d.nodes.get_mut(&peer).unwrap().addresses = vec!["127.0.0.1:1".into()];
+        })
+        .unwrap();
+        let e = celaut_node_invite(peer.clone()).unwrap_err();
+        assert_eq!(e.kind, CelautErrorKind::InvalidInput);
+        db().update(|d| {
+            d.nodes.remove(&peer);
+        })
+        .unwrap();
     }
 }

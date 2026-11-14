@@ -9,8 +9,14 @@ import android.os.Bundle
 /// [OpenPackageActivity] does for a file: without this step, a second MainActivity, with a
 /// second Flutter engine, could start in the task of the other app. The running
 /// MainActivity gets the link in `onNewIntent`; if the app does not run, it starts in its
-/// own task. Shows nothing. [DeepLinkHandler] gives the link to Flutter, which asks the
-/// user before it connects (`docs/celaut/invite.md`, section 6).
+/// own task. Shows nothing.
+///
+/// It is the one entry of the scheme, for every host: `celaut://node` (a node, issue #138)
+/// and any later kind, such as `celaut://import` (#135). It does not look at the host.
+/// [DeepLinkHandler] gives the link to Flutter, and `openCelautLink`
+/// (`app/lib/ui/celaut/celaut_link_open.dart`) chooses what to do by the host. A new kind of
+/// link is one entry in `celautLinkOpeners` there, with no change here
+/// (`docs/celaut/invite.md`, section 6.3).
 class OpenLinkActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

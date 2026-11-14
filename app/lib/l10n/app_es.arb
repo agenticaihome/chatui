@@ -2771,5 +2771,12 @@
   "celautLinkTooLong": "El enlace es demasiado largo para una invitación a un nodo. La app no leyó nada de él.",
   "celautLinkInvalid": "El enlace no es un enlace a un nodo que esta app pueda leer.",
   "celautLinkDamaged": "La invitación del enlace está dañada.",
-  "celautLinkConfirmAddress": "Un enlace pide añadir el nodo en {address}. La app se conecta a él y lo comprueba antes de añadirlo a tu lista."
+  "celautLinkConfirmAddress": "Un enlace pide añadir el nodo en {address}. La app se conecta a él y lo comprueba antes de añadirlo a tu lista.",
+  "celautLinkUnknownKind": "Esta app no puede abrir este tipo de enlace celaut. Una versión más nueva quizá sí.",
+  "celautNodeShare": "Compartir",
+  "celautNodeShareTitle": "Compartir este nodo",
+  "celautNodeShareNote": "Una cámara de móvil que lee este código, o un toque en el enlace, abre la app y pide añadir el nodo. El enlace tiene la clave del nodo y las direcciones donde esta app lo alcanzó. No da acceso a tu cliente ni a tu crédito.",
+  "celautNodeShareLink": "Compartir enlace",
+  "celautNodeShareCopied": "Enlace copiado",
+  "celautNodeShareNone": "Esta app no tiene ninguna dirección del nodo que otro dispositivo pueda usar, así que no puede crear un enlace."
 }

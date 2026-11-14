@@ -33,7 +33,7 @@ import 'assets_screen.dart';
 import '../celaut/wallet_money.dart';
 import 'celaut/deposit_screen.dart';
 import 'celaut/home_tabs.dart';
-import 'celaut/node_link.dart';
+import 'celaut/celaut_link_open.dart';
 import 'create_wallet_screen.dart';
 import 'ergopay_screen.dart';
 import 'home/erg_price_feed.dart';
@@ -255,7 +255,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     // A file that the user opened in a file manager launched the app: its import starts
     // when the home screen is there.
     WidgetsBinding.instance.addPostFrameCallback((_) => _openIncomingPackage());
-    // The same for a `celaut://` link (a node invitation) that launched the app.
+    // The same for a `celaut://` link that launched the app.
     WidgetsBinding.instance.addPostFrameCallback((_) => _openPendingDeepLink());
     if (_overview.wallets.isNotEmpty) unawaited(_bitcoin.refreshIfDue());
   }
@@ -337,8 +337,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!mounted || _ergoPayOpen) return false;
     final link = deepLinkController.pending;
     if (link == null) return false;
-    // A `celaut://` link (a node invitation, issue #138) does not need a wallet either: it
-    // asks the user and opens the node list, once the home screen is there.
+    // A `celaut://` link does not need a wallet either: once the home screen is there,
+    // openCelautLink opens it by its host (a node, issue #138), and asks the user first.
     if (isCelautLink(link)) {
       if (_loading) return false;
       deepLinkController.take();

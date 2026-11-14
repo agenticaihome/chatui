@@ -30,6 +30,14 @@ Future<InviteConnectView> celautConnectInvite({required List<int> invite}) =>
 InviteReadView celautReadInvite({required List<int> invite}) =>
     RustLib.instance.api.crateApiCelautInviteCelautReadInvite(invite: invite);
 
+/// The invitation to the node `peer_id` of the node list, for the Share action of its
+/// detail (`docs/celaut/invite.md`, section 6): its key and the addresses where the app
+/// reached it, the last first, as nodo writes an invitation (`invite::build`). A loopback
+/// address is left out. A node that the app does not know, or one with no address to share,
+/// is an `InvalidInput` error.
+Uint8List celautNodeInvite({required String peerId}) =>
+    RustLib.instance.api.crateApiCelautInviteCelautNodeInvite(peerId: peerId);
+
 /// One address of an invitation, before any connection.
 class InviteAddrView {
   /// `host:port`, with brackets for IPv6.

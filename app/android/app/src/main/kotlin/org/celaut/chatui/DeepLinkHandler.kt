@@ -8,10 +8,10 @@ import io.flutter.plugin.common.MethodChannel
 /// activity is answered from `getInitialLink`; links arriving while the
 /// app is open are pushed through `onLink`.
 ///
-/// A `celaut:` link (a node invitation, `docs/celaut/invite.md`) comes through
-/// [OpenLinkActivity]. Flutter refuses a link longer than 2048 characters before it reads
-/// it; only the start of a longer one crosses the channel, enough for Flutter to see that it
-/// is too long.
+/// A `celaut:` link, of any host, comes through [OpenLinkActivity] (`docs/celaut/invite.md`,
+/// section 6). Flutter chooses what to do by the host; a node link longer than 2048
+/// characters is refused before it is read. Only the start of a longer link crosses the
+/// channel, enough for Flutter to see that it is too long.
 object DeepLinkHandler {
     private const val CHANNEL = "argus/deeplink"
     private const val MAX_CELAUT_LINK = 4096
