@@ -5,6 +5,7 @@ import '../../bridge/api/celaut_service_info.dart' show NetworkView;
 import '../../celaut/egress.dart';
 import '../../celaut/env_store.dart';
 import '../../l10n/l10n.dart';
+import '../../services/privacy_service.dart';
 import '../../theme/argus_theme.dart';
 import '../layout.dart';
 import '../../celaut/env_share.dart';
@@ -118,10 +119,14 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
   late final _saveNameCtrl = TextEditingController(text: widget.declared.isEmpty ? '' : widget.declared.first.name);
   String? _saveNameError;
 
+  /// FLAG_SECURE while a sensitive typed or scanned value is shown in clear (#141).
+  final _secure = SecureHold();
+
   bool get _review => _index >= widget.declared.length;
 
   @override
   void dispose() {
+    _secure.dispose();
     _typedCtrl.dispose();
     _saveNameCtrl.dispose();
     super.dispose();
@@ -139,6 +144,25 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
       _saveNameError = null;
       _saveNameCtrl.text = index < widget.declared.length ? widget.declared[index].name : '';
     });
+    _secure.set(false);
+  }
+
+  /// Show or hide the typed value, or change its mark. A sensitive value is shown only once
+  /// the window is secure, whatever the setting "Block screenshots" says; the hold is given
+  /// back when it is hidden or not sensitive any more.
+  Future<void> _show({bool? hidden, bool? sensitive}) async {
+    final h = hidden ?? _hidden;
+    final s = sensitive ?? _typedSensitive;
+    final clear = !h && s;
+    if (clear) {
+      await _secure.set(true);
+      if (!mounted) return;
+    }
+    setState(() {
+      _hidden = h;
+      _typedSensitive = s;
+    });
+    if (!clear) await _secure.set(false);
   }
 
   /// The variables of the container, or none if the database cannot be read.
@@ -243,6 +267,7 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
       _typedError = null;
       _saveNameError = null;
     });
+    _secure.set(false);
   }
 
   void _useTyped() {
@@ -402,15 +427,24 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
                 key: const Key('env-typed-eye'),
                 tooltip: _hidden ? l.celautEnvShow : l.celautEnvHide,
                 icon: Icon(_hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                onPressed: () => setState(() => _hidden = !_hidden),
+                onPressed: () => _show(hidden: !_hidden),
               ),
             ),
           ),
+          if (_secure.held && !_secure.secure)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                l.celautEnvValueNotSecure,
+                key: const Key('env-typed-not-secure'),
+                style: TextStyle(fontSize: 12.5, color: rustFor(context)),
+              ),
+            ),
           SwitchListTile(
             key: const Key('env-typed-sensitive'),
             contentPadding: EdgeInsets.zero,
             value: _typedSensitive,
-            onChanged: (v) => setState(() => _typedSensitive = v),
+            onChanged: (v) => _show(sensitive: v),
             title: Text(l.celautEnvSensitive),
             subtitle: Text(l.celautEnvSensitiveHint, style: TextStyle(fontSize: 12.5, color: colors.muted)),
           ),

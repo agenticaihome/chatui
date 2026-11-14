@@ -1169,7 +1169,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get securitySeedScreensNote =>
-      'Las pantallas de la frase de recuperación siempre bloquean las capturas, diga lo que diga este ajuste.';
+      'Las pantallas de la frase de recuperación, el código QR de una variable y un valor sensible mostrado en claro siempre bloquean las capturas, diga lo que diga este ajuste.';
 
   @override
   String get securitySpending => 'Gastos';
@@ -7545,6 +7545,14 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get celautEnvShareWarnSensitive =>
       'Esta variable es sensible. Quien escanee este código obtiene el valor en texto plano. Muéstralo solo a personas de confianza y asegúrate de que nadie más ve o graba tu pantalla.';
+
+  @override
+  String get celautEnvShareNotSecure =>
+      'Este teléfono no pudo bloquear las capturas de esta pantalla. Una captura de este código contiene el valor.';
+
+  @override
+  String get celautEnvValueNotSecure =>
+      'Este teléfono no pudo bloquear las capturas de esta pantalla. Una captura muestra el valor.';
 
   @override
   String get celautEnvShareTooBig =>

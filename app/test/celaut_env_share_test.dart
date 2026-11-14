@@ -5,6 +5,7 @@ import 'package:argus_wallet/l10n/l10n.dart';
 import 'package:argus_wallet/ui/celaut/env_questions_screen.dart';
 import 'package:argus_wallet/ui/celaut/env_variables_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A container in memory.
@@ -34,6 +35,13 @@ Widget _app(Widget home) => MaterialApp(
     );
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  // The share dialog holds FLAG_SECURE (#141): the window flag goes through this channel.
+  const secure = MethodChannel('com.argus.wallet/secure_storage');
+  setUp(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(secure, (call) async => call.method == 'setSecureFlag' ? true : null));
+  tearDown(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(secure, null));
+
   group('the text of the QR code', () {
     test('a variable goes through the code and comes back the same', () {
       const v = EnvShare(name: 'API_KEY', value: 'sk-1 ñ "q"', sensitive: true);

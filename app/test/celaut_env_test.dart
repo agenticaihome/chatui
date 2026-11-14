@@ -8,6 +8,7 @@ import 'package:argus_wallet/theme/argus_theme.dart' show rust;
 import 'package:argus_wallet/ui/celaut/env_questions_screen.dart';
 import 'package:argus_wallet/ui/celaut/env_variables_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The container in memory, with the calls that the screens make.
@@ -99,6 +100,14 @@ Future<List<EnvChoice>?> ask(
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  // The eye of a sensitive value holds FLAG_SECURE (#141): the window flag goes through
+  // this channel, and an unmocked channel never answers in a widget test.
+  const secure = MethodChannel('com.argus.wallet/secure_storage');
+  setUp(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(secure, (call) async => call.method == 'setSecureFlag' ? true : null));
+  tearDown(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(secure, null));
+
   group('the rules of a name and a value', () {
     test('a name is a C identifier that is not reserved', () {
       for (final ok in ['A', '_', 'API_KEY', '_x1']) {

@@ -2067,7 +2067,7 @@ abstract class AppLocalizations {
   /// No description provided for @securitySeedScreensNote.
   ///
   /// In en, this message translates to:
-  /// **'Seed phrase screens always block capture, whatever this setting says.'**
+  /// **'Seed phrase screens, the QR code of a variable and a sensitive value shown in clear always block capture, whatever this setting says.'**
   String get securitySeedScreensNote;
 
   /// No description provided for @securitySpending.
@@ -11986,6 +11986,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This variable is sensitive. Whoever scans this code gets the value in plain text. Show it only to people you trust, and make sure nobody else sees or records your screen.'**
   String get celautEnvShareWarnSensitive;
+
+  /// No description provided for @celautEnvShareNotSecure.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone could not block screenshots of this screen. A screenshot of this code holds the value.'**
+  String get celautEnvShareNotSecure;
+
+  /// No description provided for @celautEnvValueNotSecure.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone could not block screenshots of this screen. A screenshot shows the value.'**
+  String get celautEnvValueNotSecure;
 
   /// No description provided for @celautEnvShareTooBig.
   ///

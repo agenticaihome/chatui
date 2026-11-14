@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,10 +39,31 @@ class PrivacyService extends ChangeNotifier {
   /// and restore this value when they close.
   bool blockScreenshots = true;
 
-  /// Applies [blockScreenshots] to the window. Seed-phrase screens call
-  /// this on close to undo their forced-on state.
+  /// Screens open now that show a secret and hold the window secure (#141).
+  int _secureHolds = 0;
+
+  /// Applies [blockScreenshots] to the window, or keeps it secure while a
+  /// screen holds it ([holdSecure]). Seed-phrase screens call this on close
+  /// to undo their forced-on state.
   Future<void> applyScreenshotPolicy() async {
-    await SecureStorageService.setSecureFlag(blockScreenshots);
+    await SecureStorageService.setSecureFlag(blockScreenshots || _secureHolds > 0);
+  }
+
+  /// A screen that shows a secret (the QR code of a variable, a sensitive value shown in
+  /// clear with the eye: [SecureHold]) sets
+  /// FLAG_SECURE whatever [blockScreenshots] says: no screenshot, no screen
+  /// recording, no recents thumbnail. Call [releaseSecure] once when it
+  /// closes. False if the phone could not set the flag.
+  Future<bool> holdSecure() async {
+    _secureHolds++;
+    return SecureStorageService.setSecureFlag(true);
+  }
+
+  /// Ends one [holdSecure]: the window goes back to [blockScreenshots] when
+  /// no screen holds it any more.
+  Future<void> releaseSecure() async {
+    if (_secureHolds > 0) _secureHolds--;
+    await applyScreenshotPolicy();
   }
 
   Future<void> setBlockScreenshots(bool value) async {
@@ -93,3 +116,37 @@ class PrivacyService extends ChangeNotifier {
 }
 
 final privacyService = PrivacyService();
+
+/// One hold of FLAG_SECURE that a screen turns on and off while it shows a sensitive value
+/// in clear (the eye of a value form, #141). It takes at most one hold of [service] at a
+/// time, so on/off can be called as often as the screen changes.
+class SecureHold {
+  SecureHold([PrivacyService? service]) : _service = service ?? privacyService;
+
+  final PrivacyService _service;
+  bool _held = false;
+
+  /// False if the phone could not set the flag for the hold that is on now.
+  bool secure = true;
+
+  bool get held => _held;
+
+  /// Holds the flag when [on], gives it back when not. Await it before drawing the value:
+  /// the flag is set when it returns. Gives [secure].
+  Future<bool> set(bool on) async {
+    if (on == _held) return secure;
+    _held = on;
+    if (on) {
+      secure = await _service.holdSecure();
+    } else {
+      secure = true;
+      await _service.releaseSecure();
+    }
+    return secure;
+  }
+
+  /// The screen closes: give the hold back.
+  void dispose() {
+    if (_held) unawaited(set(false));
+  }
+}
