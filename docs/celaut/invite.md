@@ -134,6 +134,36 @@ Nodes: nodo announces an onion address with its own Tor (`nodo tor`, `routing.to
 server that treats every caller as a remote peer, with the same TLS certificate, so the app
 checks the key of the node through the onion as on the clearnet.
 
+### The onion of the advertisement
+
+When the app opens a session with a node, it checks the signed advertisement (`Peer`). The
+onions in it join the addresses of the node (`CelautData::add_announced_addresses`), after
+the ones that the app knows. Only a `Peer.Uri` counts whose transport has the tag
+`tor-onion-v3`, whose host is a valid v3 onion name (the checksum and the version), whose
+port is from 1 to 65535 and that has not expired (`expiry_unix_timestamp`, 0 for none), as
+nodo reads it (`celaut_client::node_addresses::advertised_onions`). So a node first added
+by its IP gets its onion, and the app keeps it: nodo announces the onion only while its Tor
+is up.
+
+The addresses of a node are tried in the order of the route
+(`celaut_client::node_addresses::order`, 2026-11-14, Josemi): through Tor (the client of the
+app or a proxy) the onions first, as for an invitation; on a direct route the onions last,
+and an onion alone fails with "needs Tor". The node list (`celaut_known_nodes`), the
+checks of the nodes, the overview and the nodes of a run use this order.
+
+### A typed onion on a direct route
+
+The app refuses it before the dial (`check_route`) with the error kind `OnionNeedsTor`, and
+the screens show a localized hint (en and es): "An onion address needs Tor. Turn on Tor in
+the network settings: the Tor client of the app or an external proxy such as Orbot." The
+name is never looked up.
+
+### Decisions (Josemi, 2026-11-14)
+
+- 60 s for an onion attempt of an invitation stays.
+- +2 MB per ABI is accepted, and the feature is always on (no build flag).
+- An e2e with nodo's own onion service on a dedicated node is not needed.
+
 ### Measures
 
 On Ubuntu 22.04 x86_64 (WSL2), the same network, `libwallet_ffi.so` of release builds
@@ -163,6 +193,14 @@ nothing changes for a user without Tor or for the start of Tor.
   private network. `celaut_invite.rs`: both Tor routes try the onion first with 60 s; a
   direct route says that the onion needs Tor. `celaut-net`: a direct route refuses an onion
   name with no lookup.
+- `node_addresses.rs`: the onion of an advertisement is read; only the `tor-onion-v3`
+  transport with a valid v3 name and port counts; any case, no repeats; an expired onion is
+  left out; the order through Tor and on a direct route. `db.rs`: an announced address goes
+  after the known ones, once. `celaut_home.rs`: a typed onion on a direct route is
+  `OnionNeedsTor` for adding a node, a new client and the node check, with no connection; a
+  failing address says more than an onion that needs Tor; the node list shows the onions
+  last on a direct route. `celaut_known_nodes_test.dart`: the hint, in place of the
+  technical text.
 - `cargo test -p celaut-tor --test real_tor -- --ignored --nocapture` (Internet) now opens
   the onion service of `www.torproject.org` twice after the clearnet checks.
 - `cargo test -p celaut-tor --test real_onion_node -- --ignored --nocapture` with

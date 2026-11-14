@@ -64,9 +64,18 @@ With Tor on, the app never falls back to a direct connection.
   or `routing.HIDDEN`) is hidden too: both Tor routes open `.onion` addresses (the Arti
   client is built with `onion-service-client`), and a peer invitation tries the onion first
   on them ([invite.md](invite.md), sections 3 and 7).
-- A direct route refuses a `.onion` name before any lookup (`celaut_net::connect`): the
-  system resolver cannot answer it, and the query would tell the DNS server which onion
-  service the phone wants.
+- The onion that a node announces in its signed advertisement (a `Peer.Uri` whose transport
+  has the tag `tor-onion-v3` and whose host is a valid v3 onion name) joins the addresses of
+  the node when the app opens a session with it, so a node first added by its IP can be
+  reached by its onion later ([invite.md](invite.md), section 7). The app never removes it.
+- The order in which the app tries the addresses of a node depends on the route
+  (`celaut_client::node_addresses::order`): through Tor the onions go first; on a direct
+  route they go last; otherwise the last address that worked goes first. The node list, the
+  node checks, the overview and the nodes of a run use this order.
+- A direct route refuses a `.onion` name before any lookup (`celaut_net::connect`, and in
+  the app before the dial: `check_route`): the system resolver cannot answer it, and the
+  query would tell the DNS server which onion service the phone wants. The error has its own
+  kind, `OnionNeedsTor`, and the screens show a localized hint to turn on Tor.
 - The native library gets bigger with Arti.
 - An open `ServiceTunnel` stream does not move when the route changes. It keeps the route
   that it had; a new connection uses the new one.
@@ -78,6 +87,7 @@ With Tor on, the app never falls back to a direct connection.
 | `rust/crates/celaut-net` | `Route` (`Direct`, `Socks`, `Blocked`), `connect`, and a small SOCKS5 client and server with user name and password. 10 tests |
 | `rust/crates/celaut-tor` | `Manager`: the modes, the state, the Arti client (with `onion-service-client`) and its SOCKS5 port. The port has a random user name and password, so another app on the phone cannot use it |
 | `rust/crates/celaut-wire` | The TCP dial of a node goes through `celaut_net::connect` |
+| `rust/crates/celaut-client/src/node_addresses.rs` | `advertised_onions` (the onions of a checked `Peer`), `order` (the addresses of a node for the route), `is_onion_v3_host` |
 | `rust/crates/wallet-net` | `http::client_builder` follows the route |
 | `rust/crates/wallet-ffi/src/api/celaut_network.rs` | `celaut_set_network`, `celaut_network_status`, and `celaut_network_proxy` (the route for the Dart side) |
 | `app/lib/celaut/network_route.dart`, `app/lib/ui/celaut/network_screen.dart` | The setting, and the screen |
