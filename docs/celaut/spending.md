@@ -16,11 +16,17 @@ On the info page of a running instance, "Time and credit" has two buttons: **Add
   `celaut_move_instance_mu(instance_id, amount_mu, take_back)`; Rust:
   `NodeSession::top_up` and `NodeSession::take_back`.
 - **The fee.** nodo charges no fee for `ModifyDeposit` (`manager.modify_deposit` writes a
-  `top_up` or a `withdrawal` row on each side and nothing else). The sheet says "The node
-  charges no fee for this move". If a node adds a fee one day, it must advertise it in
-  `Peer.mu_per_call`, and the sheet must show it.
+  `top_up` or a `withdrawal` row on each side and nothing else). A node that charges one
+  advertises it in `Peer.mu_per_call` as `modify_deposit_mu` (Josemi, PR #148): the sheet
+  then says "The node charges X for this move" (FFI `celaut_move_fee`); with no such key it
+  says "The node charges no fee for this move".
 - **The sheet.** An amount in MU (typed, or a quick value: +100 000, +1 000 000, +10 000 000
-  when the credit covers them, or half and all of the balance to take back). It shows the
+  when the credit covers them; to take back, half of the balance, and **all but one period**:
+  the balance less what keeps the instance one more period at the price of the node now (the
+  period that runs and the next one, as "how long it lasts" counts them), so that the quick
+  value never stops the instance (Josemi, PR #148). That quick value needs the price of the node and a balance of
+  more than one period. A typed amount can still take all of it; the sheet then says that
+  the node stops the instance at its next charge). It shows the
   balance of the instance and the credit of the user, each as "before → after", and how
   long the instance lasts after the move at the price of the node now (or that the node
   stops it at its next charge). A second question ("Add MU to the instance?") comes before
@@ -50,7 +56,10 @@ On the info page of a running instance, "Time and credit" has two buttons: **Add
   each movement, from `Peer.mu_per_call`) and writes a `statement_query` movement. So:
   - the app never reads a statement by itself, in the background or on a timer;
   - each read is one tap, after a question with the most that it can cost (the fixed price
-    and the price of the most rows of one answer, 1 000);
+    and the price of one page of **100 movements**, Josemi PR #148);
+  - a read asks for one page: the 100 movements after the last one read
+    (`to_seq = from_seq + 99`). When the account has more, the sums say that the node gave
+    part of the movements, and the button becomes "Read the rest", which reads the next page;
   - a node that does not advertise the two rates is not read ("This node does not say what a
     statement costs").
 - **Each read is incremental.** The app keeps, for each account that it read, a tally
@@ -67,10 +76,13 @@ On the info page of a running instance, "Time and credit" has two buttons: **Add
 ### Two accounts
 
 - **The client.** `BalanceStatementRequest` with no token. It gives the balance, what came
-  in (`deposit`, `credit`) less what the operator took back (`debit`), the reads of statements, and
-  for each instance the MU that went to it (`child_start` with its `child_bound`, `top_up`)
-  and that came back (`withdrawal`, `refund`). A `child_start` with no `child_bound` yet is
-  "starting"; a `refund` that names it (`refunds_seq`) ends it.
+  in (`deposit`, `credit`), what the operator took back (`debit`), the reads of statements,
+  and for each instance the MU that went to it (`child_start` with its `child_bound`,
+  `top_up`) and that came back (`withdrawal`, `refund`). A `child_start` with no
+  `child_bound` yet is "starting"; a `refund` that names it (`refunds_seq`) ends it. A
+  `refund` to an instance (its `instance_ref`) is its stop: the node gives back what was
+  left. The app then shows the instance as stopped, also when its own record says it runs
+  (the node stopped it, for example out of balance) (Josemi, PR #148).
 - **An instance.** The token of the instance and its own `instance_ref`, so that the node
   also reads an instance that stopped while it keeps its row. It gives each kind of charge:
   `maintenance` (the resources), `tunnel` (the traffic), `build`, `resource_change`,
@@ -78,14 +90,46 @@ On the info page of a running instance, "Time and credit" has two buttons: **Add
 
 ### Spent
 
-Spent = what the account had before the first movement read + what came in (less what
-the operator took back with a `debit`: that is not a spending of the user) − what went
-back to the father − the balance at the head. For the client, the MU that a running instance
-still holds counts as spent: it comes back as a `refund` when the instance stops. The note
-under the sums says this. When the node no longer holds the first movements (its retention;
-the first movement read has a `seq` above 1), the sum starts there: "X, since <date>".
+Spent is the sum of the movements that the app read: what left the account less what came
+back, of each kind that is not money coming in (`deposit`, `credit`) nor, for an instance,
+MU moved with its father (`start`, `top_up`, `withdrawal`, `refund`). With every movement
+read, it is what the account had + what came in − what went back to the father − the
+balance. A sum of movements also holds when a read stops before the head (a page).
+
+- **A `debit` is spending** (Josemi, PR #148): credit that the operator takes back is gone
+  from the user's credit like any charge.
+- **The running instances.** For the client, the MU that went to an instance counts until it
+  comes back. On the node screen, the app asks the node for the balance now of each running
+  instance (`GetMetrics`, free, FFI `celaut_live_instance_balances`) and takes it out of
+  spent (Josemi, PR #148): "Still in running instances: X". For each instance, the part
+  taken out is at most the MU that moved to it in the period: the MU still held is the MU
+  moved last. An instance that does not answer keeps its MU in spent, and the screen says
+  how many did not answer. The home line and "Balance and spending by node" ask no node, so
+  there the MU in running instances counts as spent; their note says so.
+- When the node no longer holds the first movements (its retention; the first movement read
+  has a `seq` above 1), the sum of all the movements starts there: "X, since <date>".
 
 A value that the app did not read is "unknown", never 0.
+
+### The period: today, 7 days, all
+
+The tally also keeps the sums of each day (`Tally::days`, by the day of the movement on the
+clock of the device at the read; Josemi, PR #148): the MU of each kind, and the MU that went
+to and came back from each instance. The node screen has a switch **Today / 7 days / All**:
+spent, what the reads cost, the split by instance and the costs of an instance are the sums
+of that period. "7 days" is today and the 6 days before it. The tally keeps the days of the
+last 92 days; "All" uses the sums of every movement read, which it keeps apart.
+
+### One cursor for the account of an instance
+
+The check of the descendants of an instance (descendants.md, depth 0) and "Read the costs"
+read the same account. They share one cursor (Josemi, PR #148): the next read of either one
+starts after the last movement that **both** have read, and each verified read is kept in
+both (`keep_instance_read`: the tally, and the head, state, stop and children of the record
+of the held instance). A movement that one of them had already read is not counted twice.
+A check of the descendants that one tap starts still shows its findings; a read of the costs
+updates the record of the held instance (its state and its new children) without a dialog.
+Both take the same lock, so they never run at once.
 
 ### The screens
 
@@ -95,18 +139,18 @@ A value that the app did not read is "unknown", never 0.
   tap opens "Balance and spending by node": for each node the balance now and the spending
   of the last read; a tap on a node opens its detail.
 - **The detail of a node** (#123) has "Balance and spending" when the app has a client there:
-  the balance now, spent, the balance at the last read, what the reads cost, the date of the
-  last read, and "Read the statement" (or "Read the rest" when the node gave part of the
-  movements). "Spending by instance (N)" is a closed part: each instance (running, stopped,
-  or deleted from the app, by its short `instance_ref`) with the MU that went to it. A tap
-  opens its costs, with "Read the costs" (a paid read of the account of the instance).
+  the balance now, the switch Today / 7 days / All, spent (less what the running instances
+  still hold, shown on its own line), the balance at the last read, what the reads cost, the
+  date of the last read, and "Read the statement" (or "Read the rest" when the node gave
+  part of the movements). "Spending by instance (N)" is a closed part: each instance
+  (running, stopped, or deleted from the app, by its short `instance_ref`) with what it
+  spent of the MU that went to it. A tap opens its costs: the MU moved to it, its balance
+  now, and "Read the costs" (a paid read of the account of the instance).
 
-## 3. Open points
+## 3. Decisions (Josemi, PR #148)
 
-- A period for the spending (day, week, all): the tally has sums since the first read, not
-  movements by date. A period needs the app to keep the movements, or a sum by day.
-- The reads of the descendants section (descendants.md) and of "Read the costs" are of the
-  same account of the held instance, with two cursors: the same movements can be paid for
-  twice. One cursor for both is a follow-up.
+- The wallet gate stays: Add MU and Take back MU need the full wallet open.
+- The home credit line opens "Balance and spending by node"; the node list stays one row
+  below.
 - The tally of an earlier client of a node (after "Make a new client") stays in the database
   and is not shown.
