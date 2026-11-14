@@ -187,6 +187,9 @@ class _Lib {
       stage: TransferStage.checking,
       bytes: BigInt.from(checked),
       total: BigInt.from(4000),
+      chunk: 0,
+      chunks: 0,
+      retries: 0,
     ),
     cancel: () {
       cancels++;
@@ -1374,7 +1377,7 @@ void main() {
     setUp(() {
       transfers = [];
       packages = _Packages();
-      progress = TransferView(stage: TransferStage.idle, bytes: BigInt.zero);
+      progress = TransferView(stage: TransferStage.idle, bytes: BigInt.zero, chunk: 0, chunks: 0, retries: 0);
       sendError = null;
       hold = null;
     });
@@ -1512,6 +1515,9 @@ void main() {
         stage: TransferStage.sending,
         bytes: BigInt.from(512 * 1024),
         total: BigInt.from(1024 * 1024),
+        chunk: 0,
+        chunks: 0,
+        retries: 0,
       );
       await open(tester, transfer: transfer(), packages: packages);
       await run(tester);

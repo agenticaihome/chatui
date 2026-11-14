@@ -116,11 +116,27 @@
                 <data android:pathPattern=".*\\..*\\.celaut\\.bee"/>
                 <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
             </intent-filter>
+            <!-- An http(s) link to a .celaut.bee file, when the browser or another app
+                 offers the app for it (no domain is verified, so Android 12+ opens such a
+                 link in the browser unless an app asks for a chooser). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"/>
+                <data android:scheme="http"/>
+                <data android:host="*"/>
+                <data android:pathPattern=".*\\.celaut\\.bee"/>
+                <data android:pathPattern=".*\\..*\\.celaut\\.bee"/>
+                <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
+            </intent-filter>
         </activity>
         <!-- Gives every celaut:// link that another app opens to MainActivity, in the task
              of the app, and shows nothing (OpenLinkActivity). The app chooses what to do by
              the host (celaut://node: a node, docs/celaut/invite.md section 6) and asks the
-             user first. A new host needs no change here. -->
+             user first. celaut://import?url=<the link> (issue #135, docs/celaut/package.md
+             "From a link") is the exception: OpenLinkActivity gives its url to MainActivity,
+             and the app asks before it downloads the service. -->
         <activity
             android:name=".OpenLinkActivity"
             android:exported="true"

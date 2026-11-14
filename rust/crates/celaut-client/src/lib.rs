@@ -52,6 +52,7 @@ pub mod env;
 pub mod health;
 pub mod hibernation;
 pub mod invite;
+pub mod link;
 pub mod local_port;
 pub mod node_addresses;
 pub mod overview;

@@ -17,6 +17,11 @@ import android.os.Bundle
 /// (`app/lib/ui/celaut/celaut_link_open.dart`) chooses what to do by the host. A new kind of
 /// link is one entry in `celautLinkOpeners` there, with no change here
 /// (`docs/celaut/invite.md`, section 6.3).
+///
+/// `celaut://import?url=<the link, encoded>` (issue #135) is a link to a service: its `url`
+/// goes to MainActivity in [IncomingPackageHandler.EXTRA_LINK], and Flutter asks before the
+/// download (`docs/celaut/package.md`, "From a link"). Another `celaut://` link goes to
+/// MainActivity as it came, as a VIEW.
 class OpenLinkActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,10 +30,15 @@ class OpenLinkActivity : Activity() {
         if (savedInstanceState == null && fresh && link != null &&
             link.scheme.equals("celaut", ignoreCase = true)
         ) {
+            val service = IncomingPackageHandler.importLinkOf(link)
             startActivity(
                 Intent(this, MainActivity::class.java).apply {
                     action = Intent.ACTION_VIEW
-                    data = link
+                    if (service != null) {
+                        putExtra(IncomingPackageHandler.EXTRA_LINK, service)
+                    } else {
+                        data = link
+                    }
                     addFlags(
                         Intent.FLAG_ACTIVITY_NEW_TASK or
                             Intent.FLAG_ACTIVITY_CLEAR_TOP or

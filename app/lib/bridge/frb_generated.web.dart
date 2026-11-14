@@ -87,6 +87,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   NodeAddress dco_decode_box_autoadd_node_address(dynamic raw);
 
   @protected
+  PendingLinkView dco_decode_box_autoadd_pending_link_view(dynamic raw);
+
+  @protected
   ResourceRefusalView dco_decode_box_autoadd_resource_refusal_view(dynamic raw);
 
   @protected
@@ -274,6 +277,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LibraryPackageView dco_decode_library_package_view(dynamic raw);
+
+  @protected
+  LinkView dco_decode_link_view(dynamic raw);
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
@@ -483,6 +489,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   NodeAddress? dco_decode_opt_box_autoadd_node_address(dynamic raw);
 
   @protected
+  PendingLinkView? dco_decode_opt_box_autoadd_pending_link_view(dynamic raw);
+
+  @protected
   ResourceRefusalView? dco_decode_opt_box_autoadd_resource_refusal_view(
     dynamic raw,
   );
@@ -510,6 +519,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PeerInfoView dco_decode_peer_info_view(dynamic raw);
+
+  @protected
+  PendingLinkView dco_decode_pending_link_view(dynamic raw);
 
   @protected
   ProtocolView dco_decode_protocol_view(dynamic raw);
@@ -663,6 +675,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NodeAddress sse_decode_box_autoadd_node_address(SseDeserializer deserializer);
+
+  @protected
+  PendingLinkView sse_decode_box_autoadd_pending_link_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   ResourceRefusalView sse_decode_box_autoadd_resource_refusal_view(
@@ -898,6 +915,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LibraryPackageView sse_decode_library_package_view(
     SseDeserializer deserializer,
   );
+
+  @protected
+  LinkView sse_decode_link_view(SseDeserializer deserializer);
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
@@ -1163,6 +1183,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  PendingLinkView? sse_decode_opt_box_autoadd_pending_link_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ResourceRefusalView? sse_decode_opt_box_autoadd_resource_refusal_view(
     SseDeserializer deserializer,
   );
@@ -1194,6 +1219,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PeerInfoView sse_decode_peer_info_view(SseDeserializer deserializer);
+
+  @protected
+  PendingLinkView sse_decode_pending_link_view(SseDeserializer deserializer);
 
   @protected
   ProtocolView sse_decode_protocol_view(SseDeserializer deserializer);
@@ -1372,6 +1400,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_node_address(
     NodeAddress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pending_link_view(
+    PendingLinkView self,
     SseSerializer serializer,
   );
 
@@ -1692,6 +1726,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     LibraryPackageView self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_link_view(LinkView self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
@@ -2051,6 +2088,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_pending_link_view(
+    PendingLinkView? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_resource_refusal_view(
     ResourceRefusalView? self,
     SseSerializer serializer,
@@ -2085,6 +2128,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_peer_info_view(PeerInfoView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pending_link_view(
+    PendingLinkView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_protocol_view(ProtocolView self, SseSerializer serializer);

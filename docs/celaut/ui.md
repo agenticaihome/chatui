@@ -135,9 +135,10 @@ The screen is a store. These parts stay at the top at all times, above the part 
 scrolls:
 
 - the search field;
-- two small actions for the service files on this phone: "Import" (pick a `.celaut.bee`
-  file) and "On this phone" (a sheet with the saved files, each with Run and Remove, and
-  the import). On a narrow screen they are icons with a tooltip; from 560 dp they also
+- two small actions for the service files on this phone: "Import" (a sheet: choose a
+  `.celaut.bee` file, or import from a link, typed, pasted or scanned; issue #135, see
+  [package.md](package.md), "From a link") and "On this phone" (a sheet with the saved
+  files, each with Run and Remove, the import of a file and the import from a link). On a narrow screen they are icons with a tooltip; from 560 dp they also
   show their text. The phone icon shows the number of saved files.
 
 Under them there is one way to browse (#122): one list of the skills, in groups by field.
