@@ -14,4 +14,4 @@
 mod route;
 pub mod socks;
 
-pub use route::{connect, route, set_route, AsyncStream, BoxStream, Route, Socks5};
+pub use route::{connect, is_onion, route, set_route, AsyncStream, BoxStream, Route, Socks5};

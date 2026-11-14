@@ -131,6 +131,9 @@ pub enum CelautErrorKind {
     /// The node does not know descendants (`DescendantTunnel` or the `instance_ref` of a
     /// balance statement).
     NoDescendants,
+    /// The address is an onion and the route is direct: only Tor (the client of the app or
+    /// an external proxy) opens it. The app makes no lookup of the name.
+    OnionNeedsTor,
 }
 
 /// The error of [`celaut_peer_info`].
@@ -324,6 +327,10 @@ pub async fn celaut_peer_info(
     if port == 0 {
         return Err(invalid("The port must be from 1 to 65535."));
     }
+    super::celaut_service::check_route(&super::celaut_service::NodeAddress {
+        host: host.clone(),
+        port,
+    })?;
     let expected = expected_peer_id
         .map(|id| id.trim().to_string())
         .filter(|id| !id.is_empty());

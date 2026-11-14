@@ -11,6 +11,13 @@ import android.os.Bundle
 /// MainActivity gets the link in `onNewIntent`; if the app does not run, it starts in its
 /// own task. Shows nothing.
 ///
+/// It is the one entry of the scheme, for every host: `celaut://node` (a node, issue #138)
+/// and any later kind, such as `celaut://import` (#135). It does not look at the host.
+/// [DeepLinkHandler] gives the link to Flutter, and `openCelautLink`
+/// (`app/lib/ui/celaut/celaut_link_open.dart`) chooses what to do by the host. A new kind of
+/// link is one entry in `celautLinkOpeners` there, with no change here
+/// (`docs/celaut/invite.md`, section 6.3).
+///
 /// `celaut://import?url=<the link, encoded>` (issue #135) is a link to a service: its `url`
 /// goes to MainActivity in [IncomingPackageHandler.EXTRA_LINK], and Flutter asks before the
 /// download (`docs/celaut/package.md`, "From a link"). Another `celaut://` link goes to

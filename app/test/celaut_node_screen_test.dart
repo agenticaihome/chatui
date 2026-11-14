@@ -278,6 +278,55 @@ void main() {
     });
   });
 
+  group('Share (PR #145)', () {
+    testWidgets('the detail has Share, which shows the link of the node', (tester) async {
+      api.answer = _info;
+      final asked = <String>[];
+      // An invitation as nodo writes it: the key and one ip4 address.
+      final invite = Uint8List.fromList([0x0a, 0x20, ...List.filled(32, 0xea), 0x12, 0x0d, 0x0a, 0x03, 0x69, 0x70, 0x34, 0x1a, 0x06, 203, 0, 113, 7, 0x1f, 0x9a]);
+      await pump(
+        tester,
+        screen: NodeConnectScreen(
+          address: 'node.example:8090',
+          expectedPeerId: _peerId,
+          clientIdOf: (_) => null,
+          nodeInvite: (id) {
+            asked.add(id);
+            return invite;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('celaut-node-share')));
+      await tester.pumpAndSettle();
+      expect(asked, [_peerId]);
+      expect(find.byKey(const Key('node-share')), findsOneWidget);
+      expect(find.textContaining('celaut://node?invite=CiDq6urq'), findsOneWidget);
+    });
+
+    testWidgets('a node with nothing to share says so', (tester) async {
+      api.answer = _info;
+      await pump(
+        tester,
+        screen: NodeConnectScreen(
+          address: 'node.example:8090',
+          expectedPeerId: _peerId,
+          clientIdOf: (_) => null,
+          nodeInvite: (_) => throw const CelautError(kind: CelautErrorKind.invalidInput, message: 'none'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('celaut-node-share')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('node-share-none')), findsOneWidget);
+    });
+
+    testWidgets('the empty form has no Share', (tester) async {
+      await pump(tester);
+      expect(find.byKey(const Key('celaut-node-share')), findsNothing);
+    });
+  });
+
   testWidgets('an out-of-range time from a node does not break the screen', (tester) async {
     api.answer = PeerInfoView(
       peerId: _peerId,
@@ -322,6 +371,7 @@ void main() {
       CelautErrorKind.launchFailed: 'tried to start the service',
       CelautErrorKind.transferFailed: 'The transfer of the service stopped',
       CelautErrorKind.noDescendants: 'does not support descendants',
+      CelautErrorKind.onionNeedsTor: 'An onion address needs Tor',
     };
     for (final entry in cases.entries) {
       testWidgets('${entry.key.name} shows its text and the detail', (tester) async {

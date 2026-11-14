@@ -9,13 +9,18 @@
 
 use std::time::Duration;
 
+use celaut_client::node_addresses::order;
 use celaut_client::overview::{
     credit_nano_erg, nano_erg_of, offer_of, offered, split_credit, Offer, Shown, Total,
 };
+use celaut_client::race::{self, race, Outcome};
 
 use super::celaut::{invalid, CelautError, CelautErrorKind};
 use super::celaut_db::{db, now_seconds, storage_error};
-use super::celaut_service::{address_of_key, cost_so_far, key, session, NodeAddress, Session};
+use super::celaut_invite::via_now;
+use super::celaut_service::{
+    address_of_key, close_unused, cost_so_far, is_open, key, session, NodeAddress, Session,
+};
 
 /// How long the overview waits for each step of one node (the connection, then the
 /// balance). Short, because the home screen waits for the slowest node: a node that does
@@ -172,42 +177,81 @@ pub(crate) struct Reached {
     pub(crate) latency_ms: u32,
 }
 
-/// A session on the node at one of its addresses, the last one first.
-async fn reach(addresses: &[String]) -> Reached {
-    reach_within(addresses, node_timeout()).await
+/// A session on the node `peer_id` at one of its addresses, the last one first.
+async fn reach(peer_id: &str, addresses: &[String]) -> Reached {
+    reach_within(peer_id, addresses, node_timeout()).await
 }
 
 /// [`reach`] with a limit of `limit` for each step of each address.
+///
+/// The addresses race ([`celaut_client::race`]): the first one has a head start, then
+/// two run at a time, the first session of `peer_id` is used, and the order (the last address that worked
+/// first) wins when two answer at nearly the same time. An address where another node
+/// answers is a failure, so it never wins over the node.
 #[flutter_rust_bridge::frb(ignore)]
-pub(crate) async fn reach_within(addresses: &[String], limit: Duration) -> Reached {
+pub(crate) async fn reach_within(peer_id: &str, addresses: &[String], limit: Duration) -> Reached {
+    let usable: Vec<(&String, NodeAddress)> = addresses
+        .iter()
+        .filter_map(|text| address_of_key(text).map(|a| (text, a)))
+        .collect();
+    let was_open: Vec<bool> = usable.iter().map(|(_, a)| is_open(&key(a))).collect();
+    let outcomes = race(
+        usable.len(),
+        race::WIDTH,
+        race::HEAD_START,
+        race::GRACE,
+        |i| {
+            let address = usable[i].1.clone();
+            async move {
+                let started = std::time::Instant::now();
+                match tokio::time::timeout(limit, session(&address)).await {
+                    Ok(Ok(s)) if s.peer_id() == peer_id => Ok((s, started)),
+                    Ok(Ok(_)) => Err(CelautError {
+                        kind: CelautErrorKind::IdentityMismatch,
+                        message: "the node is now another node".into(),
+                    }),
+                    Ok(Err(e)) => Err(e),
+                    Err(_) => Err(CelautError {
+                        kind: CelautErrorKind::Timeout,
+                        message: "the node did not answer in time".into(),
+                    }),
+                }
+            }
+        },
+    )
+    .await;
+    let used = outcomes
+        .iter()
+        .position(|o| matches!(o, Outcome::Won(_)))
+        .map(|i| key(&usable[i].1))
+        .unwrap_or_default();
+    let mut won = None;
     let mut last_error = None;
-    for text in addresses {
-        let Some(address) = address_of_key(text) else {
-            continue;
-        };
-        let started = std::time::Instant::now();
-        match tokio::time::timeout(limit, session(&address)).await {
-            Ok(Ok(s)) => {
-                let credit_mu = match tokio::time::timeout(limit, s.balance()).await {
-                    Ok(Ok(b)) => Some(b),
-                    _ => None,
-                };
-                return Reached {
-                    session: Some(s),
-                    address: text.clone(),
-                    error: None,
-                    credit_mu,
-                    latency_ms: u32::try_from(started.elapsed().as_millis()).unwrap_or(u32::MAX),
-                };
-            }
-            Ok(Err(e)) => last_error = Some(e),
-            Err(_) => {
-                last_error = Some(CelautError {
-                    kind: CelautErrorKind::Timeout,
-                    message: "the node did not answer in time".into(),
-                })
-            }
+    for (i, outcome) in outcomes.into_iter().enumerate() {
+        match outcome {
+            Outcome::Won(w) => won = Some((usable[i].0, w)),
+            // "Turn on Tor" for an onion is the reason only when no other address said
+            // more: on a direct route the onions are tried last.
+            Outcome::Failed(e) if e.kind == CelautErrorKind::OnionNeedsTor && last_error.is_some() => {}
+            Outcome::Failed(e) => last_error = Some(e),
+            Outcome::Unused(_) => close_unused(&key(&usable[i].1), was_open[i], &used),
+            Outcome::Stopped | Outcome::NotStarted => {}
         }
+    }
+    // The latency is the time of the address that won, with the balance: a session that
+    // was already open still makes one call to the node.
+    if let Some((text, (s, started))) = won {
+        let credit_mu = match tokio::time::timeout(limit, s.balance()).await {
+            Ok(Ok(b)) => Some(b),
+            _ => None,
+        };
+        return Reached {
+            session: Some(s),
+            address: text.clone(),
+            error: None,
+            credit_mu,
+            latency_ms: u32::try_from(started.elapsed().as_millis()).unwrap_or(u32::MAX),
+        };
     }
     Reached {
         session: None,
@@ -235,9 +279,9 @@ pub async fn celaut_compute_overview() -> Result<ComputeOverviewView, CelautErro
                     .any(|i| i.stopped_at.is_none() && &i.peer_id == *peer_id)
         })
         .map(|(peer_id, node)| async move {
-            let mut addresses = node.addresses.clone();
+            let mut addresses = order(&node.addresses, via_now());
             addresses.dedup();
-            (peer_id.clone(), reach(&addresses).await)
+            (peer_id.clone(), reach(peer_id, &addresses).await)
         });
     let reached = futures::future::join_all(asks).await;
     // What this reach says about each node is also its last check (`celaut_health`).
@@ -378,7 +422,10 @@ pub async fn celaut_compute_overview() -> Result<ComputeOverviewView, CelautErro
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KnownNodeView {
     pub peer_id: String,
-    /// The addresses (`host:port`) where the app reached the node, the last first.
+    /// The addresses (`host:port`) of the node in the order that the app tries them on the
+    /// current route: the last one that worked first, except that through Tor the onions go
+    /// first and on a direct route last (`docs/celaut/network.md`). The onions that the node
+    /// announces in its advertisement are here too.
     pub addresses: Vec<String>,
     /// The deposits of the app to this node, from every wallet, in nanoERG.
     pub deposited_nano_erg: u64,
@@ -396,7 +443,7 @@ fn known_node(data: &celaut_client::CelautData, peer_id: &str) -> Option<KnownNo
     let node = data.nodes.get(peer_id)?;
     Some(KnownNodeView {
         peer_id: peer_id.to_string(),
-        addresses: node.addresses.clone(),
+        addresses: order(&node.addresses, via_now()),
         deposited_nano_erg: data.deposited_nano_erg(peer_id),
         trusted: node.trusted,
         priority: node.effective_priority(),
@@ -735,11 +782,87 @@ mod tests {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let port = listener.local_addr().unwrap().port();
         drop(listener);
-        let r = reach(&[format!("127.0.0.1:{port}"), "not an address".into()]).await;
+        let peer = "ab".repeat(32);
+        let r = reach(
+            &peer,
+            &[format!("127.0.0.1:{port}"), "not an address".into()],
+        )
+        .await;
         assert!(r.session.is_none());
         assert!(r.error.is_some());
         assert_eq!(r.credit_mu, None);
-        let none = reach(&[]).await;
+        let none = reach(&peer, &[]).await;
         assert!(none.error.is_some());
+    }
+
+    /// The route of the tests is direct (no test here turns Tor on).
+    const ONION: &str = "2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion";
+
+    #[tokio::test]
+    async fn an_onion_on_a_direct_route_needs_tor_and_no_connection_is_made() {
+        let onion = NodeAddress {
+            host: ONION.into(),
+            port: 58526,
+        };
+        let added = celaut_add_node(onion.clone()).await.unwrap_err();
+        assert_eq!(added.kind, CelautErrorKind::OnionNeedsTor);
+        let new_client = super::super::celaut_service::celaut_new_client(onion.clone())
+            .await
+            .unwrap_err();
+        assert_eq!(new_client.kind, CelautErrorKind::OnionNeedsTor);
+        let info = super::super::celaut::celaut_peer_info(ONION.to_uppercase(), 58526, None, None)
+            .await
+            .unwrap_err();
+        assert_eq!(info.kind, CelautErrorKind::OnionNeedsTor);
+        // A clearnet name goes on to the connection (and fails there).
+        let plain = celaut_add_node(NodeAddress {
+            host: "127.0.0.1".into(),
+            port: 1,
+        })
+        .await
+        .unwrap_err();
+        assert_ne!(plain.kind, CelautErrorKind::OnionNeedsTor);
+    }
+
+    #[tokio::test]
+    async fn a_failing_address_says_more_than_an_onion_that_needs_tor() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        drop(listener);
+        let closed = format!("127.0.0.1:{port}");
+        let onion = format!("{ONION}:58526");
+        let only = reach("peer-onion", std::slice::from_ref(&onion)).await;
+        assert_eq!(only.error.unwrap().kind, CelautErrorKind::OnionNeedsTor);
+        for addresses in [[closed.clone(), onion.clone()], [onion.clone(), closed.clone()]] {
+            let r = reach("peer-onion", &addresses).await;
+            assert_eq!(r.error.unwrap().kind, CelautErrorKind::Unreachable, "{addresses:?}");
+        }
+    }
+
+    #[test]
+    fn on_a_direct_route_the_node_list_shows_the_onions_of_a_node_last() {
+        let peer = "0e1f".repeat(16);
+        let onion = format!("{ONION}:58526");
+        db().update(|d| {
+            d.nodes.insert(
+                peer.clone(),
+                NodeRecord {
+                    client_id: "c-onion".into(),
+                    addresses: vec![onion.clone(), "node.example:7".into()],
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
+        let listed = celaut_known_nodes().into_iter().find(|n| n.peer_id == peer).unwrap();
+        assert_eq!(listed.addresses, vec!["node.example:7".to_string(), onion.clone()]);
+        // The check of the nodes names the address that it tries first.
+        let health = super::super::celaut_health::celaut_nodes_health()
+            .into_iter()
+            .find(|n| n.peer_id == peer)
+            .unwrap();
+        assert_eq!(health.address, "node.example:7");
+        // The record keeps its own order: the last address that worked first.
+        assert_eq!(db().read(|d| d.nodes[&peer].addresses[0].clone()), onion);
     }
 }

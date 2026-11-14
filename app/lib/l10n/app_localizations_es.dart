@@ -6565,8 +6565,8 @@ class AppLocalizationsEs extends AppLocalizations {
       'La invitación no tiene ninguna dirección que esta app pueda usar.';
 
   @override
-  String get celautInviteOnionNeedsProxy =>
-      'No se probó. Una dirección onion necesita Tor mediante un proxy externo, como Orbot. Una conexión directa y el cliente Tor de la app no pueden abrirla.';
+  String get celautInviteOnionNeedsTor =>
+      'No se probó. Una dirección onion necesita Tor. Activa Tor en los ajustes de red: el cliente Tor de la app o un proxy externo, como Orbot.';
 
   @override
   String get celautInvitePrivateOverTor =>
@@ -7817,6 +7817,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautErrorNoDescendants => 'Este nodo no admite descendientes.';
 
   @override
+  String get celautErrorOnionNeedsTor =>
+      'Una dirección onion necesita Tor. Activa Tor en los ajustes de red: el cliente Tor de la app o un proxy externo, como Orbot.';
+
+  @override
   String get descendantsTitle => 'Descendientes';
 
   @override
@@ -8426,6 +8430,69 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get celautLinkConfirmTitle => '¿Añadir este nodo?';
+
+  @override
+  String get celautLinkConfirmInvite =>
+      'Un enlace te invita a un nodo. La app se conecta a él y comprueba que tiene esta clave antes de añadirlo a tu lista.';
+
+  @override
+  String get celautLinkConfirmKey => 'Clave del nodo';
+
+  @override
+  String get celautLinkConfirmAddresses =>
+      'Direcciones, en el orden en que la app las prueba';
+
+  @override
+  String get celautLinkConfirmSkipped => 'No se prueba en la ruta actual';
+
+  @override
+  String get celautLinkConfirmListed => 'Este nodo ya está en tu lista.';
+
+  @override
+  String get celautLinkRefusedTitle => 'No se puede abrir este enlace';
+
+  @override
+  String get celautLinkTooLong =>
+      'El enlace es demasiado largo para una invitación a un nodo. La app no leyó nada de él.';
+
+  @override
+  String get celautLinkInvalid =>
+      'El enlace no es un enlace a un nodo que esta app pueda leer.';
+
+  @override
+  String get celautLinkDamaged => 'La invitación del enlace está dañada.';
+
+  @override
+  String celautLinkConfirmAddress(String address) {
+    return 'Un enlace pide añadir el nodo en $address. La app se conecta a él y lo comprueba antes de añadirlo a tu lista.';
+  }
+
+  @override
+  String get celautLinkUnknownKind =>
+      'Esta app no puede abrir este tipo de enlace celaut. Una versión más nueva quizá sí.';
+
+  @override
+  String get celautNodeShare => 'Compartir';
+
+  @override
+  String get celautNodeShareTitle => 'Compartir este nodo';
+
+  @override
+  String get celautNodeShareNote =>
+      'Una cámara de móvil que lee este código, o un toque en el enlace, abre la app y pide añadir el nodo. El enlace tiene la clave del nodo y las direcciones donde esta app lo alcanzó. No da acceso a tu cliente ni a tu crédito.';
+
+  @override
+  String get celautNodeShareLink => 'Compartir enlace';
+
+  @override
+  String get celautNodeShareCopied => 'Enlace copiado';
+
+  @override
+  String get celautNodeShareNone =>
+      'Esta app no tiene ninguna dirección del nodo que otro dispositivo pueda usar, así que no puede crear un enlace.';
+
+  @override
   String get celautLinkSheetTitle => 'Importar un servicio';
 
   @override
@@ -8488,11 +8555,6 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String celautLinkInvalid(String reason) {
-    return 'Este enlace no se puede usar: $reason';
-  }
-
-  @override
   String get celautLinkCancelled =>
       'Descarga cancelada. Sus bytes se borraron.';
 
@@ -8526,4 +8588,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get celautLinkHttpConfirm => 'Descargar igualmente';
+
+  @override
+  String celautLinkImportInvalid(String reason) {
+    return 'Este enlace no se puede usar: $reason';
+  }
 }

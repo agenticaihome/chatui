@@ -78,6 +78,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
   @protected
+  InviteAttemptKind dco_decode_box_autoadd_invite_attempt_kind(dynamic raw);
+
+  @protected
   KnownNodeView dco_decode_box_autoadd_known_node_view(dynamic raw);
 
   @protected
@@ -252,6 +255,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   InstanceView dco_decode_instance_view(dynamic raw);
 
   @protected
+  InviteAddrView dco_decode_invite_addr_view(dynamic raw);
+
+  @protected
   InviteAttemptKind dco_decode_invite_attempt_kind(dynamic raw);
 
   @protected
@@ -259,6 +265,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   InviteConnectView dco_decode_invite_connect_view(dynamic raw);
+
+  @protected
+  InviteReadView dco_decode_invite_read_view(dynamic raw);
 
   @protected
   KeyValueView dco_decode_key_value_view(dynamic raw);
@@ -317,6 +326,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<InstanceListView> dco_decode_list_instance_list_view(dynamic raw);
+
+  @protected
+  List<InviteAddrView> dco_decode_list_invite_addr_view(dynamic raw);
 
   @protected
   List<InviteAttemptView> dco_decode_list_invite_attempt_view(dynamic raw);
@@ -464,6 +476,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  InviteAttemptKind? dco_decode_opt_box_autoadd_invite_attempt_kind(
+    dynamic raw,
+  );
 
   @protected
   KnownNodeView? dco_decode_opt_box_autoadd_known_node_view(dynamic raw);
@@ -645,6 +662,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  InviteAttemptKind sse_decode_box_autoadd_invite_attempt_kind(
+    SseDeserializer deserializer,
+  );
 
   @protected
   KnownNodeView sse_decode_box_autoadd_known_node_view(
@@ -863,6 +885,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   InstanceView sse_decode_instance_view(SseDeserializer deserializer);
 
   @protected
+  InviteAddrView sse_decode_invite_addr_view(SseDeserializer deserializer);
+
+  @protected
   InviteAttemptKind sse_decode_invite_attempt_kind(
     SseDeserializer deserializer,
   );
@@ -876,6 +901,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   InviteConnectView sse_decode_invite_connect_view(
     SseDeserializer deserializer,
   );
+
+  @protected
+  InviteReadView sse_decode_invite_read_view(SseDeserializer deserializer);
 
   @protected
   KeyValueView sse_decode_key_value_view(SseDeserializer deserializer);
@@ -946,6 +974,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<InstanceListView> sse_decode_list_instance_list_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<InviteAddrView> sse_decode_list_invite_addr_view(
     SseDeserializer deserializer,
   );
 
@@ -1133,6 +1166,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  InviteAttemptKind? sse_decode_opt_box_autoadd_invite_attempt_kind(
+    SseDeserializer deserializer,
+  );
 
   @protected
   KnownNodeView? sse_decode_opt_box_autoadd_known_node_view(
@@ -1344,6 +1382,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_i_64(
     PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_invite_attempt_kind(
+    InviteAttemptKind self,
     SseSerializer serializer,
   );
 
@@ -1642,6 +1686,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_instance_view(InstanceView self, SseSerializer serializer);
 
   @protected
+  void sse_encode_invite_addr_view(
+    InviteAddrView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_invite_attempt_kind(
     InviteAttemptKind self,
     SseSerializer serializer,
@@ -1656,6 +1706,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_invite_connect_view(
     InviteConnectView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_invite_read_view(
+    InviteReadView self,
     SseSerializer serializer,
   );
 
@@ -1752,6 +1808,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_instance_list_view(
     List<InstanceListView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_invite_addr_view(
+    List<InviteAddrView> self,
     SseSerializer serializer,
   );
 
@@ -2004,6 +2066,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_i_64(
     PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_invite_attempt_kind(
+    InviteAttemptKind? self,
     SseSerializer serializer,
   );
 

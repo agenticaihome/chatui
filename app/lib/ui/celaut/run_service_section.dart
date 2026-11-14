@@ -757,7 +757,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     try {
       link = _library.checkLink(url);
     } on CelautError catch (e) {
-      _showLinkProblem(l.celautLinkInvalid(e.message));
+      _showLinkProblem(l.celautLinkImportInvalid(e.message));
       return null;
     }
     if (link.insecure && !await _confirmHttp(link.url)) return null;

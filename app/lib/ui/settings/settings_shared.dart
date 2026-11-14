@@ -100,17 +100,20 @@ class SettingsGroup extends StatelessWidget {
 
 /// Scaffold for a settings sub-page, on the scene ([SceneBackdrop]).
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key, required this.title, required this.children});
+  const SettingsPage({super.key, required this.title, required this.children, this.actions});
 
   final String title;
   final List<Widget> children;
+
+  /// The actions of the app bar, if any.
+  final List<Widget>? actions;
 
   @override
   Widget build(BuildContext context) {
     return SceneBackdrop(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(title: Text(title)),
+        appBar: AppBar(title: Text(title), actions: actions),
         body: ReadableWidth(
           child: ListView(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + MediaQuery.paddingOf(context).bottom),

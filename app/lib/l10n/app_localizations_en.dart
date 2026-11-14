@@ -6488,8 +6488,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'The invitation has no address that this app can use.';
 
   @override
-  String get celautInviteOnionNeedsProxy =>
-      'Not tried. An onion address needs Tor through an external proxy such as Orbot. A direct connection and the Tor client of the app cannot open it.';
+  String get celautInviteOnionNeedsTor =>
+      'Not tried. An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.';
 
   @override
   String get celautInvitePrivateOverTor =>
@@ -7737,6 +7737,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This node does not support descendants.';
 
   @override
+  String get celautErrorOnionNeedsTor =>
+      'An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.';
+
+  @override
   String get descendantsTitle => 'Descendants';
 
   @override
@@ -8342,6 +8346,69 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get celautLinkConfirmTitle => 'Add this node?';
+
+  @override
+  String get celautLinkConfirmInvite =>
+      'A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.';
+
+  @override
+  String get celautLinkConfirmKey => 'Key of the node';
+
+  @override
+  String get celautLinkConfirmAddresses =>
+      'Addresses, in the order that the app tries them';
+
+  @override
+  String get celautLinkConfirmSkipped => 'Not tried on the current route';
+
+  @override
+  String get celautLinkConfirmListed => 'This node is already in your list.';
+
+  @override
+  String get celautLinkRefusedTitle => 'This link cannot be opened';
+
+  @override
+  String get celautLinkTooLong =>
+      'The link is too long for a node invitation. The app read nothing from it.';
+
+  @override
+  String get celautLinkInvalid =>
+      'The link is not a node link that this app can read.';
+
+  @override
+  String get celautLinkDamaged => 'The invitation in the link is damaged.';
+
+  @override
+  String celautLinkConfirmAddress(String address) {
+    return 'A link asks to add the node at $address. The app connects to it and checks it before it adds it to your list.';
+  }
+
+  @override
+  String get celautLinkUnknownKind =>
+      'This app cannot open this kind of celaut link. A newer version may.';
+
+  @override
+  String get celautNodeShare => 'Share';
+
+  @override
+  String get celautNodeShareTitle => 'Share this node';
+
+  @override
+  String get celautNodeShareNote =>
+      'A phone camera that reads this code, or a tap on the link, opens the app and asks to add the node. The link has the key of the node and the addresses where this app reached it. It gives no access to your client or your credit.';
+
+  @override
+  String get celautNodeShareLink => 'Share link';
+
+  @override
+  String get celautNodeShareCopied => 'Link copied';
+
+  @override
+  String get celautNodeShareNone =>
+      'This app has no address of the node that another device could use, so it cannot make a link.';
+
+  @override
   String get celautLinkSheetTitle => 'Import a service';
 
   @override
@@ -8404,11 +8471,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String celautLinkInvalid(String reason) {
-    return 'This link cannot be used: $reason';
-  }
-
-  @override
   String get celautLinkCancelled =>
       'Download cancelled. Its bytes were deleted.';
 
@@ -8442,4 +8504,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautLinkHttpConfirm => 'Download anyway';
+
+  @override
+  String celautLinkImportInvalid(String reason) {
+    return 'This link cannot be used: $reason';
+  }
 }
