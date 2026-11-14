@@ -1,21 +1,25 @@
 //! Connect to a node from the peer invitation of a QR code (`docs/celaut/invite.md`,
 //! nodo#579).
 //!
-//! The invitation has the identity key of the node and its addresses. The app tries the
-//! addresses that can work on the current route ([`celaut_client::invite::plan`]), in
-//! order, and stops at the first node that proves the invited key: the TLS handshake fails
-//! for any other key, so an address that another node holds is never used. Then the app
-//! does what it does for a typed address (client id, advertisement, node list).
+//! The invitation has the identity key of the node and its addresses. The app races the
+//! addresses that can work on the current route ([`celaut_client::invite::plan`]) in their
+//! order: the first has a head start, then two run at a time ([`celaut_client::race`]), and uses the first node that proves
+//! the invited key: the TLS handshake fails for any other key, so an address that another
+//! node holds is never used. Then the app does what it does for a typed address (client
+//! id, advertisement, node list).
 
 use std::time::Duration;
 
 use celaut_client::invite::{self, InviteAddr, Skip, Via};
+use celaut_client::race::{self, race, Outcome};
 
 use super::celaut::{invalid, CelautError, CelautErrorKind};
 use super::celaut_db::db;
 use super::celaut_home::{list_node, KnownNodeView};
 use super::celaut_network::{celaut_network_status, NetworkChoice};
-use super::celaut_service::{forget_if_broken_key, key, session_pinned, NodeAddress};
+use super::celaut_service::{
+    close_unused, forget_if_broken_key, is_open, key, session_pinned, NodeAddress,
+};
 
 /// The dial and the handshake of a direct connection.
 const DIRECT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -34,9 +38,12 @@ pub enum InviteAttemptKind {
     PrivateOverTor,
     /// Tried and failed: `error` and `message` say why.
     Failed,
+    /// Tried at the same time as another address, which connected first: this one was
+    /// stopped, or it connected too but after an address before it in the order.
+    NotNeeded,
 }
 
-/// One address of the invitation, in the order that the app used.
+/// One address of the invitation. The tried ones are in the order of preference.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InviteAttemptView {
     /// `host:port`, with brackets for IPv6.
@@ -115,34 +122,56 @@ where
     } else {
         TOR_TIMEOUT
     };
-    let mut attempts = Vec::new();
-    let mut node = None;
-    for a in &plan.order {
-        let address = NodeAddress {
+    let addresses: Vec<NodeAddress> = plan
+        .order
+        .iter()
+        .map(|a| NodeAddress {
             host: a.host.clone(),
             port: a.port,
+        })
+        .collect();
+    let was_open: Vec<bool> = addresses.iter().map(|a| is_open(&key(a))).collect();
+    let outcomes = race(
+        addresses.len(),
+        race::WIDTH,
+        race::HEAD_START,
+        race::GRACE,
+        |i| dial(addresses[i].clone(), parsed.peer_id.clone(), timeout),
+    )
+    .await;
+    let used = outcomes
+        .iter()
+        .position(|o| matches!(o, Outcome::Won(_)))
+        .map(|i| key(&addresses[i]))
+        .unwrap_or_default();
+    let mut attempts = Vec::new();
+    let mut node = None;
+    for (i, outcome) in outcomes.into_iter().enumerate() {
+        let (a, k) = (&plan.order[i], key(&addresses[i]));
+        let (kind, error, message) = match outcome {
+            Outcome::NotStarted => continue,
+            Outcome::Won(peer_id) => {
+                node = Some(list_node(&peer_id, &k)?);
+                (InviteAttemptKind::Connected, None, String::new())
+            }
+            Outcome::Failed(e) => {
+                if k != used {
+                    forget_if_broken_key(&k);
+                }
+                (InviteAttemptKind::Failed, Some(e.kind), e.message)
+            }
+            Outcome::Unused(_) => {
+                close_unused(&k, was_open[i], &used);
+                (InviteAttemptKind::NotNeeded, None, String::new())
+            }
+            Outcome::Stopped => (InviteAttemptKind::NotNeeded, None, String::new()),
         };
-        match dial(address.clone(), parsed.peer_id.clone(), timeout).await {
-            Ok(peer_id) => {
-                node = Some(list_node(&peer_id, &key(&address))?);
-                attempts.push(InviteAttemptView {
-                    address: a.text(),
-                    kind: InviteAttemptKind::Connected,
-                    error: None,
-                    message: String::new(),
-                });
-                break;
-            }
-            Err(e) => {
-                forget_if_broken_key(&key(&address));
-                attempts.push(InviteAttemptView {
-                    address: a.text(),
-                    kind: InviteAttemptKind::Failed,
-                    error: Some(e.kind),
-                    message: e.message,
-                });
-            }
-        }
+        attempts.push(InviteAttemptView {
+            address: a.text(),
+            kind,
+            error,
+            message,
+        });
     }
     // The addresses that were not tried come after the tried ones.
     attempts.extend(plan.skipped.iter().map(|(a, why)| skipped(a, *why)));
@@ -280,6 +309,8 @@ mod tests {
             let p = p.clone();
             async move {
                 if address.port == 1 {
+                    // It fails before the end of its head start: the second starts then.
+                    tokio::time::sleep(Duration::from_millis(50)).await;
                     Err(refuse(CelautErrorKind::Timeout))
                 } else {
                     Ok(p)
@@ -288,7 +319,8 @@ mod tests {
         })
         .await
         .unwrap();
-        // Each try pins the invited key, and the third address is not asked.
+        // The second starts when the first fails, each try pins the invited key, and the
+        // third address is not asked.
         assert_eq!(
             *asked.lock().unwrap(),
             vec![(1, peer.clone()), (2, peer.clone())]
@@ -386,6 +418,274 @@ mod tests {
             *seen.lock().unwrap(),
             vec![(2, TOR_TIMEOUT), (1, TOR_TIMEOUT)]
         );
+    }
+
+    /// The record that a real session would leave in the database.
+    fn known(peer: &str) {
+        db().update(|d| {
+            d.nodes.insert(
+                peer.to_string(),
+                NodeRecord {
+                    client_id: format!("c-{peer}"),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
+    }
+
+    fn kinds(view: &InviteConnectView) -> Vec<(&str, InviteAttemptKind)> {
+        view.attempts
+            .iter()
+            .map(|a| (a.address.as_str(), a.kind))
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn a_first_address_that_hangs_does_not_hold_up_a_fast_second_one() {
+        let peer = "e1".repeat(32);
+        known(&peer);
+        let parsed = invite_of(
+            &peer,
+            vec![
+                addr(Kind::Ip4, "203.0.113.7", 1),
+                addr(Kind::Ip4, "198.51.100.9", 2),
+            ],
+        );
+        let started = std::time::Instant::now();
+        let p = peer.clone();
+        let view = connect(parsed, Via::Direct, |address, _, timeout| {
+            let p = p.clone();
+            async move {
+                if address.port == 1 {
+                    // A slow address: it would answer only at the end of its timeout.
+                    tokio::time::sleep(timeout).await;
+                    Err(refuse(CelautErrorKind::Timeout))
+                } else {
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                    Ok(p)
+                }
+            }
+        })
+        .await
+        .unwrap();
+        // One after another this took the 10 seconds of the first address first.
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "{:?}",
+            started.elapsed()
+        );
+        assert_eq!(view.node.as_ref().unwrap().addresses[0], "198.51.100.9:2");
+        assert_eq!(
+            kinds(&view),
+            [
+                ("203.0.113.7:1", InviteAttemptKind::NotNeeded),
+                ("198.51.100.9:2", InviteAttemptKind::Connected),
+            ]
+        );
+        assert_eq!(view.attempts[0].error, None);
+    }
+
+    #[tokio::test]
+    async fn the_order_of_the_invitation_wins_when_both_answer_at_nearly_the_same_time() {
+        let peer = "e2".repeat(32);
+        known(&peer);
+        let parsed = invite_of(
+            &peer,
+            vec![
+                addr(Kind::Ip4, "203.0.113.7", 1),
+                addr(Kind::Ip4, "198.51.100.9", 2),
+            ],
+        );
+        let p = peer.clone();
+        let view = connect(parsed, Via::Direct, |address, _, _| {
+            let p = p.clone();
+            async move {
+                // The second (which starts after the head start of the first) answers a
+                // little sooner than the first.
+                let wait = if address.port == 1 {
+                    race::HEAD_START + Duration::from_millis(60)
+                } else {
+                    Duration::from_millis(30)
+                };
+                tokio::time::sleep(wait).await;
+                Ok(p)
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(view.node.as_ref().unwrap().addresses[0], "203.0.113.7:1");
+        assert_eq!(
+            kinds(&view),
+            [
+                ("203.0.113.7:1", InviteAttemptKind::Connected),
+                ("198.51.100.9:2", InviteAttemptKind::NotNeeded),
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn never_more_than_two_addresses_at_a_time() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let now = AtomicUsize::new(0);
+        let most = AtomicUsize::new(0);
+        let parsed = invite_of(
+            &"e3".repeat(32),
+            (1..=5)
+                .map(|port| addr(Kind::Ip4, "203.0.113.7", port))
+                .collect(),
+        );
+        let view = connect(parsed, Via::Direct, |address, _, _| {
+            let (now, most) = (&now, &most);
+            async move {
+                let n = now.fetch_add(1, Ordering::SeqCst) + 1;
+                most.fetch_max(n, Ordering::SeqCst);
+                // Each one runs past the head start of the one before it.
+                let ms = 5 * u64::from(address.port);
+                tokio::time::sleep(race::HEAD_START + Duration::from_millis(ms)).await;
+                now.fetch_sub(1, Ordering::SeqCst);
+                Err(refuse(CelautErrorKind::Unreachable))
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(most.load(Ordering::SeqCst), 2);
+        assert!(view.node.is_none());
+        // Every address failed, and the screen lists them in the order of the invitation.
+        let ports: Vec<_> = view.attempts.iter().map(|a| a.address.clone()).collect();
+        assert_eq!(
+            ports,
+            (1..=5)
+                .map(|p| format!("203.0.113.7:{p}"))
+                .collect::<Vec<_>>()
+        );
+        assert!(view
+            .attempts
+            .iter()
+            .all(|a| a.kind == InviteAttemptKind::Failed));
+    }
+
+    /// The race against a real node (#139). `CELAUT_RACE_HANG` is a `host:port` that
+    /// accepts the TCP connection and never answers; `CELAUT_RACE_NODE` is the `host:port`
+    /// of a running node; `CELAUT_RACE_STALL` (optional) is described below. The app makes a client on that node (free credit, no payment).
+    ///
+    /// `cargo test -p wallet-ffi --lib real_node_race -- --ignored --nocapture`
+    #[tokio::test]
+    #[ignore = "needs a running node and an address that hangs; see the comment"]
+    async fn real_node_race() {
+        use super::super::celaut_home::reach_within;
+        use super::super::celaut_service::{address_of_key, session};
+        let hang = std::env::var("CELAUT_RACE_HANG").expect("CELAUT_RACE_HANG");
+        let real = std::env::var("CELAUT_RACE_NODE").expect("CELAUT_RACE_NODE");
+        let (h, n) = (
+            address_of_key(&hang).unwrap(),
+            address_of_key(&real).unwrap(),
+        );
+        let peer = session(&n).await.expect("the node").peer_id().to_string();
+        forget_if_broken_key(&real);
+        let invite = |peer: &str| {
+            invite_of(
+                peer,
+                vec![
+                    addr(Kind::Ip4, &h.host, h.port),
+                    addr(Kind::Ip4, &n.host, n.port),
+                ],
+            )
+        };
+        let dial = |address: NodeAddress, peer_id: String, timeout| async move {
+            session_pinned(&address, &peer_id, timeout)
+                .await
+                .map(|s| s.peer_id().to_string())
+        };
+
+        // The invitation: the hanging address is first.
+        let t0 = std::time::Instant::now();
+        let view = connect(invite(&peer), Via::Direct, dial).await.unwrap();
+        let raced = t0.elapsed();
+        println!("invite, raced:   {raced:?} {:?}", kinds(&view));
+        assert_eq!(view.node.as_ref().unwrap().peer_id, peer);
+        assert_eq!(
+            kinds(&view),
+            [
+                (hang.as_str(), InviteAttemptKind::NotNeeded),
+                (real.as_str(), InviteAttemptKind::Connected),
+            ]
+        );
+        assert!(raced < DIRECT_TIMEOUT / 2, "{raced:?}");
+
+        // The same two, one after another (the old way), for comparison.
+        forget_if_broken_key(&real);
+        let t0 = std::time::Instant::now();
+        let old = race(2, 1, race::HEAD_START, race::GRACE, |i| {
+            let a = if i == 0 { h.clone() } else { n.clone() };
+            dial(a, peer.clone(), DIRECT_TIMEOUT)
+        })
+        .await;
+        let one_by_one = t0.elapsed();
+        println!(
+            "invite, one by one: {one_by_one:?} {:?}",
+            old.iter().map(Outcome::started).collect::<Vec<_>>()
+        );
+        assert!(matches!(old[1], Outcome::Won(_)));
+        assert!(one_by_one >= DIRECT_TIMEOUT);
+
+        // A node of the node list (compute overview, checks of the nodes).
+        forget_if_broken_key(&real);
+        let t0 = std::time::Instant::now();
+        let r = reach_within(&peer, &[hang.clone(), real.clone()], Duration::from_secs(5)).await;
+        let reached = t0.elapsed();
+        println!(
+            "node list, raced: {reached:?} address {} latency {} ms credit {:?}",
+            r.address, r.latency_ms, r.credit_mu
+        );
+        assert!(r.session.is_some() && r.error.is_none());
+        assert_eq!(r.address, real);
+        assert!(reached < Duration::from_secs(4), "{reached:?}");
+
+        // `CELAUT_RACE_STALL` (optional): a `host:port` that completes the TLS handshake of
+        // the node and then never passes a request on. The app has a client on the node,
+        // so the session resumes it and takes no lock: the stalled address does not hold
+        // up the real one.
+        let Ok(stall) = std::env::var("CELAUT_RACE_STALL") else {
+            return;
+        };
+        let s = address_of_key(&stall).unwrap();
+        forget_if_broken_key(&real);
+        let t0 = std::time::Instant::now();
+        let r = reach_within(
+            &peer,
+            &[stall.clone(), real.clone()],
+            Duration::from_secs(5),
+        )
+        .await;
+        let reached = t0.elapsed();
+        println!(
+            "node list, stalled first: {reached:?} address {} latency {} ms",
+            r.address, r.latency_ms
+        );
+        assert!(r.session.is_some() && r.error.is_none());
+        assert_eq!(r.address, real);
+        assert!(reached < Duration::from_secs(2), "{reached:?}");
+        forget_if_broken_key(&real);
+        let t0 = std::time::Instant::now();
+        let stalled = invite_of(
+            &peer,
+            vec![
+                addr(Kind::Ip4, &s.host, s.port),
+                addr(Kind::Ip4, &n.host, n.port),
+            ],
+        );
+        let view = connect(stalled, Via::Direct, dial).await.unwrap();
+        let raced = t0.elapsed();
+        println!("invite, stalled first: {raced:?} {:?}", kinds(&view));
+        assert_eq!(
+            kinds(&view),
+            [
+                (stall.as_str(), InviteAttemptKind::NotNeeded),
+                (real.as_str(), InviteAttemptKind::Connected),
+            ]
+        );
+        assert!(raced < Duration::from_secs(2), "{raced:?}");
     }
 
     #[tokio::test]

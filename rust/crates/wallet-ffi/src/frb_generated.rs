@@ -6522,6 +6522,7 @@ impl SseDecode for crate::api::celaut_invite::InviteAttemptKind {
             1 => crate::api::celaut_invite::InviteAttemptKind::OnionNeedsProxy,
             2 => crate::api::celaut_invite::InviteAttemptKind::PrivateOverTor,
             3 => crate::api::celaut_invite::InviteAttemptKind::Failed,
+            4 => crate::api::celaut_invite::InviteAttemptKind::NotNeeded,
             _ => unreachable!("Invalid variant for InviteAttemptKind: {}", inner),
         };
     }
@@ -9887,6 +9888,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_invite::InviteAttemptK
             Self::OnionNeedsProxy => 1.into_dart(),
             Self::PrivateOverTor => 2.into_dart(),
             Self::Failed => 3.into_dart(),
+            Self::NotNeeded => 4.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -11836,6 +11838,7 @@ impl SseEncode for crate::api::celaut_invite::InviteAttemptKind {
                 crate::api::celaut_invite::InviteAttemptKind::OnionNeedsProxy => 1,
                 crate::api::celaut_invite::InviteAttemptKind::PrivateOverTor => 2,
                 crate::api::celaut_invite::InviteAttemptKind::Failed => 3,
+                crate::api::celaut_invite::InviteAttemptKind::NotNeeded => 4,
                 _ => {
                     unimplemented!("");
                 }
