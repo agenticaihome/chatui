@@ -108,15 +108,6 @@
                 <data android:pathPattern=".*\\..*\\.celaut\\.bee"/>
                 <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
             </intent-filter>
-            <!-- A link to a service (issue #135): chatui://import?url=<the link>, from a web
-                 page, a QR code or another app. The app downloads the service and checks
-                 it while the bytes arrive. -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="chatui" android:host="import"/>
-            </intent-filter>
             <!-- An http(s) link to a .celaut.bee file, when the browser or another app
                  offers the app for it (no domain is verified, so Android 12+ opens such a
                  link in the browser unless an app asks for a chooser). -->
@@ -131,11 +122,23 @@
                 <data android:pathPattern=".*\\..*\\.celaut\\.bee"/>
                 <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
             </intent-filter>
-            <!-- A link that the user shares with the app as text ("Share" of a browser). -->
+        </activity>
+        <!-- Gives a celaut:// link that another app opens to MainActivity, in the task of the
+             app, and shows nothing (OpenLinkActivity). celaut://import?url=<the link> (issue
+             #135, docs/celaut/package.md "From a link"): the app asks before it downloads the
+             service, and checks it while the bytes arrive. -->
+        <activity
+            android:name=".OpenLinkActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
-                <action android:name="android.intent.action.SEND"/>
+                <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="text/plain"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="celaut" android:host="import"/>
             </intent-filter>
         </activity>
         <service

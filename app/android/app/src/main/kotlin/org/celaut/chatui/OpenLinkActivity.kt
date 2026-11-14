@@ -1,0 +1,45 @@
+package org.celaut.chatui
+
+import android.app.Activity
+import android.content.Intent
+import android.os.Bundle
+
+/// Takes a `celaut://` link that another app opens (a phone camera that read a QR code, a
+/// browser, a chat) and gives it to [MainActivity] in the task of the app, as
+/// [OpenPackageActivity] does for a file: without this step, a second MainActivity, with a
+/// second Flutter engine, could start in the task of the other app. The running
+/// MainActivity gets the link in `onNewIntent`; if the app does not run, it starts in its
+/// own task. Shows nothing.
+///
+/// `celaut://import?url=<the link, encoded>` (issue #135) is a link to a service: its `url`
+/// goes to MainActivity in [IncomingPackageHandler.EXTRA_LINK], and Flutter asks before the
+/// download (`docs/celaut/package.md`, "From a link"). Another `celaut://` link goes to
+/// MainActivity as it came, as a VIEW.
+class OpenLinkActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val link = intent?.data
+        val fresh = intent?.flags?.and(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0
+        if (savedInstanceState == null && fresh && link != null &&
+            link.scheme.equals("celaut", ignoreCase = true)
+        ) {
+            val service = IncomingPackageHandler.importLinkOf(link)
+            startActivity(
+                Intent(this, MainActivity::class.java).apply {
+                    action = Intent.ACTION_VIEW
+                    if (service != null) {
+                        putExtra(IncomingPackageHandler.EXTRA_LINK, service)
+                    } else {
+                        data = link
+                    }
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    )
+                }
+            )
+        }
+        finish()
+    }
+}

@@ -16,16 +16,15 @@ import io.flutter.plugin.common.MethodChannel
 /// app runs, in front or in the background, is pushed through `incoming`. Flutter copies
 /// it with `copyPackage` of [PackageHandler], as a file of the picker.
 ///
-/// A link to a service (issue #135) comes the same way, as `{link: url}`: a
-/// `chatui://import?url=…` link, an http(s) link to a `.celaut.bee` file, or a text that
-/// another app shares with a link in it. [OpenPackageActivity] puts it in [EXTRA_LINK].
+/// A link to a service (issue #135) comes the same way, as `{link: url}`: the `url` of a
+/// `celaut://import?url=…` link ([OpenLinkActivity]), or an http(s) link to a `.celaut.bee`
+/// file ([OpenPackageActivity]). Both put it in [EXTRA_LINK].
 object IncomingPackageHandler {
     private const val CHANNEL = "org.celaut.chatui/incoming"
 
-    /// The link to a service that [OpenPackageActivity] gives to MainActivity.
+    /// The link to a service that [OpenLinkActivity] or [OpenPackageActivity] gives to
+    /// MainActivity.
     const val EXTRA_LINK = "org.celaut.chatui.LINK"
-
-    private val HTTP_LINK = Regex("https?://\\S+", RegexOption.IGNORE_CASE)
 
     private var channel: MethodChannel? = null
     private var pending: Map<String, Any>? = null
@@ -84,29 +83,28 @@ object IncomingPackageHandler {
         return intent.getStringExtra(EXTRA_LINK)?.takeIf { it.isNotBlank() }
     }
 
-    /// The link to a service in a VIEW or SEND intent: the `url` of a
-    /// `chatui://import?url=…` link, an http(s) link, or the first http(s) link of a shared
-    /// text. Flutter checks it again before the download.
+    /// The http(s) link to a `.celaut.bee` file of a VIEW intent. Flutter checks it again
+    /// before the download.
     fun linkOf(intent: Intent?): String? {
-        if (intent == null) return null
+        if (intent == null || intent.action != Intent.ACTION_VIEW) return null
         if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return null
-        return when (intent.action) {
-            Intent.ACTION_VIEW -> {
-                val data = intent.data ?: return null
-                when (data.scheme?.lowercase()) {
-                    "chatui" -> if (data.host == "import") data.getQueryParameter("url") else null
-                    "http", "https" -> data.toString()
-                    else -> null
-                }
-            }
-            Intent.ACTION_SEND -> {
-                if (streamOf(intent) != null) return null
-                val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return null
-                HTTP_LINK.find(text)?.value
-            }
+        val data = intent.data ?: return null
+        return when (data.scheme?.lowercase()) {
+            "http", "https" -> httpOrNull(data.toString())
             else -> null
-        }?.trim()?.takeIf { it.startsWith("http://", true) || it.startsWith("https://", true) }
+        }
     }
+
+    /// The link to a service in `celaut://import?url=<the link, encoded>` (issue #135): its
+    /// `url`, if it is an http(s) link. Null for another `celaut://` link.
+    fun importLinkOf(link: Uri): String? {
+        if (!link.scheme.equals("celaut", ignoreCase = true)) return null
+        if (!link.host.equals("import", ignoreCase = true)) return null
+        return httpOrNull(link.getQueryParameter("url"))
+    }
+
+    private fun httpOrNull(link: String?): String? =
+        link?.trim()?.takeIf { it.startsWith("http://", true) || it.startsWith("https://", true) }
 
     /// The file of a VIEW or SEND intent, if it has one. An intent that Android gives again
     /// when the user opens the app from the recent apps is not a new file.

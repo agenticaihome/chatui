@@ -217,15 +217,15 @@ void main() {
       );
     });
 
-    testWidgets('a QR code with the deep link fills in the link', (tester) async {
-      scanned = importDeepLink('https://example.org/a b.celaut.bee');
+    testWidgets('a QR code with the deep link fills in the link with the service id', (tester) async {
+      scanned = importDeepLink('https://example.org/a b.celaut.bee', _id);
       await open(tester);
       await openSheet(tester);
       await tester.tap(find.byKey(const Key('import-link-scan')));
       await tester.pumpAndSettle();
       expect(
         tester.widget<TextField>(find.byKey(const Key('import-link-field'))).controller!.text,
-        'https://example.org/a b.celaut.bee',
+        'https://example.org/a b.celaut.bee#$_id',
       );
     });
 
@@ -352,10 +352,12 @@ void main() {
     });
 
     test('the Android side gives a link as {link}', () {
-      final file = chosenFileOf({'link': 'chatui://import?url=https%3A%2F%2Fh%2Fx.celaut.bee'});
+      final file = chosenFileOf({'link': 'celaut://import?url=https%3A%2F%2Fh%2Fx.celaut.bee'});
       expect(file!.isLink, isTrue);
       expect(file.uri, 'https://h/x.celaut.bee');
       expect(chosenFileOf({'link': 'not a link'}), isNull);
+      // The old scheme is gone (issue #135, answer 3).
+      expect(chosenFileOf({'link': 'chatui://import?url=https%3A%2F%2Fh%2Fx.celaut.bee'}), isNull);
       final plain = chosenFileOf({'uri': 'content://x/1', 'name': 'a.celaut.bee', 'bytes': 3});
       expect(plain!.isLink, isFalse);
     });
@@ -367,12 +369,31 @@ void main() {
       expect(serviceLinkOf('HTTP://h/a'), 'HTTP://h/a');
       expect(serviceLinkOf('Look: https://h/a.celaut.bee.'), 'https://h/a.celaut.bee');
       expect(serviceLinkOf('(https://h/a)'), 'https://h/a');
-      expect(serviceLinkOf(importDeepLink('https://h/a?b=1&c=2#ff')), 'https://h/a?b=1&c=2#ff');
-      expect(serviceLinkOf('chatui://other?url=https://h/a'), isNull);
-      expect(serviceLinkOf('chatui://import?url=ftp://h/a'), isNull);
+      expect(serviceLinkOf(importDeepLink('https://h/a?b=1&c=2', _id)), 'https://h/a?b=1&c=2#$_id');
+      expect(serviceLinkOf('celaut://import?url=https%3A%2F%2Fh%2Fa'), 'https://h/a');
+      expect(serviceLinkOf('CELAUT://IMPORT?url=https%3A%2F%2Fh%2Fa'), 'https://h/a');
+      expect(serviceLinkOf('celaut://other?url=https://h/a'), isNull);
+      expect(serviceLinkOf('celaut://node?addr=1.2.3.4:5'), isNull);
+      expect(serviceLinkOf('celaut://import?url=ftp://h/a'), isNull);
+      expect(serviceLinkOf('celaut://import?url=%E0%A4%A'), isNull);
+      expect(serviceLinkOf('celaut://import?url=%zz'), isNull);
+      expect(serviceLinkOf('chatui://import?url=https%3A%2F%2Fh%2Fa'), isNull);
       expect(serviceLinkOf('ergopay:abc'), isNull);
       expect(serviceLinkOf(''), isNull);
       expect(serviceLinkOf('no link here'), isNull);
+    });
+  });
+
+  group('links that name the service (issue #135, answer 7)', () {
+    test('a link for a QR code or the catalog always ends with #<service id>', () {
+      expect(serviceLinkWithId('https://h/a.celaut.bee', _id), 'https://h/a.celaut.bee#$_id');
+      // An old fragment is replaced; the id is written in lower case.
+      expect(serviceLinkWithId('https://h/a.celaut.bee#x', _id.toUpperCase()), 'https://h/a.celaut.bee#$_id');
+      expect(() => serviceLinkWithId('https://h/a', 'abc'), throwsArgumentError);
+      final deep = Uri.parse(importDeepLink('https://h/a.celaut.bee', _id));
+      expect(deep.scheme, 'celaut');
+      expect(deep.host, 'import');
+      expect(deep.queryParameters['url'], 'https://h/a.celaut.bee#$_id');
     });
   });
 
