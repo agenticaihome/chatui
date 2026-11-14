@@ -85,8 +85,11 @@ Tried one after another, an address that hangs made the user wait for its whole 
 before the next one was tried: four addresses that hang on a direct route took 40
 seconds. Now the addresses race (`celaut-client/src/race.rs`, issue #139):
 
-- The first two addresses start at the same time. At most two tries run at once; when one
-  fails, the next address of the order starts.
+- The first address starts alone, with a head start of 250 ms (`HEAD_START`, the
+  "Connection Attempt Delay" of Happy Eyeballs, RFC 8305). The second address starts when
+  the head start is over, or at once if the first fails before. So a healthy first address
+  is the only one that is dialed. The same holds between each try and the next.
+- At most two tries run at once; when one fails, the next address of the order starts.
 - When a try proves the key, no new try starts and the tries after it in the order are
   stopped (their future is dropped, so the dial or the handshake ends there).
 - A try before it in the order can still be running. It has 250 ms more (`GRACE`): if it
@@ -97,10 +100,22 @@ seconds. Now the addresses race (`celaut-client/src/race.rs`, issue #139):
   or that worked after an address before it, is `NotNeeded`. It never shows: the list of
   reasons shows only when no address worked.
 
-The worst case with four addresses that hang on a direct route is now 20 seconds (two
-rounds of two), and a hanging first address with a working second one costs the time of the
-second one and the grace, not 10 seconds. Through Tor the two tries build two circuits at
-once.
+The worst case with four addresses that hang on a direct route is now about 20 seconds
+(two rounds of two), and a hanging first address with a working second one costs the head
+start, the time of the second one and the grace, not 10 seconds. The grace and the head
+start are the same through Tor. Through Tor the two tries build two circuits at once.
+
+A try that completed TLS still has to open a session: `GetPeerInfo` with the client id that
+the app has on the node, or `GenerateClient` first if it has none (`celaut_service.rs`,
+`open_session`). Two tries must not make two clients on one node, so making a client takes
+a lock of that node (`OPENING`, by `peer_id`):
+
+- A node where the app has a client takes no lock: resuming the client makes none. An
+  address that hangs in `GetPeerInfo` holds up nothing.
+- Without a client, a try takes the lock of the node, looks again (another try may have made
+  the client while it waited) and only then calls `GenerateClient`. An address that hangs
+  there holds up only the other tries on the same node, until it is stopped (its time
+  limit) — the price of one client per node. Other nodes are not held up.
 
 The same race connects to a node of the node list (`celaut_home.rs`, `reach_within`): the
 compute overview and the checks of the nodes (`celaut_health.rs`) race the addresses where
@@ -114,10 +129,10 @@ over the node.
 |---|---|
 | `rust/crates/celaut-proto/protos/invite.proto`, `src/gen/invite.rs` | The message, copied from nodo; `cargo run -p gen-protos` |
 | `rust/crates/celaut-client/src/invite.rs` | `parse`, the formats of each tag, `plan` (the route rules), `is_private` |
-| `rust/crates/celaut-client/src/race.rs` | `race`: two tries at a time, the first that works, the order within the grace |
+| `rust/crates/celaut-client/src/race.rs` | `race`: the head start, two tries at a time, the first that works, the order within the grace |
 | `rust/crates/wallet-ffi/src/api/celaut_invite.rs` | `celaut_connect_invite`, the attempts for the screen |
 | `rust/crates/wallet-ffi/src/api/celaut_home.rs` | `reach_within`: the same race for a node of the node list |
-| `rust/crates/wallet-ffi/src/api/celaut_service.rs` | `session_pinned`: a session that only the invited key can open |
+| `rust/crates/wallet-ffi/src/api/celaut_service.rs` | `session_pinned`: a session that only the invited key can open; `open_on`, `OPENING`: one new client at a time on each node |
 | `app/lib/celaut/invite_scan.dart`, `app/lib/ui/scan_screen.dart` | `ScannedCode`, `looksLikeInvite`, the binary scanner |
 | `app/lib/ui/celaut/known_nodes_screen.dart` | The scan button, the result, the reason for each address |
 
@@ -126,11 +141,18 @@ over the node.
 - `invite.rs`: the vectors give the addresses that nodo gives, the refusals match, unknown
   tags are dropped, the onion name is the one of the key, junk never panics, and the private
   ranges and the route rules (one test per route).
-- `race.rs` (with a paused clock): a first address that hangs or waits for its whole
-  timeout does not hold up a fast second one; the first in the order wins when both answer
-  within the grace and loses after it; a winner stops the tries after it at once; never more
-  than two at a time and a failure starts the next; one at a time gives the old order and
-  times.
+- `race.rs` (with a paused clock): a healthy first address is the only one dialed; the
+  second starts at the end of the head start, or at once when the first fails; each try has
+  its head start over the next; without a head start the first two start together; a first
+  address that hangs or waits for its whole timeout does not hold up a fast second one; the
+  first in the order wins when both answer within the grace and loses after it; a winner
+  stops the tries after it at once; never more than two at a time and a failure starts the
+  next; one at a time gives the old order and times.
+- `celaut_service.rs` (the lock of each node): a node that hangs while it makes a client
+  does not hold up another node; a known node whose first address hangs in `GetPeerInfo`
+  is reached by the second address in the race; two calls never make two clients on one
+  node; a new node whose first address hangs in `GenerateClient` makes one client, by the
+  second address, after the first is stopped; the locks that nobody uses are dropped.
 - `celaut_invite.rs`: the first address that works stops the tries and each try pins the key;
   nothing works gives a reason for each address; no usable address asks nobody; a Tor proxy
   tries the onion first with the long timeout; bytes that are not an invitation are refused;
