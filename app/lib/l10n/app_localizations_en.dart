@@ -8358,7 +8358,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautMoveHalf => 'Half';
 
   @override
-  String get celautMoveAll => 'All';
+  String get celautMoveAllButOne => 'All but one period';
 
   @override
   String get celautMoveInstanceRow => 'Balance of the instance';
@@ -8462,7 +8462,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautSpendNote =>
-      'The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that went to your instances: the balance of a running instance is in it, and comes back when it stops.';
+      'The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that left your credit and did not come back, less what your running instances still hold: the app asks the node for their balance now, which is free.';
 
   @override
   String get celautSpendRead => 'Read the statement';
@@ -8479,7 +8479,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String celautSpendReadBody(String node, String max) {
-    return 'The node $node charges the read to your credit: up to $max. It writes the read as a movement. The app reads only the movements after its last read.';
+    return 'The node $node charges the read to your credit: up to $max. It writes the read as a movement. The app reads at most 100 movements after its last read; \"Read the rest\" reads the next ones.';
   }
 
   @override
@@ -8579,6 +8579,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautSpendKindDebit => 'Taken by the operator';
 
   @override
+  String get celautSpendPeriodToday => 'Today';
+
+  @override
+  String get celautSpendPeriodWeek => '7 days';
+
+  @override
+  String get celautSpendPeriodAll => 'All';
+
+  @override
+  String get celautSpendInInstances => 'Still in running instances';
+
+  @override
+  String celautSpendLiveUnknown(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count running instances did not give their balance now: their MU counts as spent.',
+      one:
+          '1 running instance did not give its balance now: its MU counts as spent.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get celautSpendLiveRow => 'Still in the instance';
+
+  @override
+  String celautMoveFeeOf(String fee) {
+    return 'The node charges $fee for this move.';
+  }
+
+  @override
   String celautHomeSpent(String value) {
     return 'spent $value';
   }
@@ -8588,5 +8621,5 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautHomeBalancesNote =>
-      'The balance is what the node says now. The spending comes from the last statement that the app read on each node: open a node to read it.';
+      'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.';
 }

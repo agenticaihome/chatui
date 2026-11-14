@@ -15,22 +15,41 @@ import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
 import 'node_connect_screen.dart';
 
+/// The offset of the clock of the device from UTC, in seconds: the app keeps the sums of
+/// each day on this clock (Josemi, PR #148).
+int utcOffsetSeconds() => DateTime.now().timeZoneOffset.inSeconds;
+
 /// The calls of the balance and the spending (issue #136). Tests give their own.
 class SpendingApi {
   const SpendingApi();
 
-  NodeSpendingView spending(String peerId) => celautNodeSpending(peerId: peerId);
+  /// The sums of [period]. [live]: the balances now of the running instances, which are not
+  /// spent; null when the screen has not read them.
+  NodeSpendingView spending(
+    String peerId, {
+    SpendingPeriod period = SpendingPeriod.all,
+    List<LiveBalanceView>? live,
+  }) =>
+      celautNodeSpending(peerId: peerId, period: period, utcOffsetS: utcOffsetSeconds(), live: live);
   List<NodeSpendingView> overview() => celautSpendingOverview();
   List<InstanceListView> instances() => celautInstances();
   Future<String> credit(NodeAddress node) => celautNodeCredit(node: node);
+  Future<List<LiveBalanceView>> liveBalances(String peerId) => celautLiveInstanceBalances(peerId: peerId);
   Future<SpendingQuoteView> quoteNode(NodeAddress node) => celautQuoteNodeStatement(node: node);
-  Future<NodeSpendingView> readNode(NodeAddress node, String maxMu) =>
-      celautReadNodeStatement(node: node, maxMu: maxMu);
+  Future<void> readNode(NodeAddress node, String maxMu) =>
+      celautReadNodeStatement(node: node, maxMu: maxMu, utcOffsetS: utcOffsetSeconds());
   Future<SpendingQuoteView> quoteInstance(String instanceId) =>
       celautQuoteInstanceStatement(instanceId: instanceId);
-  Future<AccountSpendingView> readInstance(String instanceId, String maxMu) =>
-      celautReadInstanceStatement(instanceId: instanceId, maxMu: maxMu);
+  Future<void> readInstance(String instanceId, String maxMu) =>
+      celautReadInstanceStatement(instanceId: instanceId, maxMu: maxMu, utcOffsetS: utcOffsetSeconds());
 }
+
+/// The name of a period, for a person.
+String spendPeriodLabel(AppLocalizations l, SpendingPeriod p) => switch (p) {
+      SpendingPeriod.today => l.celautSpendPeriodToday,
+      SpendingPeriod.week => l.celautSpendPeriodWeek,
+      SpendingPeriod.all => l.celautSpendPeriodAll,
+    };
 
 /// The date of a Unix time in seconds, or "unknown" for 0.
 String _date(int seconds) =>
@@ -64,10 +83,11 @@ String _flowText(KindFlowView k) {
   return parts.join(' · ');
 }
 
-/// "X, since <date>" for a sum that starts after the first movement of the account.
-String spentText(AccountSpendingView a) {
+/// "X, since <date>" for a sum of all the movements that starts after the first movement of
+/// the account. A sum of today or of the week is the value only.
+String spentText(AccountSpendingView a, {SpendingPeriod period = SpendingPeriod.all}) {
   final value = muOrUnknown(a.spentMu);
-  if (a.spentMu.isEmpty || !a.partial) return value;
+  if (a.spentMu.isEmpty || !a.partial || period != SpendingPeriod.all) return value;
   return appL10n.celautSpendSince(value, _date(a.since.toInt()));
 }
 
@@ -103,9 +123,11 @@ Future<bool> confirmStatementRead(
 }
 
 /// "Balance and spending" on the detail of a node (issue #136): the balance of the client
-/// now (free), and what the last statement read says: the balance then, what was spent and
-/// what the reads cost. The split by instance is one tap away (closed). A read costs MU:
-/// it happens only on a tap, after a question with the most that it can cost.
+/// now (free), and what the statements read say: the balance then, what was spent and what
+/// the reads cost, for today, the last 7 days or all. Spent leaves out what the running
+/// instances still hold (their balance now, free). The split by instance is one tap away
+/// (closed). A read costs MU: it happens only on a tap, after a question with the most
+/// that it can cost.
 class NodeSpendingSection extends StatefulWidget {
   const NodeSpendingSection({
     super.key,
@@ -125,7 +147,11 @@ class NodeSpendingSection extends StatefulWidget {
 }
 
 class _NodeSpendingSectionState extends State<NodeSpendingSection> {
-  late NodeSpendingView _view = widget.api.spending(widget.peerId);
+  SpendingPeriod _period = SpendingPeriod.all;
+
+  /// The balances now of the running instances; null until the node gave them.
+  List<LiveBalanceView>? _live;
+  late NodeSpendingView _view = _sums();
   String? _credit;
   bool _creditFailed = false;
   bool _busy = false;
@@ -139,11 +165,29 @@ class _NodeSpendingSectionState extends State<NodeSpendingSection> {
     return p == null ? null : NodeAddress(host: p.host, port: p.port);
   }
 
+  NodeSpendingView _sums() => widget.api.spending(widget.peerId, period: _period, live: _live);
+
+  void _refresh() => setState(() => _view = _sums());
+
   @override
   void initState() {
     super.initState();
     _loadCredit();
     _loadQuote();
+    _loadLive();
+  }
+
+  /// The balance now of each running instance (`GetMetrics`, free): what they still hold is
+  /// not spent yet.
+  Future<void> _loadLive() async {
+    try {
+      final live = await widget.api.liveBalances(widget.peerId);
+      if (!mounted) return;
+      _live = live;
+      _refresh();
+    } on Object {
+      // No balances: their MU counts as spent, and the screen says so.
+    }
   }
 
   Future<void> _loadCredit() async {
@@ -179,9 +223,9 @@ class _NodeSpendingSectionState extends State<NodeSpendingSection> {
       _error = null;
     });
     try {
-      final view = await widget.api.readNode(node, max);
+      await widget.api.readNode(node, max);
       if (!mounted) return;
-      setState(() => _view = view);
+      _refresh();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.celautSpendReadDone)));
     } on CelautError catch (e) {
       if (mounted) {
@@ -194,7 +238,7 @@ class _NodeSpendingSectionState extends State<NodeSpendingSection> {
       if (mounted) setState(() => _busy = false);
     }
     // The read is a movement: the balance and the next quote changed.
-    await Future.wait([_loadCredit(), _loadQuote()]);
+    await Future.wait([_loadCredit(), _loadQuote(), _loadLive()]);
   }
 
   void _openInstance(InstanceSpendingView i, String name) {
@@ -207,7 +251,12 @@ class _NodeSpendingSectionState extends State<NodeSpendingSection> {
         name: name,
         node: widget.address,
         api: widget.api,
-        onRead: () => setState(() => _view = widget.api.spending(widget.peerId)),
+        period: _period,
+        onRead: () {
+          if (!mounted) return null;
+          _refresh();
+          return _view.instances.where((x) => x.instanceRef == i.instanceRef).firstOrNull;
+        },
       ),
     );
   }
@@ -256,7 +305,33 @@ class _NodeSpendingSectionState extends State<NodeSpendingSection> {
                   _credit != null ? muOrUnknown(_credit) : (_creditFailed ? l.celautUnknown : '…'),
                   const Key('node-spending-credit'),
                 ),
-                pair(l.celautSpendSpent, read ? spentText(a) : l.celautUnknown, const Key('node-spending-spent')),
+                if (read)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, bottom: 2),
+                    child: SegmentedButton<SpendingPeriod>(
+                      key: const Key('node-spending-period'),
+                      showSelectedIcon: false,
+                      segments: [
+                        for (final p in const [SpendingPeriod.today, SpendingPeriod.week, SpendingPeriod.all])
+                          ButtonSegment(
+                            value: p,
+                            label: Text(spendPeriodLabel(l, p), key: Key('node-spending-period-${p.name}')),
+                          ),
+                      ],
+                      selected: {_period},
+                      onSelectionChanged: (s) {
+                        _period = s.first;
+                        _refresh();
+                      },
+                    ),
+                  ),
+                pair(l.celautSpendSpent, read ? spentText(a, period: _period) : l.celautUnknown,
+                    const Key('node-spending-spent')),
+                if (read && v.inInstancesMu.isNotEmpty && v.inInstancesMu != '0')
+                  pair(l.celautSpendInInstances, muOrUnknown(v.inInstancesMu), const Key('node-spending-in-instances')),
+                if (read && v.liveUnknown > 0)
+                  Text(l.celautSpendLiveUnknown(v.liveUnknown), key: const Key('node-spending-live-unknown'),
+                      style: TextStyle(fontSize: 12.5, color: colors.muted)),
                 if (read) ...[
                   pair(l.celautSpendBalanceRead, muOrUnknown(a.balanceMu), const Key('node-spending-balance')),
                   pair(l.celautSpendReads, muOrUnknown(v.statementsMu), const Key('node-spending-reads')),
@@ -269,7 +344,7 @@ class _NodeSpendingSectionState extends State<NodeSpendingSection> {
                     child: Text(l.celautSpendNeverRead,
                         key: const Key('node-spending-never'), style: TextStyle(fontSize: 12.5, color: colors.muted)),
                   ),
-                if (a.partial)
+                if (a.partial && _period == SpendingPeriod.all)
                   Text(l.celautSpendPartial, key: const Key('node-spending-partial'),
                       style: TextStyle(fontSize: 12.5, color: colors.muted)),
                 if (a.incomplete)
@@ -343,7 +418,8 @@ class _InstanceRow extends StatelessWidget {
         : i.running
             ? l.celautSpendRunning
             : l.celautSpendStopped;
-    final spent = i.movedMu.isEmpty ? l.celautSpendNotRead : muOrUnknown(i.movedMu);
+    // What the instance spent of the MU moved to it: what it still holds is left out.
+    final spent = i.spentMu.isEmpty ? l.celautSpendNotRead : muOrUnknown(i.spentMu);
     return InkWell(
       key: Key('node-spending-instance-${i.instanceRef}'),
       onTap: onTap,
@@ -382,6 +458,7 @@ class InstanceCostsSheet extends StatefulWidget {
     required this.name,
     required this.node,
     this.api = const SpendingApi(),
+    this.period = SpendingPeriod.all,
     this.onRead,
   });
 
@@ -390,15 +467,19 @@ class InstanceCostsSheet extends StatefulWidget {
   final String node;
   final SpendingApi api;
 
-  /// The app read the statement of the instance.
-  final VoidCallback? onRead;
+  /// The period of the sums, as on the node screen.
+  final SpendingPeriod period;
+
+  /// The app read the statement of the instance: gives the instance with the new sums.
+  final InstanceSpendingView? Function()? onRead;
 
   @override
   State<InstanceCostsSheet> createState() => _InstanceCostsSheetState();
 }
 
 class _InstanceCostsSheetState extends State<InstanceCostsSheet> {
-  late AccountSpendingView? _costs = widget.instance.costs;
+  late InstanceSpendingView _instance = widget.instance;
+  AccountSpendingView? get _costs => _instance.costs;
   SpendingQuoteView? _quote;
   bool _busy = false;
   String? _error;
@@ -438,10 +519,10 @@ class _InstanceCostsSheetState extends State<InstanceCostsSheet> {
       _error = null;
     });
     try {
-      final costs = await widget.api.readInstance(widget.instance.instanceId, max);
+      await widget.api.readInstance(widget.instance.instanceId, max);
       if (!mounted) return;
-      setState(() => _costs = costs);
-      widget.onRead?.call();
+      final after = widget.onRead?.call();
+      if (after != null) setState(() => _instance = after);
     } on CelautError catch (e) {
       if (mounted) {
         setState(() => _error = l.celautSpendReadFailed(
@@ -459,7 +540,7 @@ class _InstanceCostsSheetState extends State<InstanceCostsSheet> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final colors = ArgusColors.of(context);
-    final i = widget.instance;
+    final i = _instance;
     final c = _costs;
     Widget pair(String label, String value, {Key? key}) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 5),
@@ -484,9 +565,14 @@ class _InstanceCostsSheetState extends State<InstanceCostsSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(widget.name, style: Theme.of(context).textTheme.titleMedium),
+            if (widget.period != SpendingPeriod.all)
+              Text(spendPeriodLabel(l, widget.period), key: const Key('instance-costs-period'),
+                  style: TextStyle(fontSize: 12.5, color: colors.muted)),
             const SizedBox(height: 8),
             pair(l.celautSpendMovedRow, i.movedMu.isEmpty ? l.celautUnknown : muOrUnknown(i.movedMu),
                 key: const Key('instance-costs-moved')),
+            if (i.liveMu.isNotEmpty)
+              pair(l.celautSpendLiveRow, muOrUnknown(i.liveMu), key: const Key('instance-costs-live')),
             const SizedBox(height: 8),
             Text(l.celautSpendCosts.toUpperCase(),
                 style: TextStyle(fontSize: 12, letterSpacing: 1, color: colors.muted)),
@@ -496,13 +582,14 @@ class _InstanceCostsSheetState extends State<InstanceCostsSheet> {
                 child: Text(l.celautSpendCostsNote, style: TextStyle(fontSize: 12.5, color: colors.muted)),
               )
             else ...[
-              pair(l.celautSpendSpent, spentText(c), key: const Key('instance-costs-spent')),
+              pair(l.celautSpendSpent, spentText(c, period: widget.period), key: const Key('instance-costs-spent')),
               for (final k in c.kinds)
                 if (k.kind != 'stop' && k.kind != 'child_bound')
                   pair(spendKindLabel(l, k.kind), _flowText(k), key: Key('instance-costs-kind-${k.kind}')),
               pair(l.celautSpendBalanceRead, muOrUnknown(c.balanceMu)),
               pair(l.celautSpendLastRead, _date(c.readAt.toInt())),
-              if (c.partial) Text(l.celautSpendPartial, style: TextStyle(fontSize: 12.5, color: colors.muted)),
+              if (c.partial && widget.period == SpendingPeriod.all)
+                Text(l.celautSpendPartial, style: TextStyle(fontSize: 12.5, color: colors.muted)),
               if (c.incomplete)
                 Text(l.celautSpendIncomplete, style: TextStyle(fontSize: 12.5, color: rustFor(context))),
             ],

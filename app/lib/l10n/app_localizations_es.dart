@@ -8442,7 +8442,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautMoveHalf => 'La mitad';
 
   @override
-  String get celautMoveAll => 'Todo';
+  String get celautMoveAllButOne => 'Todo menos un periodo';
 
   @override
   String get celautMoveInstanceRow => 'Saldo de la instancia';
@@ -8545,7 +8545,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get celautSpendNote =>
-      'El gasto sale del extracto que firma el nodo. La app comprueba la firma, la cadena de movimientos y el saldo. Gastado cuenta los MU que fueron a tus instancias: el saldo de una instancia en marcha está incluido y vuelve cuando se detiene.';
+      'El gasto sale del extracto que firma el nodo. La app comprueba la firma, la cadena de movimientos y el saldo. Gastado cuenta los MU que salieron de tu crédito y no volvieron, menos lo que aún tienen tus instancias en marcha: la app pide al nodo su saldo actual, que es gratis.';
 
   @override
   String get celautSpendRead => 'Leer el extracto';
@@ -8562,7 +8562,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String celautSpendReadBody(String node, String max) {
-    return 'El nodo $node cobra la lectura de tu crédito: hasta $max. Anota la lectura como un movimiento. La app solo lee los movimientos posteriores a su última lectura.';
+    return 'El nodo $node cobra la lectura de tu crédito: hasta $max. Anota la lectura como un movimiento. La app lee como mucho 100 movimientos posteriores a su última lectura; «Leer el resto» lee los siguientes.';
   }
 
   @override
@@ -8662,6 +8662,39 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautSpendKindDebit => 'Retirado por el operador';
 
   @override
+  String get celautSpendPeriodToday => 'Hoy';
+
+  @override
+  String get celautSpendPeriodWeek => '7 días';
+
+  @override
+  String get celautSpendPeriodAll => 'Todo';
+
+  @override
+  String get celautSpendInInstances => 'Aún en instancias en marcha';
+
+  @override
+  String celautSpendLiveUnknown(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count instancias en marcha no dieron su saldo actual: sus MU cuentan como gastados.',
+      one:
+          '1 instancia en marcha no dio su saldo actual: sus MU cuentan como gastados.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get celautSpendLiveRow => 'Aún en la instancia';
+
+  @override
+  String celautMoveFeeOf(String fee) {
+    return 'El nodo cobra $fee por este movimiento.';
+  }
+
+  @override
   String celautHomeSpent(String value) {
     return 'gastado $value';
   }
@@ -8671,5 +8704,5 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get celautHomeBalancesNote =>
-      'El saldo es lo que dice el nodo ahora. El gasto sale del último extracto que la app leyó en cada nodo: abre un nodo para leerlo.';
+      'El saldo es lo que dice el nodo ahora. El gasto sale del último extracto que la app leyó en cada nodo, y aquí incluye lo que aún tienen tus instancias en marcha. Abre un nodo para leerlo, por día o por semana.';
 }

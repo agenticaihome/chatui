@@ -38,6 +38,7 @@ class InstanceTimeSection extends StatefulWidget {
     this.openDeposit,
     this.node = '',
     this.move,
+    this.moveFee,
   });
 
   final String instanceId;
@@ -47,6 +48,9 @@ class InstanceTimeSection extends StatefulWidget {
 
   /// Move MU to the instance or back (issue #136). Tests give their own.
   final MoveMu? move;
+
+  /// The fee of a move that the node advertises. Tests give their own.
+  final MoveFee? moveFee;
 
   /// The keep-alive engine. Tests give their own.
   final AutoTopUp? topUp;
@@ -173,6 +177,7 @@ class _InstanceTimeSectionState extends State<InstanceTimeSection> {
       autoTopUp: plan?.keepAlive ?? false,
       price: _price,
       move: widget.move,
+      fee: widget.moveFee,
       openDeposit: widget.openDeposit ??
           () => Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => const DepositScreen())),
     );

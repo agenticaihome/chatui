@@ -51,6 +51,8 @@ NodeSpendingView nodeSpending({
   String statements = '',
   String starting = '',
   List<InstanceSpendingView> instances = const [],
+  String inInstances = '',
+  int liveUnknown = 0,
 }) =>
     NodeSpendingView(
       peerId: peerId,
@@ -59,6 +61,28 @@ NodeSpendingView nodeSpending({
       statementsMu: statements,
       startingMu: starting,
       instances: instances,
+      inInstancesMu: inInstances,
+      liveUnknown: liveUnknown,
+    );
+
+/// One instance in the split of a node. [spent] defaults to [moved].
+InstanceSpendingView instanceSpending({
+  required String ref,
+  String id = '',
+  bool running = false,
+  String moved = '',
+  String live = '',
+  String? spent,
+  AccountSpendingView? costs,
+}) =>
+    InstanceSpendingView(
+      instanceRef: ref,
+      instanceId: id,
+      running: running,
+      movedMu: moved,
+      liveMu: live,
+      spentMu: spent ?? moved,
+      costs: costs,
     );
 
 class FakeSpendingApi extends SpendingApi {
@@ -83,14 +107,35 @@ class FakeSpendingApi extends SpendingApi {
   AccountSpendingView? afterInstanceRead;
   Object? readError;
 
+  /// The view of each period, when a test gives one; else [views].
+  final byPeriod = <SpendingPeriod, NodeSpendingView>{};
+
+  /// The balances now of the running instances; null makes the call fail.
+  List<LiveBalanceView>? liveAnswer = const [];
+
   final nodeReads = <String>[];
   final instanceReads = <String>[];
+
+  /// The period and the balances now of each call of [spending].
+  final spendingCalls = <(SpendingPeriod, List<LiveBalanceView>?)>[];
   var credits = 0;
+  var liveCalls = 0;
 
   SpendingQuoteView get _quote => quote ?? SpendingQuoteView(maxMu: '2000', fromSeq: BigInt.one);
 
   @override
-  NodeSpendingView spending(String peerId) => views[peerId] ?? nodeSpending(peerId: peerId);
+  NodeSpendingView spending(String peerId, {SpendingPeriod period = SpendingPeriod.all, List<LiveBalanceView>? live}) {
+    spendingCalls.add((period, live));
+    return byPeriod[period] ?? views[peerId] ?? nodeSpending(peerId: peerId);
+  }
+
+  @override
+  Future<List<LiveBalanceView>> liveBalances(String peerId) async {
+    liveCalls++;
+    final l = liveAnswer;
+    if (l == null) throw const CelautError(kind: CelautErrorKind.unreachable, message: 'no');
+    return l;
+  }
 
   @override
   List<NodeSpendingView> overview() => views.values.toList();
@@ -110,23 +155,21 @@ class FakeSpendingApi extends SpendingApi {
   Future<SpendingQuoteView> quoteNode(NodeAddress node) async => _quote;
 
   @override
-  Future<NodeSpendingView> readNode(NodeAddress node, String maxMu) async {
+  Future<void> readNode(NodeAddress node, String maxMu) async {
     nodeReads.add('${node.host}:${node.port} $maxMu');
     final e = readError;
     if (e != null) throw e;
     final v = afterNodeRead!;
     views[v.peerId] = v;
-    return v;
   }
 
   @override
   Future<SpendingQuoteView> quoteInstance(String instanceId) async => _quote;
 
   @override
-  Future<AccountSpendingView> readInstance(String instanceId, String maxMu) async {
+  Future<void> readInstance(String instanceId, String maxMu) async {
     instanceReads.add('$instanceId $maxMu');
     final e = readError;
     if (e != null) throw e;
-    return afterInstanceRead!;
   }
 }

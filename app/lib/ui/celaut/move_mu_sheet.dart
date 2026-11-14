@@ -20,9 +20,15 @@ typedef MoveMu = Future<TopUpView> Function(String instanceId, String amountMu, 
 Future<TopUpView> _moveMu(String instanceId, String amountMu, bool takeBack) =>
     celautMoveInstanceMu(instanceId: instanceId, amountMu: amountMu, takeBack: takeBack);
 
+/// The fee that the node advertises for a move (`modify_deposit_mu`), in MU; empty if none.
+typedef MoveFee = Future<String> Function(String instanceId);
+
+Future<String> _moveFee(String instanceId) => celautMoveFee(instanceId: instanceId);
+
 /// The sheet of "Add MU" or "Take back MU" ([takeBack]) for a running instance: an amount
 /// (typed, or a quick value), the balance of the instance and the credit of the user on the
-/// node before and after, the fee, and a note when the automatic top-up is on. The move
+/// node before and after, the fee, and a note when the automatic top-up is on. The quick
+/// value to take back leaves one period in the instance (Josemi, PR #148). The move
 /// needs a second yes in a dialog: it moves money. Gives the balances after the move, or
 /// null if nothing moved.
 Future<TopUpView?> showMoveMuSheet(
@@ -35,6 +41,7 @@ Future<TopUpView?> showMoveMuSheet(
   required bool autoTopUp,
   MaintenancePrice? price,
   MoveMu? move,
+  MoveFee? fee,
   VoidCallback? openDeposit,
 }) =>
     showModalBottomSheet<TopUpView>(
@@ -50,6 +57,7 @@ Future<TopUpView?> showMoveMuSheet(
         autoTopUp: autoTopUp,
         price: price,
         move: move ?? _moveMu,
+        fee: fee ?? _moveFee,
         openDeposit: openDeposit,
       ),
     );
@@ -66,6 +74,7 @@ class MoveMuSheet extends StatefulWidget {
     required this.autoTopUp,
     required this.move,
     this.price,
+    this.fee,
     this.openDeposit,
   });
 
@@ -86,6 +95,9 @@ class MoveMuSheet extends StatefulWidget {
   /// The price of the node, to say how long the balance lasts after the move.
   final MaintenancePrice? price;
   final MoveMu move;
+
+  /// Reads the fee that the node advertises for the move; null: no fee is read.
+  final MoveFee? fee;
   final VoidCallback? openDeposit;
 
   @override
@@ -96,6 +108,26 @@ class _MoveMuSheetState extends State<MoveMuSheet> {
   final _amount = TextEditingController();
   bool _busy = false;
   String? _error;
+
+  /// The fee that the node advertises, in MU; null when it advertises none.
+  BigInt? _fee;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFee();
+  }
+
+  Future<void> _loadFee() async {
+    final read = widget.fee;
+    if (read == null) return;
+    try {
+      final fee = BigInt.tryParse(await read(widget.instanceId));
+      if (mounted && fee != null && fee > BigInt.zero) setState(() => _fee = fee);
+    } on Object {
+      // No fee known: nodo charges none today.
+    }
+  }
 
   @override
   void dispose() {
@@ -224,9 +256,14 @@ class _MoveMuSheetState extends State<MoveMuSheet> {
       final d = price.lasts(after);
       lasts = d == Duration.zero ? l.celautMoveStops : l.celautMoveLasts(formatSurvival(d));
     }
+    // To take back, the quick values leave the instance at least one period (Josemi, PR
+    // #148): "All but one period" keeps the MU that makes it last one more period at the
+    // price now, as "lasts" counts it. A typed amount can still take all of it.
+    final onePeriod = price == null ? null : price.balanceFor(Duration(seconds: price.periodSeconds));
     final quick = <(String, BigInt)>[
       if (take && balance != null && balance > BigInt.one) (l.celautMoveHalf, balance ~/ BigInt.two),
-      if (take && balance != null && balance > BigInt.zero) (l.celautMoveAll, balance),
+      if (take && balance != null && onePeriod != null && balance > onePeriod)
+        (l.celautMoveAllButOne, balance - onePeriod),
       if (!take)
         for (final n in [100000, 1000000, 10000000])
           if (widget.credit == null || BigInt.from(n) <= widget.credit!)
@@ -301,7 +338,11 @@ class _MoveMuSheetState extends State<MoveMuSheet> {
                   style: t.secondary.copyWith(color: rustFor(context))),
             if (lasts != null) Text(lasts, key: const Key('move-mu-lasts'), style: t.secondary),
             const SizedBox(height: 4),
-            Text(l.celautMoveFee, key: const Key('move-mu-fee'), style: t.secondary),
+            Text(
+              _fee == null ? l.celautMoveFee : l.celautMoveFeeOf(muOrUnknown('$_fee')),
+              key: const Key('move-mu-fee'),
+              style: t.secondary,
+            ),
             if (widget.autoTopUp) ...[
               const SizedBox(height: 8),
               Text(

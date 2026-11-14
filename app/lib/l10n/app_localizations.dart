@@ -13433,11 +13433,11 @@ abstract class AppLocalizations {
   /// **'Half'**
   String get celautMoveHalf;
 
-  /// No description provided for @celautMoveAll.
+  /// No description provided for @celautMoveAllButOne.
   ///
   /// In en, this message translates to:
-  /// **'All'**
-  String get celautMoveAll;
+  /// **'All but one period'**
+  String get celautMoveAllButOne;
 
   /// No description provided for @celautMoveInstanceRow.
   ///
@@ -13598,7 +13598,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautSpendNote.
   ///
   /// In en, this message translates to:
-  /// **'The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that went to your instances: the balance of a running instance is in it, and comes back when it stops.'**
+  /// **'The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that left your credit and did not come back, less what your running instances still hold: the app asks the node for their balance now, which is free.'**
   String get celautSpendNote;
 
   /// No description provided for @celautSpendRead.
@@ -13628,7 +13628,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautSpendReadBody.
   ///
   /// In en, this message translates to:
-  /// **'The node {node} charges the read to your credit: up to {max}. It writes the read as a movement. The app reads only the movements after its last read.'**
+  /// **'The node {node} charges the read to your credit: up to {max}. It writes the read as a movement. The app reads at most 100 movements after its last read; \"Read the rest\" reads the next ones.'**
   String celautSpendReadBody(String node, String max);
 
   /// No description provided for @celautSpendReadConfirm.
@@ -13805,6 +13805,48 @@ abstract class AppLocalizations {
   /// **'Taken by the operator'**
   String get celautSpendKindDebit;
 
+  /// No description provided for @celautSpendPeriodToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get celautSpendPeriodToday;
+
+  /// No description provided for @celautSpendPeriodWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get celautSpendPeriodWeek;
+
+  /// No description provided for @celautSpendPeriodAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get celautSpendPeriodAll;
+
+  /// No description provided for @celautSpendInInstances.
+  ///
+  /// In en, this message translates to:
+  /// **'Still in running instances'**
+  String get celautSpendInInstances;
+
+  /// No description provided for @celautSpendLiveUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 running instance did not give its balance now: its MU counts as spent.} other{{count} running instances did not give their balance now: their MU counts as spent.}}'**
+  String celautSpendLiveUnknown(int count);
+
+  /// No description provided for @celautSpendLiveRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Still in the instance'**
+  String get celautSpendLiveRow;
+
+  /// No description provided for @celautMoveFeeOf.
+  ///
+  /// In en, this message translates to:
+  /// **'The node charges {fee} for this move.'**
+  String celautMoveFeeOf(String fee);
+
   /// No description provided for @celautHomeSpent.
   ///
   /// In en, this message translates to:
@@ -13820,7 +13862,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautHomeBalancesNote.
   ///
   /// In en, this message translates to:
-  /// **'The balance is what the node says now. The spending comes from the last statement that the app read on each node: open a node to read it.'**
+  /// **'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.'**
   String get celautHomeBalancesNote;
 }
 

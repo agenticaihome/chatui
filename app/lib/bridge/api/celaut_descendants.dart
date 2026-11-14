@@ -45,16 +45,22 @@ Future<ReadQuoteView> celautQuoteDescendantRead({
 /// keeps anything. A node that does not know descendants gives
 /// [`CelautErrorKind::NoDescendants`]. A node that refuses the statement is not an error:
 /// the descendant becomes not verifiable, and the report has a finding for it.
+///
+/// A read of the held instance (depth 0) is also kept in the tally of its spending: they
+/// read the same account with one cursor. `utc_offset_s` is the offset of the clock of the
+/// device from UTC, for the day of each movement.
 Future<CheckReportView> celautCheckDescendant({
   required String instanceId,
   required String instanceRef,
   int? remainingHops,
   required String maxMu,
+  required int utcOffsetS,
 }) => RustLib.instance.api.crateApiCelautDescendantsCelautCheckDescendant(
   instanceId: instanceId,
   instanceRef: instanceRef,
   remainingHops: remainingHops,
   maxMu: maxMu,
+  utcOffsetS: utcOffsetS,
 );
 
 /// The receipts of the tunnels to a descendant. A descendant has no start receipt, so the

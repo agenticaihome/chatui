@@ -8,9 +8,9 @@ import 'celaut.dart';
 import 'celaut_service.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `account_view`, `add_text`, `client_ref`, `client_tally`, `error_of_spending`, `forget_instance_tally`, `instance_any`, `instance_tally`, `keep`, `node_view`, `overview_of`, `parse_budget`, `parse_mu`, `quote_view`, `take`, `tally_of_instance`, `text_of`
+// These functions are ignored because they are not marked as `pub`: `account_view`, `add_text`, `client_ref`, `client_tally`, `error_of_spending`, `forget_instance_tally`, `from_day`, `instance_any`, `instance_tally`, `is_running`, `keep_instance_read`, `keep`, `node_tally`, `node_view`, `overview_of`, `parse_budget`, `parse_i128`, `parse_mu`, `quote_view`, `root_key`, `shared_rows_seq`, `take`, `tally_of_instance`, `text_of`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `StatementReadGuard`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `drop`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `drop`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// Move `amount_mu` MU between the credit of the client on the node of the instance and the
 /// instance (`ModifyDeposit`): to the instance, or back from it when `take_back` is true.
@@ -37,17 +37,46 @@ Future<TopUpView> celautMoveInstanceMu({
 Future<String> celautNodeCredit({required NodeAddress node}) =>
     RustLib.instance.api.crateApiCelautSpendingCelautNodeCredit(node: node);
 
-/// The balance and the spending of the app on the node `peer_id`, from the statements
-/// that the app read. It reads the database only, and costs nothing.
-NodeSpendingView celautNodeSpending({required String peerId}) => RustLib
+/// The fee that the node of the instance advertises for a move of MU
+/// (`modify_deposit_mu` in `Peer.mu_per_call`), in MU; empty if it advertises none (nodo
+/// charges nothing today). It reads what the app already knows of the node.
+Future<String> celautMoveFee({required String instanceId}) => RustLib
     .instance
     .api
-    .crateApiCelautSpendingCelautNodeSpending(peerId: peerId);
+    .crateApiCelautSpendingCelautMoveFee(instanceId: instanceId);
 
-/// [`celaut_node_spending`] for each node in the node list of the user, for the summary of
-/// the home screen. It reads the database only.
+/// The balance and the spending of the app on the node `peer_id` in `period`, from the
+/// statements that the app read. It reads the database only, and costs nothing.
+/// `utc_offset_s` is the offset of the clock of the device from UTC (for today). `live`
+/// holds the balances now of the running instances
+/// ([`celaut_live_instance_balances`]): their MU is not spent yet. `None` while the screen
+/// has not read them: the MU in the instances counts as spent.
+NodeSpendingView celautNodeSpending({
+  required String peerId,
+  required SpendingPeriod period,
+  required int utcOffsetS,
+  List<LiveBalanceView>? live,
+}) => RustLib.instance.api.crateApiCelautSpendingCelautNodeSpending(
+  peerId: peerId,
+  period: period,
+  utcOffsetS: utcOffsetS,
+  live: live,
+);
+
+/// [`celaut_node_spending`] of all the movements, for each node in the node list of the
+/// user, for the summary of the home screen. It reads the database only, and asks no node:
+/// the MU that the running instances hold counts as spent here.
 List<NodeSpendingView> celautSpendingOverview() =>
     RustLib.instance.api.crateApiCelautSpendingCelautSpendingOverview();
+
+/// The balance now of each running instance of the app on the node `peer_id`
+/// (`GetMetrics`, free). An instance that does not answer is left out: its MU counts as
+/// spent on the screen.
+Future<List<LiveBalanceView>> celautLiveInstanceBalances({
+  required String peerId,
+}) => RustLib.instance.api.crateApiCelautSpendingCelautLiveInstanceBalances(
+  peerId: peerId,
+);
 
 /// The most MU that the next read of the statement of the client on `node` can cost. It
 /// sends nothing and costs nothing.
@@ -57,17 +86,21 @@ Future<SpendingQuoteView> celautQuoteNodeStatement({
   node: node,
 );
 
-/// Read the statement of the client of the app on `node`: the movements after the last
-/// read, up to the head. THIS COSTS MU: the node charges the read to the client and writes
-/// it as a movement. `max_mu` is the budget that the user confirmed; if the read can cost
-/// more, nothing is sent. The statement is verified (the signature of the node, the hash
-/// chain, the balance and the head that the app kept) before the app keeps its sums.
-Future<NodeSpendingView> celautReadNodeStatement({
+/// Read the statement of the client of the app on `node`: one page of the movements after
+/// the last read ([`celaut_client::spending::PAGE_ROWS`]). THIS COSTS MU: the node charges
+/// the read to the client and writes it as a movement. `max_mu` is the budget that the
+/// user confirmed; if the read can cost more, nothing is sent. The statement is verified
+/// (the signature of the node, the hash chain, the balance and the head that the app kept)
+/// before the app keeps its sums. `utc_offset_s` gives the day of each movement. Then
+/// [`celaut_node_spending`] gives the new sums.
+Future<void> celautReadNodeStatement({
   required NodeAddress node,
   required String maxMu,
+  required int utcOffsetS,
 }) => RustLib.instance.api.crateApiCelautSpendingCelautReadNodeStatement(
   node: node,
   maxMu: maxMu,
+  utcOffsetS: utcOffsetS,
 );
 
 /// The most MU that the next read of the statement of an instance can cost. It sends
@@ -78,19 +111,22 @@ Future<SpendingQuoteView> celautQuoteInstanceStatement({
   instanceId: instanceId,
 );
 
-/// Read the statement of the account of one instance, running or stopped: the charges of
-/// the node (build, maintenance, traffic, resources). THIS COSTS MU, charged to the client.
-/// `max_mu` is the budget that the user confirmed. The statement is verified before the app
-/// keeps its sums.
-Future<AccountSpendingView> celautReadInstanceStatement({
+/// Read the statement of the account of one instance, running or stopped: one page of the
+/// charges of the node (build, maintenance, traffic, resources). THIS COSTS MU, charged to
+/// the client. `max_mu` is the budget that the user confirmed. The statement is verified
+/// before the app keeps its sums. The read goes on from the cursor that it shares with the
+/// check of the descendants, and is kept in both.
+Future<void> celautReadInstanceStatement({
   required String instanceId,
   required String maxMu,
+  required int utcOffsetS,
 }) => RustLib.instance.api.crateApiCelautSpendingCelautReadInstanceStatement(
   instanceId: instanceId,
   maxMu: maxMu,
+  utcOffsetS: utcOffsetS,
 );
 
-/// What the reads of one account say.
+/// What the reads of one account say, for one [`SpendingPeriod`].
 class AccountSpendingView {
   /// The time of the last read, in Unix seconds; 0 before any read.
   final PlatformInt64 readAt;
@@ -98,7 +134,9 @@ class AccountSpendingView {
   /// The balance at the head of the last read, in MU (empty before a read).
   final String balanceMu;
 
-  /// What the account spent since `since`, in MU (empty before a read).
+  /// What the account spent in the period, in MU (empty before a read). On the view of a
+  /// node, the MU that the running instances still hold is taken out
+  /// ([`NodeSpendingView::in_instances_mu`]).
   final String spentMu;
 
   /// What came in: payments and free credit for a client; for an instance, also the
@@ -175,13 +213,21 @@ class InstanceSpendingView {
   /// The local id of the instance, if the app still has it (empty if it was deleted).
   final String instanceId;
 
-  /// True if the app has the instance and it was not stopped.
+  /// True if the app has the instance, it was not stopped, and the statement of the
+  /// client has no `refund` to it (the node gives back what is left at the stop).
   final bool running;
 
-  /// The MU that went from the credit to the instance and did not come back, from the
-  /// statement of the client (empty if the app did not read it yet). While the instance
-  /// runs, its balance is in this: it comes back at the stop.
+  /// The MU that went from the credit to the instance and did not come back in the
+  /// period, from the statement of the client (empty if the app did not read it yet).
   final String movedMu;
+
+  /// The balance of the running instance now, if the screen read it (empty if not).
+  final String liveMu;
+
+  /// What the instance spent of it: `moved_mu` less the part of `live_mu` that it holds
+  /// (at most `moved_mu`: the MU still held is the MU moved last). `moved_mu` when the
+  /// balance now is not known.
+  final String spentMu;
 
   /// What the statement of the instance says, if the app read it.
   final AccountSpendingView? costs;
@@ -191,6 +237,8 @@ class InstanceSpendingView {
     required this.instanceId,
     required this.running,
     required this.movedMu,
+    required this.liveMu,
+    required this.spentMu,
     this.costs,
   });
 
@@ -200,6 +248,8 @@ class InstanceSpendingView {
       instanceId.hashCode ^
       running.hashCode ^
       movedMu.hashCode ^
+      liveMu.hashCode ^
+      spentMu.hashCode ^
       costs.hashCode;
 
   @override
@@ -211,6 +261,8 @@ class InstanceSpendingView {
           instanceId == other.instanceId &&
           running == other.running &&
           movedMu == other.movedMu &&
+          liveMu == other.liveMu &&
+          spentMu == other.spentMu &&
           costs == other.costs;
 }
 
@@ -244,6 +296,28 @@ class KindFlowView {
           inMu == other.inMu;
 }
 
+/// The balance of one running instance now (`GetMetrics`, free).
+class LiveBalanceView {
+  /// The `instance_ref` of the instance.
+  final String instanceRef;
+
+  /// Its balance, in MU.
+  final String balanceMu;
+
+  const LiveBalanceView({required this.instanceRef, required this.balanceMu});
+
+  @override
+  int get hashCode => instanceRef.hashCode ^ balanceMu.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LiveBalanceView &&
+          runtimeType == other.runtimeType &&
+          instanceRef == other.instanceRef &&
+          balanceMu == other.balanceMu;
+}
+
 /// The balance and the spending of the client of the app on one node.
 class NodeSpendingView {
   final String peerId;
@@ -265,6 +339,13 @@ class NodeSpendingView {
   /// ones that the app has.
   final List<InstanceSpendingView> instances;
 
+  /// The MU that the running instances still hold and that `account.spent_mu` does not
+  /// count (empty if the screen gave no balance now).
+  final String inInstancesMu;
+
+  /// The running instances whose balance now is not known: their MU counts as spent.
+  final int liveUnknown;
+
   const NodeSpendingView({
     required this.peerId,
     required this.address,
@@ -272,6 +353,8 @@ class NodeSpendingView {
     required this.statementsMu,
     required this.startingMu,
     required this.instances,
+    required this.inInstancesMu,
+    required this.liveUnknown,
   });
 
   @override
@@ -281,7 +364,9 @@ class NodeSpendingView {
       account.hashCode ^
       statementsMu.hashCode ^
       startingMu.hashCode ^
-      instances.hashCode;
+      instances.hashCode ^
+      inInstancesMu.hashCode ^
+      liveUnknown.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -293,7 +378,21 @@ class NodeSpendingView {
           account == other.account &&
           statementsMu == other.statementsMu &&
           startingMu == other.startingMu &&
-          instances == other.instances;
+          instances == other.instances &&
+          inInstancesMu == other.inInstancesMu &&
+          liveUnknown == other.liveUnknown;
+}
+
+/// The movements that a view sums (Josemi, PR #148).
+enum SpendingPeriod {
+  /// Every movement that the app read.
+  all,
+
+  /// The movements of today, on the clock of the device.
+  today,
+
+  /// The movements of the last 7 days, today included.
+  week,
 }
 
 /// The most that the next read of a statement can cost.

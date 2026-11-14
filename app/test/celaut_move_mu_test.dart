@@ -71,6 +71,9 @@ void main() {
     String? balance = '3100',
     String? credit = '50000',
     bool auto = false,
+    MaintenancePrice? price,
+    bool noPrice = false,
+    MoveFee? fee,
   }) async {
     tester.view.physicalSize = const Size(390, 1600);
     tester.view.devicePixelRatio = 1;
@@ -86,8 +89,9 @@ void main() {
             balance: balance == null ? null : BigInt.parse(balance),
             credit: credit == null ? null : BigInt.parse(credit),
             autoTopUp: auto,
-            price: MaintenancePrice.of(perPeriodMu: '100', periodSeconds: 60),
+            price: noPrice ? null : price ?? MaintenancePrice.of(perPeriodMu: '100', periodSeconds: 60),
             move: move,
+            fee: fee,
             openDeposit: () => deposits++,
           ),
         ),
@@ -159,17 +163,24 @@ void main() {
     expect(moves, ['i 1000 add']);
   });
 
-  testWidgets('take back: half or all of the balance, never more', (tester) async {
+  testWidgets('take back: half or all but one period, never more', (tester) async {
     await pumpSheet(tester, takeBack: true);
     final l = appL10n;
     await tester.tap(find.byKey(const Key('move-mu-chip-1550')));
     await tester.pump();
     expect(text(tester, 'move-mu-balance'), '3,100 MU → 1,550 MU');
     expect(text(tester, 'move-mu-credit'), '50,000 MU → 51,550 MU');
-    await tester.tap(find.byKey(const Key('move-mu-chip-3100')));
+    // Josemi (PR #148): the quick value leaves the instance one more period: the period
+    // that runs and the next one (2 × 100 MU), as "lasts" counts it.
+    expect(find.byKey(const Key('move-mu-chip-3100')), findsNothing);
+    expect(find.text(l.celautMoveAllButOne), findsOneWidget);
+    await tester.tap(find.byKey(const Key('move-mu-chip-2900')));
     await tester.pump();
-    expect(text(tester, 'move-mu-balance'), '3,100 MU → 0 MU');
-    // Nothing left: the node stops it at its next charge.
+    expect(text(tester, 'move-mu-balance'), '3,100 MU → 200 MU');
+    expect(text(tester, 'move-mu-lasts'), l.celautMoveLasts('1 min'));
+    // A typed amount can still empty it: the sheet says that the node stops it.
+    await tester.enterText(find.byKey(const Key('move-mu-amount')), '3100');
+    await tester.pump();
     expect(text(tester, 'move-mu-lasts'), l.celautMoveStops);
     await tester.enterText(find.byKey(const Key('move-mu-amount')), '3101');
     await tester.pump();
@@ -183,6 +194,37 @@ void main() {
     await tester.tap(find.byKey(const Key('move-mu-confirm-ok')));
     await tester.pumpAndSettle();
     expect(moves, ['i 1000 back']);
+  });
+
+  testWidgets('"All but one period" needs the price and more than one period', (tester) async {
+    final l = appL10n;
+    await pumpSheet(tester, takeBack: true, noPrice: true);
+    expect(find.text(l.celautMoveAllButOne), findsNothing);
+    expect(find.text(l.celautMoveHalf), findsOneWidget);
+    await pumpSheet(tester, takeBack: true, balance: '200');
+    expect(find.text(l.celautMoveAllButOne), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    // A price that rises: the next two ticks, 100 × 1.1² + 100 × 1.1³ = 254.1 → 255 MU, not
+    // twice the first price.
+    await pumpSheet(
+      tester,
+      takeBack: true,
+      balance: '1000',
+      price: MaintenancePrice.of(perPeriodMu: '100', periodSeconds: 60, volatility: 0.1, volatilityPeriodSeconds: 60),
+    );
+    expect(find.byKey(const Key('move-mu-chip-745')), findsOneWidget);
+  });
+
+  testWidgets('a fee that the node advertises is shown; none says no fee', (tester) async {
+    final l = appL10n;
+    await pumpSheet(tester, takeBack: false, fee: (_) async => '250');
+    expect(text(tester, 'move-mu-fee'), l.celautMoveFeeOf('250 MU'));
+    await tester.pumpWidget(const SizedBox());
+    await pumpSheet(tester, takeBack: false, fee: (_) async => '');
+    expect(text(tester, 'move-mu-fee'), l.celautMoveFee);
+    await tester.pumpWidget(const SizedBox());
+    await pumpSheet(tester, takeBack: false, fee: (_) async => throw StateError('no node'));
+    expect(text(tester, 'move-mu-fee'), l.celautMoveFee);
   });
 
   testWidgets('with the automatic top-up on, the sheet says so', (tester) async {

@@ -44,20 +44,8 @@ NodeSpendingView _read() => nodeSpending(
       account: readAccount(balance: '7447895', spent: '1552105', received: '9000000'),
       statements: '2105',
       instances: [
-        InstanceSpendingView(
-          instanceRef: _refA,
-          instanceId: 'i1',
-          running: true,
-          movedMu: '850000',
-          costs: null,
-        ),
-        InstanceSpendingView(
-          instanceRef: _refGone,
-          instanceId: '',
-          running: false,
-          movedMu: '700000',
-          costs: null,
-        ),
+        instanceSpending(ref: _refA, id: 'i1', running: true, moved: '850000'),
+        instanceSpending(ref: _refGone, moved: '700000'),
       ],
     );
 
@@ -135,6 +123,51 @@ void main() {
     expect(find.text(l.celautSpendDeleted), findsOneWidget);
   });
 
+  testWidgets('the period: today, 7 days or all; the running instances keep their MU', (tester) async {
+    final api = FakeSpendingApi()
+      ..liveAnswer = [LiveBalanceView(instanceRef: _refA, balanceMu: '600000')]
+      ..views[_peer] = nodeSpending(
+        peerId: _peer,
+        account: readAccount(spent: '952105', partial: true),
+        inInstances: '600000',
+        instances: [instanceSpending(ref: _refA, id: 'i1', running: true, moved: '850000', live: '600000', spent: '250000')],
+      )
+      ..byPeriod[SpendingPeriod.today] = nodeSpending(peerId: _peer, account: readAccount(spent: '1234', partial: true));
+    await pump(tester, NodeSpendingSection(peerId: _peer, address: 'node.example:8090', api: api));
+    final l = appL10n;
+    // The balances now are asked once (free), and given to the sums.
+    expect(api.liveCalls, 1);
+    expect(api.spendingCalls.last.$2!.single.balanceMu, '600000');
+    expect(text(tester, 'node-spending-spent'), l.celautSpendSince('952,105 MU', formatTxTime(1789990000 * 1000)));
+    expect(text(tester, 'node-spending-in-instances'), '600,000 MU');
+    expect(find.text(l.celautSpendNote), findsOneWidget);
+    // The split shows what the instance spent, not what it still holds.
+    await tester.tap(find.byKey(const Key('node-spending-instances')));
+    await tester.pumpAndSettle();
+    expect(find.text('250,000 MU'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('node-spending-period-today')));
+    await tester.pumpAndSettle();
+    expect(api.spendingCalls.last.$1, SpendingPeriod.today);
+    // A sum of today is not "since" the first movement.
+    expect(text(tester, 'node-spending-spent'), '1,234 MU');
+    expect(find.byKey(const Key('node-spending-partial')), findsNothing);
+    await tester.tap(find.byKey(const Key('node-spending-period-week')));
+    await tester.pumpAndSettle();
+    expect(api.spendingCalls.last.$1, SpendingPeriod.week);
+  });
+
+  testWidgets('a running instance that does not give its balance: its MU counts as spent', (tester) async {
+    final api = FakeSpendingApi()
+      ..liveAnswer = null
+      ..views[_peer] = nodeSpending(peerId: _peer, account: readAccount(spent: '10'), liveUnknown: 2);
+    await pump(tester, NodeSpendingSection(peerId: _peer, address: 'node.example:8090', api: api));
+    // The call failed: the sums are given no balances.
+    expect(api.spendingCalls.every((c) => c.$2 == null), isTrue);
+    expect(text(tester, 'node-spending-live-unknown'), appL10n.celautSpendLiveUnknown(2));
+    expect(find.byKey(const Key('node-spending-in-instances')), findsNothing);
+  });
+
   testWidgets('a node that does not price statements is not read', (tester) async {
     final api = FakeSpendingApi(quote: SpendingQuoteView(maxMu: null, fromSeq: BigInt.zero));
     await pump(tester, NodeSpendingSection(peerId: _peer, address: 'node.example:8090', api: api));
@@ -192,20 +225,24 @@ void main() {
     await pump(
       tester,
       InstanceCostsSheet(
-        instance: InstanceSpendingView(
-          instanceRef: _refA,
-          instanceId: 'i1',
-          running: true,
-          movedMu: '850000',
-          costs: null,
-        ),
+        instance: instanceSpending(ref: _refA, id: 'i1', running: true, moved: '850000', live: '600000'),
         name: 'echo',
         node: 'node.example:8090',
         api: api,
+        onRead: () => instanceSpending(
+          ref: _refA,
+          id: 'i1',
+          running: true,
+          moved: '850000',
+          live: '600000',
+          costs: api.afterInstanceRead,
+        ),
       ),
     );
     final l = appL10n;
     expect(text(tester, 'instance-costs-moved'), '850,000 MU');
+    // The balance of the running instance now, from the node screen.
+    expect(text(tester, 'instance-costs-live'), '600,000 MU');
     expect(find.text(l.celautSpendCostsNote), findsOneWidget);
     await tester.tap(find.byKey(const Key('instance-costs-read')));
     await tester.pumpAndSettle();
@@ -226,13 +263,7 @@ void main() {
     await pump(
       tester,
       InstanceCostsSheet(
-        instance: InstanceSpendingView(
-          instanceRef: _refGone,
-          instanceId: '',
-          running: false,
-          movedMu: '700000',
-          costs: null,
-        ),
+        instance: instanceSpending(ref: _refGone, moved: '700000'),
         name: 'f0f0f0…f0f0',
         node: 'node.example:8090',
         api: FakeSpendingApi(),

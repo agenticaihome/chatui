@@ -344,6 +344,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<LibraryPackageView> dco_decode_list_library_package_view(dynamic raw);
 
   @protected
+  List<LiveBalanceView> dco_decode_list_live_balance_view(dynamic raw);
+
+  @protected
   List<NamedValueView> dco_decode_list_named_value_view(dynamic raw);
 
   @protected
@@ -405,6 +408,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<WorkloadView> dco_decode_list_workload_view(dynamic raw);
+
+  @protected
+  LiveBalanceView dco_decode_live_balance_view(dynamic raw);
 
   @protected
   NamedValueView dco_decode_named_value_view(dynamic raw);
@@ -516,6 +522,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String>? dco_decode_opt_list_String(dynamic raw);
 
   @protected
+  List<LiveBalanceView>? dco_decode_opt_list_live_balance_view(dynamic raw);
+
+  @protected
   PackageView dco_decode_package_view(dynamic raw);
 
   @protected
@@ -565,6 +574,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SkillView dco_decode_skill_view(dynamic raw);
+
+  @protected
+  SpendingPeriod dco_decode_spending_period(dynamic raw);
 
   @protected
   SpendingQuoteView dco_decode_spending_quote_view(dynamic raw);
@@ -1011,6 +1023,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<LiveBalanceView> sse_decode_list_live_balance_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<NamedValueView> sse_decode_list_named_value_view(
     SseDeserializer deserializer,
   );
@@ -1098,6 +1115,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<WorkloadView> sse_decode_list_workload_view(
     SseDeserializer deserializer,
   );
+
+  @protected
+  LiveBalanceView sse_decode_live_balance_view(SseDeserializer deserializer);
 
   @protected
   NamedValueView sse_decode_named_value_view(SseDeserializer deserializer);
@@ -1221,6 +1241,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String>? sse_decode_opt_list_String(SseDeserializer deserializer);
 
   @protected
+  List<LiveBalanceView>? sse_decode_opt_list_live_balance_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PackageView sse_decode_package_view(SseDeserializer deserializer);
 
   @protected
@@ -1278,6 +1303,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SkillView sse_decode_skill_view(SseDeserializer deserializer);
+
+  @protected
+  SpendingPeriod sse_decode_spending_period(SseDeserializer deserializer);
 
   @protected
   SpendingQuoteView sse_decode_spending_quote_view(
@@ -1855,6 +1883,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_live_balance_view(
+    List<LiveBalanceView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_named_value_view(
     List<NamedValueView> self,
     SseSerializer serializer,
@@ -1974,6 +2008,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_workload_view(
     List<WorkloadView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_live_balance_view(
+    LiveBalanceView self,
     SseSerializer serializer,
   );
 
@@ -2137,6 +2177,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_list_String(List<String>? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_list_live_balance_view(
+    List<LiveBalanceView>? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_package_view(PackageView self, SseSerializer serializer);
 
   @protected
@@ -2213,6 +2259,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_skill_view(SkillView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_spending_period(
+    SpendingPeriod self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_spending_quote_view(

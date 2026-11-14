@@ -6019,7 +6019,7 @@
   "celautMoveAddNote": "Move credit that you have on the node to the instance, or take back what it does not need. Nothing goes on the blockchain.",
   "celautMoveAmount": "Amount",
   "celautMoveHalf": "Half",
-  "celautMoveAll": "All",
+  "celautMoveAllButOne": "All but one period",
   "celautMoveInstanceRow": "Balance of the instance",
   "celautMoveCreditRow": "Your credit on the node",
   "celautMoveFee": "The node charges no fee for this move.",
@@ -6114,12 +6114,12 @@
   "celautSpendReads": "What the reads of statements cost",
   "celautSpendLastRead": "Last read",
   "celautSpendNeverRead": "The app has not read the statement of this node yet.",
-  "celautSpendNote": "The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that went to your instances: the balance of a running instance is in it, and comes back when it stops.",
+  "celautSpendNote": "The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that left your credit and did not come back, less what your running instances still hold: the app asks the node for their balance now, which is free.",
   "celautSpendRead": "Read the statement",
   "celautSpendReadMore": "Read the rest",
   "celautSpendNoRates": "This node does not say what a statement costs, so the app does not read it.",
   "celautSpendReadTitle": "Read the statement?",
-  "celautSpendReadBody": "The node {node} charges the read to your credit: up to {max}. It writes the read as a movement. The app reads only the movements after its last read.",
+  "celautSpendReadBody": "The node {node} charges the read to your credit: up to {max}. It writes the read as a movement. The app reads at most 100 movements after its last read; \"Read the rest\" reads the next ones.",
   "@celautSpendReadBody": {
     "placeholders": {
       "node": {
@@ -6180,6 +6180,27 @@
   "celautSpendKindDeposit": "Deposits",
   "celautSpendKindCredit": "Free credit",
   "celautSpendKindDebit": "Taken by the operator",
+  "celautSpendPeriodToday": "Today",
+  "celautSpendPeriodWeek": "7 days",
+  "celautSpendPeriodAll": "All",
+  "celautSpendInInstances": "Still in running instances",
+  "celautSpendLiveUnknown": "{count, plural, =1{1 running instance did not give its balance now: its MU counts as spent.} other{{count} running instances did not give their balance now: their MU counts as spent.}}",
+  "@celautSpendLiveUnknown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautSpendLiveRow": "Still in the instance",
+  "celautMoveFeeOf": "The node charges {fee} for this move.",
+  "@celautMoveFeeOf": {
+    "placeholders": {
+      "fee": {
+        "type": "String"
+      }
+    }
+  },
   "celautHomeSpent": "spent {value}",
   "@celautHomeSpent": {
     "placeholders": {
@@ -6189,5 +6210,5 @@
     }
   },
   "celautHomeBalancesTitle": "Balance and spending by node",
-  "celautHomeBalancesNote": "The balance is what the node says now. The spending comes from the last statement that the app read on each node: open a node to read it."
+  "celautHomeBalancesNote": "The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week."
 }
