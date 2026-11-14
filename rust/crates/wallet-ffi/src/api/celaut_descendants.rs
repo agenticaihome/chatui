@@ -45,6 +45,7 @@ use super::celaut_service::{
     address_of_key, instance, preferred_port, state, unknown_instance, NodeAddress,
 };
 use super::celaut_service_info::read_info;
+use super::celaut_spending::{keep_instance_read, shared_rows_seq};
 
 /// The reads that run now, by the key of the descendant.
 static READING: Lazy<Mutex<HashSet<String>>> = Lazy::new(|| Mutex::new(HashSet::new()));
@@ -252,6 +253,9 @@ pub fn celaut_descendant_default_hops() -> u32 {
     descendants::DEFAULT_REMAINING_HOPS
 }
 
+/// The record of a descendant, with the token of the held instance. The held instance
+/// (depth 0) reads from the cursor that it shares with the tally of its spending
+/// ([`shared_rows_seq`]).
 fn record_of(instance_id: &str, instance_ref: &str) -> Result<DescendantRecord, CelautError> {
     let key = descendants::key(instance_id, instance_ref);
     db().update(|d| {
@@ -260,12 +264,20 @@ fn record_of(instance_id: &str, instance_ref: &str) -> Result<DescendantRecord, 
             descendants::ensure_root(d, instance_id);
         }
         // The file keeps no copy of the token: take it from the held instance.
-        let token = d.instances.get(instance_id).map(|i| i.token.clone());
+        let held = d.instances.get(instance_id).cloned();
+        let shared = held
+            .as_ref()
+            .map_or(0, |h| shared_rows_seq(d, instance_id, h));
         d.descendants
             .get(&key)
             .cloned()
-            .zip(token)
-            .map(|(record, token)| record.with_token(&token))
+            .zip(held)
+            .map(|(mut record, held)| {
+                if record.depth == 0 {
+                    record.rows_seq = shared;
+                }
+                record.with_token(&held.token)
+            })
     })
     .map_err(storage_error)?
     .ok_or_else(|| invalid("The app does not know this descendant."))
@@ -340,10 +352,10 @@ pub struct CheckReportView {
 }
 
 /// Releases the read of a descendant when the call ends, also on an error.
-struct ReadingGuard(String);
+pub(crate) struct ReadingGuard(String);
 
 impl ReadingGuard {
-    fn take(key: &str) -> Result<ReadingGuard, CelautError> {
+    pub(crate) fn take(key: &str) -> Result<ReadingGuard, CelautError> {
         let mut set = READING.lock().unwrap_or_else(|e| e.into_inner());
         if !set.insert(key.to_string()) {
             return Err(invalid("A check of this descendant is already running."));
@@ -369,18 +381,23 @@ impl Drop for ReadingGuard {
 /// keeps anything. A node that does not know descendants gives
 /// [`CelautErrorKind::NoDescendants`]. A node that refuses the statement is not an error:
 /// the descendant becomes not verifiable, and the report has a finding for it.
+///
+/// A read of the held instance (depth 0) is also kept in the tally of its spending: they
+/// read the same account with one cursor. `utc_offset_s` is the offset of the clock of the
+/// device from UTC, for the day of each movement.
 #[flutter_rust_bridge::frb]
 pub async fn celaut_check_descendant(
     instance_id: String,
     instance_ref: String,
     remaining_hops: Option<u32>,
     max_mu: String,
+    utc_offset_s: i32,
 ) -> Result<CheckReportView, CelautError> {
     let budget = parse_max_mu(&max_mu)?;
     let record = record_of(&instance_id, &instance_ref)?;
     let key = descendants::key(&instance_id, &instance_ref);
     let _reading = ReadingGuard::take(&key)?;
-    let (session, _) = instance(&instance_id).await?;
+    let (session, held) = instance(&instance_id).await?;
     let quote = session
         .quote_statement(
             &record,
@@ -390,7 +407,13 @@ pub async fn celaut_check_descendant(
     match session.read_statement(&record, &quote, budget).await {
         Ok(statement) => {
             let report = db()
-                .update(|d| descendants::apply_read(d, &key, &statement, now_seconds()))
+                .update(|d| {
+                    if record.depth == 0 {
+                        keep_instance_read(d, &instance_id, &held, &statement, now_seconds(), utc_offset_s)
+                    } else {
+                        descendants::apply_read(d, &key, &statement, now_seconds())
+                    }
+                })
                 .map_err(storage_error)?
                 .ok_or_else(|| invalid("The app does not know this descendant."))?;
             let descendant = db()
@@ -712,6 +735,8 @@ mod tests {
                     alias: None,
                     title: None,
                     topped_up_mu: None,
+                    added_mu: None,
+                    withdrawn_mu: None,
                     stopped_at: None,
                     refund_mu: None,
                     pricing: None,

@@ -382,7 +382,11 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
               ),
               if (widget.state != InstanceState.stopped && !hibernated) ...[
               const SizedBox(height: 16),
-              InstanceTimeSection(instanceId: _instance.instanceId, wallets: widget.wallets),
+              InstanceTimeSection(
+                instanceId: _instance.instanceId,
+                wallets: widget.wallets,
+                node: _instance.address,
+              ),
             ],
             if (_receipts case final receipts?) ...[
               const SizedBox(height: 16),

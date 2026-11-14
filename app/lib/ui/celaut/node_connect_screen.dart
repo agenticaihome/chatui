@@ -15,6 +15,7 @@ import 'client_unknown_dialog.dart';
 import 'id_row.dart';
 import 'node_link.dart';
 import 'node_resources.dart';
+import 'node_spending.dart';
 
 /// Connect to a Celaut node and show its advertisement, after the identity and signature
 /// checks. From the node list it is the detail of a node ([address] given: it connects at
@@ -31,8 +32,12 @@ class NodeConnectScreen extends StatefulWidget {
     this.overview,
     this.clientIdOf,
     this.newClient,
+    this.spending = const SpendingApi(),
     this.nodeInvite,
   });
+
+  /// The calls of "Balance and spending" (issue #136). Tests give their own.
+  final SpendingApi spending;
 
   /// The node to show at once (`host:port`); null for an empty form.
   final String? address;
@@ -309,6 +314,12 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
           ],
         ),
       ),
+      // Issue #136: the balance and the spending of the client on this node, in the
+      // detail of a node of the list, when the app has a client there.
+      if (widget.address != null && _clientId != null) ...[
+        const SizedBox(height: 24),
+        NodeSpendingSection(peerId: info.peerId, address: _addressCtrl.text, api: widget.spending),
+      ],
       const SizedBox(height: 24),
       SectionLabel(CelautStrings.urisTitle),
       const SizedBox(height: 10),

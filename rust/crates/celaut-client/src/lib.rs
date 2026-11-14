@@ -65,6 +65,7 @@ pub mod receipts;
 pub mod refusal;
 pub mod service_info;
 pub mod session;
+pub mod spending;
 pub mod store;
 
 use celaut_proto::celaut::{Client, Peer};

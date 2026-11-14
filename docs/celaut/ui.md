@@ -320,6 +320,25 @@ Details:
   instances alone at its close (REFUSE) says nothing. A launch that fails because a node is
   closed says when its schedule opens again.
 
+## 4c. Add or take back MU, and the spending of each node (issue #136)
+
+- **Add MU / Take back MU** on the info page of a running instance, next to "Add time": an
+  amount (typed or a quick value; to take back, "Half" and "All but one period", so a quick
+  value never stops the instance), the balance of the instance and the credit before and
+  after, the fee (the `modify_deposit_mu` that the node advertises, else "no fee"), a note
+  when "Keep running" is on, and a second question before the move (`ModifyDeposit`; credit
+  already on the node, nothing on the blockchain).
+- **Balance and spending** in the detail of a node: the balance now (free), a switch
+  Today / 7 days / All, and what the signed statements say it spent in that period, less the
+  balance now of the running instances (`GetMetrics`, free), which is shown on its own line.
+  A `debit` of the operator counts as spending. A read of a statement costs MU, so it is a
+  tap with a question that gives the most that it can cost (one page of 100 movements; "Read
+  the rest" for more); the app never reads by itself. The split by instance is one tap away;
+  an instance with a `refund` in the statement shows as stopped. The home line of the credit
+  says "spent X" too (no node call, so the MU in running instances counts there), and opens
+  the split by node.
+- The details are in [spending.md](spending.md).
+
 ## 5. Open items
 
 - The exact layout, colors and motion of the compute screen. Use the celaut-design

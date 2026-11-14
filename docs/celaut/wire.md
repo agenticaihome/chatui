@@ -261,7 +261,8 @@ Notes:
    the account. The app never reads a statement by itself. Each read needs the
    confirmation of the user, with the maximum MU, and the API takes a `max_mu` budget. With
    `BalanceStatementRequest.instance_ref` and `remaining_hops`, the read is of a descendant
-   of an instance that the app holds. The answer has `relayed`, `service_id` and
+   of an instance that the app holds. The reads of the spending of a node and of an
+   instance (issue #136) are in [spending.md](spending.md). The answer has `relayed`, `service_id` and
    `instance_ref`. The digest, the signature, the hash chain, the `child_bound` and `stop`
    movements, the cost and the checks are in [descendants.md](descendants.md). The `client_id`
    is the master secret: with it a caller can stop the instances of the client and move its

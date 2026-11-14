@@ -346,6 +346,43 @@ async fn a_top_up_moves_credit_to_the_instance_with_modify_deposit() {
     );
 }
 
+#[tokio::test]
+async fn a_take_back_sends_a_negative_difference_to_modify_deposit() {
+    let s = session(vec![
+        stream_of(
+            1,
+            &ModifyDepositOutput {
+                success: true,
+                message: "Deposit modified correctly".into(),
+            },
+        ),
+        stream_of(
+            1,
+            &ModifyDepositOutput {
+                success: false,
+                message: "The instance does not have that balance".into(),
+            },
+        ),
+    ])
+    .await;
+    s.take_back("instance-token", 400_000).await.unwrap();
+    let (method, parts) = s.transport().request(2);
+    assert_eq!(method, "ModifyDeposit");
+    let input = ModifyDepositInput::decode(parts[0].data.as_slice()).unwrap();
+    assert_eq!(input.service_token, "instance-token");
+    assert_eq!(input.difference.unwrap().n, "-400000");
+    assert_eq!(
+        Client::decode(parts[1].data.as_slice()).unwrap().client_id,
+        s.client_id()
+    );
+    // The node refuses: the instance has less than that.
+    let err = s.take_back("instance-token", 9).await.unwrap_err();
+    assert!(
+        err.to_string().contains("does not have that balance"),
+        "{err}"
+    );
+}
+
 fn resources(quota: Option<u64>, period: Option<u64>, mem: Option<u64>) -> Sysresources {
     Sysresources {
         cpu_quota: quota,

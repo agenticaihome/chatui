@@ -65,7 +65,13 @@ Future<ReadQuoteView> _quote(String id, String ref) =>
     celautQuoteDescendantRead(instanceId: id, instanceRef: ref);
 
 Future<CheckReportView> _check(String id, String ref, String maxMu) =>
-    celautCheckDescendant(instanceId: id, instanceRef: ref, maxMu: maxMu);
+    celautCheckDescendant(
+      instanceId: id,
+      instanceRef: ref,
+      maxMu: maxMu,
+      // The read of the held instance is kept in the tally of its spending too (#136).
+      utcOffsetS: DateTime.now().timeZoneOffset.inSeconds,
+    );
 
 ReceiptsView? _receipts(String id, String ref) {
   try {

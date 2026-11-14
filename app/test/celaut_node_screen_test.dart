@@ -11,6 +11,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/fake_spending.dart';
+
 final _peerId = 'ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c';
 
 final _info = PeerInfoView(
@@ -263,10 +265,20 @@ void main() {
 
     testWidgets('from the node list it connects at once to the node', (tester) async {
       api.answer = _info;
-      await pump(tester, screen: NodeConnectScreen(address: 'node.example:8090', expectedPeerId: _peerId, clientIdOf: (_) => client));
+      await pump(
+        tester,
+        screen: NodeConnectScreen(
+          address: 'node.example:8090',
+          expectedPeerId: _peerId,
+          clientIdOf: (_) => client,
+          spending: FakeSpendingApi(),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(api.calls.single, (host: 'node.example', port: 8090, expected: _peerId));
       expect(find.byKey(const Key('celaut-client-id')), findsOneWidget);
+      // Issue #136: the balance and the spending of the client on the node.
+      expect(find.byKey(const Key('node-spending')), findsOneWidget);
       // No form: it would show the full peer id.
       expect(find.byKey(const Key('celaut-expected')), findsNothing);
       expect(find.text(_peerId), findsNothing);
