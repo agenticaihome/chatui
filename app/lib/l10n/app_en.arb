@@ -6013,5 +6013,30 @@
         "type": "String"
       }
     }
-  }
+  },
+  "celautLinkConfirmTitle": "Add this node?",
+  "celautLinkConfirmInvite": "A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.",
+  "celautLinkConfirmKey": "Key of the node",
+  "celautLinkConfirmAddresses": "Addresses, in the order that the app tries them",
+  "celautLinkConfirmSkipped": "Not tried on the current route",
+  "celautLinkConfirmListed": "This node is already in your list.",
+  "celautLinkRefusedTitle": "This link cannot be opened",
+  "celautLinkTooLong": "The link is too long for a node invitation. The app read nothing from it.",
+  "celautLinkInvalid": "The link is not a node link that this app can read.",
+  "celautLinkDamaged": "The invitation in the link is damaged.",
+  "celautLinkConfirmAddress": "A link asks to add the node at {address}. The app connects to it and checks it before it adds it to your list.",
+  "@celautLinkConfirmAddress": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkUnknownKind": "This app cannot open this kind of celaut link. A newer version may.",
+  "celautNodeShare": "Share",
+  "celautNodeShareTitle": "Share this node",
+  "celautNodeShareNote": "A phone camera that reads this code, or a tap on the link, opens the app and asks to add the node. The link has the key of the node and the addresses where this app reached it. It gives no access to your client or your credit.",
+  "celautNodeShareLink": "Share link",
+  "celautNodeShareCopied": "Link copied",
+  "celautNodeShareNone": "This app has no address of the node that another device could use, so it cannot make a link."
 }

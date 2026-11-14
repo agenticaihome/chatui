@@ -7,6 +7,7 @@ import '../../bridge/api/celaut_home.dart';
 import '../../bridge/api/celaut_invite.dart';
 import '../../bridge/api/celaut_service.dart';
 import '../../celaut/celaut_format.dart';
+import '../../celaut/celaut_link.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/host_port.dart';
 import '../../celaut/invite_scan.dart';
@@ -20,6 +21,7 @@ import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
 import 'client_unknown_dialog.dart';
 import 'node_connect_screen.dart';
+import 'node_link.dart';
 import 'node_status.dart';
 import 'support_chat_screen.dart';
 
@@ -38,6 +40,9 @@ abstract class KnownNodes {
 
   /// Connect from the bytes of a peer invitation (`docs/celaut/invite.md`).
   Future<InviteConnectView> connectInvite(Uint8List invite);
+
+  /// Read a peer invitation without connecting, for the confirmation of the user.
+  InviteReadView readInvite(Uint8List invite);
 }
 
 class AppKnownNodes implements KnownNodes {
@@ -60,6 +65,9 @@ class AppKnownNodes implements KnownNodes {
 
   @override
   Future<InviteConnectView> connectInvite(Uint8List invite) => celautConnectInvite(invite: invite);
+
+  @override
+  InviteReadView readInvite(Uint8List invite) => celautReadInvite(invite: invite);
 }
 
 /// The node list of the app (`docs/celaut/ui.md`, section 4): add a node by its address
@@ -79,7 +87,17 @@ class KnownNodesScreen extends StatefulWidget {
     this.newClient,
     this.scan,
     this.healthMonitor,
+    this.invite,
+    this.address,
   });
+
+  /// A peer invitation of a `celaut://` link that the user confirmed (`node_link.dart`):
+  /// the screen connects to it when it opens.
+  final Uint8List? invite;
+
+  /// A node address of a `celaut://` link that the user confirmed: the screen adds it when
+  /// it opens, as a typed address.
+  final HostPort? address;
 
   /// Keeps the availability of the nodes up to date while this screen is open. Tests give
   /// their own; without one the screen makes its own and stops it when it closes.
@@ -109,6 +127,18 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
     _health.addListener(_onHealth);
     overviewCache.addListener(_onHealth);
     _health.start();
+    final invite = widget.invite;
+    final address = widget.address;
+    if (invite != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _connectInvite(invite);
+      });
+    } else if (address != null) {
+      _addressCtrl.text = address.toString();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _add();
+      });
+    }
   }
 
   void _onHealth() {
@@ -235,7 +265,8 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
 
   /// A QR code is a node address or a peer invitation of nodo (`docs/celaut/invite.md`).
   ///
-  /// - An invitation connects by the best address that works on the current route.
+  /// - An invitation (its bytes, or a `celaut://node?invite=` link) asks the user, then
+  ///   connects by the best address that works on the current route.
   /// - A scanned address goes into the field and then through [_add], the same check as a
   ///   typed address.
   /// - Anything else shows the error of a bad typed address and stores nothing.
@@ -245,23 +276,47 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
     final code = await scan(context);
     if (!mounted || code == null) return;
     if (looksLikeInvite(code.bytes)) {
-      await _connectInvite(code.bytes!);
+      await _confirmInvite(code.bytes!);
       return;
     }
-    final parsed = parseNodeQr(code.text ?? '');
+    final text = code.text ?? '';
+    if (isCelautLink(text)) {
+      final link = parseCelautLink(text);
+      if (link is CelautInviteLink) {
+        await _confirmInvite(link.bytes);
+        return;
+      }
+    }
+    final parsed = parseNodeQr(text);
     if (parsed.value == null) {
-      setState(() {
-        _addressError = parsed.error == HostPortError.port
-            ? CelautStrings.portInvalid
-            : CelautStrings.addressInvalid;
-        _note = null;
-        _error = null;
-        _invite = null;
-      });
+      _badCode(parsed.error == HostPortError.port);
       return;
     }
     _addressCtrl.text = parsed.value.toString();
     await _add();
+  }
+
+  void _badCode(bool port) {
+    setState(() {
+      _addressError = port ? CelautStrings.portInvalid : CelautStrings.addressInvalid;
+      _note = null;
+      _error = null;
+      _invite = null;
+    });
+  }
+
+  /// Show what the invitation says and connect only if the user chooses Add. Bytes that
+  /// Rust does not read as an invitation are a bad code.
+  Future<void> _confirmInvite(Uint8List invite) async {
+    final InviteReadView view;
+    try {
+      view = widget.nodes.readInvite(invite);
+    } on CelautError {
+      _badCode(false);
+      return;
+    }
+    if (!await confirmNodeInvite(context, view) || !mounted) return;
+    await _connectInvite(invite);
   }
 
   /// The result of the last invitation that did not connect, to show why.
