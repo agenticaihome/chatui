@@ -74,7 +74,7 @@ async fn moves_and_statements_on_a_real_node() {
     // The first read of the client: from the first movement.
     let q = session.quote_client_statement(None).expect("quote");
     println!("first read of the client: from {} , at most {} MU", q.from_seq(), q.max_mu_needed());
-    let client = session.read_account(&q, None, max_mu).await.expect("read the client");
+    let client = session.read_account(&q, None, max_mu, 0).await.map(|(t, _)| t).expect("read the client");
     show("client, first read", &client);
     assert_eq!(client.owner, Owner::Client);
     assert!(!client.partial);
@@ -120,7 +120,7 @@ async fn moves_and_statements_on_a_real_node() {
     // The second read of the client starts after the first.
     let q = session.quote_client_statement(Some(&client)).expect("quote");
     assert_eq!(q.from_seq(), client.rows_seq + 1);
-    let client = session.read_account(&q, Some(&client), max_mu).await.expect("read again");
+    let client = session.read_account(&q, Some(&client), max_mu, 0).await.map(|(t, _)| t).expect("read again");
     show("client, second read", &client);
     let flow = client.instances.get(&iref).expect("the instance in the statement");
     println!("to the instance: -{} +{}", flow.out_mu, flow.in_mu);
@@ -129,7 +129,7 @@ async fn moves_and_statements_on_a_real_node() {
 
     // The account of the instance.
     let q = session.quote_instance_statement(&token, None).expect("quote");
-    let inst = session.read_account(&q, None, max_mu).await.expect("read the instance");
+    let inst = session.read_account(&q, None, max_mu, 0).await.map(|(t, _)| t).expect("read the instance");
     show("instance, first read", &inst);
     assert_eq!(inst.owner, Owner::Instance);
     assert_eq!(inst.kind("start").in_mu, 1_000_000);
@@ -141,13 +141,15 @@ async fn moves_and_statements_on_a_real_node() {
     println!("refund {refund} MU");
     tokio::time::sleep(Duration::from_secs(2)).await;
     let q = session.quote_instance_statement(&token, Some(&inst)).expect("quote");
-    let inst = session.read_account(&q, Some(&inst), max_mu).await.expect("read the stopped instance");
+    let inst = session.read_account(&q, Some(&inst), max_mu, 0).await.map(|(t, _)| t).expect("read the stopped instance");
     show("instance, after the stop", &inst);
     assert!(inst.stopped, "no stop movement");
     let q = session.quote_client_statement(Some(&client)).expect("quote");
-    let client = session.read_account(&q, Some(&client), max_mu).await.expect("read the client");
+    let client = session.read_account(&q, Some(&client), max_mu, 0).await.map(|(t, _)| t).expect("read the client");
     show("client, after the stop", &client);
     let flow = client.instances.get(&iref).expect("the instance");
+    // The refund to the instance marks it stopped (Josemi, PR #148).
+    assert!(client.stopped_instances.contains(&iref), "the refund did not mark the stop");
     println!(
         "client says the instance kept {} MU; the instance says it spent {:?} MU",
         flow.net_out(),

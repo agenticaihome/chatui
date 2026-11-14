@@ -581,6 +581,9 @@ impl<T: Transport> NodeSession<T> {
     }
 }
 
+/// The key of `Peer.mu_per_call` for the fee of `ModifyDeposit`, if a node ever charges it.
+pub const MODIFY_DEPOSIT_FEE_KEY: &str = "modify_deposit_mu";
+
 impl<T: Transport> NodeSession<T> {
     /// The quote for the next read of the account of this client: the most MU that it can
     /// cost (issue #136). It sends nothing.
@@ -601,14 +604,27 @@ impl<T: Transport> NodeSession<T> {
         spending::quote_instance_read(&self.info.peer, token, tally)
     }
 
+    /// [`NodeSession::quote_instance_statement`] from the movement after `rows_seq`: the
+    /// cursor that the tally shares with the check of the descendants. It sends nothing.
+    pub fn quote_instance_statement_after(
+        &self,
+        token: &str,
+        rows_seq: u64,
+    ) -> Result<spending::AccountRead, spending::SpendingError> {
+        spending::quote_instance_read_after(&self.info.peer, token, rows_seq)
+    }
+
     /// Read one statement of an account of the app and add it to `tally`. This is one paid
-    /// call: the caller asks the user for each read, with the most MU of `quote`.
+    /// call: the caller asks the user for each read, with the most MU of `quote`. Gives
+    /// the tally after the read and the verified statement. `utc_offset_s` is the offset
+    /// of the clock of the device, for the day of each movement.
     pub async fn read_account(
         &self,
         quote: &spending::AccountRead,
         tally: Option<&spending::Tally>,
         max_mu: u128,
-    ) -> Result<spending::Tally, spending::SpendingError> {
+        utc_offset_s: i32,
+    ) -> Result<(spending::Tally, VerifiedStatement), spending::SpendingError> {
         spending::read(
             &self.transport,
             &self.info.peer_id,
@@ -617,9 +633,16 @@ impl<T: Transport> NodeSession<T> {
             tally,
             max_mu,
             unix_now(),
+            utc_offset_s,
         )
         .await
-        .map(|(tally, _)| tally)
+    }
+
+    /// The fee that the node advertises for a move of MU to or from an instance
+    /// (`ModifyDeposit`), in MU: `modify_deposit_mu` in `Peer.mu_per_call` (Josemi, PR
+    /// #148). `None` if the node advertises none: nodo charges nothing for it today.
+    pub fn modify_deposit_fee(&self) -> Option<u128> {
+        celaut_wire::statement::peer_rate(&self.info.peer, MODIFY_DEPOSIT_FEE_KEY)
     }
 }
 

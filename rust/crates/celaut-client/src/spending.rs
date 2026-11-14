@@ -17,19 +17,28 @@
 //! # What a tally can say
 //!
 //! - The balance at the head, signed by the node.
-//! - What went in (`deposit`, `credit`) and what the operator took (`debit`).
-//! - What the account spent: what came in, less what is left. When the node no longer
-//!   holds the first movements (its retention), the sums start at the first movement that
-//!   it gave, and the tally is `partial`.
+//! - What went in (`deposit`, `credit`). What the operator takes back (`debit`) counts as
+//!   spending (Josemi, PR #148).
+//! - What the account spent: the MU of each movement that is not money coming in (and,
+//!   for an instance, not MU moved with its father), as a sum of the movements that the
+//!   app read. When the node no longer holds the first movements (its retention), the
+//!   sums start at the first movement that it gave, and the tally is `partial`.
+//! - The same sums for each day ([`Tally::days`], the day of the device), so that a
+//!   screen can show the spending of today or of the last 7 days.
 //! - For the client: the MU that went to each instance (`child_start` with its
 //!   `child_bound`, `top_up`) and the MU that came back (`withdrawal`, `refund`), by the
-//!   `instance_ref` of the instance.
+//!   `instance_ref` of the instance. A `refund` to an instance marks it stopped.
+//!
+//! # One page per read
+//!
+//! A read asks for [`PAGE_ROWS`] movements at most, so that its worst cost stays low. When
+//! the account has more, the tally is `incomplete` and the next read goes on after it.
 //! - For an instance: the part of each kind of charge (`build`, `maintenance`, `tunnel`,
 //!   `resource_change`, ...).
 //!
 //! A value that the app did not read is `None`: the screens show "unknown", not 0.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use celaut_proto::celaut::Peer;
 use celaut_wire::gateway::get_balance_statement;
@@ -43,6 +52,23 @@ use serde::{Deserialize, Serialize};
 /// The `remaining_hops` of a read of the app's own accounts. The node answers from its own
 /// chains and asks no peer, so a read is one read of cost.
 pub const OWN_READ_HOPS: u32 = 1;
+
+/// The most movements that one read asks for (Josemi, PR #148). "Read the rest" asks for
+/// the next page.
+pub const PAGE_ROWS: u64 = 100;
+
+/// The days of sums that a tally keeps, before the newest one. The screens filter by today
+/// and by the last 7 days; the sums of all the movements are kept apart.
+pub const DAYS_KEPT: i64 = 92;
+
+/// The seconds of a day.
+const DAY_SECONDS: i64 = 86_400;
+
+/// The day of the Unix time `ts` on a device whose clock is `utc_offset_s` seconds ahead of
+/// UTC: the days since 1970-01-01 there.
+pub fn day_of(ts: i64, utc_offset_s: i32) -> i64 {
+    ts.saturating_add(i64::from(utc_offset_s)).div_euclid(DAY_SECONDS)
+}
 
 /// Serde of an `i128` amount as decimal text: JSON numbers lose precision above 2^53.
 mod mu_text {
@@ -98,6 +124,74 @@ impl Flow {
     /// What left and did not come back. Below 0 when more came back than left.
     pub fn net_out(&self) -> i128 {
         self.out_mu.saturating_sub(self.in_mu)
+    }
+}
+
+/// The sums of the movements of one day, or of all the days of a period.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Sums {
+    /// The MU of each kind of movement, by the kind as the node wrote it.
+    #[serde(default)]
+    pub kinds: BTreeMap<String, Flow>,
+    /// The MU that went to each instance and came back, by its `instance_ref` (the client
+    /// only).
+    #[serde(default)]
+    pub instances: BTreeMap<String, Flow>,
+}
+
+impl Sums {
+    fn kind(&self, kind: &str) -> Flow {
+        self.kinds.get(kind).copied().unwrap_or_default()
+    }
+
+    /// Add the sums of `other`.
+    pub fn merge(&mut self, other: &Sums) {
+        for (k, f) in &other.kinds {
+            let e = self.kinds.entry(k.clone()).or_default();
+            e.out_mu = e.out_mu.saturating_add(f.out_mu);
+            e.in_mu = e.in_mu.saturating_add(f.in_mu);
+        }
+        for (k, f) in &other.instances {
+            let e = self.instances.entry(k.clone()).or_default();
+            e.out_mu = e.out_mu.saturating_add(f.out_mu);
+            e.in_mu = e.in_mu.saturating_add(f.in_mu);
+        }
+    }
+
+    /// What came into the account from outside: payments (`deposit`) and free credit
+    /// (`credit`); for an instance, also what its father gave it (`start`, `top_up`).
+    pub fn received_mu(&self, owner: Owner) -> i128 {
+        let mut total = self.kind("deposit").in_mu + self.kind("credit").in_mu;
+        if owner == Owner::Instance {
+            total += self.kind("start").in_mu + self.kind("top_up").in_mu;
+        }
+        total
+    }
+
+    /// What an instance gave back to its father (`withdrawal`, and the `refund` of what it
+    /// did not use). 0 for the client.
+    pub fn returned_mu(&self, owner: Owner) -> i128 {
+        if owner == Owner::Instance {
+            self.kind("withdrawal").out_mu + self.kind("refund").out_mu
+        } else {
+            0
+        }
+    }
+
+    /// What the account spent: what left it, less what came back, of each kind that is not
+    /// money coming in (`deposit`, `credit`) nor, for an instance, MU moved with its father.
+    /// A `debit` of the operator is spending. For the client, the MU that went to an
+    /// instance is in it; the screens can take out what the instance still holds.
+    pub fn spent_mu(&self, owner: Owner) -> i128 {
+        let external: &[&str] = match owner {
+            Owner::Client => &["deposit", "credit"],
+            Owner::Instance => &["deposit", "credit", "start", "top_up", "withdrawal", "refund"],
+        };
+        self.kinds
+            .iter()
+            .filter(|(k, _)| !external.contains(&k.as_str()))
+            .map(|(_, f)| f.net_out())
+            .fold(0i128, i128::saturating_add)
     }
 }
 
@@ -162,6 +256,14 @@ pub struct Tally {
     /// the MU that each one took. A `child_bound` or a `refund` of it ends it.
     #[serde(default)]
     pub open_starts: BTreeMap<u64, String>,
+    /// The sums of each day, by [`day_of`] the time of the movement on the device at the
+    /// read. Only the last [`DAYS_KEPT`] days.
+    #[serde(default)]
+    pub days: BTreeMap<i64, Sums>,
+    /// The instances that a `refund` in the statement of the client names: the node gave
+    /// back what was left, so they stopped. Only for [`Owner::Client`].
+    #[serde(default)]
+    pub stopped_instances: BTreeSet<String>,
 }
 
 impl Tally {
@@ -184,6 +286,8 @@ impl Tally {
             by_kind: BTreeMap::new(),
             instances: BTreeMap::new(),
             open_starts: BTreeMap::new(),
+            days: BTreeMap::new(),
+            stopped_instances: BTreeSet::new(),
         }
     }
 
@@ -200,41 +304,47 @@ impl Tally {
         self.by_kind.get(kind).copied().unwrap_or_default()
     }
 
-    /// The MU that came into the account from outside the node's instances: payments
-    /// (`deposit`) and credit that nobody paid in (`credit`), less what the operator took
-    /// back (`debit`): an operator that takes back credit is not a spending of the user.
-    /// For an instance, also what its father gave it (`start`, `top_up`).
-    pub fn received_mu(&self) -> i128 {
-        let mut total = self.kind("deposit").in_mu + self.kind("credit").in_mu
-            - self.kind("debit").out_mu;
-        if self.owner == Owner::Instance {
-            total += self.kind("start").in_mu + self.kind("top_up").in_mu;
+    /// The sums of all the movements that the app read: the ones of [`Tally::by_kind`]
+    /// and [`Tally::instances`].
+    pub fn all(&self) -> Sums {
+        Sums {
+            kinds: self.by_kind.clone(),
+            instances: self.instances.clone(),
         }
-        total
+    }
+
+    /// The sums of the movements of the day `from_day` ([`day_of`]) and after. `None`: all
+    /// of them.
+    pub fn sums(&self, from_day: Option<i64>) -> Sums {
+        let Some(from) = from_day else {
+            return self.all();
+        };
+        let mut sums = Sums::default();
+        for day in self.days.range(from..).map(|(_, s)| s) {
+            sums.merge(day);
+        }
+        sums
+    }
+
+    /// The MU that came into the account from outside: payments (`deposit`) and credit
+    /// that nobody paid in (`credit`). For an instance, also what its father gave it
+    /// (`start`, `top_up`). A `debit` of the operator is not taken out: it is spending.
+    pub fn received_mu(&self) -> i128 {
+        self.all().received_mu(self.owner)
     }
 
     /// What the account gave back to its father: only for an instance (`withdrawal`, and
     /// the `refund` of what it did not use).
     pub fn returned_mu(&self) -> i128 {
-        if self.owner == Owner::Instance {
-            self.kind("withdrawal").out_mu + self.kind("refund").out_mu
-        } else {
-            0
-        }
+        self.all().returned_mu(self.owner)
     }
 
-    /// What the account spent since the first movement that the app read: what it had and
-    /// what came in, less what went back to its father and less what is left. `None`
-    /// before a read. For the client, the MU that its instances still hold counts as spent
-    /// (it comes back as a `refund` when they stop).
+    /// What the account spent in the movements that the app read ([`Sums::spent_mu`]).
+    /// `None` before a read. For the client, the MU that its instances still hold counts
+    /// as spent (it comes back as a `refund` when they stop).
     pub fn spent_mu(&self) -> Option<i128> {
-        let balance = self.balance_mu?;
-        Some(
-            self.opening_mu
-                .saturating_add(self.received_mu())
-                .saturating_sub(self.returned_mu())
-                .saturating_sub(balance),
-        )
+        self.balance_mu?;
+        Some(self.all().spent_mu(self.owner))
     }
 
     /// The MU that is moving into an instance that does not exist yet: `child_start`
@@ -249,7 +359,10 @@ impl Tally {
     /// Add what a verified statement of this account says. It keeps the sums of the
     /// movements after `rows_seq`, the head and the balance. Movements that the app read
     /// before are not counted twice.
-    pub fn fold(&mut self, statement: &VerifiedStatement, now: i64) {
+    ///
+    /// `utc_offset_s` is the offset of the clock of the device from UTC, for the day of
+    /// each movement ([`Tally::days`]).
+    pub fn fold(&mut self, statement: &VerifiedStatement, now: i64, utc_offset_s: i32) {
         let new: Vec<&Movement> = statement
             .movements
             .iter()
@@ -268,27 +381,48 @@ impl Tally {
             }
         }
         for m in &new {
-            self.add(m);
+            self.add(m, day_of(m.ts, utc_offset_s));
         }
         if let Some(last) = new.last() {
             self.rows_seq = last.seq;
+        }
+        if let Some(&newest) = self.days.keys().next_back() {
+            self.days = self.days.split_off(&(newest - DAYS_KEPT));
         }
         self.head_seq = statement.head.seq;
         self.head_hash = statement.head.hash.clone();
         self.balance_mu = Some(statement.balance);
         self.read_at = Some(now);
-        self.incomplete = statement.next_from_seq.is_some();
+        self.incomplete = stops_before_head(statement);
     }
 
-    fn add(&mut self, m: &Movement) {
-        let name = kind_name(&m.kind);
-        self.by_kind.entry(name.to_string()).or_default().add(m.amount);
+    fn add(&mut self, m: &Movement, day: i64) {
+        let name = kind_name(&m.kind).to_string();
+        self.by_kind.entry(name.clone()).or_default().add(m.amount);
+        self.days
+            .entry(day)
+            .or_default()
+            .kinds
+            .entry(name)
+            .or_default()
+            .add(m.amount);
         if matches!(m.kind, Kind::Stop(_)) {
             self.stopped = true;
         }
         if self.owner != Owner::Client {
             return;
         }
+        // The MU that moved to an instance (out) or back (in), by its instance_ref.
+        let mut to_instance = |iref: &str, out: i128, amount: i128| {
+            for map in [
+                &mut self.instances,
+                &mut self.days.entry(day).or_default().instances,
+            ] {
+                let flow = map.entry(iref.to_string()).or_default();
+                flow.out_mu = flow.out_mu.saturating_add(out);
+                flow.add(amount);
+            }
+        };
         match &m.kind {
             Kind::ChildStart => {
                 self.open_starts
@@ -300,14 +434,14 @@ impl Tally {
                     .and_then(|seq| self.open_starts.remove(&seq))
                     .and_then(|v| v.parse::<i128>().ok())
                     .unwrap_or(0);
-                let flow = self.instances.entry(m.instance_ref.clone()).or_default();
-                flow.out_mu = flow.out_mu.saturating_add(start);
+                to_instance(&m.instance_ref, start, 0);
             }
             Kind::TopUp | Kind::Withdrawal | Kind::Refund if !m.instance_ref.is_empty() => {
-                self.instances
-                    .entry(m.instance_ref.clone())
-                    .or_default()
-                    .add(m.amount);
+                to_instance(&m.instance_ref, 0, m.amount);
+                if m.kind == Kind::Refund {
+                    // The node gives back what is left when the instance stops.
+                    self.stopped_instances.insert(m.instance_ref.clone());
+                }
             }
             Kind::Refund => {
                 // The refund of a start that failed names the charge that it gives back.
@@ -318,6 +452,16 @@ impl Tally {
             _ => {}
         }
     }
+}
+
+/// True if the read gave movements but not up to the head: a page of [`PAGE_ROWS`] that
+/// is full, or a node that gave fewer movements than the range. The next read goes on.
+pub fn stops_before_head(statement: &VerifiedStatement) -> bool {
+    statement.next_from_seq.is_some()
+        || statement
+            .movements
+            .last()
+            .is_some_and(|m| m.seq < statement.head.seq)
 }
 
 /// The name of a kind, as the node writes it.
@@ -422,11 +566,12 @@ pub fn quote_client_read(
     client_id: &str,
     tally: Option<&Tally>,
 ) -> Result<AccountRead, SpendingError> {
+    let from_seq = tally.map_or(0, |t| t.rows_seq).saturating_add(1);
     let request = StatementRequest {
         token: String::new(),
         instance_ref: String::new(),
-        from_seq: tally.map_or(0, |t| t.rows_seq).saturating_add(1),
-        to_seq: 0,
+        from_seq,
+        to_seq: page_end(from_seq),
         remaining_hops: OWN_READ_HOPS,
     };
     request.check()?;
@@ -438,6 +583,11 @@ pub fn quote_client_read(
     })
 }
 
+/// The last movement of a page that starts at `from_seq`.
+fn page_end(from_seq: u64) -> u64 {
+    from_seq.saturating_add(PAGE_ROWS - 1)
+}
+
 /// The next read of the account of the instance of `token`. It names the instance by its
 /// own `instance_ref`, so that the node also reads the account of an instance that
 /// stopped, while it keeps its row. It sends nothing and costs nothing.
@@ -446,11 +596,22 @@ pub fn quote_instance_read(
     token: &str,
     tally: Option<&Tally>,
 ) -> Result<AccountRead, SpendingError> {
+    quote_instance_read_after(peer, token, tally.map_or(0, |t| t.rows_seq))
+}
+
+/// [`quote_instance_read`] from the movement after `rows_seq`: for a caller that shares
+/// one cursor of the account between the tally and the check of the descendants.
+pub fn quote_instance_read_after(
+    peer: &Peer,
+    token: &str,
+    rows_seq: u64,
+) -> Result<AccountRead, SpendingError> {
+    let from_seq = rows_seq.saturating_add(1);
     let request = StatementRequest {
         token: token.to_string(),
         instance_ref: ref_of_token(token),
-        from_seq: tally.map_or(0, |t| t.rows_seq).saturating_add(1),
-        to_seq: 0,
+        from_seq,
+        to_seq: page_end(from_seq),
         remaining_hops: OWN_READ_HOPS,
     };
     request.check()?;
@@ -463,6 +624,7 @@ pub fn quote_instance_read(
 }
 
 /// Read one statement and add it to `tally` (a new one if `None`). This is one paid call.
+/// `utc_offset_s` gives the day of each movement on the device ([`Tally::fold`]).
 ///
 /// `max_mu` is the budget that the user confirmed: if the read can cost more, nothing is
 /// sent. The answer is checked against the node of the connection (`peer_id`): the
@@ -477,6 +639,7 @@ pub async fn read<T: Transport>(
     tally: Option<&Tally>,
     max_mu: u128,
     now: i64,
+    utc_offset_s: i32,
 ) -> Result<(Tally, VerifiedStatement), SpendingError> {
     let mut tally = match tally {
         Some(t) => {
@@ -503,6 +666,6 @@ pub async fn read<T: Transport>(
     if statement.statement.account_ref != quote.account_ref {
         return Err(SpendingError::OtherAccount);
     }
-    tally.fold(&statement, now);
+    tally.fold(&statement, now, utc_offset_s);
     Ok((tally, statement))
 }

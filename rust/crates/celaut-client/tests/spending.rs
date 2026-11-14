@@ -8,13 +8,15 @@ use std::sync::Mutex;
 
 use bee_rpc::frame::Part;
 use celaut_client::spending::{
-    quote_client_read, quote_instance_read, read, Owner, SpendingError, Tally,
+    day_of, quote_client_read, quote_instance_read, read, Owner, SpendingError, Tally,
+    PAGE_ROWS,
 };
 use celaut_proto::celaut::{
     Amount, AmountKeyValue, BalanceMovement, BalanceStatement, BalanceStatementRequest, Peer,
 };
 use celaut_wire::statement::{
-    self, account_ref, genesis_hash, instance_ref, movement_hash, StatementError,
+    self, account_ref, genesis_hash, instance_ref, movement_hash, KeptHead, Kind, Movement,
+    StatementError, VerifiedStatement,
 };
 use celaut_wire::{Transport, WireError};
 use prost::Message;
@@ -146,15 +148,25 @@ impl Transport for Fixed {
         _accepted: &[i32],
     ) -> Result<Vec<Part>, WireError> {
         assert_eq!(method, "GetBalanceStatement");
-        self.sent
-            .lock()
-            .unwrap()
-            .push(BalanceStatementRequest::decode(parts[0].data.as_slice()).unwrap());
+        let request = BalanceStatementRequest::decode(parts[0].data.as_slice()).unwrap();
+        let (from_seq, to_seq) = (request.from_seq, request.to_seq);
+        self.sent.lock().unwrap().push(request);
         let mut answers = self.answers.lock().unwrap();
         if answers.is_empty() {
             return Err(WireError::Call("no more answers".into()));
         }
-        Ok(vec![Part::new(1, answers.remove(0).encode_to_vec())])
+        let mut answer = answers.remove(0);
+        // A node answers for the range of the request: the movements from `from_seq` up to
+        // `to_seq`.
+        if answer.to_seq != to_seq || answer.from_seq < from_seq {
+            answer.from_seq = from_seq;
+            answer.to_seq = to_seq;
+            answer
+                .movements
+                .retain(|m| m.seq >= from_seq && (to_seq == 0 || m.seq <= to_seq));
+            statement::sign_with_seed(&mut answer, &SEED).unwrap();
+        }
+        Ok(vec![Part::new(1, answer.encode_to_vec())])
     }
 }
 
@@ -168,8 +180,8 @@ fn a_quote_needs_the_rates_of_the_node_and_reads_from_the_first_movement() {
     assert!(matches!(none, SpendingError::NoRates));
     let q = quote_client_read(&peer(Some("100"), Some("2")), CLIENT, None).unwrap();
     assert_eq!(q.from_seq(), 1);
-    // One read: the fixed part and the most rows of one answer.
-    assert_eq!(q.max_mu_needed(), 100 + 2 * 1000);
+    // One read: the fixed part and one page of 100 rows (Josemi, PR #148).
+    assert_eq!(q.max_mu_needed(), 100 + 2 * 100);
     assert_eq!(q.account_ref(), account_ref(CLIENT));
     let mut t = Tally::new(Owner::Client, &peer_id(), &account_ref(CLIENT));
     t.rows_seq = 41;
@@ -199,7 +211,7 @@ async fn the_client_tally_splits_the_spending_by_instance_and_reads_only_new_mov
     let p = peer(Some("1000"), Some("1"));
     let t = Fixed::new(vec![first]);
     let q = quote_client_read(&p, CLIENT, None).unwrap();
-    let (tally, _) = read(&t, &peer_id(), CLIENT, &q, None, u128::MAX, now()).await.unwrap();
+    let (tally, _) = read(&t, &peer_id(), CLIENT, &q, None, u128::MAX, now(), 0).await.unwrap();
     assert_eq!(tally.balance_mu, Some(7_148_900));
     assert_eq!(tally.received_mu(), 9_000_000);
     assert_eq!(tally.spent_mu(), Some(1_851_100));
@@ -211,6 +223,7 @@ async fn the_client_tally_splits_the_spending_by_instance_and_reads_only_new_mov
     assert_eq!(tally.starting_mu(), 700_000);
     assert_eq!(tally.kind("statement_query").out_mu, 1_100);
     assert_eq!(tally.rows_seq, 7);
+    assert!(tally.stopped_instances.is_empty());
 
     // The next read starts after the head, and the child of the second start shows.
     let more = vec![
@@ -222,11 +235,14 @@ async fn the_client_tally_splits_the_spending_by_instance_and_reads_only_new_mov
     let t = Fixed::new(vec![second]);
     let q = quote_client_read(&p, CLIENT, Some(&tally)).unwrap();
     assert_eq!(q.from_seq(), 8);
-    let (tally, _) = read(&t, &peer_id(), CLIENT, &q, Some(&tally), u128::MAX, now())
+    let (tally, _) = read(&t, &peer_id(), CLIENT, &q, Some(&tally), u128::MAX, now(), 0)
         .await
         .unwrap();
     assert_eq!(t.sent.lock().unwrap()[0].from_seq, 8);
+    assert_eq!(t.sent.lock().unwrap()[0].to_seq, 8 + PAGE_ROWS - 1);
     assert_eq!(tally.instances[&a].net_out(), 850_000);
+    // The refund to `a` is its stop: the node gave back what was left (Josemi, PR #148).
+    assert_eq!(tally.stopped_instances.iter().collect::<Vec<_>>(), [&a]);
     assert_eq!(tally.instances[&b].net_out(), 700_000);
     assert_eq!(tally.starting_mu(), 0);
     assert_eq!(tally.balance_mu, Some(7_447_895));
@@ -249,7 +265,7 @@ async fn a_failed_start_given_back_is_not_spending() {
     let (s, _) = statement(CLIENT, None, &rows, 1);
     let p = peer(Some("1"), Some("0"));
     let q = quote_client_read(&p, CLIENT, None).unwrap();
-    let (tally, _) = read(&Fixed::new(vec![s]), &peer_id(), CLIENT, &q, None, u128::MAX, now())
+    let (tally, _) = read(&Fixed::new(vec![s]), &peer_id(), CLIENT, &q, None, u128::MAX, now(), 0)
         .await
         .unwrap();
     assert_eq!(tally.starting_mu(), 0);
@@ -258,9 +274,9 @@ async fn a_failed_start_given_back_is_not_spending() {
 }
 
 #[tokio::test]
-async fn credit_that_the_operator_takes_back_is_not_spending() {
+async fn credit_that_the_operator_takes_back_is_spending() {
     // The rows of a real node (n538e, 2026-11-13): a test credit, then the operator takes
-    // most of it back with a debit.
+    // most of it back with a debit. Josemi (PR #148): a debit counts as spending.
     let rows = vec![
         row("credit", 9_000_000),
         row("credit", 20_000_000),
@@ -273,11 +289,120 @@ async fn credit_that_the_operator_takes_back_is_not_spending() {
     let (s, _) = statement(CLIENT, None, &rows, 1);
     let p = peer(Some("100"), Some("1"));
     let q = quote_client_read(&p, CLIENT, None).unwrap();
-    let (tally, _) = read(&Fixed::new(vec![s]), &peer_id(), CLIENT, &q, None, u128::MAX, now())
+    let (tally, _) = read(&Fixed::new(vec![s]), &peer_id(), CLIENT, &q, None, u128::MAX, now(), 0)
         .await
         .unwrap();
-    assert_eq!(tally.received_mu(), 29_000_000 - 8_693_247);
-    assert_eq!(tally.spent_mu(), Some(11_306_753 + 114));
+    assert_eq!(tally.received_mu(), 29_000_000);
+    assert_eq!(tally.kind("debit").out_mu, 8_693_247);
+    assert_eq!(tally.spent_mu(), Some(11_306_753 + 114 + 8_693_247));
+}
+
+#[tokio::test]
+async fn a_read_asks_for_one_page_and_the_next_one_goes_on() {
+    // 150 movements: a credit and 149 reads of 1 MU.
+    let mut rows = vec![row("credit", 1_000)];
+    rows.extend((0..149).map(|_| row("statement_query", -1)));
+    let (all, _) = statement(CLIENT, None, &rows, 1);
+    let p = peer(Some("10"), Some("1"));
+    let q = quote_client_read(&p, CLIENT, None).unwrap();
+    assert_eq!(q.max_mu_needed(), 10 + PAGE_ROWS as u128);
+    let t = Fixed::new(vec![all.clone(), all]);
+    let (tally, _) = read(&t, &peer_id(), CLIENT, &q, None, u128::MAX, now(), 0)
+        .await
+        .unwrap();
+    assert_eq!(t.sent.lock().unwrap()[0].to_seq, PAGE_ROWS);
+    // The page is full and the head is further: read the rest.
+    assert_eq!(tally.rows_seq, 100);
+    assert_eq!(tally.head_seq, 150);
+    assert!(tally.incomplete);
+    assert_eq!(tally.spent_mu(), Some(99));
+    let q = quote_client_read(&p, CLIENT, Some(&tally)).unwrap();
+    assert_eq!(q.from_seq(), 101);
+    let (tally, _) = read(&t, &peer_id(), CLIENT, &q, Some(&tally), u128::MAX, now(), 0)
+        .await
+        .unwrap();
+    assert_eq!(t.sent.lock().unwrap()[1].to_seq, 200);
+    assert_eq!(tally.rows_seq, 150);
+    assert!(!tally.incomplete);
+    assert_eq!(tally.spent_mu(), Some(149));
+    assert_eq!(tally.balance_mu, Some(851));
+}
+
+fn moved(seq: u64, ts: i64, kind: Kind, amount: i128, balance: i128, iref: &str) -> Movement {
+    Movement {
+        seq,
+        ts,
+        amount,
+        balance_after: balance,
+        kind,
+        instance_ref: iref.to_string(),
+        detail: String::new(),
+        prev_hash: String::new(),
+        hash: format!("{seq:064x}"),
+    }
+}
+
+fn verified(movements: Vec<Movement>) -> VerifiedStatement {
+    let head = movements.last().map_or(0, |m| m.seq);
+    VerifiedStatement {
+        statement: Default::default(),
+        peer_id: peer_id(),
+        balance: movements.last().map_or(0, |m| m.balance_after),
+        relayed: false,
+        service_id: String::new(),
+        head: KeptHead { seq: head, hash: format!("{head:064x}") },
+        next_from_seq: None,
+        gap: false,
+        movements,
+    }
+}
+
+#[test]
+fn a_tally_keeps_the_sums_of_each_day_on_the_clock_of_the_device() {
+    // 2023-11-14 22:30 UTC: 16:30 in Chicago (UTC-6).
+    let late = 1_700_001_000;
+    let next = late + 2 * 3_600; // 00:30 UTC on the 15th: still the 14th in Chicago.
+    let a = instance_ref("tok-a");
+    let rows = vec![
+        moved(1, late - 86_400, Kind::Credit, 10_000, 10_000, ""),
+        moved(2, late, Kind::ChildStart, -1_000, 9_000, ""),
+        moved(3, late, Kind::TopUp, -500, 8_500, &a),
+        moved(4, next, Kind::StatementQuery, -7, 8_493, ""),
+        moved(5, next, Kind::Debit, -100, 8_393, ""),
+    ];
+    for (offset, today_has) in [(-6 * 3_600, 4usize), (0, 2)] {
+        let mut t = Tally::new(Owner::Client, &peer_id(), &account_ref(CLIENT));
+        t.fold(&verified(rows.clone()), next, offset);
+        let today = day_of(next, offset);
+        let sums = t.sums(Some(today));
+        let kinds: usize = sums.kinds.values().count();
+        assert_eq!(kinds, today_has, "offset {offset}");
+        // The sums of all the days are the sums of all the movements.
+        assert_eq!(t.sums(Some(today - 6)), t.all());
+        assert_eq!(t.sums(None).spent_mu(Owner::Client), 1_000 + 500 + 7 + 100);
+    }
+    // In Chicago the five movements fall on two days; the instance flow is on the 14th.
+    let mut t = Tally::new(Owner::Client, &peer_id(), &account_ref(CLIENT));
+    t.fold(&verified(rows), next, -6 * 3_600);
+    assert_eq!(t.days.len(), 2);
+    let today = t.sums(Some(day_of(next, -6 * 3_600)));
+    assert_eq!(today.instances[&a].out_mu, 500);
+    assert_eq!(today.spent_mu(Owner::Client), 1_000 + 500 + 7 + 100);
+    assert_eq!(today.received_mu(Owner::Client), 0);
+}
+
+#[test]
+fn a_tally_keeps_only_the_last_days() {
+    let first = 1_700_000_000;
+    let rows = vec![
+        moved(1, first, Kind::Credit, 1_000, 1_000, ""),
+        moved(2, first + 200 * 86_400, Kind::StatementQuery, -1, 999, ""),
+    ];
+    let mut t = Tally::new(Owner::Client, &peer_id(), &account_ref(CLIENT));
+    t.fold(&verified(rows), first + 200 * 86_400, 0);
+    assert_eq!(t.days.len(), 1);
+    // The sums of all the movements stay.
+    assert_eq!(t.kind("credit").in_mu, 1_000);
 }
 
 #[tokio::test]
@@ -295,7 +420,7 @@ async fn a_node_that_deleted_the_first_movements_gives_a_partial_tally() {
     statement::sign_with_seed(&mut cut, &SEED).unwrap();
     let p = peer(Some("1"), Some("0"));
     let q = quote_client_read(&p, CLIENT, None).unwrap();
-    let (tally, _) = read(&Fixed::new(vec![cut]), &peer_id(), CLIENT, &q, None, u128::MAX, now())
+    let (tally, _) = read(&Fixed::new(vec![cut]), &peer_id(), CLIENT, &q, None, u128::MAX, now(), 0)
         .await
         .unwrap();
     assert!(tally.partial);
@@ -324,7 +449,7 @@ async fn the_instance_tally_gives_each_kind_of_charge() {
     let p = peer(Some("10"), Some("1"));
     let q = quote_instance_read(&p, TOKEN, None).unwrap();
     let t = Fixed::new(vec![s]);
-    let (tally, _) = read(&t, &peer_id(), CLIENT, &q, None, u128::MAX, now()).await.unwrap();
+    let (tally, _) = read(&t, &peer_id(), CLIENT, &q, None, u128::MAX, now(), 0).await.unwrap();
     let sent = &t.sent.lock().unwrap()[0];
     assert_eq!(sent.token, TOKEN);
     assert_eq!(sent.instance_ref, instance_ref(TOKEN));
@@ -346,12 +471,13 @@ async fn a_read_over_the_budget_sends_nothing() {
     let p = peer(Some("1000"), Some("1"));
     let q = quote_client_read(&p, CLIENT, None).unwrap();
     let t = Fixed::new(vec![]);
-    let e = read(&t, &peer_id(), CLIENT, &q, None, 1_999, now())
+    // The fixed price and one page of 100 rows.
+    let e = read(&t, &peer_id(), CLIENT, &q, None, 1_099, now(), 0)
         .await
         .unwrap_err();
     assert!(matches!(
         e,
-        SpendingError::Statement(StatementError::OverBudget { needed: 2_000, max: 1_999 })
+        SpendingError::Statement(StatementError::OverBudget { needed: 1_100, max: 1_099 })
     ));
     assert!(!e.may_have_charged());
     assert_eq!(t.calls(), 0);
@@ -362,14 +488,14 @@ async fn a_statement_of_another_account_or_with_a_broken_signature_is_refused() 
     let p = peer(Some("1"), Some("0"));
     let (other, _) = statement("someone-else", None, &[row("credit", 5)], 1);
     let q = quote_client_read(&p, CLIENT, None).unwrap();
-    let e = read(&Fixed::new(vec![other]), &peer_id(), CLIENT, &q, None, u128::MAX, now())
+    let e = read(&Fixed::new(vec![other]), &peer_id(), CLIENT, &q, None, u128::MAX, now(), 0)
         .await
         .unwrap_err();
     assert!(e.may_have_charged(), "{e:?}");
 
     let (mut forged, _) = statement(CLIENT, None, &[row("credit", 5)], 1);
     forged.balance = amount(6);
-    let e = read(&Fixed::new(vec![forged]), &peer_id(), CLIENT, &q, None, u128::MAX, now())
+    let e = read(&Fixed::new(vec![forged]), &peer_id(), CLIENT, &q, None, u128::MAX, now(), 0)
         .await
         .unwrap_err();
     assert!(
@@ -383,7 +509,7 @@ async fn a_head_that_changed_since_the_last_read_is_refused() {
     let p = peer(Some("1"), Some("0"));
     let (first, head) = statement(CLIENT, None, &[row("credit", 5), row("statement_query", -1)], 1);
     let q = quote_client_read(&p, CLIENT, None).unwrap();
-    let (tally, _) = read(&Fixed::new(vec![first]), &peer_id(), CLIENT, &q, None, u128::MAX, now())
+    let (tally, _) = read(&Fixed::new(vec![first]), &peer_id(), CLIENT, &q, None, u128::MAX, now(), 0)
         .await
         .unwrap();
     // A node that rewrote the head: the next movement hangs from another hash.
@@ -401,6 +527,7 @@ async fn a_head_that_changed_since_the_last_read_is_refused() {
         Some(&tally),
         u128::MAX,
         now(),
+        0,
     )
     .await
     .unwrap_err();
@@ -410,7 +537,7 @@ async fn a_head_that_changed_since_the_last_read_is_refused() {
     );
     // A tally of another account is not used.
     let q = quote_client_read(&p, "other-client", None).unwrap();
-    let e = read(&Fixed::new(vec![]), &peer_id(), "other-client", &q, Some(&tally), u128::MAX, now())
+    let e = read(&Fixed::new(vec![]), &peer_id(), "other-client", &q, Some(&tally), u128::MAX, now(), 0)
         .await
         .unwrap_err();
     assert!(matches!(e, SpendingError::WrongTally));

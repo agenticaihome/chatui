@@ -667,7 +667,9 @@ pub fn apply_read(
     record.relayed = statement.relayed;
     record.last_checked_at = Some(now);
     record.last_refusal = None;
-    record.incomplete = statement.next_from_seq.is_some();
+    // A page that ends before the head (a read of the spending, PR #148) is not complete
+    // either, though its range is.
+    record.incomplete = crate::spending::stops_before_head(statement);
     report.incomplete = record.incomplete;
     report.gap = statement.gap;
     // The first service that a node gave stays. `read_statement` refuses an answer with
