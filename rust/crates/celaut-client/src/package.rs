@@ -11,7 +11,8 @@
 //! - [`save`] writes the Buffers of `GetService` to a `.bee` file.
 //! - [`inspect`] reads the head of a `.bee` file: its layout, and the service id from
 //!   the Metadata or from a hash part. It stops before the Service.
-//! - [`verify_blocks`] checks that each block of a `.bee` file hashes to its id.
+//! - [`check_file`] checks a `.bee` file with [`Check`]: each block hashes to its id, and
+//!   the whole Service hashes to the service id.
 //! - [`read`] gives the Buffers of a `.bee` file for a node: the head indices of a
 //!   `nodo export` file (1 Metadata, 2 Service) become 5 and 6.
 //!
@@ -313,61 +314,26 @@ pub async fn inspect(path: &Path) -> Result<PackageInfo, PackageError> {
     })
 }
 
-/// Check that each block of the package at `path` holds what its id names: the bytes of
-/// its chunks, with those of the blocks inside it, hash (SHA3-256) to its id. A node
-/// refuses a block that does not, but only after it got the whole package. The file is
-/// read once, one record at a time. `cancel` counts the records that were read, and stops
-/// the check when it is cancelled.
-pub async fn verify_blocks(path: &Path, cancel: &Cancel) -> Result<(), PackageError> {
-    let file = tokio::fs::File::open(path).await?;
-    let mut reader = BufReader::new(file);
-    // The open blocks, outermost first: their id and the hash of what they hold so far.
-    let mut open: Vec<([u8; 32], bee_rpc::hash::Hasher)> = Vec::new();
-    while let Some(buffer) = next_record(&mut reader).await? {
+/// Check the package at `path` with [`Check`], as a download is checked: each block holds
+/// what its id names, and the whole Service hashes to the id of the service that the file
+/// gives. The file is read once, in pieces; [`Check`] keeps at most one record in memory.
+/// `cancel` counts the bytes that were read, and stops the check when it is cancelled.
+pub async fn check_file(path: &Path, cancel: &Cancel) -> Result<Checked, PackageError> {
+    let mut file = tokio::fs::File::open(path).await?;
+    let mut check = Check::new();
+    let mut piece = vec![0u8; 256 * 1024];
+    loop {
         if cancel.is_cancelled() {
             return Err(PackageError::Cancelled);
         }
-        cancel.add(4 + buffer.encoded_len() as u64);
-        if let Some(block) = &buffer.block {
-            let id = block
-                .hashes
-                .iter()
-                .find_map(|h| {
-                    (h.r#type == SHA3_256_TYPE).then(|| h.value.as_slice().try_into().ok())?
-                })
-                .ok_or_else(|| PackageError::Invalid("a block has no SHA3-256 id".into()))?;
-            if let Some((_, hasher)) = open.pop_if(|(last, _)| *last == id) {
-                // The end marker of the innermost open block.
-                let got = hasher.finalize();
-                if got != id {
-                    return Err(PackageError::Invalid(format!(
-                        "the block {} holds other bytes: they hash to {}",
-                        hex::encode(id),
-                        hex::encode(got)
-                    )));
-                }
-            } else if open.iter().any(|(other, _)| *other == id) {
-                return Err(PackageError::Invalid(format!(
-                    "the block {} ends inside a block that it holds",
-                    hex::encode(id)
-                )));
-            } else {
-                open.push((id, bee_rpc::hash::HashAlgorithm::Sha3_256.hasher()));
-            }
+        let n = file.read(&mut piece).await?;
+        if n == 0 {
+            break;
         }
-        if let Some(chunk) = &buffer.chunk {
-            for (_, hasher) in open.iter_mut() {
-                hasher.update(chunk);
-            }
-        }
+        check.feed(&piece[..n])?;
+        cancel.add(n as u64);
     }
-    match open.last() {
-        Some((id, _)) => Err(PackageError::Invalid(format!(
-            "the file is cut inside the block {}",
-            hex::encode(id)
-        ))),
-        None => Ok(()),
-    }
+    check.finish()
 }
 
 /// The Buffers of the package at `path` for a node, with the indices of `StartService`.
@@ -425,7 +391,7 @@ pub fn read(path: PathBuf, layout: Layout, cancel: Cancel) -> Buffers {
 /// record in memory. It checks what [`import`] checks, and more:
 ///
 /// - each record is a Buffer of at most [`MAX_RECORD`] bytes;
-/// - each block holds what its id names (as [`verify_blocks`]);
+/// - each block holds what its id names;
 /// - the **whole Service** hashes (SHA3-256) to the id of the service that the Metadata or
 ///   a hash part gives. The id of a service is the hash of its content with its blocks in
 ///   place, which is the bytes of the chunks of the Service part in order (nodo
@@ -677,11 +643,11 @@ pub struct Imported {
 
 /// Load the package at `source` into the library under `dir`: check it, then move it to
 /// `<dir>/packages/library/<service id>.bee`. A file that is not a package of a service,
-/// that does not say which service it is, or that has a block that does not hold what its
-/// id names ([`verify_blocks`]), is refused and left where it is. The id comes from the
-/// Metadata or from a hash part: the app does not hash a whole service on the phone, only
-/// its blocks. A package of a service that the library already has replaces it. `cancel`
-/// counts the bytes that the check read, and stops it.
+/// that does not say which service it is, that has a block that does not hold what its id
+/// names, or whose Service does not hash to that id ([`check_file`]), is refused and left
+/// where it is. The id comes from the Metadata or from a hash part, and the whole Service
+/// must hash to it, as for a download. A package of a service that the library already has
+/// replaces it. `cancel` counts the bytes that the check read, and stops it.
 ///
 /// The file is moved when `source` is on the same disk (the copy of the file picker is in
 /// the cache of the app), and copied otherwise, so a large service is never in memory and
@@ -695,10 +661,11 @@ pub async fn import(
     if !info.has_service {
         return Err(PackageError::Invalid("the file has no Service part".into()));
     }
-    let service_id = info.service_id.ok_or_else(|| {
-        PackageError::Invalid("the file does not say which service it is".into())
-    })?;
-    verify_blocks(source, cancel).await?;
+    if info.service_id.is_none() {
+        return Err(PackageError::Invalid("the file does not say which service it is".into()));
+    }
+    // The head says what the file is at once; the check reads all of it.
+    let service_id = check_file(source, cancel).await?.service_id;
     let path = into_library(source, dir, &service_id).await?;
     Ok(Imported {
         service_id,

@@ -16,8 +16,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 /// the app) into the library of the app, which keeps it in a private directory `dir` under
 /// the id of its service. The file is moved, not copied. `name` is the name of the file
 /// that the user chose. A file that is not a package of a service, that does not say which
-/// service it is, or that has a block that does not hash to its id, is refused (kind
-/// `invalidInput`) and stays where it is. While it checks the file, the load is the
+/// service it is, that has a block that does not hash to its id, or whose Service does not
+/// hash to the service id (checked as a download is), is refused (kind `invalidInput`) and
+/// stays where it is. While it checks the file, the load is the
 /// transfer that `celaut_transfer_progress` tells, and `celaut_cancel_transfer` stops it.
 /// A second load of the same service replaces the first.
 Future<LibraryPackageView> celautImportPackage({

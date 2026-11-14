@@ -39,11 +39,16 @@ fn rand_suffix() -> u64 {
 const SERVICE_ID: [u8; 32] = [7u8; 32];
 
 fn metadata() -> Vec<u8> {
+    metadata_of(SERVICE_ID)
+}
+
+/// A Metadata that names the service `id`.
+fn metadata_of(id: [u8; 32]) -> Vec<u8> {
     Metadata {
         hashtag: Some(HashTag {
             hash: vec![Hash {
                 r#type: SHA3_256_TYPE.to_vec(),
-                value: SERVICE_ID.to_vec(),
+                value: id.to_vec(),
             }],
             ..Default::default()
         }),
@@ -83,15 +88,32 @@ fn service_buffers(index: i32, content: &[u8]) -> Vec<Buffer> {
     ]
 }
 
+/// The id of the service whose Service part is `service`: the SHA3-256 of its chunks in
+/// order (`docs/celaut/package.md`).
+fn id_of(service: &[Buffer]) -> [u8; 32] {
+    let mut hasher = HashAlgorithm::Sha3_256.hasher();
+    for b in service {
+        if let Some(c) = &b.chunk {
+            hasher.update(c);
+        }
+    }
+    hasher.finalize().as_slice().try_into().unwrap()
+}
+
 /// What `GetService` answers: the hash (4), the Metadata (5), the Service (6), and a
 /// flow control signal at the end.
 fn get_service_answer(content: &[u8]) -> Vec<Buffer> {
+    answer_for(content, SERVICE_ID)
+}
+
+/// [`get_service_answer`] for the service `id`.
+fn answer_for(content: &[u8], id: [u8; 32]) -> Vec<Buffer> {
     let hash = Hash {
         r#type: SHA3_256_TYPE.to_vec(),
-        value: SERVICE_ID.to_vec(),
+        value: id.to_vec(),
     };
     let mut out: Vec<Buffer> = serialize_part(&Part::new(4, hash.encode_to_vec())).collect();
-    out.extend(serialize_part(&Part::new(5, metadata())));
+    out.extend(serialize_part(&Part::new(5, metadata_of(id))));
     out.extend(service_buffers(6, content));
     out.push(Buffer {
         signal: Some(true),
@@ -274,13 +296,14 @@ async fn a_package_is_loaded_into_the_library_under_its_service_id() {
     let d = dir();
     let source = d.join("picked.bee");
     let content = vec![5u8; 2 * 1024 * 1024];
-    save(stream(get_service_answer(&content)), &source, &Cancel::new()).await.unwrap();
+    let id = id_of(&service_buffers(6, &content));
+    save(stream(answer_for(&content, id)), &source, &Cancel::new()).await.unwrap();
     let size = std::fs::metadata(&source).unwrap().len();
 
     let imported = import(&source, &d, &Cancel::new()).await.unwrap();
-    assert_eq!(imported.service_id, SERVICE_ID);
-    assert_eq!(imported.path, library_path(&d, &SERVICE_ID));
-    assert_eq!(imported.path, d.join("packages/library").join(format!("{}.bee", hex::encode(SERVICE_ID))));
+    assert_eq!(imported.service_id, id);
+    assert_eq!(imported.path, library_path(&d, &id));
+    assert_eq!(imported.path, d.join("packages/library").join(format!("{}.bee", hex::encode(id))));
     assert_eq!(imported.info.bytes, size);
     // Moved, not copied: the picked file is gone and the library holds all of it.
     assert!(!source.exists());
@@ -296,19 +319,31 @@ async fn a_package_is_loaded_into_the_library_under_its_service_id() {
 async fn a_nodo_export_is_loaded_and_a_second_load_of_the_same_service_replaces_it() {
     use celaut_client::package::import;
     let d = dir();
-    let make = |name: &str, fs: &[u8]| {
+    let make = |name: &str, pieces: usize| {
         let path = d.join(name);
-        let mut file: Vec<Buffer> = serialize_part(&Part::new(1, metadata())).collect();
-        file.extend(service_buffers(2, fs));
+        // Two exports of one service: the same bytes, so the same id, in chunks of another
+        // size (`pieces` chunks after the block instead of one), so the files differ.
+        let mut service = service_buffers(2, b"the filesystem");
+        let end = service.pop().unwrap();
+        for _ in 1..pieces {
+            service.push(Buffer {
+                chunk: Some(Vec::new()),
+                ..Default::default()
+            });
+        }
+        service.push(end);
+        let id = id_of(&service_buffers(2, b"the filesystem"));
+        let mut file: Vec<Buffer> = serialize_part(&Part::new(1, metadata_of(id))).collect();
+        file.extend(service);
         let mut raw = Vec::new();
         bee_rpc::bee_file::write_bee(&mut raw, file).unwrap();
         std::fs::write(&path, raw).unwrap();
         path
     };
-    let first = import(&make("one.celaut.bee", b"first"), &d, &Cancel::new()).await.unwrap();
+    let first = import(&make("one.celaut.bee", 1), &d, &Cancel::new()).await.unwrap();
     assert_eq!(first.info.layout, Layout::NodoExport);
     let first_size = std::fs::metadata(&first.path).unwrap().len();
-    let second = import(&make("two.celaut.bee", b"a longer filesystem than the first"), &d, &Cancel::new())
+    let second = import(&make("two.celaut.bee", 4), &d, &Cancel::new())
         .await
         .unwrap();
     assert_eq!(second.path, first.path);
@@ -362,9 +397,16 @@ async fn removing_a_package_file_that_is_gone_is_not_an_error() {
 }
 
 /// A nodo export with `service` as its Service part, at `d/name`.
+/// The Metadata names the service that the Service hashes to, so only its blocks can be
+/// wrong.
 fn export_file(d: &std::path::Path, name: &str, service: Vec<Buffer>) -> PathBuf {
+    export_file_of(d, name, service.clone(), id_of(&service))
+}
+
+/// A nodo export whose Metadata names the service `id`.
+fn export_file_of(d: &std::path::Path, name: &str, service: Vec<Buffer>, id: [u8; 32]) -> PathBuf {
     let path = d.join(name);
-    let mut file: Vec<Buffer> = serialize_part(&Part::new(1, metadata())).collect();
+    let mut file: Vec<Buffer> = serialize_part(&Part::new(1, metadata_of(id))).collect();
     file.extend(service);
     let mut raw = Vec::new();
     bee_rpc::bee_file::write_bee(&mut raw, file).unwrap();
@@ -374,13 +416,13 @@ fn export_file(d: &std::path::Path, name: &str, service: Vec<Buffer>) -> PathBuf
 
 #[tokio::test]
 async fn a_package_with_a_block_that_is_not_its_id_is_refused_and_stays_where_it_is() {
-    use celaut_client::package::{import, verify_blocks};
+    use celaut_client::package::{import, check_file};
     let d = dir();
     let mut service = service_buffers(2, b"the filesystem");
     service[2].chunk = Some(b"another filesystem".to_vec());
     let path = export_file(&d, "bad.celaut.bee", service);
     let id = hex::encode(HashAlgorithm::Sha3_256.digest(b"the filesystem"));
-    let error = verify_blocks(&path, &Cancel::new()).await.unwrap_err();
+    let error = check_file(&path, &Cancel::new()).await.unwrap_err();
     assert!(matches!(&error, PackageError::Invalid(t) if t.contains(&id)), "{error}");
     let error = import(&path, &d, &Cancel::new()).await.unwrap_err();
     assert!(matches!(&error, PackageError::Invalid(t) if t.contains("holds other bytes")), "{error}");
@@ -391,7 +433,7 @@ async fn a_package_with_a_block_that_is_not_its_id_is_refused_and_stays_where_it
 
 #[tokio::test]
 async fn a_block_inside_a_block_counts_in_the_id_of_both() {
-    use celaut_client::package::verify_blocks;
+    use celaut_client::package::check_file;
     let d = dir();
     let marker = |id: &[u8]| Buffer {
         block: Some(block_pointer(id, HashAlgorithm::Sha3_256, false)),
@@ -422,39 +464,58 @@ async fn a_block_inside_a_block_counts_in_the_id_of_both() {
             },
         ]
     };
-    verify_blocks(&export_file(&d, "nested.celaut.bee", service(&outer)), &Cancel::new()).await.unwrap();
+    let checked = check_file(&export_file(&d, "nested.celaut.bee", service(&outer)), &Cancel::new()).await.unwrap();
+    assert_eq!(checked.service_id, id_of(&service(&outer)));
     // An id that leaves out the block inside it is not the id of the outer block.
     let flat = HashAlgorithm::Sha3_256.digest(b"a--b");
-    let error = verify_blocks(&export_file(&d, "flat.celaut.bee", service(&flat)), &Cancel::new()).await.unwrap_err();
+    let error = check_file(&export_file(&d, "flat.celaut.bee", service(&flat)), &Cancel::new()).await.unwrap_err();
     assert!(matches!(&error, PackageError::Invalid(t) if t.contains(&hex::encode(&flat))), "{error}");
     std::fs::remove_dir_all(d).unwrap();
 }
 
 #[tokio::test]
 async fn a_package_cut_inside_a_block_is_refused() {
-    use celaut_client::package::verify_blocks;
+    use celaut_client::package::check_file;
     let d = dir();
     let mut service = service_buffers(2, b"the filesystem");
     service.truncate(3);
-    let error = verify_blocks(&export_file(&d, "cut.celaut.bee", service), &Cancel::new()).await.unwrap_err();
+    let error = check_file(&export_file(&d, "cut.celaut.bee", service), &Cancel::new()).await.unwrap_err();
     assert!(matches!(&error, PackageError::Invalid(t) if t.contains("cut inside")), "{error}");
     std::fs::remove_dir_all(d).unwrap();
 }
 
 #[tokio::test]
 async fn the_check_counts_the_bytes_it_read_and_a_cancel_stops_it() {
-    use celaut_client::package::verify_blocks;
+    use celaut_client::package::check_file;
     let d = dir();
     let path = export_file(&d, "ok.celaut.bee", service_buffers(2, &vec![9u8; 100_000]));
     let size = std::fs::metadata(&path).unwrap().len();
     let cancel = Cancel::new();
-    verify_blocks(&path, &cancel).await.unwrap();
-    // Every record that the file has, with its length: the progress ends at the size.
+    check_file(&path, &cancel).await.unwrap();
+    // Every byte of the file: the progress ends at the size.
     assert_eq!(cancel.bytes(), size);
 
     let stopped = Cancel::new();
     stopped.cancel();
-    let error = verify_blocks(&path, &stopped).await.unwrap_err();
+    let error = check_file(&path, &stopped).await.unwrap_err();
     assert!(matches!(error, PackageError::Cancelled), "{error}");
+    std::fs::remove_dir_all(d).unwrap();
+}
+
+#[tokio::test]
+async fn a_picked_file_whose_service_does_not_hash_to_its_id_is_refused_and_stays_where_it_is() {
+    // Issue #135, answer 1: a picked file is checked as a download is, whole Service included.
+    use celaut_client::package::{check_file, import};
+    let d = dir();
+    let service = service_buffers(2, b"the filesystem");
+    // Each block holds what its id names, but the Metadata names another service.
+    let path = export_file_of(&d, "other.celaut.bee", service.clone(), SERVICE_ID);
+    let error = check_file(&path, &Cancel::new()).await.unwrap_err();
+    let want = format!("the Service hashes to {}, not to the id {}", hex::encode(id_of(&service)), hex::encode(SERVICE_ID));
+    assert!(matches!(&error, PackageError::Invalid(t) if t.contains(&want)), "{error}");
+    let error = import(&path, &d, &Cancel::new()).await.unwrap_err();
+    assert!(matches!(&error, PackageError::Invalid(t) if t.contains("the Service hashes to")), "{error}");
+    assert!(path.exists());
+    assert!(!d.join("packages/library").exists() || std::fs::read_dir(d.join("packages/library")).unwrap().count() == 0);
     std::fs::remove_dir_all(d).unwrap();
 }
