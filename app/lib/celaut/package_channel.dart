@@ -4,12 +4,21 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-/// A `.celaut.bee` file that the user chose. The app did not read it yet.
+/// A `.celaut.bee` file that the user chose, or a link to one ([isLink], issue #135). The
+/// app did not read it yet.
 @immutable
 class ChosenFile {
-  const ChosenFile({required this.uri, required this.name, this.bytes});
+  const ChosenFile({required this.uri, required this.name, this.bytes}) : isLink = false;
 
-  /// The content uri of the file.
+  /// A link to a service: a `.celaut.bee` file or a manifest of its chunks, which the app
+  /// downloads (`celautImportLink`).
+  const ChosenFile.link(String url)
+      : uri = url,
+        name = url,
+        bytes = null,
+        isLink = true;
+
+  /// The content uri of the file, or the link.
   final String uri;
 
   /// The name of the file that the user chose.
@@ -17,6 +26,9 @@ class ChosenFile {
 
   /// The size of the file, if its provider says it.
   final int? bytes;
+
+  /// True for a link to download, not a file on the phone.
+  final bool isLink;
 }
 
 /// A `.celaut.bee` file that the user picked, copied into a private folder of the app.

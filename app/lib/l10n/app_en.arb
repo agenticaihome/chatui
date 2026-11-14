@@ -4752,7 +4752,7 @@
   },
   "celautInviteFailedTitle": "Could not connect to the invited node",
   "celautInviteNoAddress": "The invitation has no address that this app can use.",
-  "celautInviteOnionNeedsProxy": "Not tried. An onion address needs Tor through an external proxy such as Orbot. A direct connection and the Tor client of the app cannot open it.",
+  "celautInviteOnionNeedsTor": "Not tried. An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.",
   "celautInvitePrivateOverTor": "Not tried. An address on a private network cannot be reached through Tor.",
   "serviceInfoTitle": "Service details",
   "serviceInfoLoading": "Reading the service…",
@@ -5605,6 +5605,7 @@
   "btcToolBackupBlurb": "The same words as the wallet",
   "btcToolLockBlurb": "Lock the wallet: Ergo and Bitcoin",
   "celautErrorNoDescendants": "This node does not support descendants.",
+  "celautErrorOnionNeedsTor": "An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.",
   "descendantsTitle": "Descendants",
   "descendantsNote": "Instances that this instance started, and the ones that they started. The app finds them when you check. A check asks the node and costs MU.",
   "descendantsThisInstance": "This instance",
@@ -6015,5 +6016,323 @@
         "type": "String"
       }
     }
-  }
+  },
+  "celautLinkConfirmTitle": "Add this node?",
+  "celautLinkConfirmInvite": "A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.",
+  "celautLinkConfirmKey": "Key of the node",
+  "celautLinkConfirmAddresses": "Addresses, in the order that the app tries them",
+  "celautLinkConfirmSkipped": "Not tried on the current route",
+  "celautLinkConfirmListed": "This node is already in your list.",
+  "celautLinkRefusedTitle": "This link cannot be opened",
+  "celautLinkTooLong": "The link is too long for a node invitation. The app read nothing from it.",
+  "celautLinkInvalid": "The link is not a node link that this app can read.",
+  "celautLinkDamaged": "The invitation in the link is damaged.",
+  "celautLinkConfirmAddress": "A link asks to add the node at {address}. The app connects to it and checks it before it adds it to your list.",
+  "@celautLinkConfirmAddress": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkUnknownKind": "This app cannot open this kind of celaut link. A newer version may.",
+  "celautNodeShare": "Share",
+  "celautNodeShareTitle": "Share this node",
+  "celautNodeShareNote": "A phone camera that reads this code, or a tap on the link, opens the app and asks to add the node. The link has the key of the node and the addresses where this app reached it. It gives no access to your client or your credit.",
+  "celautNodeShareLink": "Share link",
+  "celautNodeShareCopied": "Link copied",
+  "celautNodeShareNone": "This app has no address of the node that another device could use, so it cannot make a link.",
+  "celautLinkSheetTitle": "Import a service",
+  "celautLinkChooseFile": "Choose a file on this phone",
+  "celautLinkFromLink": "Import from a link",
+  "celautLinkFromLinkNote": "A link to a .celaut.bee file, or to a list of the links of its parts. The app checks the file while it downloads it.",
+  "celautLinkHint": "https://…/service.celaut.bee",
+  "celautLinkPaste": "Paste",
+  "celautLinkScan": "Scan a QR code",
+  "celautLinkDownload": "Download",
+  "celautLinkClipboardEmpty": "The clipboard has no text.",
+  "celautLinkNotALink": "This is not an https:// or http:// link.",
+  "celautLinkPendingTitle": "A download stopped",
+  "celautLinkPendingBody": "{bytes} are on this phone. Continue goes on from there.",
+  "@celautLinkPendingBody": {
+    "placeholders": {
+      "bytes": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkPendingContinue": "Continue",
+  "celautLinkPendingDelete": "Delete",
+  "celautLinkDownloading": "Downloading the service…",
+  "celautLinkDownloadingNote": "The app checks each part while it arrives. The service is saved only if the whole file is valid.",
+  "celautLinkChunk": "Part {chunk} of {chunks}",
+  "@celautLinkChunk": {
+    "placeholders": {
+      "chunk": {
+        "type": "int"
+      },
+      "chunks": {
+        "type": "int"
+      }
+    }
+  },
+  "celautLinkRetries": "Connection problems: tried again {count} times",
+  "@celautLinkRetries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautLinkCancelled": "Download cancelled. Its bytes were deleted.",
+  "celautLinkStopped": "The download stopped: {reason}. The bytes that arrived stay on the phone: Continue goes on from there.",
+  "@celautLinkStopped": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkTooLarge": "The file is larger than {limit}, the limit of a download. Its bytes were deleted.",
+  "@celautLinkTooLarge": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkBadFile": "The link does not give a valid service: {reason}. Its bytes were deleted.",
+  "@celautLinkBadFile": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkFailed": "The download failed: {kind} ({reason})",
+  "@celautLinkFailed": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkHttpTitle": "Not encrypted",
+  "celautLinkHttpBody": "{url} is an http:// link. Others on the network can see what you download. The app still checks the file, so a changed file is refused.",
+  "@celautLinkHttpBody": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkHttpConfirm": "Download anyway",
+  "celautLinkImportInvalid": "This link cannot be used: {reason}",
+  "@celautLinkImportInvalid": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveAdd": "Add MU",
+  "celautMoveTakeBack": "Take back MU",
+  "celautMoveAddNote": "Move credit that you have on the node to the instance, or take back what it does not need. Nothing goes on the blockchain.",
+  "celautMoveAmount": "Amount",
+  "celautMoveHalf": "Half",
+  "celautMoveAllButOne": "All but one period",
+  "celautMoveInstanceRow": "Balance of the instance",
+  "celautMoveCreditRow": "Your credit on the node",
+  "celautMoveFee": "The node charges no fee for this move.",
+  "celautMoveAutoOnAdd": "Automatic top-up is on for this instance. It goes on adding MU when the balance is low.",
+  "celautMoveAutoOnTakeBack": "Automatic top-up is on for this instance: when the balance gets low, it moves MU to the instance again. Turn it off first to keep this MU on your credit.",
+  "celautMoveZero": "Type an amount above 0.",
+  "celautMoveOverCredit": "Your credit on this node is {credit}.",
+  "@celautMoveOverCredit": {
+    "placeholders": {
+      "credit": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveOverBalance": "The instance has {balance}.",
+  "@celautMoveOverBalance": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveLasts": "Then the instance has about {time} left, at the price of the node now.",
+  "@celautMoveLasts": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveStops": "Then the instance has less than one period left: the node stops it at its next charge.",
+  "celautMoveConfirmAddTitle": "Add MU to the instance?",
+  "celautMoveConfirmTakeBackTitle": "Take back MU from the instance?",
+  "celautMoveConfirmAddBody": "{amount} moves from your credit on {node} to the instance.",
+  "@celautMoveConfirmAddBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "node": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveConfirmTakeBackBody": "{amount} moves from the instance back to your credit on {node}.",
+  "@celautMoveConfirmTakeBackBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "node": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveConfirm": "Move",
+  "celautMoveDone": "Done. Instance: {balance}. Credit: {credit}.",
+  "@celautMoveDone": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "credit": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveRefused": "The node refused: {reason}",
+  "@celautMoveRefused": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautMoveNoBalance": "The app could not read the balance of the instance. Try again.",
+  "celautSpendTitle": "Balance and spending",
+  "celautSpendBalanceNow": "Balance now",
+  "celautSpendBalanceRead": "Balance at the last read",
+  "celautSpendSpent": "Spent",
+  "celautSpendSince": "{value}, since {date}",
+  "@celautSpendSince": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSpendReads": "What the reads of statements cost",
+  "celautSpendLastRead": "Last read",
+  "celautSpendNeverRead": "The app has not read the statement of this node yet.",
+  "celautSpendNote": "The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that left your credit and did not come back, less what your running instances still hold: the app asks the node for their balance now, which is free.",
+  "celautSpendRead": "Read the statement",
+  "celautSpendReadMore": "Read the rest",
+  "celautSpendNoRates": "This node does not say what a statement costs, so the app does not read it.",
+  "celautSpendReadTitle": "Read the statement?",
+  "celautSpendReadBody": "The node {node} charges the read to your credit: up to {max}. It writes the read as a movement. The app reads at most 100 movements after its last read; \"Read the rest\" reads the next ones.",
+  "@celautSpendReadBody": {
+    "placeholders": {
+      "node": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSpendReadConfirm": "Read",
+  "celautSpendReadDone": "The statement is verified.",
+  "celautSpendReadFailed": "The statement could not be read: {reason}",
+  "@celautSpendReadFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSpendInstances": "Spending by instance ({count})",
+  "@celautSpendInstances": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautSpendRunning": "Running",
+  "celautSpendStopped": "Stopped",
+  "celautSpendDeleted": "Deleted from the app",
+  "celautSpendNotRead": "not read yet",
+  "celautSpendCosts": "Costs of the instance",
+  "celautSpendCostsNote": "The statement of the instance splits what it spent: resources, traffic, build and the rest.",
+  "celautSpendReadCosts": "Read the costs",
+  "celautSpendReadCostsTitle": "Read the costs of the instance?",
+  "celautSpendMovedRow": "Moved to the instance",
+  "celautSpendPartial": "The node no longer keeps the older movements: the sums start at the first one that it keeps.",
+  "celautSpendIncomplete": "The node gave part of the movements. Read the rest to complete the sums.",
+  "celautSpendStarting": "Starting: {value}",
+  "@celautSpendStarting": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSpendKindMaintenance": "Resources (maintenance)",
+  "celautSpendKindTunnel": "Traffic (tunnels)",
+  "celautSpendKindBuild": "Build",
+  "celautSpendKindResourceChange": "Changes of resources",
+  "celautSpendKindStatement": "Reads of statements",
+  "celautSpendKindChildStart": "Child instances",
+  "celautSpendKindStart": "Start",
+  "celautSpendKindTopUp": "Added",
+  "celautSpendKindWithdrawal": "Taken back",
+  "celautSpendKindRefund": "Refund",
+  "celautSpendKindDeposit": "Deposits",
+  "celautSpendKindCredit": "Free credit",
+  "celautSpendKindDebit": "Taken by the operator",
+  "celautSpendPeriodToday": "Today",
+  "celautSpendPeriodWeek": "7 days",
+  "celautSpendPeriodAll": "All",
+  "celautSpendInInstances": "Still in running instances",
+  "celautSpendLiveUnknown": "{count, plural, =1{1 running instance did not give its balance now: its MU counts as spent.} other{{count} running instances did not give their balance now: their MU counts as spent.}}",
+  "@celautSpendLiveUnknown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautSpendLiveRow": "Still in the instance",
+  "celautMoveFeeOf": "The node charges {fee} for this move.",
+  "@celautMoveFeeOf": {
+    "placeholders": {
+      "fee": {
+        "type": "String"
+      }
+    }
+  },
+  "celautHomeSpent": "spent {value}",
+  "@celautHomeSpent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "celautHomeBalancesTitle": "Balance and spending by node",
+  "celautHomeBalancesNote": "The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week."
 }

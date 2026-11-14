@@ -165,6 +165,9 @@ The app checks a statement in this way. The rules follow `statement_check.verify
 A read that stops before the head (paging) is not complete. The app keeps `rows_seq` and
 the signed head. It does not set the state to alive, because the rows that are not read can
 hold the `stop`. It shows that rows are unread, and the next check goes on after `rows_seq`.
+The held instance (depth 0) shares this cursor with the tally of its spending: a check and
+"Read the costs" go on from the movement that both have read, and each read is kept in both
+([spending.md](spending.md), "One cursor for the account of an instance").
 
 The app keeps the first `service_id` that a node gives for a descendant. A statement with
 another `service_id` is refused (`ServiceChanged`), and the app keeps nothing of it. The

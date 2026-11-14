@@ -215,6 +215,14 @@ pub struct InstanceRecord {
     /// in MU (the automatic top-up, `ModifyDeposit`). The cost so far counts it.
     #[serde(default)]
     pub topped_up_mu: Option<String>,
+    /// What the user added to the instance by hand after the start, in MU ("Add MU",
+    /// issue #136). The automatic top-up is in [`InstanceRecord::topped_up_mu`].
+    #[serde(default)]
+    pub added_mu: Option<String>,
+    /// What the user took back from the instance to the credit, in MU ("Take back MU",
+    /// issue #136).
+    #[serde(default)]
+    pub withdrawn_mu: Option<String>,
     /// The time of the stop, in Unix seconds. A stopped instance stays in the database
     /// until the user deletes it (`docs/celaut/ui-chat-first.md`). An old record has
     /// none: it runs.
@@ -501,6 +509,11 @@ pub struct CelautData {
     /// `instance_ref`, not by token.
     #[serde(default)]
     pub descendant_receipts: BTreeMap<String, crate::receipts::InstanceReceipts>,
+    /// The sums of the balance statements that the app read (issue #136), by the
+    /// `account_ref` of the account: the client of the app on a node, or an instance.
+    /// They hold sums and the signed head, never a movement or a credential.
+    #[serde(default)]
+    pub tallies: BTreeMap<String, crate::spending::Tally>,
 }
 
 /// One environment variable of the container of the app.
@@ -637,6 +650,23 @@ impl CelautData {
             node.addresses.retain(|a| a != address);
             node.addresses.insert(0, address.to_string());
         }
+    }
+
+    /// Add the addresses that a node announces (its onions, from a checked advertisement:
+    /// [`crate::node_addresses::advertised_onions`]) after the ones that the app knows.
+    /// An address that the app knows keeps its place. True if an address was added.
+    pub fn add_announced_addresses(&mut self, peer_id: &str, announced: &[String]) -> bool {
+        let Some(node) = self.nodes.get_mut(peer_id) else {
+            return false;
+        };
+        let mut added = false;
+        for a in announced {
+            if !node.addresses.contains(a) {
+                node.addresses.push(a.clone());
+                added = true;
+            }
+        }
+        added
     }
 
     /// Add a quote, and drop the oldest ones over [`MAX_QUOTES`].
@@ -1004,6 +1034,8 @@ mod tests {
                 alias: Some("My echo".into()),
                 title: Some("Trip to Lisbon".into()),
                 topped_up_mu: Some("50".into()),
+                added_mu: None,
+                withdrawn_mu: None,
                 stopped_at: None,
                 refund_mu: None,
                 pricing: None,
@@ -1396,6 +1428,29 @@ mod tests {
             data.nodes[&peer].addresses,
             vec!["node.example:53460".to_string(), "10.0.0.1:1".to_string()]
         );
+    }
+
+    #[test]
+    fn an_announced_address_goes_after_the_known_ones_once() {
+        let mut data = CelautData::default();
+        sample(&mut data);
+        let peer = "aa".repeat(32);
+        let onion = "x.onion:53460".to_string();
+        assert!(data.add_announced_addresses(&peer, std::slice::from_ref(&onion)));
+        assert_eq!(
+            data.nodes[&peer].addresses,
+            vec!["node.example:53460".to_string(), onion.clone()]
+        );
+        // Again: nothing changes, and an address that the app used keeps its place.
+        data.note_address(&peer, &onion);
+        assert!(!data.add_announced_addresses(&peer, std::slice::from_ref(&onion)));
+        assert_eq!(
+            data.nodes[&peer].addresses,
+            vec![onion.clone(), "node.example:53460".to_string()]
+        );
+        // A node that the app does not know gets no record.
+        assert!(!data.add_announced_addresses("bb", &[onion]));
+        assert!(!data.nodes.contains_key("bb"));
     }
 
     #[test]

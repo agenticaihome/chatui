@@ -135,9 +135,10 @@ The screen is a store. These parts stay at the top at all times, above the part 
 scrolls:
 
 - the search field;
-- two small actions for the service files on this phone: "Import" (pick a `.celaut.bee`
-  file) and "On this phone" (a sheet with the saved files, each with Run and Remove, and
-  the import). On a narrow screen they are icons with a tooltip; from 560 dp they also
+- two small actions for the service files on this phone: "Import" (a sheet: choose a
+  `.celaut.bee` file, or import from a link, typed, pasted or scanned; issue #135, see
+  [package.md](package.md), "From a link") and "On this phone" (a sheet with the saved
+  files, each with Run and Remove, the import of a file and the import from a link). On a narrow screen they are icons with a tooltip; from 560 dp they also
   show their text. The phone icon shows the number of saved files.
 
 Under them there is one way to browse (#122): one list of the skills, in groups by field.
@@ -318,6 +319,25 @@ Details:
   on. The settings screen of keep running has a general note. A node that leaves running
   instances alone at its close (REFUSE) says nothing. A launch that fails because a node is
   closed says when its schedule opens again.
+
+## 4c. Add or take back MU, and the spending of each node (issue #136)
+
+- **Add MU / Take back MU** on the info page of a running instance, next to "Add time": an
+  amount (typed or a quick value; to take back, "Half" and "All but one period", so a quick
+  value never stops the instance), the balance of the instance and the credit before and
+  after, the fee (the `modify_deposit_mu` that the node advertises, else "no fee"), a note
+  when "Keep running" is on, and a second question before the move (`ModifyDeposit`; credit
+  already on the node, nothing on the blockchain).
+- **Balance and spending** in the detail of a node: the balance now (free), a switch
+  Today / 7 days / All, and what the signed statements say it spent in that period, less the
+  balance now of the running instances (`GetMetrics`, free), which is shown on its own line.
+  A `debit` of the operator counts as spending. A read of a statement costs MU, so it is a
+  tap with a question that gives the most that it can cost (one page of 100 movements; "Read
+  the rest" for more); the app never reads by itself. The split by instance is one tap away;
+  an instance with a `refund` in the statement shows as stopped. The home line of the credit
+  says "spent X" too (no node call, so the MU in running instances counts there), and opens
+  the split by node.
+- The details are in [spending.md](spending.md).
 
 ## 5. Open items
 

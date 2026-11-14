@@ -13,6 +13,7 @@
 //! - [`session`]: a [`NodeSession`] keeps the client id of one node and makes the calls
 //!   of a service: quote, start, stop and balance.
 //! - [`quotes`]: the quotes of several nodes, best first ([`celaut_balancer`]).
+//! - [`race`]: the addresses of one node, two at a time, the first that works.
 //! - [`local_port`]: a TCP port on 127.0.0.1 for one port of an instance. Each TCP
 //!   connection is one `ServiceTunnel` stream.
 //! - [`receipts`]: the execution receipts of the instances (nodo#419): their check when
@@ -51,16 +52,20 @@ pub mod env;
 pub mod health;
 pub mod hibernation;
 pub mod invite;
+pub mod link;
 pub mod local_port;
+pub mod node_addresses;
 pub mod overview;
 pub mod package;
 pub mod peer;
 pub mod pow;
 pub mod quotes;
+pub mod race;
 pub mod receipts;
 pub mod refusal;
 pub mod service_info;
 pub mod session;
+pub mod spending;
 pub mod store;
 
 use celaut_proto::celaut::{Client, Peer};

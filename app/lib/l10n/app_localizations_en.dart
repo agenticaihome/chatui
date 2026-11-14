@@ -6488,8 +6488,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'The invitation has no address that this app can use.';
 
   @override
-  String get celautInviteOnionNeedsProxy =>
-      'Not tried. An onion address needs Tor through an external proxy such as Orbot. A direct connection and the Tor client of the app cannot open it.';
+  String get celautInviteOnionNeedsTor =>
+      'Not tried. An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.';
 
   @override
   String get celautInvitePrivateOverTor =>
@@ -7745,6 +7745,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This node does not support descendants.';
 
   @override
+  String get celautErrorOnionNeedsTor =>
+      'An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.';
+
+  @override
   String get descendantsTitle => 'Descendants';
 
   @override
@@ -8348,4 +8352,451 @@ class AppLocalizationsEn extends AppLocalizations {
   String cardsSettingsTestValue(String value, String needed) {
     return 'Turn: $value rad/s (a gesture needs $needed)';
   }
+
+  @override
+  String get celautLinkConfirmTitle => 'Add this node?';
+
+  @override
+  String get celautLinkConfirmInvite =>
+      'A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.';
+
+  @override
+  String get celautLinkConfirmKey => 'Key of the node';
+
+  @override
+  String get celautLinkConfirmAddresses =>
+      'Addresses, in the order that the app tries them';
+
+  @override
+  String get celautLinkConfirmSkipped => 'Not tried on the current route';
+
+  @override
+  String get celautLinkConfirmListed => 'This node is already in your list.';
+
+  @override
+  String get celautLinkRefusedTitle => 'This link cannot be opened';
+
+  @override
+  String get celautLinkTooLong =>
+      'The link is too long for a node invitation. The app read nothing from it.';
+
+  @override
+  String get celautLinkInvalid =>
+      'The link is not a node link that this app can read.';
+
+  @override
+  String get celautLinkDamaged => 'The invitation in the link is damaged.';
+
+  @override
+  String celautLinkConfirmAddress(String address) {
+    return 'A link asks to add the node at $address. The app connects to it and checks it before it adds it to your list.';
+  }
+
+  @override
+  String get celautLinkUnknownKind =>
+      'This app cannot open this kind of celaut link. A newer version may.';
+
+  @override
+  String get celautNodeShare => 'Share';
+
+  @override
+  String get celautNodeShareTitle => 'Share this node';
+
+  @override
+  String get celautNodeShareNote =>
+      'A phone camera that reads this code, or a tap on the link, opens the app and asks to add the node. The link has the key of the node and the addresses where this app reached it. It gives no access to your client or your credit.';
+
+  @override
+  String get celautNodeShareLink => 'Share link';
+
+  @override
+  String get celautNodeShareCopied => 'Link copied';
+
+  @override
+  String get celautNodeShareNone =>
+      'This app has no address of the node that another device could use, so it cannot make a link.';
+
+  @override
+  String get celautLinkSheetTitle => 'Import a service';
+
+  @override
+  String get celautLinkChooseFile => 'Choose a file on this phone';
+
+  @override
+  String get celautLinkFromLink => 'Import from a link';
+
+  @override
+  String get celautLinkFromLinkNote =>
+      'A link to a .celaut.bee file, or to a list of the links of its parts. The app checks the file while it downloads it.';
+
+  @override
+  String get celautLinkHint => 'https://…/service.celaut.bee';
+
+  @override
+  String get celautLinkPaste => 'Paste';
+
+  @override
+  String get celautLinkScan => 'Scan a QR code';
+
+  @override
+  String get celautLinkDownload => 'Download';
+
+  @override
+  String get celautLinkClipboardEmpty => 'The clipboard has no text.';
+
+  @override
+  String get celautLinkNotALink => 'This is not an https:// or http:// link.';
+
+  @override
+  String get celautLinkPendingTitle => 'A download stopped';
+
+  @override
+  String celautLinkPendingBody(String bytes) {
+    return '$bytes are on this phone. Continue goes on from there.';
+  }
+
+  @override
+  String get celautLinkPendingContinue => 'Continue';
+
+  @override
+  String get celautLinkPendingDelete => 'Delete';
+
+  @override
+  String get celautLinkDownloading => 'Downloading the service…';
+
+  @override
+  String get celautLinkDownloadingNote =>
+      'The app checks each part while it arrives. The service is saved only if the whole file is valid.';
+
+  @override
+  String celautLinkChunk(int chunk, int chunks) {
+    return 'Part $chunk of $chunks';
+  }
+
+  @override
+  String celautLinkRetries(int count) {
+    return 'Connection problems: tried again $count times';
+  }
+
+  @override
+  String get celautLinkCancelled =>
+      'Download cancelled. Its bytes were deleted.';
+
+  @override
+  String celautLinkStopped(String reason) {
+    return 'The download stopped: $reason. The bytes that arrived stay on the phone: Continue goes on from there.';
+  }
+
+  @override
+  String celautLinkTooLarge(String limit) {
+    return 'The file is larger than $limit, the limit of a download. Its bytes were deleted.';
+  }
+
+  @override
+  String celautLinkBadFile(String reason) {
+    return 'The link does not give a valid service: $reason. Its bytes were deleted.';
+  }
+
+  @override
+  String celautLinkFailed(String kind, String reason) {
+    return 'The download failed: $kind ($reason)';
+  }
+
+  @override
+  String get celautLinkHttpTitle => 'Not encrypted';
+
+  @override
+  String celautLinkHttpBody(String url) {
+    return '$url is an http:// link. Others on the network can see what you download. The app still checks the file, so a changed file is refused.';
+  }
+
+  @override
+  String get celautLinkHttpConfirm => 'Download anyway';
+
+  @override
+  String celautLinkImportInvalid(String reason) {
+    return 'This link cannot be used: $reason';
+  }
+
+  @override
+  String get celautMoveAdd => 'Add MU';
+
+  @override
+  String get celautMoveTakeBack => 'Take back MU';
+
+  @override
+  String get celautMoveAddNote =>
+      'Move credit that you have on the node to the instance, or take back what it does not need. Nothing goes on the blockchain.';
+
+  @override
+  String get celautMoveAmount => 'Amount';
+
+  @override
+  String get celautMoveHalf => 'Half';
+
+  @override
+  String get celautMoveAllButOne => 'All but one period';
+
+  @override
+  String get celautMoveInstanceRow => 'Balance of the instance';
+
+  @override
+  String get celautMoveCreditRow => 'Your credit on the node';
+
+  @override
+  String get celautMoveFee => 'The node charges no fee for this move.';
+
+  @override
+  String get celautMoveAutoOnAdd =>
+      'Automatic top-up is on for this instance. It goes on adding MU when the balance is low.';
+
+  @override
+  String get celautMoveAutoOnTakeBack =>
+      'Automatic top-up is on for this instance: when the balance gets low, it moves MU to the instance again. Turn it off first to keep this MU on your credit.';
+
+  @override
+  String get celautMoveZero => 'Type an amount above 0.';
+
+  @override
+  String celautMoveOverCredit(String credit) {
+    return 'Your credit on this node is $credit.';
+  }
+
+  @override
+  String celautMoveOverBalance(String balance) {
+    return 'The instance has $balance.';
+  }
+
+  @override
+  String celautMoveLasts(String time) {
+    return 'Then the instance has about $time left, at the price of the node now.';
+  }
+
+  @override
+  String get celautMoveStops =>
+      'Then the instance has less than one period left: the node stops it at its next charge.';
+
+  @override
+  String get celautMoveConfirmAddTitle => 'Add MU to the instance?';
+
+  @override
+  String get celautMoveConfirmTakeBackTitle =>
+      'Take back MU from the instance?';
+
+  @override
+  String celautMoveConfirmAddBody(String amount, String node) {
+    return '$amount moves from your credit on $node to the instance.';
+  }
+
+  @override
+  String celautMoveConfirmTakeBackBody(String amount, String node) {
+    return '$amount moves from the instance back to your credit on $node.';
+  }
+
+  @override
+  String get celautMoveConfirm => 'Move';
+
+  @override
+  String celautMoveDone(String balance, String credit) {
+    return 'Done. Instance: $balance. Credit: $credit.';
+  }
+
+  @override
+  String celautMoveRefused(String reason) {
+    return 'The node refused: $reason';
+  }
+
+  @override
+  String get celautMoveNoBalance =>
+      'The app could not read the balance of the instance. Try again.';
+
+  @override
+  String get celautSpendTitle => 'Balance and spending';
+
+  @override
+  String get celautSpendBalanceNow => 'Balance now';
+
+  @override
+  String get celautSpendBalanceRead => 'Balance at the last read';
+
+  @override
+  String get celautSpendSpent => 'Spent';
+
+  @override
+  String celautSpendSince(String value, String date) {
+    return '$value, since $date';
+  }
+
+  @override
+  String get celautSpendReads => 'What the reads of statements cost';
+
+  @override
+  String get celautSpendLastRead => 'Last read';
+
+  @override
+  String get celautSpendNeverRead =>
+      'The app has not read the statement of this node yet.';
+
+  @override
+  String get celautSpendNote =>
+      'The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that left your credit and did not come back, less what your running instances still hold: the app asks the node for their balance now, which is free.';
+
+  @override
+  String get celautSpendRead => 'Read the statement';
+
+  @override
+  String get celautSpendReadMore => 'Read the rest';
+
+  @override
+  String get celautSpendNoRates =>
+      'This node does not say what a statement costs, so the app does not read it.';
+
+  @override
+  String get celautSpendReadTitle => 'Read the statement?';
+
+  @override
+  String celautSpendReadBody(String node, String max) {
+    return 'The node $node charges the read to your credit: up to $max. It writes the read as a movement. The app reads at most 100 movements after its last read; \"Read the rest\" reads the next ones.';
+  }
+
+  @override
+  String get celautSpendReadConfirm => 'Read';
+
+  @override
+  String get celautSpendReadDone => 'The statement is verified.';
+
+  @override
+  String celautSpendReadFailed(String reason) {
+    return 'The statement could not be read: $reason';
+  }
+
+  @override
+  String celautSpendInstances(int count) {
+    return 'Spending by instance ($count)';
+  }
+
+  @override
+  String get celautSpendRunning => 'Running';
+
+  @override
+  String get celautSpendStopped => 'Stopped';
+
+  @override
+  String get celautSpendDeleted => 'Deleted from the app';
+
+  @override
+  String get celautSpendNotRead => 'not read yet';
+
+  @override
+  String get celautSpendCosts => 'Costs of the instance';
+
+  @override
+  String get celautSpendCostsNote =>
+      'The statement of the instance splits what it spent: resources, traffic, build and the rest.';
+
+  @override
+  String get celautSpendReadCosts => 'Read the costs';
+
+  @override
+  String get celautSpendReadCostsTitle => 'Read the costs of the instance?';
+
+  @override
+  String get celautSpendMovedRow => 'Moved to the instance';
+
+  @override
+  String get celautSpendPartial =>
+      'The node no longer keeps the older movements: the sums start at the first one that it keeps.';
+
+  @override
+  String get celautSpendIncomplete =>
+      'The node gave part of the movements. Read the rest to complete the sums.';
+
+  @override
+  String celautSpendStarting(String value) {
+    return 'Starting: $value';
+  }
+
+  @override
+  String get celautSpendKindMaintenance => 'Resources (maintenance)';
+
+  @override
+  String get celautSpendKindTunnel => 'Traffic (tunnels)';
+
+  @override
+  String get celautSpendKindBuild => 'Build';
+
+  @override
+  String get celautSpendKindResourceChange => 'Changes of resources';
+
+  @override
+  String get celautSpendKindStatement => 'Reads of statements';
+
+  @override
+  String get celautSpendKindChildStart => 'Child instances';
+
+  @override
+  String get celautSpendKindStart => 'Start';
+
+  @override
+  String get celautSpendKindTopUp => 'Added';
+
+  @override
+  String get celautSpendKindWithdrawal => 'Taken back';
+
+  @override
+  String get celautSpendKindRefund => 'Refund';
+
+  @override
+  String get celautSpendKindDeposit => 'Deposits';
+
+  @override
+  String get celautSpendKindCredit => 'Free credit';
+
+  @override
+  String get celautSpendKindDebit => 'Taken by the operator';
+
+  @override
+  String get celautSpendPeriodToday => 'Today';
+
+  @override
+  String get celautSpendPeriodWeek => '7 days';
+
+  @override
+  String get celautSpendPeriodAll => 'All';
+
+  @override
+  String get celautSpendInInstances => 'Still in running instances';
+
+  @override
+  String celautSpendLiveUnknown(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count running instances did not give their balance now: their MU counts as spent.',
+      one:
+          '1 running instance did not give its balance now: its MU counts as spent.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get celautSpendLiveRow => 'Still in the instance';
+
+  @override
+  String celautMoveFeeOf(String fee) {
+    return 'The node charges $fee for this move.';
+  }
+
+  @override
+  String celautHomeSpent(String value) {
+    return 'spent $value';
+  }
+
+  @override
+  String get celautHomeBalancesTitle => 'Balance and spending by node';
+
+  @override
+  String get celautHomeBalancesNote =>
+      'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.';
 }

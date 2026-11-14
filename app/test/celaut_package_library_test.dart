@@ -63,7 +63,7 @@ void main() {
     list: () => stored,
     remove: (id) async => calls.add('remove $id'),
     privateDir: () async => dir,
-    progress: () => TransferView(stage: TransferStage.checking, bytes: BigInt.from(4), total: BigInt.from(10)),
+    progress: () => TransferView(stage: TransferStage.checking, bytes: BigInt.from(4), total: BigInt.from(10), chunk: 0, chunks: 0, retries: 0),
   );
 
   setUp(() {

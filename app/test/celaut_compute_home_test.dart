@@ -12,9 +12,12 @@ import 'package:argus_wallet/format.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
 import 'package:argus_wallet/ui/celaut/compute_home_screen.dart';
 import 'package:argus_wallet/ui/celaut/node_resources.dart';
+import 'package:argus_wallet/ui/celaut/node_spending.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/fake_spending.dart';
 
 final _a = 'aa' * 32;
 final _b = 'bb' * 32;
@@ -126,6 +129,7 @@ void main() {
     WalletMoney? money,
     double? usdPerErg = 2.0,
     Future<ComputeOverviewView> Function()? load,
+    FakeSpendingApi? spending,
   }) async {
     tester.view.physicalSize = const Size(390, 4000);
     tester.view.devicePixelRatio = 1;
@@ -140,6 +144,7 @@ void main() {
           usdPerErg: usdPerErg,
           onWallets: () => run.walletsOpened++,
           onNodes: () => run.nodesOpened++,
+          spending: spending ?? FakeSpendingApi(),
           load: () async {
             run.loads++;
             return load == null ? _overview() : load();
@@ -216,8 +221,26 @@ void main() {
     expect(wallets, contains(l.celautHomeUsd('\$0.50')));
     await tester.tap(find.byKey(const Key('compute-home-wallets')));
     expect(run.walletsOpened, 1);
+    // Issue #136: the same line has the spending, and a tap shows how the nodes split the
+    // balance and the spending, not the node list. No node was read: unknown, not 0.
+    expect(credit, contains(l.celautHomeSpent(l.celautUnknown)));
     await tester.tap(find.byKey(const Key('compute-home-credit')));
-    expect(run.nodesOpened, 1);
+    await tester.pumpAndSettle();
+    expect(find.byType(NodeBalancesScreen), findsOneWidget);
+    expect(find.byKey(Key('node-balance-$_a')), findsOneWidget);
+    expect(run.nodesOpened, 0);
+  });
+
+  testWidgets('the spending of the nodes read so far is "at least" while a node is unread', (tester) async {
+    final spending = FakeSpendingApi(views: {
+      _a: nodeSpending(peerId: _a, account: readAccount(spent: '2500000')),
+    });
+    await pump(tester, spending: spending);
+    final l = appL10n;
+    expect(
+      rowTexts(tester, 'compute-home-credit'),
+      contains(l.celautHomeSpent(l.celautAtLeast(formatNanoErg(BigInt.from(2500000)), 2))),
+    );
   });
 
   testWidgets('without the oracle price the USD is unknown, not \$0', (tester) async {

@@ -8,8 +8,10 @@ license.workspace = true
 [dependencies]
 celaut-net = { workspace = true }
 # No default features: native-tls is not used on Android. rustls and the bundled SQLite
-# (static-sqlite) make the library self-contained.
-arti-client = { version = "0.47", default-features = false, features = ["tokio", "rustls", "compression", "static-sqlite"] }
+# (static-sqlite) make the library self-contained. `onion-service-client` lets the client
+# connect to `.onion` addresses of nodes (docs/celaut/invite.md, section 3); it is not one
+# of the experimental features of Arti 0.47.
+arti-client = { version = "0.47", default-features = false, features = ["tokio", "rustls", "compression", "static-sqlite", "onion-service-client"] }
 futures = { workspace = true }
 # The type of the runtime of the client. Its features are the ones that arti-client asks.
 tor-rtcompat = { version = "0.47", default-features = false }
@@ -22,3 +24,5 @@ tracing = { workspace = true }
 [dev-dependencies]
 tokio = { workspace = true, features = ["net", "time", "io-util", "rt", "macros"] }
 wallet-net = { path = "../wallet-net" }
+celaut-client = { path = "../celaut-client" }
+celaut-wire = { workspace = true }

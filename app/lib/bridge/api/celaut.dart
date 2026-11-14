@@ -128,6 +128,10 @@ enum CelautErrorKind {
   /// The node does not know descendants (`DescendantTunnel` or the `instance_ref` of a
   /// balance statement).
   noDescendants,
+
+  /// The address is an onion and the route is direct: only Tor (the client of the app or
+  /// an external proxy) opens it. The app makes no lookup of the name.
+  onionNeedsTor,
 }
 
 /// One key and its value, as text.

@@ -20,6 +20,7 @@ import 'api/celaut_package.dart';
 import 'api/celaut_receipts.dart';
 import 'api/celaut_service.dart';
 import 'api/celaut_service_info.dart';
+import 'api/celaut_spending.dart';
 import 'api/celaut_support.dart';
 import 'api/mempool.dart';
 import 'api/storage_rent.dart';
@@ -41,6 +42,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
+  AccountSpendingView dco_decode_account_spending_view(dynamic raw);
+
+  @protected
   ApiSlotView dco_decode_api_slot_view(dynamic raw);
 
   @protected
@@ -51,6 +55,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   bool dco_decode_bool(dynamic raw);
+
+  @protected
+  AccountSpendingView dco_decode_box_autoadd_account_spending_view(dynamic raw);
 
   @protected
   AwakeResourcesView dco_decode_box_autoadd_awake_resources_view(dynamic raw);
@@ -76,10 +83,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
   @protected
+  InviteAttemptKind dco_decode_box_autoadd_invite_attempt_kind(dynamic raw);
+
+  @protected
   KnownNodeView dco_decode_box_autoadd_known_node_view(dynamic raw);
 
   @protected
   NodeAddress dco_decode_box_autoadd_node_address(dynamic raw);
+
+  @protected
+  PendingLinkView dco_decode_box_autoadd_pending_link_view(dynamic raw);
 
   @protected
   ResourceRefusalView dco_decode_box_autoadd_resource_refusal_view(dynamic raw);
@@ -238,6 +251,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   InstancePlanView dco_decode_instance_plan_view(dynamic raw);
 
   @protected
+  InstanceSpendingView dco_decode_instance_spending_view(dynamic raw);
+
+  @protected
   InstanceStateView dco_decode_instance_state_view(dynamic raw);
 
   @protected
@@ -245,6 +261,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   InstanceView dco_decode_instance_view(dynamic raw);
+
+  @protected
+  InviteAddrView dco_decode_invite_addr_view(dynamic raw);
 
   @protected
   InviteAttemptKind dco_decode_invite_attempt_kind(dynamic raw);
@@ -256,13 +275,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   InviteConnectView dco_decode_invite_connect_view(dynamic raw);
 
   @protected
+  InviteReadView dco_decode_invite_read_view(dynamic raw);
+
+  @protected
   KeyValueView dco_decode_key_value_view(dynamic raw);
+
+  @protected
+  KindFlowView dco_decode_kind_flow_view(dynamic raw);
 
   @protected
   KnownNodeView dco_decode_known_node_view(dynamic raw);
 
   @protected
   LibraryPackageView dco_decode_library_package_view(dynamic raw);
+
+  @protected
+  LinkView dco_decode_link_view(dynamic raw);
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
@@ -311,16 +339,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<InstanceListView> dco_decode_list_instance_list_view(dynamic raw);
 
   @protected
+  List<InstanceSpendingView> dco_decode_list_instance_spending_view(
+    dynamic raw,
+  );
+
+  @protected
+  List<InviteAddrView> dco_decode_list_invite_addr_view(dynamic raw);
+
+  @protected
   List<InviteAttemptView> dco_decode_list_invite_attempt_view(dynamic raw);
 
   @protected
   List<KeyValueView> dco_decode_list_key_value_view(dynamic raw);
 
   @protected
+  List<KindFlowView> dco_decode_list_kind_flow_view(dynamic raw);
+
+  @protected
   List<KnownNodeView> dco_decode_list_known_node_view(dynamic raw);
 
   @protected
   List<LibraryPackageView> dco_decode_list_library_package_view(dynamic raw);
+
+  @protected
+  List<LiveBalanceView> dco_decode_list_live_balance_view(dynamic raw);
 
   @protected
   List<NamedValueView> dco_decode_list_named_value_view(dynamic raw);
@@ -339,6 +381,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<NodeResourcesView> dco_decode_list_node_resources_view(dynamic raw);
+
+  @protected
+  List<NodeSpendingView> dco_decode_list_node_spending_view(dynamic raw);
 
   @protected
   List<NodeUriView> dco_decode_list_node_uri_view(dynamic raw);
@@ -383,6 +428,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<WorkloadView> dco_decode_list_workload_view(dynamic raw);
 
   @protected
+  LiveBalanceView dco_decode_live_balance_view(dynamic raw);
+
+  @protected
   NamedValueView dco_decode_named_value_view(dynamic raw);
 
   @protected
@@ -425,6 +473,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   NodeResourcesView dco_decode_node_resources_view(dynamic raw);
 
   @protected
+  NodeSpendingView dco_decode_node_spending_view(dynamic raw);
+
+  @protected
   NodeUriView dco_decode_node_uri_view(dynamic raw);
 
   @protected
@@ -432,6 +483,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  AccountSpendingView? dco_decode_opt_box_autoadd_account_spending_view(
+    dynamic raw,
+  );
 
   @protected
   AwakeResourcesView? dco_decode_opt_box_autoadd_awake_resources_view(
@@ -458,10 +514,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
 
   @protected
+  InviteAttemptKind? dco_decode_opt_box_autoadd_invite_attempt_kind(
+    dynamic raw,
+  );
+
+  @protected
   KnownNodeView? dco_decode_opt_box_autoadd_known_node_view(dynamic raw);
 
   @protected
   NodeAddress? dco_decode_opt_box_autoadd_node_address(dynamic raw);
+
+  @protected
+  PendingLinkView? dco_decode_opt_box_autoadd_pending_link_view(dynamic raw);
 
   @protected
   ResourceRefusalView? dco_decode_opt_box_autoadd_resource_refusal_view(
@@ -484,6 +548,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String>? dco_decode_opt_list_String(dynamic raw);
 
   @protected
+  List<LiveBalanceView>? dco_decode_opt_list_live_balance_view(dynamic raw);
+
+  @protected
   PackageView dco_decode_package_view(dynamic raw);
 
   @protected
@@ -491,6 +558,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PeerInfoView dco_decode_peer_info_view(dynamic raw);
+
+  @protected
+  PendingLinkView dco_decode_pending_link_view(dynamic raw);
 
   @protected
   ProtocolView dco_decode_protocol_view(dynamic raw);
@@ -533,6 +603,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SkillView dco_decode_skill_view(dynamic raw);
+
+  @protected
+  SpendingPeriod dco_decode_spending_period(dynamic raw);
+
+  @protected
+  SpendingQuoteView dco_decode_spending_quote_view(dynamic raw);
 
   @protected
   StartReceiptState dco_decode_start_receipt_state(dynamic raw);
@@ -586,6 +662,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
+  AccountSpendingView sse_decode_account_spending_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ApiSlotView sse_decode_api_slot_view(SseDeserializer deserializer);
 
   @protected
@@ -600,6 +681,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  AccountSpendingView sse_decode_box_autoadd_account_spending_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   AwakeResourcesView sse_decode_box_autoadd_awake_resources_view(
@@ -633,12 +719,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
+  InviteAttemptKind sse_decode_box_autoadd_invite_attempt_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   KnownNodeView sse_decode_box_autoadd_known_node_view(
     SseDeserializer deserializer,
   );
 
   @protected
   NodeAddress sse_decode_box_autoadd_node_address(SseDeserializer deserializer);
+
+  @protected
+  PendingLinkView sse_decode_box_autoadd_pending_link_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   ResourceRefusalView sse_decode_box_autoadd_resource_refusal_view(
@@ -831,6 +927,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   InstancePlanView sse_decode_instance_plan_view(SseDeserializer deserializer);
 
   @protected
+  InstanceSpendingView sse_decode_instance_spending_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   InstanceStateView sse_decode_instance_state_view(
     SseDeserializer deserializer,
   );
@@ -842,6 +943,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   InstanceView sse_decode_instance_view(SseDeserializer deserializer);
+
+  @protected
+  InviteAddrView sse_decode_invite_addr_view(SseDeserializer deserializer);
 
   @protected
   InviteAttemptKind sse_decode_invite_attempt_kind(
@@ -859,7 +963,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  InviteReadView sse_decode_invite_read_view(SseDeserializer deserializer);
+
+  @protected
   KeyValueView sse_decode_key_value_view(SseDeserializer deserializer);
+
+  @protected
+  KindFlowView sse_decode_kind_flow_view(SseDeserializer deserializer);
 
   @protected
   KnownNodeView sse_decode_known_node_view(SseDeserializer deserializer);
@@ -868,6 +978,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LibraryPackageView sse_decode_library_package_view(
     SseDeserializer deserializer,
   );
+
+  @protected
+  LinkView sse_decode_link_view(SseDeserializer deserializer);
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
@@ -928,6 +1041,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<InstanceSpendingView> sse_decode_list_instance_spending_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<InviteAddrView> sse_decode_list_invite_addr_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<InviteAttemptView> sse_decode_list_invite_attempt_view(
     SseDeserializer deserializer,
   );
@@ -938,12 +1061,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<KindFlowView> sse_decode_list_kind_flow_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<KnownNodeView> sse_decode_list_known_node_view(
     SseDeserializer deserializer,
   );
 
   @protected
   List<LibraryPackageView> sse_decode_list_library_package_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<LiveBalanceView> sse_decode_list_live_balance_view(
     SseDeserializer deserializer,
   );
 
@@ -970,6 +1103,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<NodeResourcesView> sse_decode_list_node_resources_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<NodeSpendingView> sse_decode_list_node_spending_view(
     SseDeserializer deserializer,
   );
 
@@ -1032,6 +1170,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  LiveBalanceView sse_decode_live_balance_view(SseDeserializer deserializer);
+
+  @protected
   NamedValueView sse_decode_named_value_view(SseDeserializer deserializer);
 
   @protected
@@ -1078,6 +1219,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  NodeSpendingView sse_decode_node_spending_view(SseDeserializer deserializer);
+
+  @protected
   NodeUriView sse_decode_node_uri_view(SseDeserializer deserializer);
 
   @protected
@@ -1085,6 +1229,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  AccountSpendingView? sse_decode_opt_box_autoadd_account_spending_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   AwakeResourcesView? sse_decode_opt_box_autoadd_awake_resources_view(
@@ -1113,12 +1262,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
+  InviteAttemptKind? sse_decode_opt_box_autoadd_invite_attempt_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   KnownNodeView? sse_decode_opt_box_autoadd_known_node_view(
     SseDeserializer deserializer,
   );
 
   @protected
   NodeAddress? sse_decode_opt_box_autoadd_node_address(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PendingLinkView? sse_decode_opt_box_autoadd_pending_link_view(
     SseDeserializer deserializer,
   );
 
@@ -1145,6 +1304,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String>? sse_decode_opt_list_String(SseDeserializer deserializer);
 
   @protected
+  List<LiveBalanceView>? sse_decode_opt_list_live_balance_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PackageView sse_decode_package_view(SseDeserializer deserializer);
 
   @protected
@@ -1154,6 +1318,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PeerInfoView sse_decode_peer_info_view(SseDeserializer deserializer);
+
+  @protected
+  PendingLinkView sse_decode_pending_link_view(SseDeserializer deserializer);
 
   @protected
   ProtocolView sse_decode_protocol_view(SseDeserializer deserializer);
@@ -1202,6 +1369,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SkillView sse_decode_skill_view(SseDeserializer deserializer);
+
+  @protected
+  SpendingPeriod sse_decode_spending_period(SseDeserializer deserializer);
+
+  @protected
+  SpendingQuoteView sse_decode_spending_quote_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   StartReceiptState sse_decode_start_receipt_state(
@@ -1261,6 +1436,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
+  void sse_encode_account_spending_view(
+    AccountSpendingView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_api_slot_view(ApiSlotView self, SseSerializer serializer);
 
   @protected
@@ -1277,6 +1458,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_account_spending_view(
+    AccountSpendingView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_awake_resources_view(
@@ -1318,6 +1505,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_invite_attempt_kind(
+    InviteAttemptKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_known_node_view(
     KnownNodeView self,
     SseSerializer serializer,
@@ -1326,6 +1519,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_node_address(
     NodeAddress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pending_link_view(
+    PendingLinkView self,
     SseSerializer serializer,
   );
 
@@ -1591,6 +1790,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_instance_spending_view(
+    InstanceSpendingView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_instance_state_view(
     InstanceStateView self,
     SseSerializer serializer,
@@ -1604,6 +1809,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_instance_view(InstanceView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_invite_addr_view(
+    InviteAddrView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_invite_attempt_kind(
@@ -1624,7 +1835,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_invite_read_view(
+    InviteReadView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_key_value_view(KeyValueView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_kind_flow_view(KindFlowView self, SseSerializer serializer);
 
   @protected
   void sse_encode_known_node_view(KnownNodeView self, SseSerializer serializer);
@@ -1634,6 +1854,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     LibraryPackageView self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_link_view(LinkView self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
@@ -1717,6 +1940,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_instance_spending_view(
+    List<InstanceSpendingView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_invite_addr_view(
+    List<InviteAddrView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_invite_attempt_view(
     List<InviteAttemptView> self,
     SseSerializer serializer,
@@ -1729,6 +1964,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_kind_flow_view(
+    List<KindFlowView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_known_node_view(
     List<KnownNodeView> self,
     SseSerializer serializer,
@@ -1737,6 +1978,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_library_package_view(
     List<LibraryPackageView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_live_balance_view(
+    List<LiveBalanceView> self,
     SseSerializer serializer,
   );
 
@@ -1773,6 +2020,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_node_resources_view(
     List<NodeResourcesView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_node_spending_view(
+    List<NodeSpendingView> self,
     SseSerializer serializer,
   );
 
@@ -1858,6 +2111,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_live_balance_view(
+    LiveBalanceView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_named_value_view(
     NamedValueView self,
     SseSerializer serializer,
@@ -1927,6 +2186,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_node_spending_view(
+    NodeSpendingView self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_node_uri_view(NodeUriView self, SseSerializer serializer);
 
   @protected
@@ -1934,6 +2199,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_account_spending_view(
+    AccountSpendingView? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_opt_box_autoadd_awake_resources_view(
@@ -1969,6 +2240,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_invite_attempt_kind(
+    InviteAttemptKind? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_known_node_view(
     KnownNodeView? self,
     SseSerializer serializer,
@@ -1977,6 +2254,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_node_address(
     NodeAddress? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_pending_link_view(
+    PendingLinkView? self,
     SseSerializer serializer,
   );
 
@@ -2005,6 +2288,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_list_String(List<String>? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_list_live_balance_view(
+    List<LiveBalanceView>? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_package_view(PackageView self, SseSerializer serializer);
 
   @protected
@@ -2015,6 +2304,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_peer_info_view(PeerInfoView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pending_link_view(
+    PendingLinkView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_protocol_view(ProtocolView self, SseSerializer serializer);
@@ -2081,6 +2376,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_skill_view(SkillView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_spending_period(
+    SpendingPeriod self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_spending_quote_view(
+    SpendingQuoteView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_start_receipt_state(

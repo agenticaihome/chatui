@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/api/celaut.dart';
 import '../../bridge/api/celaut_home.dart';
 import '../../bridge/api/celaut_service.dart';
+import '../../bridge/api/celaut_spending.dart';
 import '../../celaut/celaut_format.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/host_port.dart';
@@ -16,6 +17,7 @@ import '../home/home_style.dart';
 import '../layout.dart';
 import 'client_unknown_dialog.dart';
 import 'node_resources.dart';
+import 'node_spending.dart';
 
 /// The compute view (`docs/celaut/ui.md`, section 2), in the look of the Celaut landing
 /// page: the Compute tab of the home screen (`docs/celaut/ui-chat-first.md`). It shows
@@ -43,7 +45,12 @@ class ComputeHomeScreen extends StatefulWidget {
     this.newClient,
     this.refreshPrice,
     this.sections = const [],
+    this.spending = const SpendingApi(),
   });
+
+  /// The spending on the nodes, from the statements that the app read (issue #136). Tests
+  /// give their own.
+  final SpendingApi spending;
 
   /// The rows under the state: the pages of the Compute tab (Nodes, Services).
   final List<Widget> sections;
@@ -245,6 +252,24 @@ class ComputeHomeScreenState extends State<ComputeHomeScreen> {
     format: ergTextOrUnknown,
   );
 
+  /// The spending on all the nodes, from the last statement read on each (no read here).
+  String _spent(ComputeOverviewView d) {
+    List<NodeSpendingView> spending;
+    try {
+      spending = widget.spending.overview();
+    } on Object {
+      spending = const [];
+    }
+    final s = spentNanoErg(d, spending);
+    return partialSum<BigInt>(
+      total: s.total,
+      known: s.known,
+      unknownNodes: s.unknown,
+      atLeast: s.total == null && s.unknown < d.nodes.length,
+      format: formatNanoErg,
+    );
+  }
+
   /// The card of state: the nodes, the credit on them, and the full wallets.
   List<Widget> _state(BuildContext context, ComputeOverviewView? d) {
     final l = context.l10n;
@@ -321,13 +346,17 @@ class ComputeHomeScreenState extends State<ComputeHomeScreen> {
             ],
           ),
         ),
+      // Issue #136: one line with the balance and the spending on all the nodes; a tap
+      // shows how the nodes split them.
       if (d != null && d.nodes.isNotEmpty)
         _Line(
           key: const Key('compute-home-credit'),
-          onTap: widget.onNodes,
+          onTap: () => Navigator.of(context).push<void>(
+            MaterialPageRoute(builder: (_) => NodeBalancesScreen(overview: d, api: widget.spending)),
+          ),
           title: l.celautHomeCreditOnNodes,
           value: _erg(d.creditNanoErg),
-          detail: usdTextOf(nanoOf(d.creditNanoErg.total), usd),
+          detail: '${usdTextOf(nanoOf(d.creditNanoErg.total), usd)} · ${l.celautHomeSpent(_spent(d))}',
         ),
       _Line(
         key: const Key('compute-home-wallets'),

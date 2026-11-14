@@ -64,6 +64,14 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- The app gives links to Dart itself (DeepLinkHandler: ergopay:, celaut:). The
+                 deep linking of Flutter, on by default, would also push the link as a route
+                 while the app runs: an unknown route is a second home screen, over the
+                 dialog that the link opened. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false"
+              />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -107,6 +115,40 @@
                 <data android:pathPattern=".*\\.celaut\\.bee"/>
                 <data android:pathPattern=".*\\..*\\.celaut\\.bee"/>
                 <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
+            </intent-filter>
+            <!-- An http(s) link to a .celaut.bee file, when the browser or another app
+                 offers the app for it (no domain is verified, so Android 12+ opens such a
+                 link in the browser unless an app asks for a chooser). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"/>
+                <data android:scheme="http"/>
+                <data android:host="*"/>
+                <data android:pathPattern=".*\\.celaut\\.bee"/>
+                <data android:pathPattern=".*\\..*\\.celaut\\.bee"/>
+                <data android:pathPattern=".*\\..*\\..*\\.celaut\\.bee"/>
+            </intent-filter>
+        </activity>
+        <!-- Gives every celaut:// link that another app opens to MainActivity, in the task
+             of the app, and shows nothing (OpenLinkActivity). The app chooses what to do by
+             the host (celaut://node: a node, docs/celaut/invite.md section 6) and asks the
+             user first. celaut://import?url=<the link> (issue #135, docs/celaut/package.md
+             "From a link") is the exception: OpenLinkActivity gives its url to MainActivity,
+             and the app asks before it downloads the service. -->
+        <activity
+            android:name=".OpenLinkActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="celaut"/>
             </intent-filter>
         </activity>
         <service

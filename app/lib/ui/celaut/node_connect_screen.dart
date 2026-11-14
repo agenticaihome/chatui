@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../bridge/api/celaut.dart';
@@ -11,14 +13,17 @@ import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
 import 'client_unknown_dialog.dart';
 import 'id_row.dart';
+import 'node_link.dart';
 import 'node_resources.dart';
+import 'node_spending.dart';
 
 /// Connect to a Celaut node and show its advertisement, after the identity and signature
 /// checks. From the node list it is the detail of a node ([address] given: it connects at
 /// once). The ids show in short form, with Copy and "Show full id"; the client id of the app
 /// shows only here, never in the node list (issue #123). The resources show as one summary
 /// line, with a bar for each resource when [overview] gives the other nodes; the
-/// architectures and the benchmark are in a closed "Details" part.
+/// architectures and the benchmark are in a closed "Details" part. The Share action of the
+/// detail makes the `celaut://` link of the node ([showNodeShare]).
 class NodeConnectScreen extends StatefulWidget {
   const NodeConnectScreen({
     super.key,
@@ -27,7 +32,12 @@ class NodeConnectScreen extends StatefulWidget {
     this.overview,
     this.clientIdOf,
     this.newClient,
+    this.spending = const SpendingApi(),
+    this.nodeInvite,
   });
+
+  /// The calls of "Balance and spending" (issue #136). Tests give their own.
+  final SpendingApi spending;
 
   /// The node to show at once (`host:port`); null for an empty form.
   final String? address;
@@ -43,6 +53,10 @@ class NodeConnectScreen extends StatefulWidget {
 
   /// Make a new client on a node that forgot the client id. Tests give their own.
   final Future<NewClientView> Function(NodeAddress node)? newClient;
+
+  /// Make the invitation of a node for the Share action (`celaut_node_invite`). Tests give
+  /// their own.
+  final Uint8List Function(String peerId)? nodeInvite;
 
   @override
   State<NodeConnectScreen> createState() => _NodeConnectScreenState();
@@ -166,8 +180,18 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
     // The detail of a node of the list: no form (it would show the full peer id), only the
     // address and "Check now".
     if (widget.address != null) {
+      final peerId = widget.expectedPeerId ?? info?.peerId;
       return SettingsPage(
         title: appL10n.celautNodesDetail,
+        actions: [
+          if (peerId != null)
+            IconButton(
+              key: const Key('celaut-node-share'),
+              tooltip: appL10n.celautNodeShare,
+              icon: const Icon(Icons.share_outlined),
+              onPressed: () => showNodeShare(context, peerId, invite: widget.nodeInvite),
+            ),
+        ],
         children: [
           Row(
             children: [
@@ -290,6 +314,12 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
           ],
         ),
       ),
+      // Issue #136: the balance and the spending of the client on this node, in the
+      // detail of a node of the list, when the app has a client there.
+      if (widget.address != null && _clientId != null) ...[
+        const SizedBox(height: 24),
+        NodeSpendingSection(peerId: info.peerId, address: _addressCtrl.text, api: widget.spending),
+      ],
       const SizedBox(height: 24),
       SectionLabel(CelautStrings.urisTitle),
       const SizedBox(height: 10),

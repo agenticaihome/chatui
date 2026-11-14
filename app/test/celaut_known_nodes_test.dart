@@ -4,7 +4,9 @@ import 'package:argus_wallet/bridge/api/celaut_home.dart';
 import 'package:argus_wallet/bridge/api/celaut_invite.dart';
 import 'package:argus_wallet/bridge/api/celaut_service.dart';
 import 'package:argus_wallet/bridge/frb_generated.dart';
+import 'package:argus_wallet/celaut/celaut_link.dart';
 import 'package:argus_wallet/celaut/celaut_strings.dart';
+import 'package:argus_wallet/celaut/host_port.dart';
 import 'package:argus_wallet/celaut/invite_scan.dart';
 import 'package:argus_wallet/format.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
@@ -44,6 +46,25 @@ class _Db implements KnownNodes {
   /// The answers of `connectInvite`, in order, and the bytes that it was given.
   final invites = <InviteConnectView>[];
   final invited = <Uint8List>[];
+
+  /// The invitations that were read for the confirmation, and the errors of the reader.
+  final read = <Uint8List>[];
+  final readErrors = <CelautError>[];
+
+  @override
+  InviteReadView readInvite(Uint8List invite) {
+    read.add(invite);
+    if (readErrors.isNotEmpty) throw readErrors.removeAt(0);
+    final key = invite.sublist(2, 34).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return InviteReadView(
+      peerId: key,
+      addresses: const [
+        InviteAddrView(address: 'b.example:2'),
+        InviteAddrView(address: 'x.onion:3', skipped: InviteAttemptKind.onionNeedsTor),
+      ],
+      listed: records[key]?.listed ?? false,
+    );
+  }
 
   @override
   Future<InviteConnectView> connectInvite(Uint8List invite) async {
@@ -117,6 +138,8 @@ void main() {
     List<ScannedCode?>? codes,
     bool camera = false,
     _Db? with_,
+    Uint8List? invite,
+    HostPort? address,
   }) async {
     tester.view.physicalSize = const Size(390, 2400);
     tester.view.devicePixelRatio = 1;
@@ -130,6 +153,8 @@ void main() {
             made?.add('${node.host}:${node.port}');
             return NewClientView(peerId: _b, earlierClients: 1);
           },
+          invite: invite,
+          address: address,
           // The QR codes that the scanner reads, in order; null is "back". With
           // `camera`, the app's scanner opens (the test has no camera).
           scan: camera
@@ -289,6 +314,30 @@ void main() {
     expect(db.records.keys, [_a]);
   });
 
+  testWidgets('a typed onion on a direct route shows only the hint to turn on Tor', (
+    tester,
+  ) async {
+    final db = await pump(tester);
+    db.errors.add(
+      const CelautError(
+        kind: CelautErrorKind.onionNeedsTor,
+        message: 'an onion address needs Tor: turn on Tor in the network settings',
+      ),
+    );
+    const onion = 'a4ddngexample.onion:58526';
+    await tester.enterText(find.byKey(const Key('nodes-address')), onion);
+    await tester.tap(find.byKey(const Key('nodes-add')));
+    await tester.pumpAndSettle();
+    expect(db.adds, [onion]);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('nodes-error'))).data,
+      appL10n.celautErrorOnionNeedsTor,
+    );
+    expect(appL10n.celautErrorOnionNeedsTor, contains('Turn on Tor'));
+    expect(find.textContaining('turn on Tor in the network settings'), findsNothing);
+    expect(db.records.keys, [_a]);
+  });
+
   testWidgets('back from the scanner changes nothing; the address field still works', (
     tester,
   ) async {
@@ -415,12 +464,59 @@ void main() {
       await pump(tester, with_: db, codes: [ScannedCode(bytes: bytes)]);
       await tester.tap(find.byKey(const Key('nodes-scan')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('node-invite-add')));
+      await tester.pumpAndSettle();
       expect(db.invited, [bytes]);
       expect(db.adds, isEmpty, reason: 'it is not a typed address');
       expect(find.byKey(Key('nodes-row-$_b')), findsOneWidget);
       expect(find.text(appL10n.celautInviteConnected('b.example:2')), findsOneWidget);
       expect(find.byKey(const Key('nodes-invite-failed')), findsNothing);
       expect(find.byKey(const Key('nodes-error')), findsNothing);
+    });
+
+    testWidgets('the raced addresses: the note names the one that connected, not the first', (tester) async {
+      // #139: the first two addresses start at the same time; the second connected first
+      // and the first was stopped.
+      final db = _Db();
+      db.invites.add(
+        InviteConnectView(
+          peerId: _b,
+          node: nodeB('b.example:2'),
+          attempts: [
+            attempt('203.0.113.7:1', InviteAttemptKind.notNeeded),
+            attempt('b.example:2', InviteAttemptKind.connected),
+          ],
+        ),
+      );
+      await pump(tester, with_: db, codes: [ScannedCode(bytes: invite())]);
+      await tester.tap(find.byKey(const Key('nodes-scan')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('node-invite-add')));
+      await tester.pumpAndSettle();
+      expect(find.text(appL10n.celautInviteConnected('b.example:2')), findsOneWidget);
+      expect(find.byKey(const Key('nodes-invite-failed')), findsNothing);
+      expect(find.byKey(Key('nodes-row-$_b')), findsOneWidget);
+    });
+
+    testWidgets('an address that was not needed never shows a reason', (tester) async {
+      final db = _Db();
+      db.invites.add(
+        InviteConnectView(
+          peerId: _b,
+          attempts: [
+            attempt('203.0.113.7:1', InviteAttemptKind.failed, error: CelautErrorKind.timeout),
+            attempt('198.51.100.9:2', InviteAttemptKind.notNeeded),
+          ],
+        ),
+      );
+      await pump(tester, with_: db, codes: [ScannedCode(bytes: invite())]);
+      await tester.tap(find.byKey(const Key('nodes-scan')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('node-invite-add')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('nodes-invite-failed')), findsOneWidget);
+      expect(find.text('203.0.113.7:1'), findsOneWidget);
+      expect(find.text('198.51.100.9:2'), findsNothing);
     });
 
     testWidgets('when no address works, each one says why', (tester) async {
@@ -430,7 +526,7 @@ void main() {
           peerId: _b,
           attempts: [
             attempt('203.0.113.7:1', InviteAttemptKind.failed, error: CelautErrorKind.identityMismatch),
-            attempt('x.onion:2', InviteAttemptKind.onionNeedsProxy),
+            attempt('x.onion:2', InviteAttemptKind.onionNeedsTor),
             attempt('[fd00::1]:3', InviteAttemptKind.privateOverTor),
           ],
         ),
@@ -438,11 +534,13 @@ void main() {
       await pump(tester, with_: db, codes: [ScannedCode(bytes: invite())]);
       await tester.tap(find.byKey(const Key('nodes-scan')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('node-invite-add')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('nodes-invite-failed')), findsOneWidget);
       expect(find.text(appL10n.celautInviteFailedTitle), findsOneWidget);
       expect(find.text('203.0.113.7:1'), findsOneWidget);
       expect(find.text(CelautStrings.errorText(CelautErrorKind.identityMismatch)), findsOneWidget);
-      expect(find.text(appL10n.celautInviteOnionNeedsProxy), findsOneWidget);
+      expect(find.text(appL10n.celautInviteOnionNeedsTor), findsOneWidget);
       expect(find.text(appL10n.celautInvitePrivateOverTor), findsOneWidget);
       expect(find.byKey(Key('nodes-row-$_b')), findsNothing);
       expect(db.records.keys, [_a]);
@@ -453,15 +551,19 @@ void main() {
       await pump(tester, with_: db, codes: [ScannedCode(bytes: invite())]);
       await tester.tap(find.byKey(const Key('nodes-scan')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('node-invite-add')));
+      await tester.pumpAndSettle();
       expect(find.text(appL10n.celautInviteNoAddress), findsOneWidget);
     });
 
     testWidgets('bytes that Rust does not read as an invitation are a bad address', (tester) async {
-      final db = _Db()..errors.add(const CelautError(kind: CelautErrorKind.invalidInput, message: 'Not a peer invitation'));
+      final db = _Db()..readErrors.add(const CelautError(kind: CelautErrorKind.invalidInput, message: 'Not a peer invitation'));
       await pump(tester, with_: db, codes: [ScannedCode(bytes: invite())]);
       await tester.tap(find.byKey(const Key('nodes-scan')));
       await tester.pumpAndSettle();
-      expect(db.invited, hasLength(1));
+      expect(db.read, hasLength(1));
+      expect(find.byKey(const Key('node-invite-confirm')), findsNothing);
+      expect(db.invited, isEmpty);
       expect(find.text(appL10n.celautAddressInvalid), findsOneWidget);
       expect(db.records.keys, [_a]);
     });
@@ -516,6 +618,8 @@ void main() {
       await pump(tester, with_: db, made: made, codes: [ScannedCode(bytes: invite())]);
       await tester.tap(find.byKey(const Key('nodes-scan')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('node-invite-add')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('client-unknown-dialog')), findsOneWidget);
       await tester.tap(find.byKey(const Key('client-unknown-new')));
       await tester.pumpAndSettle();
@@ -523,6 +627,85 @@ void main() {
       expect(db.invited, hasLength(2));
       expect(find.byKey(Key('nodes-row-$_b')), findsOneWidget);
       expect(find.byKey(const Key('nodes-invite-failed')), findsNothing);
+    });
+    testWidgets('the confirmation shows the key and the addresses, and Cancel connects nothing', (tester) async {
+      final db = _Db();
+      final bytes = invite();
+      await pump(tester, with_: db, codes: [ScannedCode(bytes: bytes)]);
+      await tester.tap(find.byKey(const Key('nodes-scan')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('node-invite-confirm')), findsOneWidget);
+      expect(find.text(appL10n.celautLinkConfirmTitle), findsOneWidget);
+      expect(find.text('bbbbbb…bbbb'), findsOneWidget, reason: 'the key in short form');
+      expect(find.text('b.example:2'), findsOneWidget);
+      expect(find.text('x.onion:3'), findsOneWidget);
+      expect(find.text(appL10n.celautLinkConfirmSkipped), findsOneWidget);
+      expect(find.byKey(const Key('node-invite-listed')), findsNothing);
+      await tester.tap(find.byKey(const Key('node-invite-cancel')));
+      await tester.pumpAndSettle();
+      expect(db.read, [bytes]);
+      expect(db.invited, isEmpty);
+      expect(db.records.keys, [_a]);
+    });
+
+    testWidgets('the confirmation says when the node is already in the list', (tester) async {
+      final db = _Db();
+      await pump(tester, with_: db, codes: [ScannedCode(bytes: invite(0xaa))]);
+      await tester.tap(find.byKey(const Key('nodes-scan')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('node-invite-listed')), findsOneWidget);
+    });
+
+    testWidgets('a QR code with the text of a celaut:// invitation link is an invitation', (tester) async {
+      final db = _Db();
+      db.invites.add(
+        InviteConnectView(
+          peerId: _b,
+          node: nodeB('b.example:2'),
+          attempts: [attempt('b.example:2', InviteAttemptKind.connected)],
+        ),
+      );
+      final bytes = invite();
+      await pump(tester, with_: db, scans: [celautInviteLink(bytes)]);
+      await tester.tap(find.byKey(const Key('nodes-scan')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('node-invite-confirm')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('node-invite-add')));
+      await tester.pumpAndSettle();
+      expect(db.invited, [bytes]);
+      expect(find.byKey(Key('nodes-row-$_b')), findsOneWidget);
+    });
+
+    testWidgets('a damaged invitation link in a QR code is a bad address', (tester) async {
+      final db = _Db();
+      await pump(tester, with_: db, scans: ['celaut://node?invite=AAAA']);
+      await tester.tap(find.byKey(const Key('nodes-scan')));
+      await tester.pumpAndSettle();
+      expect(db.read, isEmpty);
+      expect(find.text(appL10n.celautAddressInvalid), findsOneWidget);
+    });
+
+    testWidgets('opened with an invitation that the user confirmed, it connects at once', (tester) async {
+      final db = _Db();
+      db.invites.add(
+        InviteConnectView(
+          peerId: _b,
+          node: nodeB('b.example:2'),
+          attempts: [attempt('b.example:2', InviteAttemptKind.connected)],
+        ),
+      );
+      final bytes = invite();
+      await pump(tester, with_: db, invite: bytes);
+      expect(find.byKey(const Key('node-invite-confirm')), findsNothing, reason: 'the link asked already');
+      expect(db.invited, [bytes]);
+      expect(find.byKey(Key('nodes-row-$_b')), findsOneWidget);
+      expect(find.text(appL10n.celautInviteConnected('b.example:2')), findsOneWidget);
+    });
+
+    testWidgets('opened with an address that the user confirmed, it adds it at once', (tester) async {
+      final db = await pump(tester, address: const HostPort('b.example', 2));
+      expect(db.adds, ['b.example:2']);
+      expect(find.byKey(Key('nodes-row-$_b')), findsOneWidget);
     });
   });
 }

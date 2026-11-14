@@ -10373,11 +10373,11 @@ abstract class AppLocalizations {
   /// **'The invitation has no address that this app can use.'**
   String get celautInviteNoAddress;
 
-  /// No description provided for @celautInviteOnionNeedsProxy.
+  /// No description provided for @celautInviteOnionNeedsTor.
   ///
   /// In en, this message translates to:
-  /// **'Not tried. An onion address needs Tor through an external proxy such as Orbot. A direct connection and the Tor client of the app cannot open it.'**
-  String get celautInviteOnionNeedsProxy;
+  /// **'Not tried. An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.'**
+  String get celautInviteOnionNeedsTor;
 
   /// No description provided for @celautInvitePrivateOverTor.
   ///
@@ -12437,6 +12437,12 @@ abstract class AppLocalizations {
   /// **'This node does not support descendants.'**
   String get celautErrorNoDescendants;
 
+  /// No description provided for @celautErrorOnionNeedsTor.
+  ///
+  /// In en, this message translates to:
+  /// **'An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.'**
+  String get celautErrorOnionNeedsTor;
+
   /// No description provided for @descendantsTitle.
   ///
   /// In en, this message translates to:
@@ -13414,6 +13420,738 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turn: {value} rad/s (a gesture needs {needed})'**
   String cardsSettingsTestValue(String value, String needed);
+
+  /// No description provided for @celautLinkConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add this node?'**
+  String get celautLinkConfirmTitle;
+
+  /// No description provided for @celautLinkConfirmInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'A link invites you to a node. The app connects to it and checks that it holds this key before it adds it to your list.'**
+  String get celautLinkConfirmInvite;
+
+  /// No description provided for @celautLinkConfirmKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key of the node'**
+  String get celautLinkConfirmKey;
+
+  /// No description provided for @celautLinkConfirmAddresses.
+  ///
+  /// In en, this message translates to:
+  /// **'Addresses, in the order that the app tries them'**
+  String get celautLinkConfirmAddresses;
+
+  /// No description provided for @celautLinkConfirmSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Not tried on the current route'**
+  String get celautLinkConfirmSkipped;
+
+  /// No description provided for @celautLinkConfirmListed.
+  ///
+  /// In en, this message translates to:
+  /// **'This node is already in your list.'**
+  String get celautLinkConfirmListed;
+
+  /// No description provided for @celautLinkRefusedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This link cannot be opened'**
+  String get celautLinkRefusedTitle;
+
+  /// No description provided for @celautLinkTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'The link is too long for a node invitation. The app read nothing from it.'**
+  String get celautLinkTooLong;
+
+  /// No description provided for @celautLinkInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The link is not a node link that this app can read.'**
+  String get celautLinkInvalid;
+
+  /// No description provided for @celautLinkDamaged.
+  ///
+  /// In en, this message translates to:
+  /// **'The invitation in the link is damaged.'**
+  String get celautLinkDamaged;
+
+  /// No description provided for @celautLinkConfirmAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'A link asks to add the node at {address}. The app connects to it and checks it before it adds it to your list.'**
+  String celautLinkConfirmAddress(String address);
+
+  /// No description provided for @celautLinkUnknownKind.
+  ///
+  /// In en, this message translates to:
+  /// **'This app cannot open this kind of celaut link. A newer version may.'**
+  String get celautLinkUnknownKind;
+
+  /// No description provided for @celautNodeShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get celautNodeShare;
+
+  /// No description provided for @celautNodeShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this node'**
+  String get celautNodeShareTitle;
+
+  /// No description provided for @celautNodeShareNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A phone camera that reads this code, or a tap on the link, opens the app and asks to add the node. The link has the key of the node and the addresses where this app reached it. It gives no access to your client or your credit.'**
+  String get celautNodeShareNote;
+
+  /// No description provided for @celautNodeShareLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Share link'**
+  String get celautNodeShareLink;
+
+  /// No description provided for @celautNodeShareCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get celautNodeShareCopied;
+
+  /// No description provided for @celautNodeShareNone.
+  ///
+  /// In en, this message translates to:
+  /// **'This app has no address of the node that another device could use, so it cannot make a link.'**
+  String get celautNodeShareNone;
+
+  /// No description provided for @celautLinkSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a service'**
+  String get celautLinkSheetTitle;
+
+  /// No description provided for @celautLinkChooseFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a file on this phone'**
+  String get celautLinkChooseFile;
+
+  /// No description provided for @celautLinkFromLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from a link'**
+  String get celautLinkFromLink;
+
+  /// No description provided for @celautLinkFromLinkNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A link to a .celaut.bee file, or to a list of the links of its parts. The app checks the file while it downloads it.'**
+  String get celautLinkFromLinkNote;
+
+  /// No description provided for @celautLinkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://…/service.celaut.bee'**
+  String get celautLinkHint;
+
+  /// No description provided for @celautLinkPaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get celautLinkPaste;
+
+  /// No description provided for @celautLinkScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR code'**
+  String get celautLinkScan;
+
+  /// No description provided for @celautLinkDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get celautLinkDownload;
+
+  /// No description provided for @celautLinkClipboardEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The clipboard has no text.'**
+  String get celautLinkClipboardEmpty;
+
+  /// No description provided for @celautLinkNotALink.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not an https:// or http:// link.'**
+  String get celautLinkNotALink;
+
+  /// No description provided for @celautLinkPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A download stopped'**
+  String get celautLinkPendingTitle;
+
+  /// No description provided for @celautLinkPendingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{bytes} are on this phone. Continue goes on from there.'**
+  String celautLinkPendingBody(String bytes);
+
+  /// No description provided for @celautLinkPendingContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get celautLinkPendingContinue;
+
+  /// No description provided for @celautLinkPendingDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get celautLinkPendingDelete;
+
+  /// No description provided for @celautLinkDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading the service…'**
+  String get celautLinkDownloading;
+
+  /// No description provided for @celautLinkDownloadingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The app checks each part while it arrives. The service is saved only if the whole file is valid.'**
+  String get celautLinkDownloadingNote;
+
+  /// No description provided for @celautLinkChunk.
+  ///
+  /// In en, this message translates to:
+  /// **'Part {chunk} of {chunks}'**
+  String celautLinkChunk(int chunk, int chunks);
+
+  /// No description provided for @celautLinkRetries.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection problems: tried again {count} times'**
+  String celautLinkRetries(int count);
+
+  /// No description provided for @celautLinkCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Download cancelled. Its bytes were deleted.'**
+  String get celautLinkCancelled;
+
+  /// No description provided for @celautLinkStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'The download stopped: {reason}. The bytes that arrived stay on the phone: Continue goes on from there.'**
+  String celautLinkStopped(String reason);
+
+  /// No description provided for @celautLinkTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The file is larger than {limit}, the limit of a download. Its bytes were deleted.'**
+  String celautLinkTooLarge(String limit);
+
+  /// No description provided for @celautLinkBadFile.
+  ///
+  /// In en, this message translates to:
+  /// **'The link does not give a valid service: {reason}. Its bytes were deleted.'**
+  String celautLinkBadFile(String reason);
+
+  /// No description provided for @celautLinkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The download failed: {kind} ({reason})'**
+  String celautLinkFailed(String kind, String reason);
+
+  /// No description provided for @celautLinkHttpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Not encrypted'**
+  String get celautLinkHttpTitle;
+
+  /// No description provided for @celautLinkHttpBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{url} is an http:// link. Others on the network can see what you download. The app still checks the file, so a changed file is refused.'**
+  String celautLinkHttpBody(String url);
+
+  /// No description provided for @celautLinkHttpConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Download anyway'**
+  String get celautLinkHttpConfirm;
+
+  /// No description provided for @celautLinkImportInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This link cannot be used: {reason}'**
+  String celautLinkImportInvalid(String reason);
+
+  /// No description provided for @celautMoveAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add MU'**
+  String get celautMoveAdd;
+
+  /// No description provided for @celautMoveTakeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Take back MU'**
+  String get celautMoveTakeBack;
+
+  /// No description provided for @celautMoveAddNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Move credit that you have on the node to the instance, or take back what it does not need. Nothing goes on the blockchain.'**
+  String get celautMoveAddNote;
+
+  /// No description provided for @celautMoveAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get celautMoveAmount;
+
+  /// No description provided for @celautMoveHalf.
+  ///
+  /// In en, this message translates to:
+  /// **'Half'**
+  String get celautMoveHalf;
+
+  /// No description provided for @celautMoveAllButOne.
+  ///
+  /// In en, this message translates to:
+  /// **'All but one period'**
+  String get celautMoveAllButOne;
+
+  /// No description provided for @celautMoveInstanceRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance of the instance'**
+  String get celautMoveInstanceRow;
+
+  /// No description provided for @celautMoveCreditRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Your credit on the node'**
+  String get celautMoveCreditRow;
+
+  /// No description provided for @celautMoveFee.
+  ///
+  /// In en, this message translates to:
+  /// **'The node charges no fee for this move.'**
+  String get celautMoveFee;
+
+  /// No description provided for @celautMoveAutoOnAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic top-up is on for this instance. It goes on adding MU when the balance is low.'**
+  String get celautMoveAutoOnAdd;
+
+  /// No description provided for @celautMoveAutoOnTakeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic top-up is on for this instance: when the balance gets low, it moves MU to the instance again. Turn it off first to keep this MU on your credit.'**
+  String get celautMoveAutoOnTakeBack;
+
+  /// No description provided for @celautMoveZero.
+  ///
+  /// In en, this message translates to:
+  /// **'Type an amount above 0.'**
+  String get celautMoveZero;
+
+  /// No description provided for @celautMoveOverCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Your credit on this node is {credit}.'**
+  String celautMoveOverCredit(String credit);
+
+  /// No description provided for @celautMoveOverBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance has {balance}.'**
+  String celautMoveOverBalance(String balance);
+
+  /// No description provided for @celautMoveLasts.
+  ///
+  /// In en, this message translates to:
+  /// **'Then the instance has about {time} left, at the price of the node now.'**
+  String celautMoveLasts(String time);
+
+  /// No description provided for @celautMoveStops.
+  ///
+  /// In en, this message translates to:
+  /// **'Then the instance has less than one period left: the node stops it at its next charge.'**
+  String get celautMoveStops;
+
+  /// No description provided for @celautMoveConfirmAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add MU to the instance?'**
+  String get celautMoveConfirmAddTitle;
+
+  /// No description provided for @celautMoveConfirmTakeBackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Take back MU from the instance?'**
+  String get celautMoveConfirmTakeBackTitle;
+
+  /// No description provided for @celautMoveConfirmAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} moves from your credit on {node} to the instance.'**
+  String celautMoveConfirmAddBody(String amount, String node);
+
+  /// No description provided for @celautMoveConfirmTakeBackBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} moves from the instance back to your credit on {node}.'**
+  String celautMoveConfirmTakeBackBody(String amount, String node);
+
+  /// No description provided for @celautMoveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get celautMoveConfirm;
+
+  /// No description provided for @celautMoveDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done. Instance: {balance}. Credit: {credit}.'**
+  String celautMoveDone(String balance, String credit);
+
+  /// No description provided for @celautMoveRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The node refused: {reason}'**
+  String celautMoveRefused(String reason);
+
+  /// No description provided for @celautMoveNoBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'The app could not read the balance of the instance. Try again.'**
+  String get celautMoveNoBalance;
+
+  /// No description provided for @celautSpendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance and spending'**
+  String get celautSpendTitle;
+
+  /// No description provided for @celautSpendBalanceNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance now'**
+  String get celautSpendBalanceNow;
+
+  /// No description provided for @celautSpendBalanceRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance at the last read'**
+  String get celautSpendBalanceRead;
+
+  /// No description provided for @celautSpendSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent'**
+  String get celautSpendSpent;
+
+  /// No description provided for @celautSpendSince.
+  ///
+  /// In en, this message translates to:
+  /// **'{value}, since {date}'**
+  String celautSpendSince(String value, String date);
+
+  /// No description provided for @celautSpendReads.
+  ///
+  /// In en, this message translates to:
+  /// **'What the reads of statements cost'**
+  String get celautSpendReads;
+
+  /// No description provided for @celautSpendLastRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Last read'**
+  String get celautSpendLastRead;
+
+  /// No description provided for @celautSpendNeverRead.
+  ///
+  /// In en, this message translates to:
+  /// **'The app has not read the statement of this node yet.'**
+  String get celautSpendNeverRead;
+
+  /// No description provided for @celautSpendNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The spending comes from the statement that the node signs. The app checks the signature, the chain of movements and the balance. Spent counts the MU that left your credit and did not come back, less what your running instances still hold: the app asks the node for their balance now, which is free.'**
+  String get celautSpendNote;
+
+  /// No description provided for @celautSpendRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the statement'**
+  String get celautSpendRead;
+
+  /// No description provided for @celautSpendReadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the rest'**
+  String get celautSpendReadMore;
+
+  /// No description provided for @celautSpendNoRates.
+  ///
+  /// In en, this message translates to:
+  /// **'This node does not say what a statement costs, so the app does not read it.'**
+  String get celautSpendNoRates;
+
+  /// No description provided for @celautSpendReadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the statement?'**
+  String get celautSpendReadTitle;
+
+  /// No description provided for @celautSpendReadBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The node {node} charges the read to your credit: up to {max}. It writes the read as a movement. The app reads at most 100 movements after its last read; \"Read the rest\" reads the next ones.'**
+  String celautSpendReadBody(String node, String max);
+
+  /// No description provided for @celautSpendReadConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get celautSpendReadConfirm;
+
+  /// No description provided for @celautSpendReadDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The statement is verified.'**
+  String get celautSpendReadDone;
+
+  /// No description provided for @celautSpendReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The statement could not be read: {reason}'**
+  String celautSpendReadFailed(String reason);
+
+  /// No description provided for @celautSpendInstances.
+  ///
+  /// In en, this message translates to:
+  /// **'Spending by instance ({count})'**
+  String celautSpendInstances(int count);
+
+  /// No description provided for @celautSpendRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get celautSpendRunning;
+
+  /// No description provided for @celautSpendStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get celautSpendStopped;
+
+  /// No description provided for @celautSpendDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted from the app'**
+  String get celautSpendDeleted;
+
+  /// No description provided for @celautSpendNotRead.
+  ///
+  /// In en, this message translates to:
+  /// **'not read yet'**
+  String get celautSpendNotRead;
+
+  /// No description provided for @celautSpendCosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Costs of the instance'**
+  String get celautSpendCosts;
+
+  /// No description provided for @celautSpendCostsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The statement of the instance splits what it spent: resources, traffic, build and the rest.'**
+  String get celautSpendCostsNote;
+
+  /// No description provided for @celautSpendReadCosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the costs'**
+  String get celautSpendReadCosts;
+
+  /// No description provided for @celautSpendReadCostsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the costs of the instance?'**
+  String get celautSpendReadCostsTitle;
+
+  /// No description provided for @celautSpendMovedRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to the instance'**
+  String get celautSpendMovedRow;
+
+  /// No description provided for @celautSpendPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'The node no longer keeps the older movements: the sums start at the first one that it keeps.'**
+  String get celautSpendPartial;
+
+  /// No description provided for @celautSpendIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'The node gave part of the movements. Read the rest to complete the sums.'**
+  String get celautSpendIncomplete;
+
+  /// No description provided for @celautSpendStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting: {value}'**
+  String celautSpendStarting(String value);
+
+  /// No description provided for @celautSpendKindMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Resources (maintenance)'**
+  String get celautSpendKindMaintenance;
+
+  /// No description provided for @celautSpendKindTunnel.
+  ///
+  /// In en, this message translates to:
+  /// **'Traffic (tunnels)'**
+  String get celautSpendKindTunnel;
+
+  /// No description provided for @celautSpendKindBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'Build'**
+  String get celautSpendKindBuild;
+
+  /// No description provided for @celautSpendKindResourceChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes of resources'**
+  String get celautSpendKindResourceChange;
+
+  /// No description provided for @celautSpendKindStatement.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads of statements'**
+  String get celautSpendKindStatement;
+
+  /// No description provided for @celautSpendKindChildStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Child instances'**
+  String get celautSpendKindChildStart;
+
+  /// No description provided for @celautSpendKindStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get celautSpendKindStart;
+
+  /// No description provided for @celautSpendKindTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get celautSpendKindTopUp;
+
+  /// No description provided for @celautSpendKindWithdrawal.
+  ///
+  /// In en, this message translates to:
+  /// **'Taken back'**
+  String get celautSpendKindWithdrawal;
+
+  /// No description provided for @celautSpendKindRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund'**
+  String get celautSpendKindRefund;
+
+  /// No description provided for @celautSpendKindDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposits'**
+  String get celautSpendKindDeposit;
+
+  /// No description provided for @celautSpendKindCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Free credit'**
+  String get celautSpendKindCredit;
+
+  /// No description provided for @celautSpendKindDebit.
+  ///
+  /// In en, this message translates to:
+  /// **'Taken by the operator'**
+  String get celautSpendKindDebit;
+
+  /// No description provided for @celautSpendPeriodToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get celautSpendPeriodToday;
+
+  /// No description provided for @celautSpendPeriodWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get celautSpendPeriodWeek;
+
+  /// No description provided for @celautSpendPeriodAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get celautSpendPeriodAll;
+
+  /// No description provided for @celautSpendInInstances.
+  ///
+  /// In en, this message translates to:
+  /// **'Still in running instances'**
+  String get celautSpendInInstances;
+
+  /// No description provided for @celautSpendLiveUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 running instance did not give its balance now: its MU counts as spent.} other{{count} running instances did not give their balance now: their MU counts as spent.}}'**
+  String celautSpendLiveUnknown(int count);
+
+  /// No description provided for @celautSpendLiveRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Still in the instance'**
+  String get celautSpendLiveRow;
+
+  /// No description provided for @celautMoveFeeOf.
+  ///
+  /// In en, this message translates to:
+  /// **'The node charges {fee} for this move.'**
+  String celautMoveFeeOf(String fee);
+
+  /// No description provided for @celautHomeSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'spent {value}'**
+  String celautHomeSpent(String value);
+
+  /// No description provided for @celautHomeBalancesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance and spending by node'**
+  String get celautHomeBalancesTitle;
+
+  /// No description provided for @celautHomeBalancesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.'**
+  String get celautHomeBalancesNote;
 }
 
 class _AppLocalizationsDelegate
