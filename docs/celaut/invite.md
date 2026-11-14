@@ -216,7 +216,18 @@ nothing changes for a user without Tor or for the start of Tor.
   "Available · 1084 ms"). Then `echo-chat` (`b4e043`) with a balance for 10 minutes: the
   quote named the onion as the best node, the start, the tunnel, an answer to "hello over
   onion", and the stop with its refund, all through the onion.
-- Not checked: a phone, nodo's own onion service (`routing.tor.ANNOUNCE` on a node: the test
-  node is shared, so its onion was a separate `tor` with `HiddenServicePort` to its gateway;
-  the gateway is the same, the gRPC server in front of it is not), Orbot.
+- The onion of the advertisement (2026-11-14), the test node with nodo's own Tor
+  (`routing.tor.ENABLED` and `ANNOUNCE` true) and the app on a direct route: after a check,
+  the earlier build did not add the onion that the node announces, and a typed onion showed
+  the generic error with the English detail; this build added the onion to the node, after
+  its IP, and a typed onion showed only the hint. With "Tor inside the
+  app" and the app started again: the onions first, the IP last; the node answered through
+  the onion of its advertisement ("Slow · 16600 ms", then "Available · 789 ms"), on the
+  onion gRPC server of nodo, and that onion became the first address of the node.
+- nodo (dev `76dcac3b`) starts Tor before it configures the onion service
+  (`routing.start_backends()` before `_start_onion_server` in `src/serve.py`). With Tor
+  already installed, the torrc has no `HiddenServiceDir`: the node announces an onion that
+  it does not host. For the check above, the onion service was added to the command line of
+  Tor (the directory and the port that nodo would write).
+- Not checked: a phone, Orbot.
 
