@@ -10373,11 +10373,11 @@ abstract class AppLocalizations {
   /// **'The invitation has no address that this app can use.'**
   String get celautInviteNoAddress;
 
-  /// No description provided for @celautInviteOnionNeedsProxy.
+  /// No description provided for @celautInviteOnionNeedsTor.
   ///
   /// In en, this message translates to:
-  /// **'Not tried. An onion address needs Tor through an external proxy such as Orbot. A direct connection and the Tor client of the app cannot open it.'**
-  String get celautInviteOnionNeedsProxy;
+  /// **'Not tried. An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.'**
+  String get celautInviteOnionNeedsTor;
 
   /// No description provided for @celautInvitePrivateOverTor.
   ///
@@ -12424,6 +12424,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This node does not support descendants.'**
   String get celautErrorNoDescendants;
+
+  /// No description provided for @celautErrorOnionNeedsTor.
+  ///
+  /// In en, this message translates to:
+  /// **'An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.'**
+  String get celautErrorOnionNeedsTor;
 
   /// No description provided for @descendantsTitle.
   ///

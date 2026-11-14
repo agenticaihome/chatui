@@ -434,6 +434,16 @@ mod tests {
     }
 
     #[test]
+    fn onion_names() {
+        use crate::route::is_onion;
+        assert!(is_onion("abc.onion"));
+        assert!(is_onion("ABC.ONION."));
+        assert!(!is_onion("onion"));
+        assert!(!is_onion("onion.example.org"));
+        assert!(!is_onion("203.0.113.7"));
+    }
+
+    #[test]
     fn the_password_is_compared_in_full() {
         assert!(same(b"abc", b"abc"));
         assert!(!same(b"abc", b"abd"));
@@ -449,6 +459,10 @@ mod tests {
         direct.write_all(b"d").await.unwrap();
         let mut b = [0u8; 1];
         direct.read_exact(&mut b).await.unwrap();
+        // An onion name never goes to the resolver of the system.
+        let error = route_connect("abc.onion", 1).await.err().unwrap();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        assert!(error.to_string().contains("needs Tor"));
 
         let dialer = Arc::new(Plain(Default::default()));
         set_route(Route::Socks(proxy(dialer.clone()).await));

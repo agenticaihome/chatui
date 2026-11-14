@@ -639,6 +639,23 @@ impl CelautData {
         }
     }
 
+    /// Add the addresses that a node announces (its onions, from a checked advertisement:
+    /// [`crate::node_addresses::advertised_onions`]) after the ones that the app knows.
+    /// An address that the app knows keeps its place. True if an address was added.
+    pub fn add_announced_addresses(&mut self, peer_id: &str, announced: &[String]) -> bool {
+        let Some(node) = self.nodes.get_mut(peer_id) else {
+            return false;
+        };
+        let mut added = false;
+        for a in announced {
+            if !node.addresses.contains(a) {
+                node.addresses.push(a.clone());
+                added = true;
+            }
+        }
+        added
+    }
+
     /// Add a quote, and drop the oldest ones over [`MAX_QUOTES`].
     pub fn add_quote(&mut self, quote: QuoteRecord) {
         self.quotes
@@ -1396,6 +1413,29 @@ mod tests {
             data.nodes[&peer].addresses,
             vec!["node.example:53460".to_string(), "10.0.0.1:1".to_string()]
         );
+    }
+
+    #[test]
+    fn an_announced_address_goes_after_the_known_ones_once() {
+        let mut data = CelautData::default();
+        sample(&mut data);
+        let peer = "aa".repeat(32);
+        let onion = "x.onion:53460".to_string();
+        assert!(data.add_announced_addresses(&peer, std::slice::from_ref(&onion)));
+        assert_eq!(
+            data.nodes[&peer].addresses,
+            vec!["node.example:53460".to_string(), onion.clone()]
+        );
+        // Again: nothing changes, and an address that the app used keeps its place.
+        data.note_address(&peer, &onion);
+        assert!(!data.add_announced_addresses(&peer, std::slice::from_ref(&onion)));
+        assert_eq!(
+            data.nodes[&peer].addresses,
+            vec![onion.clone(), "node.example:53460".to_string()]
+        );
+        // A node that the app does not know gets no record.
+        assert!(!data.add_announced_addresses("bb", &[onion]));
+        assert!(!data.nodes.contains_key("bb"));
     }
 
     #[test]

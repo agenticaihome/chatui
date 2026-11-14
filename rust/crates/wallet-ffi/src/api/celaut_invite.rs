@@ -10,7 +10,7 @@
 
 use std::time::Duration;
 
-use celaut_client::invite::{self, InviteAddr, Skip, Via};
+use celaut_client::invite::{self, InviteAddr, Kind, Skip, Via};
 use celaut_client::race::{self, race, Outcome};
 
 use super::celaut::{invalid, CelautError, CelautErrorKind};
@@ -25,15 +25,18 @@ use super::celaut_service::{
 const DIRECT_TIMEOUT: Duration = Duration::from_secs(10);
 /// Through Tor a circuit takes longer.
 const TOR_TIMEOUT: Duration = Duration::from_secs(45);
+/// An onion address needs its descriptor, an introduction and a rendezvous before the
+/// first byte: 9 to 33 seconds in the checks of #140 on a good network. The same limit as
+/// any dial through a proxy (`celaut_wire::channel::default_connect_timeout`).
+const ONION_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// What happened with one address of the invitation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InviteAttemptKind {
     /// The node proved the invited key and is in the node list.
     Connected,
-    /// Not tried: an onion address needs a Tor proxy that resolves them, and the route
-    /// is direct or the Tor client of the app.
-    OnionNeedsProxy,
+    /// Not tried: an onion address needs Tor, and the route is direct.
+    OnionNeedsTor,
     /// Not tried: a private network address cannot be reached through Tor.
     PrivateOverTor,
     /// Tried and failed: `error` and `message` say why.
@@ -66,7 +69,8 @@ pub struct InviteConnectView {
     pub attempts: Vec<InviteAttemptView>,
 }
 
-fn via_now() -> Via {
+/// The route of the connections now, as the address rules see it.
+pub(crate) fn via_now() -> Via {
     match celaut_network_status().choice {
         NetworkChoice::Off => Via::Direct,
         NetworkChoice::Embedded => Via::TorEmbedded,
@@ -78,7 +82,7 @@ fn skipped(a: &InviteAddr, why: Skip) -> InviteAttemptView {
     InviteAttemptView {
         address: a.text(),
         kind: match why {
-            Skip::OnionNeedsProxy => InviteAttemptKind::OnionNeedsProxy,
+            Skip::OnionNeedsTor => InviteAttemptKind::OnionNeedsTor,
             Skip::PrivateOverTor => InviteAttemptKind::PrivateOverTor,
         },
         error: None,
@@ -117,11 +121,15 @@ where
     Fut: std::future::Future<Output = Result<String, CelautError>>,
 {
     let plan = invite::plan(&parsed.addrs, via);
-    let timeout = if via == Via::Direct {
-        DIRECT_TIMEOUT
-    } else {
-        TOR_TIMEOUT
-    };
+    let timeouts: Vec<Duration> = plan
+        .order
+        .iter()
+        .map(|a| match (via, a.kind) {
+            (Via::Direct, _) => DIRECT_TIMEOUT,
+            (_, Kind::Onion) => ONION_TIMEOUT,
+            _ => TOR_TIMEOUT,
+        })
+        .collect();
     let addresses: Vec<NodeAddress> = plan
         .order
         .iter()
@@ -136,7 +144,7 @@ where
         race::WIDTH,
         race::HEAD_START,
         race::GRACE,
-        |i| dial(addresses[i].clone(), parsed.peer_id.clone(), timeout),
+        |i| dial(addresses[i].clone(), parsed.peer_id.clone(), timeouts[i]),
     )
     .await;
     let used = outcomes
@@ -255,7 +263,7 @@ mod tests {
     use super::*;
     use crate::api::celaut_db::db;
     use celaut_client::db::NodeRecord;
-    use celaut_client::invite::{Invite, Kind};
+    use celaut_client::invite::Invite;
     use std::sync::Mutex;
 
     fn addr(kind: Kind, host: &str, port: u16) -> InviteAddr {
@@ -366,18 +374,50 @@ mod tests {
             .iter()
             .map(|a| (a.address.as_str(), a.kind))
             .collect();
-        // The tried address first, then the ones that cannot work on this route.
+        // The tried addresses first (the onion before the others on a Tor route), then
+        // the ones that cannot work on this route.
         assert_eq!(
             got,
             [
+                ("x.onion:1", InviteAttemptKind::Failed),
                 ("203.0.113.7:2", InviteAttemptKind::Failed),
-                ("x.onion:1", InviteAttemptKind::OnionNeedsProxy),
                 ("[fd00::1]:3", InviteAttemptKind::PrivateOverTor),
             ]
         );
         assert_eq!(
             view.attempts[0].error,
             Some(CelautErrorKind::IdentityMismatch)
+        );
+    }
+
+    #[tokio::test]
+    async fn a_direct_route_says_that_the_onion_needs_tor() {
+        let parsed = invite_of(
+            &"ee".repeat(32),
+            vec![
+                addr(Kind::Onion, "x.onion", 1),
+                addr(Kind::Ip4, "203.0.113.7", 2),
+            ],
+        );
+        let seen = Mutex::new(Vec::new());
+        let view = connect(parsed, Via::Direct, |a, _, t| {
+            seen.lock().unwrap().push((a.port, t));
+            async { Err(refuse(CelautErrorKind::Unreachable)) }
+        })
+        .await
+        .unwrap();
+        assert_eq!(*seen.lock().unwrap(), vec![(2, DIRECT_TIMEOUT)]);
+        let got: Vec<_> = view
+            .attempts
+            .iter()
+            .map(|a| (a.address.as_str(), a.kind))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                ("203.0.113.7:2", InviteAttemptKind::Failed),
+                ("x.onion:1", InviteAttemptKind::OnionNeedsTor),
+            ]
         );
     }
 
@@ -399,25 +439,28 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_tor_proxy_tries_the_onion_first_and_with_a_longer_timeout() {
-        let seen = Mutex::new(Vec::new());
-        let parsed = invite_of(
-            &"dd".repeat(32),
-            vec![
-                addr(Kind::Ip4, "203.0.113.7", 1),
-                addr(Kind::Onion, "x.onion", 2),
-            ],
-        );
-        let _ = connect(parsed, Via::TorProxy, |a, _, t| {
-            seen.lock().unwrap().push((a.port, t));
-            async { Err(refuse(CelautErrorKind::Unreachable)) }
-        })
-        .await
-        .unwrap();
-        assert_eq!(
-            *seen.lock().unwrap(),
-            vec![(2, TOR_TIMEOUT), (1, TOR_TIMEOUT)]
-        );
+    async fn each_tor_route_tries_the_onion_first_and_with_longer_timeouts() {
+        for via in [Via::TorEmbedded, Via::TorProxy] {
+            let seen = Mutex::new(Vec::new());
+            let parsed = invite_of(
+                &"dd".repeat(32),
+                vec![
+                    addr(Kind::Ip4, "203.0.113.7", 1),
+                    addr(Kind::Onion, "x.onion", 2),
+                ],
+            );
+            let _ = connect(parsed, via, |a, _, t| {
+                seen.lock().unwrap().push((a.port, t));
+                async { Err(refuse(CelautErrorKind::Unreachable)) }
+            })
+            .await
+            .unwrap();
+            assert_eq!(
+                *seen.lock().unwrap(),
+                vec![(2, ONION_TIMEOUT), (1, TOR_TIMEOUT)],
+                "{via:?}"
+            );
+        }
     }
 
     /// The record that a real session would leave in the database.
@@ -720,7 +763,7 @@ mod tests {
             [
                 ("203.0.113.7:1", None),
                 ("10.0.0.2:3", None),
-                ("x.onion:2", Some(InviteAttemptKind::OnionNeedsProxy)),
+                ("x.onion:2", Some(InviteAttemptKind::OnionNeedsTor)),
             ]
         );
         let proxy = read(parsed, Via::TorProxy, true);

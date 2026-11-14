@@ -13,11 +13,13 @@
 use std::time::Duration;
 
 use celaut_client::health::{Availability, Health, CHECK_TIMEOUT_S, CHECK_TIMEOUT_TOR_S};
+use celaut_client::node_addresses::order;
 use celaut_net::Route;
 
 use super::celaut::{CelautError, CelautErrorKind};
 use super::celaut_db::{db, now_seconds};
 use super::celaut_home::{reach_within, Reached};
+use super::celaut_invite::via_now;
 
 /// What the checks say about a node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,6 +99,7 @@ fn kind_name(kind: CelautErrorKind) -> &'static str {
         K::LaunchFailed => "LaunchFailed",
         K::TransferFailed => "TransferFailed",
         K::NoDescendants => "NoDescendants",
+        K::OnionNeedsTor => "OnionNeedsTor",
     }
 }
 
@@ -128,6 +131,7 @@ fn kind_from_name(name: &str) -> Option<CelautErrorKind> {
         K::LaunchFailed,
         K::TransferFailed,
         K::NoDescendants,
+        K::OnionNeedsTor,
     ]
     .into_iter()
     .find(|k| kind_name(*k) == name)
@@ -204,7 +208,7 @@ pub fn celaut_nodes_health() -> Vec<NodeHealthView> {
         d.nodes
             .iter()
             .filter(|(_, n)| n.listed)
-            .map(|(peer_id, n)| view_of(peer_id, &n.addresses, &n.health))
+            .map(|(peer_id, n)| view_of(peer_id, &order(&n.addresses, via_now()), &n.health))
             .collect()
     })
 }
@@ -223,11 +227,7 @@ pub async fn celaut_check_nodes(force: bool) -> Vec<NodeHealthView> {
             d.nodes
                 .iter()
                 .filter(|(_, n)| n.listed && (force || n.health.is_due(now, proxy)))
-                .map(|(peer_id, n)| {
-                    let mut addresses = n.addresses.clone();
-                    addresses.dedup();
-                    (peer_id.clone(), addresses)
-                })
+                .map(|(peer_id, n)| (peer_id.clone(), order(&n.addresses, via_now())))
                 .collect()
         });
         let limit = limit();
@@ -254,7 +254,7 @@ mod tests {
             "Storage", "LimitReached", "Wallet", "ClientUnknown", "NodeClosed", "NoRoom",
             "ServiceMissing", "PolicyRefused", "UnsupportedArchitecture", "RateLimited",
             "RecursionLimit", "InsufficientCredit", "LaunchFailed", "TransferFailed",
-            "NoDescendants",
+            "NoDescendants", "OnionNeedsTor",
         ] {
             let kind = kind_from_name(name).unwrap_or_else(|| panic!("{name}"));
             assert_eq!(kind_name(kind), name);

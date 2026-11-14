@@ -60,7 +60,7 @@ class _Db implements KnownNodes {
       peerId: key,
       addresses: const [
         InviteAddrView(address: 'b.example:2'),
-        InviteAddrView(address: 'x.onion:3', skipped: InviteAttemptKind.onionNeedsProxy),
+        InviteAddrView(address: 'x.onion:3', skipped: InviteAttemptKind.onionNeedsTor),
       ],
       listed: records[key]?.listed ?? false,
     );
@@ -314,6 +314,30 @@ void main() {
     expect(db.records.keys, [_a]);
   });
 
+  testWidgets('a typed onion on a direct route shows only the hint to turn on Tor', (
+    tester,
+  ) async {
+    final db = await pump(tester);
+    db.errors.add(
+      const CelautError(
+        kind: CelautErrorKind.onionNeedsTor,
+        message: 'an onion address needs Tor: turn on Tor in the network settings',
+      ),
+    );
+    const onion = 'a4ddngexample.onion:58526';
+    await tester.enterText(find.byKey(const Key('nodes-address')), onion);
+    await tester.tap(find.byKey(const Key('nodes-add')));
+    await tester.pumpAndSettle();
+    expect(db.adds, [onion]);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('nodes-error'))).data,
+      appL10n.celautErrorOnionNeedsTor,
+    );
+    expect(appL10n.celautErrorOnionNeedsTor, contains('Turn on Tor'));
+    expect(find.textContaining('turn on Tor in the network settings'), findsNothing);
+    expect(db.records.keys, [_a]);
+  });
+
   testWidgets('back from the scanner changes nothing; the address field still works', (
     tester,
   ) async {
@@ -502,7 +526,7 @@ void main() {
           peerId: _b,
           attempts: [
             attempt('203.0.113.7:1', InviteAttemptKind.failed, error: CelautErrorKind.identityMismatch),
-            attempt('x.onion:2', InviteAttemptKind.onionNeedsProxy),
+            attempt('x.onion:2', InviteAttemptKind.onionNeedsTor),
             attempt('[fd00::1]:3', InviteAttemptKind.privateOverTor),
           ],
         ),
@@ -516,7 +540,7 @@ void main() {
       expect(find.text(appL10n.celautInviteFailedTitle), findsOneWidget);
       expect(find.text('203.0.113.7:1'), findsOneWidget);
       expect(find.text(CelautStrings.errorText(CelautErrorKind.identityMismatch)), findsOneWidget);
-      expect(find.text(appL10n.celautInviteOnionNeedsProxy), findsOneWidget);
+      expect(find.text(appL10n.celautInviteOnionNeedsTor), findsOneWidget);
       expect(find.text(appL10n.celautInvitePrivateOverTor), findsOneWidget);
       expect(find.byKey(Key('nodes-row-$_b')), findsNothing);
       expect(db.records.keys, [_a]);

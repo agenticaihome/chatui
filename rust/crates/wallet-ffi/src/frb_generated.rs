@@ -5964,6 +5964,7 @@ impl SseDecode for crate::api::celaut::CelautErrorKind {
             22 => crate::api::celaut::CelautErrorKind::LaunchFailed,
             23 => crate::api::celaut::CelautErrorKind::TransferFailed,
             24 => crate::api::celaut::CelautErrorKind::NoDescendants,
+            25 => crate::api::celaut::CelautErrorKind::OnionNeedsTor,
             _ => unreachable!("Invalid variant for CelautErrorKind: {}", inner),
         };
     }
@@ -6519,7 +6520,7 @@ impl SseDecode for crate::api::celaut_invite::InviteAttemptKind {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
             0 => crate::api::celaut_invite::InviteAttemptKind::Connected,
-            1 => crate::api::celaut_invite::InviteAttemptKind::OnionNeedsProxy,
+            1 => crate::api::celaut_invite::InviteAttemptKind::OnionNeedsTor,
             2 => crate::api::celaut_invite::InviteAttemptKind::PrivateOverTor,
             3 => crate::api::celaut_invite::InviteAttemptKind::Failed,
             4 => crate::api::celaut_invite::InviteAttemptKind::NotNeeded,
@@ -9238,6 +9239,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut::CelautErrorKind {
             Self::LaunchFailed => 22.into_dart(),
             Self::TransferFailed => 23.into_dart(),
             Self::NoDescendants => 24.into_dart(),
+            Self::OnionNeedsTor => 25.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -9885,7 +9887,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut_invite::InviteAttemptK
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             Self::Connected => 0.into_dart(),
-            Self::OnionNeedsProxy => 1.into_dart(),
+            Self::OnionNeedsTor => 1.into_dart(),
             Self::PrivateOverTor => 2.into_dart(),
             Self::Failed => 3.into_dart(),
             Self::NotNeeded => 4.into_dart(),
@@ -11429,6 +11431,7 @@ impl SseEncode for crate::api::celaut::CelautErrorKind {
                 crate::api::celaut::CelautErrorKind::LaunchFailed => 22,
                 crate::api::celaut::CelautErrorKind::TransferFailed => 23,
                 crate::api::celaut::CelautErrorKind::NoDescendants => 24,
+                crate::api::celaut::CelautErrorKind::OnionNeedsTor => 25,
                 _ => {
                     unimplemented!("");
                 }
@@ -11835,7 +11838,7 @@ impl SseEncode for crate::api::celaut_invite::InviteAttemptKind {
         <i32>::sse_encode(
             match self {
                 crate::api::celaut_invite::InviteAttemptKind::Connected => 0,
-                crate::api::celaut_invite::InviteAttemptKind::OnionNeedsProxy => 1,
+                crate::api::celaut_invite::InviteAttemptKind::OnionNeedsTor => 1,
                 crate::api::celaut_invite::InviteAttemptKind::PrivateOverTor => 2,
                 crate::api::celaut_invite::InviteAttemptKind::Failed => 3,
                 crate::api::celaut_invite::InviteAttemptKind::NotNeeded => 4,

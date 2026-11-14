@@ -392,7 +392,7 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
             Text(a.address, style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 13)),
             Text(
               switch (a.kind) {
-                InviteAttemptKind.onionNeedsProxy => l.celautInviteOnionNeedsProxy,
+                InviteAttemptKind.onionNeedsTor => l.celautInviteOnionNeedsTor,
                 InviteAttemptKind.privateOverTor => l.celautInvitePrivateOverTor,
                 _ => CelautStrings.errorText(a.error ?? CelautErrorKind.unreachable),
               },
@@ -493,7 +493,11 @@ class _KnownNodesScreenState extends State<KnownNodesScreen> {
         if (_error != null)
           SoftCard(
             child: Text(
-              '${CelautStrings.errorText(_error!.kind)}\n${_error!.message}',
+              // An onion on a direct route needs only the hint: the technical text says
+              // the same in English.
+              _error!.kind == CelautErrorKind.onionNeedsTor
+                  ? CelautStrings.errorText(_error!.kind)
+                  : '${CelautStrings.errorText(_error!.kind)}\n${_error!.message}',
               key: const Key('nodes-error'),
               style: TextStyle(color: rustFor(context)),
             ),
