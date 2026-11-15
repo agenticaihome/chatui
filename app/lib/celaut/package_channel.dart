@@ -43,6 +43,19 @@ class PickedPackage {
   final String name;
 }
 
+/// A chosen file that the app opened and did not copy: [fd] is a file descriptor that the
+/// receiver must take (the Rust side closes it). [bytes] is the size, null if not known.
+@immutable
+class OpenedFile {
+  const OpenedFile({required this.fd, required this.bytes, required this.name});
+
+  final int fd;
+  final int? bytes;
+
+  /// The name of the file that the user chose.
+  final String name;
+}
+
 /// The copy of a chosen file stopped because the user cancelled it.
 class CopyCancelled implements Exception {
   const CopyCancelled();
@@ -72,6 +85,11 @@ abstract class PackageChannel {
   /// Copy [file] into a private folder of the app, with a stream. Throws [CopyCancelled] after
   /// [cancelCopy], or [CopyFailed] when the file cannot be read.
   Future<PickedPackage> copy(ChosenFile file);
+
+  /// Open [file] where it is and give its file descriptor, with no copy: the Rust side reads
+  /// it and closes it (`celautImportPackageFd`). Null if this cannot be done (off Android, or
+  /// a provider that gives no descriptor): copy the file then.
+  Future<OpenedFile?> open(ChosenFile file) async => null;
 
   /// The bytes that the copy that runs wrote so far.
   int get copied;
@@ -146,6 +164,23 @@ class AndroidPackageChannel implements PackageChannel {
     } on PlatformException catch (e) {
       if (e.code == 'cancelled') throw const CopyCancelled();
       throw CopyFailed(e.message ?? e.code);
+    }
+  }
+
+  @override
+  Future<OpenedFile?> open(ChosenFile file) async {
+    if (!_onAndroid) return null;
+    try {
+      final answer = await channel.invokeMapMethod<String, Object?>('openPackage', {'uri': file.uri});
+      final fd = answer?['fd'];
+      if (fd is! int || fd < 0) return null;
+      final bytes = answer?['bytes'];
+      return OpenedFile(fd: fd, bytes: bytes is int && bytes >= 0 ? bytes : file.bytes, name: file.name);
+    } on MissingPluginException {
+      return null;
+    } on PlatformException catch (e) {
+      debugPrint('The package was not opened, it is copied: ${e.message}');
+      return null;
     }
   }
 

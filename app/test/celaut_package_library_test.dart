@@ -17,6 +17,10 @@ class _Copier implements PackageChannel {
   int copies = 0;
   int cancels = 0;
 
+  /// What `open` gives: a descriptor with no copy, or null (the provider gives none).
+  OpenedFile? opened;
+  int opens = 0;
+
   @override
   int copied = 0;
 
@@ -29,6 +33,12 @@ class _Copier implements PackageChannel {
     File(path).writeAsBytesSync(List.filled(10, 1));
     copied = 10;
     return PickedPackage(path: path, bytes: 10, name: file.name);
+  }
+
+  @override
+  Future<OpenedFile?> open(ChosenFile file) async {
+    opens++;
+    return opened;
   }
 
   @override
@@ -60,12 +70,20 @@ void main() {
   String? dir = '/data/app';
   Object? importError;
 
+  var keepsNoFilesystem = false;
+
   PackageLibrary make() => PackageLibrary(
     importPackage: (path, name, d) async {
       calls.add('import $path $name $d');
       if (importError != null) throw importError!;
       return _view(name: name);
     },
+    importOpened: (file, d) async {
+      calls.add('import fd ${file.fd} ${file.name} $d');
+      if (importError != null) throw importError!;
+      return _view(name: file.name, filesystemKept: false);
+    },
+    keepsNoFilesystem: () => keepsNoFilesystem,
     list: () => stored,
     remove: (id) async => calls.add('remove $id'),
     privateDir: () async => dir,
@@ -77,6 +95,7 @@ void main() {
     stored = [];
     dir = '/data/app';
     importError = null;
+    keepsNoFilesystem = false;
   });
 
   test('a picked file is loaded into the private directory with the name of the file', () async {
@@ -136,6 +155,49 @@ void main() {
       importError = const CelautError(kind: CelautErrorKind.invalidInput, message: 'no Service part');
       await expectLater(make().importChosen(chosen, copier), throwsA(isA<CelautError>()));
       expect(File(copier.path).existsSync(), isFalse);
+    });
+
+    test('with the setting on and a descriptor, is read where it is and not copied', () async {
+      keepsNoFilesystem = true;
+      copier.opened = const OpenedFile(fd: 41, bytes: 1000, name: 'echo.celaut.bee');
+      final library = make();
+      final loaded = await library.importChosen(chosen, copier);
+      expect(copier.opens, 1);
+      expect(copier.copies, 0);
+      expect(calls, ['import fd 41 echo.celaut.bee /data/app']);
+      expect(loaded.filesystemKept, isFalse);
+      // The check is all of the import: there is no first half.
+      final now = library.importProgress();
+      expect(now.phase, ImportPhase.checking);
+      expect(now.onePass, isTrue);
+      expect(now.total, 10);
+      expect(const ImportProgress(phase: ImportPhase.checking, bytes: 50, total: 100, onePass: true).overall, 0.5);
+      expect(const ImportProgress(phase: ImportPhase.checking, bytes: 0, total: 100, onePass: true).overall, 0.0);
+    });
+
+    test('with the setting on and no descriptor, is copied as before', () async {
+      keepsNoFilesystem = true;
+      final library = make();
+      await library.importChosen(chosen, copier);
+      expect(copier.opens, 1);
+      expect(copier.copies, 1);
+      expect(calls, ['import ${copier.path} echo.celaut.bee /data/app']);
+      expect(library.importProgress().onePass, isFalse);
+    });
+
+    test('with the setting off, never opens the file where it is', () async {
+      copier.opened = const OpenedFile(fd: 41, bytes: 1000, name: 'echo.celaut.bee');
+      await make().importChosen(chosen, copier);
+      expect(copier.opens, 0);
+      expect(copier.copies, 1);
+    });
+
+    test('read where it is and refused by the core: nothing to delete, the error comes out', () async {
+      keepsNoFilesystem = true;
+      copier.opened = const OpenedFile(fd: 41, bytes: 1000, name: 'echo.celaut.bee');
+      importError = const CelautError(kind: CelautErrorKind.invalidInput, message: 'holds other bytes');
+      await expectLater(make().importChosen(chosen, copier), throwsA(isA<CelautError>()));
+      expect(copier.copies, 0);
     });
 
     test('with no private directory, is not copied', () async {

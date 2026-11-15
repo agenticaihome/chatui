@@ -114,7 +114,9 @@ Settings has a switch, **Do not keep the filesystem of a service**
 (`app/lib/ui/celaut/packages_storage_row.dart`), off by default. On, a service that the user
 loads from a file or a link is kept without its filesystem, to save space. In "Your
 services" such a service says "Without its filesystem: it cannot be given to a node"; it
-still runs on the nodes that have it (`docs/celaut/package.md`, "Without the filesystem").
+still runs on the nodes that have it (`docs/celaut/package.md`, "Without the filesystem"). The
+disk never holds the filesystem, also during the load: a service of 200 GB needs the space of
+its small file, not 200 GB.
 
 - The screen lists every skill of the catalog; the search narrows the list.
 - Run asks first: "Run <name>?", with what a running instance costs and the node that the

@@ -93,6 +93,9 @@ class _Packages implements PackageChannel {
   Future<PickedPackage> copy(ChosenFile file) async => throw UnimplementedError();
 
   @override
+  Future<OpenedFile?> open(ChosenFile file) async => null;
+
+  @override
   void cancelCopy() {}
 }
 

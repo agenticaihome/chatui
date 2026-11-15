@@ -15,8 +15,12 @@
 //!   the whole Service hashes to the service id.
 //! - [`read`] gives the Buffers of a `.bee` file for a node: the head indices of a
 //!   `nodo export` file (1 Metadata, 2 Service) become 5 and 6.
-//! - [`strip_filesystem`] copies a checked `.bee` file without the content of the blocks of
+//! - [`strip_filesystem`] copies a `.bee` file, checking it, without the content of the blocks of
 //!   its Service (the filesystem of the container), to save space in the library.
+//! - [`import_reader`] loads a package from any reader, and [`Check::stripping`] with
+//!   [`Check::snapshot`] and [`Check::restore`] make the load of a service of any size need
+//!   only the space of the small file: the content of the blocks is hashed and not written,
+//!   and a download that stops goes on from a saved state of the check ([`crate::link`]).
 //!
 //! A [`Cancel`] stops a transfer: the stream gives an error, and the node gets markers
 //! that make it refuse the cut input (`bee_rpc::grpc::call_buffers`).
@@ -31,7 +35,9 @@ use celaut_proto::celaut::Metadata;
 use celaut_wire::gateway::SHA3_256_TYPE;
 use celaut_wire::{Buffers, WireError};
 use prost::Message;
-use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+use sha3_state::digest::common::hazmat::SerializableState;
+use sha3_state::{Digest, Sha3_256 as Sha3};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
 
 /// The longest record that a `.bee` file can have here. A Buffer carries at most one
 /// chunk of 1 MiB; this leaves room, and refuses a false length before it allocates.
@@ -412,10 +418,15 @@ pub struct Check {
     small: Vec<u8>,
     service_id: Option<[u8; 32]>,
     /// The hash of the Service part while it arrives, then its digest.
-    service: Option<bee_rpc::hash::Hasher>,
+    service: Option<Sha3>,
     service_hash: Option<[u8; 32]>,
-    blocks: Vec<([u8; 32], bee_rpc::hash::Hasher)>,
+    blocks: Vec<([u8; 32], Sha3)>,
     bytes: u64,
+    /// True if the check also writes the file without the content of the blocks of the
+    /// Service ([`Check::stripping`]).
+    strip: bool,
+    /// The records of that file that are not taken yet ([`Check::take_output`]).
+    out: Vec<u8>,
 }
 
 impl std::fmt::Debug for Check {
@@ -440,6 +451,121 @@ pub struct Checked {
 impl Check {
     pub fn new() -> Self {
         Check::default()
+    }
+
+    /// A check that also writes the file without the content of the blocks of the Service
+    /// (`docs/celaut/package.md`, "Without the filesystem"). Of each top-level block the
+    /// file keeps the two markers, the one that opens it and the one that ends it, and
+    /// nothing between them: no chunk and no marker of a block inside. The rest of the
+    /// records are as they are, so [`inspect`] and the reader of the service information
+    /// (`service_info`) read it as before. After each [`Check::feed`], [`Check::take_output`]
+    /// gives the bytes to append to that file. Those bytes are only good when
+    /// [`Check::finish`] says that the package is valid: a file with a false block is
+    /// deleted, and a cut file is not a library file.
+    pub fn stripping() -> Self {
+        Check {
+            strip: true,
+            ..Check::default()
+        }
+    }
+
+    /// The bytes of the file without the content of the blocks that the last calls of
+    /// [`Check::feed`] made, and nothing more. Empty if the check does not strip.
+    pub fn take_output(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.out)
+    }
+
+    /// The state of the check, to go on from it later ([`Check::restore`]): the bytes of
+    /// the record that is not complete, the hashes, and the blocks that are open. It is at
+    /// most one record and a few hundred bytes for each open block. Call it after
+    /// [`Check::take_output`]: the output that is not taken is not in it.
+    pub fn snapshot(&self) -> Vec<u8> {
+        let mut e = Encoder::default();
+        e.u8(SNAPSHOT_VERSION);
+        e.u64(self.bytes);
+        e.u8(u8::from(self.strip));
+        e.bytes(&self.record);
+        e.u8(match self.layout {
+            None => 0,
+            Some(Layout::Gateway) => 1,
+            Some(Layout::NodoExport) => 2,
+        });
+        match self.part {
+            None => e.u8(0),
+            Some(index) => {
+                e.u8(1);
+                e.u32(index as u32);
+            }
+        }
+        e.bytes(&self.small);
+        e.option_id(self.service_id);
+        match &self.service {
+            None => e.u8(0),
+            Some(hasher) => {
+                e.u8(1);
+                e.raw(hasher.serialize().as_slice());
+            }
+        }
+        e.option_id(self.service_hash);
+        e.u32(self.blocks.len() as u32);
+        for (id, hasher) in &self.blocks {
+            e.raw(id);
+            e.raw(hasher.serialize().as_slice());
+        }
+        e.finish()
+    }
+
+    /// The check as [`Check::snapshot`] left it. An error if the bytes are not a snapshot.
+    pub fn restore(data: &[u8]) -> Result<Self, PackageError> {
+        let bad = || PackageError::Invalid("the saved state of the check is not valid".into());
+        let mut d = Decoder::new(data);
+        if d.u8().ok_or_else(bad)? != SNAPSHOT_VERSION {
+            return Err(bad());
+        }
+        let bytes = d.u64().ok_or_else(bad)?;
+        let strip = d.u8().ok_or_else(bad)? == 1;
+        let record = d.bytes().ok_or_else(bad)?.to_vec();
+        let layout = match d.u8().ok_or_else(bad)? {
+            0 => None,
+            1 => Some(Layout::Gateway),
+            2 => Some(Layout::NodoExport),
+            _ => return Err(bad()),
+        };
+        let part = match d.u8().ok_or_else(bad)? {
+            0 => None,
+            1 => Some(d.u32().ok_or_else(bad)? as i32),
+            _ => return Err(bad()),
+        };
+        let small = d.bytes().ok_or_else(bad)?.to_vec();
+        let service_id = d.option_id().ok_or_else(bad)?;
+        let service = match d.u8().ok_or_else(bad)? {
+            0 => None,
+            1 => Some(d.hasher().ok_or_else(bad)?),
+            _ => return Err(bad()),
+        };
+        let service_hash = d.option_id().ok_or_else(bad)?;
+        let count = d.u32().ok_or_else(bad)? as usize;
+        let mut blocks = Vec::new();
+        for _ in 0..count {
+            let id = d.id().ok_or_else(bad)?;
+            blocks.push((id, d.hasher().ok_or_else(bad)?));
+        }
+        if !d.done() || record.len() > 4 + MAX_RECORD as usize {
+            return Err(bad());
+        }
+        Ok(Check {
+            record,
+            layout,
+            part,
+            small,
+            service_id,
+            service,
+            service_hash,
+            blocks,
+            bytes,
+            strip,
+            out: Vec::new(),
+        })
     }
 
     /// The bytes that the check got so far.
@@ -494,12 +620,17 @@ impl Check {
                     if self.service.is_some() || self.service_hash.is_some() {
                         return Err(PackageError::Invalid("two Service parts".into()));
                     }
-                    self.service = Some(bee_rpc::hash::HashAlgorithm::Sha3_256.hasher());
+                    self.service = Some(Sha3::new());
                 }
                 self.part = Some(index);
                 self.small.clear();
             }
         }
+        // For the file without the content of the blocks: whether the record is kept, and
+        // whether its chunk goes (the bytes that come with the marker that opens a top-level
+        // block are in the block).
+        let mut keep = self.blocks.is_empty();
+        let mut drop_chunk = false;
         if let Some(block) = &buffer.block {
             if self.service.is_none() {
                 return Err(PackageError::Invalid("a block outside of the Service".into()));
@@ -512,8 +643,10 @@ impl Check {
                 })
                 .ok_or_else(|| PackageError::Invalid("a block has no SHA3-256 id".into()))?;
             if let Some((_, hasher)) = self.blocks.pop_if(|(last, _)| *last == id) {
+                // The marker that ends a top-level block stays; one of a block inside goes.
+                keep = self.blocks.is_empty();
                 let got = hasher.finalize();
-                if got != id {
+                if got.as_slice() != id {
                     return Err(PackageError::Invalid(format!(
                         "the block {} holds other bytes: they hash to {}",
                         hex::encode(id),
@@ -526,8 +659,9 @@ impl Check {
                     hex::encode(id)
                 )));
             } else {
-                self.blocks
-                    .push((id, bee_rpc::hash::HashAlgorithm::Sha3_256.hasher()));
+                self.blocks.push((id, Sha3::new()));
+                keep = self.blocks.len() == 1;
+                drop_chunk = keep;
             }
         }
         if let Some(chunk) = &buffer.chunk {
@@ -552,6 +686,19 @@ impl Check {
         if buffer.separator == Some(true) {
             self.close_part()?;
         }
+        if self.strip && keep {
+            let mut buffer = buffer;
+            if drop_chunk {
+                buffer.chunk = None;
+            }
+            let record = buffer.encode_to_vec();
+            let len = u32::try_from(record.len())
+                .ok()
+                .filter(|l| *l <= MAX_RECORD)
+                .ok_or_else(|| PackageError::Invalid("a Buffer is too large".into()))?;
+            self.out.extend_from_slice(&len.to_be_bytes());
+            self.out.extend_from_slice(&record);
+        }
         Ok(())
     }
 
@@ -566,8 +713,7 @@ impl Check {
                     hex::encode(id)
                 )));
             }
-            let digest = hasher.finalize();
-            self.service_hash = digest.as_slice().try_into().ok();
+            self.service_hash = hasher.finalize().as_slice().try_into().ok();
             return Ok(());
         }
         let data = std::mem::take(&mut self.small);
@@ -623,19 +769,142 @@ impl Check {
     }
 }
 
+const SNAPSHOT_VERSION: u8 = 1;
+
+/// The bytes of the saved state of a SHA3-256 hash (`SerializableState`).
+const HASH_STATE: usize = 201;
+
+/// The bytes of a [`Check::snapshot`], written in order.
+#[derive(Default)]
+struct Encoder(Vec<u8>);
+
+impl Encoder {
+    fn u8(&mut self, v: u8) {
+        self.0.push(v);
+    }
+    fn u32(&mut self, v: u32) {
+        self.0.extend_from_slice(&v.to_be_bytes());
+    }
+    fn u64(&mut self, v: u64) {
+        self.0.extend_from_slice(&v.to_be_bytes());
+    }
+    fn raw(&mut self, v: &[u8]) {
+        self.0.extend_from_slice(v);
+    }
+    fn bytes(&mut self, v: &[u8]) {
+        self.u32(v.len() as u32);
+        self.raw(v);
+    }
+    fn option_id(&mut self, v: Option<[u8; 32]>) {
+        match v {
+            None => self.u8(0),
+            Some(id) => {
+                self.u8(1);
+                self.raw(&id);
+            }
+        }
+    }
+    fn finish(self) -> Vec<u8> {
+        self.0
+    }
+}
+
+/// Reads what [`Encoder`] wrote; every read is `None` at the end of the data.
+struct Decoder<'a> {
+    data: &'a [u8],
+}
+
+impl<'a> Decoder<'a> {
+    fn new(data: &'a [u8]) -> Self {
+        Decoder { data }
+    }
+    fn take(&mut self, n: usize) -> Option<&'a [u8]> {
+        let (head, rest) = self.data.split_at_checked(n)?;
+        self.data = rest;
+        Some(head)
+    }
+    fn u8(&mut self) -> Option<u8> {
+        Some(self.take(1)?[0])
+    }
+    fn u32(&mut self) -> Option<u32> {
+        Some(u32::from_be_bytes(self.take(4)?.try_into().ok()?))
+    }
+    fn u64(&mut self) -> Option<u64> {
+        Some(u64::from_be_bytes(self.take(8)?.try_into().ok()?))
+    }
+    fn bytes(&mut self) -> Option<&'a [u8]> {
+        let n = self.u32()? as usize;
+        self.take(n)
+    }
+    fn id(&mut self) -> Option<[u8; 32]> {
+        self.take(32)?.try_into().ok()
+    }
+    fn option_id(&mut self) -> Option<Option<[u8; 32]>> {
+        match self.u8()? {
+            0 => Some(None),
+            1 => Some(Some(self.id()?)),
+            _ => None,
+        }
+    }
+    fn hasher(&mut self) -> Option<Sha3> {
+        let state = self.take(HASH_STATE)?;
+        Sha3::deserialize(state.try_into().ok()?).ok()
+    }
+    fn done(&self) -> bool {
+        self.data.is_empty()
+    }
+}
+
+/// Read a package from `reader` once, check it with [`Check`], and write the file that the
+/// library keeps to `partial`: the whole file, or without the content of the blocks of its
+/// Service (`strip`). The content of the blocks is read, hashed and thrown away; it is never
+/// on the disk. `cancel` counts the bytes that were read, and stops it. Gives what the check
+/// found and the size of the file written. `partial` is the caller's to rename or delete.
+async fn intake<R: AsyncRead + Unpin>(
+    mut reader: R,
+    partial: &Path,
+    strip: bool,
+    cancel: &Cancel,
+) -> Result<(Checked, u64), PackageError> {
+    let mut writer = BufWriter::with_capacity(1024 * 1024, tokio::fs::File::create(partial).await?);
+    let mut check = if strip { Check::stripping() } else { Check::new() };
+    let mut piece = vec![0u8; 256 * 1024];
+    let mut written = 0u64;
+    loop {
+        if cancel.is_cancelled() {
+            return Err(PackageError::Cancelled);
+        }
+        let n = reader.read(&mut piece).await?;
+        if n == 0 {
+            break;
+        }
+        check.feed(&piece[..n])?;
+        if strip {
+            let out = check.take_output();
+            writer.write_all(&out).await?;
+            written += out.len() as u64;
+        } else {
+            writer.write_all(&piece[..n]).await?;
+            written += n as u64;
+        }
+        cancel.add(n as u64);
+    }
+    let checked = check.finish()?;
+    writer.flush().await?;
+    Ok((checked, written))
+}
+
 /// Copy the package at `source` to `target` without the content of the blocks of its
 /// Service, which is the filesystem of the container (`docs/celaut/package.md`, "Without
 /// the filesystem"). Of each top-level block the file keeps the two markers, the one that
-/// opens it and the one that ends it, and nothing between them: no chunk and no marker of a
-/// block inside. The rest is copied as it is, so [`inspect`] and the reader of the service
-/// information (`service_info`) read the copy as before. The copy does not pass [`Check`] and
-/// [`read`] must not give it to a node: the library records that
-/// ([`Imported::filesystem_kept`]).
+/// opens it and the one that ends it, and nothing between them. The rest is copied as it
+/// is, so [`inspect`] and the reader of the service information (`service_info`) read the
+/// copy as before. The package is checked while it is read ([`Check`]); a package that fails
+/// the check gives an error and no file. The copy does not pass [`Check`] and [`read`] must
+/// not give it to a node: the library records that ([`Imported::filesystem_kept`]).
 ///
 /// The copy is written next to `target` and renamed, so `target` never holds a cut file.
-/// Gives the size of the copy, in bytes. `source` is read in order, one record at a time;
-/// `cancel` stops it. Call it only on a package that [`check_file`] passed: a block that is
-/// not closed is an error.
+/// Gives the size of the copy, in bytes. `source` is read once, in order; `cancel` stops it.
 pub async fn strip_filesystem(
     source: &Path,
     target: &Path,
@@ -643,64 +912,16 @@ pub async fn strip_filesystem(
 ) -> Result<u64, PackageError> {
     let partial = partial_path(target);
     let result = async {
-        let mut reader = BufReader::new(tokio::fs::File::open(source).await?);
-        let mut writer = BufWriter::new(tokio::fs::File::create(&partial).await?);
-        let mut total = 0u64;
-        // The ids of the blocks that are open, the outermost first.
-        let mut open: Vec<Vec<u8>> = Vec::new();
-        while let Some(mut buffer) = next_record(&mut reader).await? {
-            if cancel.is_cancelled() {
-                return Err(PackageError::Cancelled);
-            }
-            if let Some(block) = &buffer.block {
-                let id = block
-                    .hashes
-                    .iter()
-                    .find_map(|h| (h.r#type == SHA3_256_TYPE).then(|| h.value.clone()))
-                    .ok_or_else(|| PackageError::Invalid("a block has no SHA3-256 id".into()))?;
-                if open.last() == Some(&id) {
-                    // The end of the innermost block: the marker of a top-level block stays.
-                    open.pop();
-                    if !open.is_empty() {
-                        continue;
-                    }
-                } else {
-                    open.push(id);
-                    if open.len() > 1 {
-                        continue;
-                    }
-                    // The bytes that come with the opening marker are in the block.
-                    buffer.chunk = None;
-                }
-            } else if !open.is_empty() {
-                continue;
-            }
-            let record = buffer.encode_to_vec();
-            let len = u32::try_from(record.len())
-                .ok()
-                .filter(|l| *l <= MAX_RECORD)
-                .ok_or_else(|| PackageError::Invalid("a Buffer is too large".into()))?;
-            writer.write_u32(len).await?;
-            writer.write_all(&record).await?;
-            total += 4 + u64::from(len);
-        }
-        if !open.is_empty() {
-            return Err(PackageError::Invalid("the file is cut inside a block".into()));
-        }
-        writer.flush().await?;
-        Ok(total)
+        let file = tokio::fs::File::open(source).await?;
+        let (_, written) = intake(file, &partial, true, cancel).await?;
+        tokio::fs::rename(&partial, target).await?;
+        Ok(written)
     }
     .await;
-    match result {
-        Ok(total) => {
-            tokio::fs::rename(&partial, target).await?;
-            Ok(total)
-        }
-        Err(e) => {
-            let _ = tokio::fs::remove_file(&partial).await;
-            Err(e)
-        }
+    if result.is_err() {
+        let _ = tokio::fs::remove_file(&partial).await;
     }
+    result
 }
 
 /// The folder of the library inside `dir`, a private directory of the app.
@@ -760,10 +981,12 @@ pub async fn import(
     import_with(source, dir, cancel, Storage::Whole).await
 }
 
-/// [`import`], with the choice of what the library keeps. The check reads the whole file
-/// first, so a file with a false block is refused whatever `storage` says; with
-/// [`Storage::WithoutFilesystem`] the file that is checked is then copied to the library
-/// without the content of its blocks, and `source` is deleted.
+/// [`import`], with the choice of what the library keeps. With [`Storage::Whole`] the check
+/// reads the whole file first, so a file with a false block is refused and left where it is.
+/// With [`Storage::WithoutFilesystem`] the file is read once: the check and the copy to the
+/// library, without the content of its blocks, happen in the same pass ([`import_reader`]),
+/// so the disk never holds more than the copy. `source` is deleted once the copy is in the
+/// library.
 pub async fn import_with(
     source: &Path,
     dir: &Path,
@@ -777,6 +1000,12 @@ pub async fn import_with(
     if info.service_id.is_none() {
         return Err(PackageError::Invalid("the file does not say which service it is".into()));
     }
+    if storage == Storage::WithoutFilesystem {
+        let file = tokio::fs::File::open(source).await?;
+        let imported = import_reader(file, dir, cancel, storage).await?;
+        let _ = tokio::fs::remove_file(source).await;
+        return Ok(imported);
+    }
     // The head says what the file is at once; the check reads all of it.
     let service_id = check_file(source, cancel).await?.service_id;
     let path = into_library_with(source, dir, &service_id, storage).await?;
@@ -788,6 +1017,61 @@ pub async fn import_with(
         stored_bytes,
         filesystem_kept: storage == Storage::Whole,
     })
+}
+
+/// Load a package that `reader` gives (a file that the app reads where it is, with no copy
+/// of its own: the descriptor of a file of Android) into the library under `dir`, with
+/// [`Check`] as it reads. The library file is written next to its place and renamed when the
+/// check passes, so a package that fails the check leaves nothing. With
+/// [`Storage::WithoutFilesystem`] the content of the blocks is never written: the disk needs
+/// the space of the copy that the library keeps, not the size of the package. `cancel`
+/// counts the bytes that were read and stops the load.
+pub async fn import_reader<R: AsyncRead + Unpin>(
+    reader: R,
+    dir: &Path,
+    cancel: &Cancel,
+    storage: Storage,
+) -> Result<Imported, PackageError> {
+    let folder = library_dir(dir);
+    tokio::fs::create_dir_all(&folder).await?;
+    let partial = folder.join("incoming.bee.partial");
+    let result = intake(reader, &partial, storage == Storage::WithoutFilesystem, cancel).await;
+    let (checked, stored_bytes) = match result {
+        Ok(done) => done,
+        Err(e) => {
+            let _ = tokio::fs::remove_file(&partial).await;
+            return Err(e);
+        }
+    };
+    let path = library_path(dir, &checked.service_id);
+    if let Err(e) = tokio::fs::rename(&partial, &path).await {
+        let _ = tokio::fs::remove_file(&partial).await;
+        return Err(e.into());
+    }
+    Ok(Imported {
+        service_id: checked.service_id,
+        path,
+        info: PackageInfo {
+            layout: checked.layout,
+            bytes: checked.bytes,
+            service_id: Some(checked.service_id),
+            has_service: true,
+        },
+        stored_bytes,
+        filesystem_kept: storage == Storage::Whole,
+    })
+}
+
+/// [`import_reader`] for a file that is already open: a descriptor that the app got from
+/// Android for the file that the user chose. It is read where it is, once, in order; it needs
+/// no seek, so a pipe of a provider works too. The file is closed when the load ends.
+pub async fn import_open_file(
+    file: std::fs::File,
+    dir: &Path,
+    cancel: &Cancel,
+    storage: Storage,
+) -> Result<Imported, PackageError> {
+    import_reader(tokio::fs::File::from_std(file), dir, cancel, storage).await
 }
 
 /// Move (or copy, from another disk) the checked package at `source` into the library under
@@ -820,7 +1104,9 @@ pub async fn into_library_with(
     into_library_whole(source, dir, service_id).await
 }
 
-async fn into_library_whole(
+/// Move a file that is ready (a checked package, or the file without the content of its
+/// blocks that a download wrote) into the library as the file of `service_id`.
+pub async fn into_library_whole(
     source: &Path,
     dir: &Path,
     service_id: &[u8; 32],

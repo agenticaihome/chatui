@@ -238,6 +238,9 @@ class _Packages implements PackageChannel {
   }
 
   @override
+  Future<OpenedFile?> open(ChosenFile file) async => null;
+
+  @override
   void cancelCopy() {
     cancels++;
     copyError = const CopyCancelled();

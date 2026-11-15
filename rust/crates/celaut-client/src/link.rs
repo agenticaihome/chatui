@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
-use crate::package::{into_library_with, Cancel, Check, Layout, PackageError, Storage, MAX_RECORD};
+use crate::package::{into_library_whole, Cancel, Check, Layout, PackageError, Storage, MAX_RECORD};
 
 /// The largest manifest, in bytes. 1 MiB holds thousands of links.
 pub const MAX_MANIFEST: usize = 1024 * 1024;
@@ -215,8 +215,13 @@ pub struct LinkOptions {
     pub backoff: Duration,
     /// A request that gives no byte for this long failed.
     pub idle: Duration,
-    /// What the library keeps of the file once it passed the check. The download itself is
-    /// always whole on disk (it goes on from there if it stops, and the check needs it).
+    /// What the library keeps of the file. With [`Storage::Whole`] the download is whole on
+    /// disk, it goes on from there if it stops, and it is the library file. With
+    /// [`Storage::WithoutFilesystem`] the content of the blocks is never written: the check
+    /// reads it as it arrives and throws it away, so the disk needs the space of the file
+    /// that the library keeps, not the size of the service. A download that stops goes on
+    /// from the last checkpoint ([`CHECKPOINT`]). `max_bytes` then limits the bytes that are
+    /// written, not the bytes that arrive.
     pub storage: Storage,
 }
 
@@ -277,7 +282,8 @@ impl LinkProgress {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pending {
     pub url: String,
-    /// The bytes on disk.
+    /// The bytes on disk; for a download without the filesystem, the bytes that were read
+    /// up to its last checkpoint.
     pub bytes: u64,
 }
 
@@ -305,8 +311,13 @@ struct State {
     url: String,
     /// The links of the chunks; `None` for a single file, and before the app knows.
     chunks: Option<Vec<String>>,
-    /// The end, in the file, of each chunk that is complete.
+    /// The end, in the file, of each chunk that is complete. With [`Storage::WithoutFilesystem`],
+    /// the end in the bytes that arrived.
     done: Vec<u64>,
+    /// True if the file on disk is the one without the content of the blocks, with its
+    /// checkpoint.
+    #[serde(default)]
+    stripped: bool,
 }
 
 /// The folder of the downloads inside `dir`, a private directory of the app.
@@ -320,6 +331,51 @@ fn key_of(url: &str) -> String {
 
 const STATE: &str = "state.json";
 const PARTIAL: &str = "service.bee.partial";
+/// The checkpoint of a download without the filesystem: where the bytes that arrived stop,
+/// how long the file on disk is, and the state of the check.
+const CHECKPOINT: &str = "check.state";
+/// The bytes that arrive between two checkpoints of a download without the filesystem.
+/// A download that stops goes on from the last one: it loses at most this much.
+pub const CHECKPOINT_EVERY: u64 = 64 * 1024 * 1024;
+
+/// A point of a download without the filesystem where it can go on.
+#[derive(Debug, Clone)]
+struct Checkpoint {
+    /// The bytes of the download that the check read.
+    pos: u64,
+    /// The bytes of the file on disk at that point.
+    file_len: u64,
+    /// [`Check::snapshot`].
+    check: Vec<u8>,
+}
+
+const CHECKPOINT_MAGIC: &[u8; 8] = b"CELCKP01";
+
+impl Checkpoint {
+    fn encode(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(24 + self.check.len());
+        out.extend_from_slice(CHECKPOINT_MAGIC);
+        out.extend_from_slice(&self.pos.to_be_bytes());
+        out.extend_from_slice(&self.file_len.to_be_bytes());
+        out.extend_from_slice(&self.check);
+        out
+    }
+
+    fn decode(data: &[u8]) -> Option<Self> {
+        let rest = data.strip_prefix(CHECKPOINT_MAGIC)?;
+        let pos = u64::from_be_bytes(rest.get(..8)?.try_into().ok()?);
+        let file_len = u64::from_be_bytes(rest.get(8..16)?.try_into().ok()?);
+        Some(Checkpoint {
+            pos,
+            file_len,
+            check: rest.get(16..)?.to_vec(),
+        })
+    }
+}
+
+fn read_checkpoint(folder: &Path) -> Option<Checkpoint> {
+    Checkpoint::decode(&std::fs::read(folder.join(CHECKPOINT)).ok()?)
+}
 
 fn read_state(folder: &Path) -> Option<State> {
     serde_json::from_slice(&std::fs::read(folder.join(STATE)).ok()?).ok()
@@ -339,9 +395,13 @@ pub fn pending(dir: &Path) -> Option<Pending> {
     for entry in entries.flatten() {
         let folder = entry.path();
         if let Some(state) = read_state(&folder) {
-            let bytes = std::fs::metadata(folder.join(PARTIAL))
-                .map(|m| m.len())
-                .unwrap_or(0);
+            let bytes = if state.stripped {
+                read_checkpoint(&folder).map_or(0, |c| c.pos)
+            } else {
+                std::fs::metadata(folder.join(PARTIAL))
+                    .map(|m| m.len())
+                    .unwrap_or(0)
+            };
             return Some(Pending {
                 url: state.url,
                 bytes,
@@ -399,6 +459,7 @@ pub async fn download<S: Source + ?Sized>(
     let worth = || {
         read_state(&folder).is_some_and(|s| s.chunks.is_some())
             || std::fs::metadata(folder.join(PARTIAL)).is_ok_and(|m| m.len() > 0)
+            || read_checkpoint(&folder).is_some()
     };
     match &result {
         Err(e) if can_resume(e) && worth() => {}
@@ -413,13 +474,28 @@ pub async fn download<S: Source + ?Sized>(
 struct Sink {
     file: tokio::io::BufWriter<tokio::fs::File>,
     path: PathBuf,
-    /// The bytes in the file (written or in the buffer).
+    /// The bytes of the download that the check read. For a whole file, they are the bytes
+    /// in the file (written or in the buffer).
     pos: u64,
+    /// The bytes written to the file. They are the same as `pos` for a whole file.
+    file_len: u64,
     check: Check,
+    /// Set for a download without the filesystem.
+    strip: Option<Stripped>,
+}
+
+/// What a download without the filesystem keeps to go on after a stop.
+struct Stripped {
+    folder: PathBuf,
+    /// The last checkpoint, on disk too.
+    last: Option<Checkpoint>,
+    /// The checkpoint at the end of the last complete chunk: where a chunk starts again if
+    /// the server does not take a Range.
+    boundary: Option<Checkpoint>,
 }
 
 impl Sink {
-    async fn open(path: PathBuf) -> Result<Self, PackageError> {
+    async fn open(path: PathBuf, strip: Option<PathBuf>) -> Result<Self, PackageError> {
         let file = tokio::fs::OpenOptions::new()
             .read(true)
             .write(true)
@@ -427,17 +503,56 @@ impl Sink {
             .truncate(false)
             .open(&path)
             .await?;
+        let check = if strip.is_some() { Check::stripping() } else { Check::new() };
         Ok(Sink {
             file: tokio::io::BufWriter::with_capacity(1024 * 1024, file),
             path,
             pos: 0,
-            check: Check::new(),
+            file_len: 0,
+            check,
+            strip: strip.map(|folder| Stripped {
+                folder,
+                last: None,
+                boundary: None,
+            }),
         })
     }
 
-    /// Keep the first `len` bytes of the file, and check them again from the disk: the check
-    /// cannot go back, so it reads them once more (a local read, no download).
+    /// The bytes that count against the size limit: the ones that the library keeps.
+    fn kept(&self) -> u64 {
+        if self.strip.is_some() { self.file_len } else { self.pos }
+    }
+
+    /// Where a download without the filesystem goes on: the bytes of the download up to its
+    /// last checkpoint on disk, 0 if there is none (the file on disk is then emptied).
+    async fn load_checkpoint(&mut self) -> Result<u64, PackageError> {
+        let Some(strip) = self.strip.as_mut() else {
+            return Ok(0);
+        };
+        match read_checkpoint(&strip.folder) {
+            Some(cp) => {
+                let pos = cp.pos;
+                strip.last = Some(cp);
+                Ok(pos)
+            }
+            None => {
+                self.file.flush().await?;
+                let file = self.file.get_mut();
+                file.set_len(0).await?;
+                file.seek(std::io::SeekFrom::Start(0)).await?;
+                Ok(0)
+            }
+        }
+    }
+
+    /// Keep the first `len` bytes of the download, and check them again: the check cannot
+    /// go back. A whole file reads them once more from the disk (a local read, no download).
+    /// A download without the filesystem goes back to a checkpoint: the start, or the
+    /// checkpoint that is at `len`.
     async fn reset_to(&mut self, len: u64, cancel: &Cancel) -> Result<(), PackageError> {
+        if self.strip.is_some() {
+            return self.reset_to_checkpoint(len, cancel).await;
+        }
         self.file.flush().await?;
         let file = self.file.get_mut();
         file.set_len(len).await?;
@@ -460,15 +575,88 @@ impl Sink {
         }
         self.check = check;
         self.pos = len;
+        self.file_len = len;
         cancel.set(len);
         Ok(())
     }
 
+    async fn reset_to_checkpoint(&mut self, len: u64, cancel: &Cancel) -> Result<(), PackageError> {
+        let strip = self.strip.as_ref().expect("a download without the filesystem");
+        let (check, file_len) = if len == 0 {
+            (Check::stripping(), 0)
+        } else {
+            let cp = [&strip.boundary, &strip.last]
+                .into_iter()
+                .flatten()
+                .find(|cp| cp.pos == len)
+                .ok_or_else(|| {
+                    PackageError::Invalid(
+                        "the download cannot go back to byte {len}: it goes on from a Range only"
+                            .replace("{len}", &len.to_string()),
+                    )
+                })?;
+            (Check::restore(&cp.check)?, cp.file_len)
+        };
+        self.file.flush().await?;
+        let file = self.file.get_mut();
+        if file.metadata().await?.len() < file_len {
+            return Err(PackageError::Invalid("the file on disk is shorter".into()));
+        }
+        file.set_len(file_len).await?;
+        file.seek(std::io::SeekFrom::Start(file_len)).await?;
+        self.check = check;
+        self.pos = len;
+        self.file_len = file_len;
+        cancel.set(len);
+        // The checkpoint on disk is at this point now, not at a later one that was undone.
+        self.checkpoint(false).await
+    }
+
     async fn write(&mut self, data: &[u8], cancel: &Cancel) -> Result<(), PackageError> {
-        self.file.write_all(data).await?;
+        if self.strip.is_none() {
+            self.file.write_all(data).await?;
+            self.pos += data.len() as u64;
+            self.file_len = self.pos;
+            cancel.set(self.pos);
+            return self.check.feed(data);
+        }
+        // The check gives the bytes of the file that the library keeps; the rest is thrown
+        // away as it is read.
+        self.check.feed(data)?;
+        let out = self.check.take_output();
+        self.file.write_all(&out).await?;
+        self.file_len += out.len() as u64;
         self.pos += data.len() as u64;
         cancel.set(self.pos);
-        self.check.feed(data)
+        let last = self.strip.as_ref().and_then(|s| s.last.as_ref()).map_or(0, |cp| cp.pos);
+        if self.pos.saturating_sub(last) >= CHECKPOINT_EVERY {
+            self.checkpoint(false).await?;
+        }
+        Ok(())
+    }
+
+    /// Save the point where the download is, to go on from it if the app stops
+    /// ([`Checkpoint`]): the file is on the disk up to there, and the state of the check is in
+    /// `check.state`. `boundary`: the end of a chunk. Does nothing for a whole file.
+    async fn checkpoint(&mut self, boundary: bool) -> Result<(), PackageError> {
+        let Some(strip) = self.strip.as_mut() else {
+            return Ok(());
+        };
+        self.file.flush().await?;
+        self.file.get_mut().sync_data().await?;
+        let cp = Checkpoint {
+            pos: self.pos,
+            file_len: self.file_len,
+            check: self.check.snapshot(),
+        };
+        let tmp = strip.folder.join("check.state.tmp");
+        tokio::fs::write(&tmp, cp.encode()).await?;
+        tokio::fs::rename(&tmp, strip.folder.join(CHECKPOINT)).await?;
+        if boundary {
+            strip.boundary = Some(cp.clone());
+        }
+        strip.last = Some(cp);
+        Ok(())
     }
 
     async fn sync(&mut self) -> Result<(), PackageError> {
@@ -489,18 +677,27 @@ async fn run<S: Source + ?Sized>(
 ) -> Result<Downloaded, PackageError> {
     tokio::fs::create_dir_all(folder).await?;
     let partial = folder.join(PARTIAL);
-    let saved = read_state(folder).filter(|s| s.url == url);
+    let strip = options.storage == Storage::WithoutFilesystem;
+    // What is on disk of the same link but of the other storage cannot go on.
+    let saved = read_state(folder).filter(|s| s.url == url && s.stripped == strip);
     let resumed = saved.is_some();
     let mut state = saved.unwrap_or_else(|| State {
         url: url.to_string(),
+        stripped: strip,
         ..State::default()
     });
     if !resumed {
         let _ = tokio::fs::remove_file(&partial).await;
+        let _ = tokio::fs::remove_file(folder.join(CHECKPOINT)).await;
         write_state(folder, &state).await?;
     }
-    let mut sink = Sink::open(partial.clone()).await?;
-    let on_disk = tokio::fs::metadata(&partial).await?.len();
+    let mut sink = Sink::open(partial.clone(), strip.then(|| folder.to_path_buf())).await?;
+    // The bytes of the download that are safe on disk.
+    let on_disk = if strip {
+        sink.load_checkpoint().await?
+    } else {
+        tokio::fs::metadata(&partial).await?.len()
+    };
 
     // A new download: the first answer says what the link gives.
     let mut first = None;
@@ -542,6 +739,7 @@ async fn run<S: Source + ?Sized>(
                 fetch(source, link, chunk_start, &mut sink, None, options, cancel, progress)
                     .await?;
                 sink.sync().await?;
+                sink.checkpoint(true).await?;
                 state.done.push(sink.pos);
                 write_state(folder, &state).await?;
             }
@@ -559,7 +757,9 @@ async fn run<S: Source + ?Sized>(
             )));
         }
     }
-    let path = into_library_with(&partial, dir, &checked.service_id, options.storage).await?;
+    // The file is the one that the library keeps: the whole file, or the one that the check
+    // wrote without the content of the blocks.
+    let path = into_library_whole(&partial, dir, &checked.service_id).await?;
     let stored = tokio::fs::metadata(&path).await?.len();
     Ok(Downloaded {
         service_id: checked.service_id,
@@ -751,7 +951,8 @@ async fn fetch<S: Source + ?Sized>(
                 if progress.chunks.load(Ordering::Acquire) == 0 {
                     progress.total.store(total, Ordering::Release);
                 }
-                if start + total > options.max_bytes {
+                // Without the filesystem the limit is on the bytes that are written.
+                if sink.strip.is_none() && start + total > options.max_bytes {
                     return Err(PackageError::TooLarge(options.max_bytes));
                 }
             }
@@ -765,7 +966,7 @@ async fn fetch<S: Source + ?Sized>(
                         None => break,
                     },
                 };
-                if sink.pos + data.len() as u64 > options.max_bytes {
+                if sink.kept() + data.len() as u64 > options.max_bytes {
                     return Err(PackageError::TooLarge(options.max_bytes));
                 }
                 sink.write(&data, cancel).await?;
@@ -786,6 +987,7 @@ async fn fetch<S: Source + ?Sized>(
         // The bytes so far stay on disk: the next try, or the next download of the link,
         // asks for the rest.
         sink.file.flush().await?;
+        sink.checkpoint(false).await?;
         match error {
             FetchError::Fatal(e) => return Err(PackageError::Network(e)),
             FetchError::Retry(e) if tries >= options.attempts => {

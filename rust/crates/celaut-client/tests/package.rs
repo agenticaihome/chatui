@@ -630,8 +630,151 @@ async fn without_the_filesystem_the_blocks_inside_a_block_go_too_and_a_false_blo
     let cut = export_file_of(&d, "cut.celaut.bee", cut, [1u8; 32]);
     let target = d.join("stripped.bee");
     let error = strip_filesystem(&cut, &target, &Cancel::new()).await.unwrap_err();
-    assert!(matches!(&error, PackageError::Invalid(t) if t.contains("cut inside a block")), "{error}");
+    assert!(matches!(&error, PackageError::Invalid(t) if t.contains("cut inside")), "{error}");
     assert!(!target.exists());
     assert!(!d.join("stripped.bee.partial").exists());
+    std::fs::remove_dir_all(d).unwrap();
+}
+
+#[tokio::test]
+async fn a_check_that_stopped_goes_on_from_its_saved_state_at_any_byte() {
+    use celaut_client::package::Check;
+    let d = dir();
+    let content: Vec<u8> = (0..400_000usize).map(|i| (i * 7 % 251) as u8).collect();
+    let id = id_of(&service_buffers(6, &content));
+    let file = d.join("whole.bee");
+    save(stream(answer_for(&content, id)), &file, &Cancel::new()).await.unwrap();
+    let bytes = std::fs::read(&file).unwrap();
+
+    // The whole file in one run, for the answer that every split must give.
+    let mut straight = Check::stripping();
+    let mut want = Vec::new();
+    for piece in bytes.chunks(8192) {
+        straight.feed(piece).unwrap();
+        want.extend(straight.take_output());
+    }
+    let want_checked = straight.finish().unwrap();
+    assert_eq!(want_checked.service_id, id);
+    assert!(want.len() < 2_000, "{} bytes of {}", want.len(), bytes.len());
+
+    // Stopped at many points (inside a record, between records, inside a block), saved,
+    // restored and finished: the same file and the same result.
+    for cut in [1, 3, 4, 5, 100, 1_000, 65_000, 65_537, 131_072, 200_001, bytes.len() - 7, bytes.len()] {
+        let mut first = Check::stripping();
+        let mut got = Vec::new();
+        for piece in bytes[..cut].chunks(8192) {
+            first.feed(piece).unwrap();
+            got.extend(first.take_output());
+        }
+        let saved = first.snapshot();
+        drop(first);
+        let mut second = Check::restore(&saved).unwrap();
+        assert_eq!(second.bytes(), cut as u64);
+        for piece in bytes[cut..].chunks(5000) {
+            second.feed(piece).unwrap();
+            got.extend(second.take_output());
+        }
+        assert_eq!(second.finish().unwrap(), want_checked, "cut at {cut}");
+        assert_eq!(got, want, "cut at {cut}");
+    }
+
+    // A saved state that is cut or has other bytes is an error, not a panic.
+    let mut check = Check::stripping();
+    check.feed(&bytes[..70_000]).unwrap();
+    let saved = check.snapshot();
+    for bad in [&saved[..saved.len() - 1], &saved[..10], &[][..], &[9u8][..]] {
+        assert!(Check::restore(bad).is_err());
+    }
+    let mut long = saved.clone();
+    long.push(0);
+    assert!(Check::restore(&long).is_err());
+    std::fs::remove_dir_all(d).unwrap();
+}
+
+#[tokio::test]
+async fn a_package_is_loaded_from_a_reader_with_only_the_small_file_on_the_disk() {
+    use celaut_client::package::{import_reader, library_path, Storage};
+    let d = dir();
+    let content = vec![9u8; 3 * 1024 * 1024];
+    let id = id_of(&service_buffers(6, &content));
+    let source = d.join("source.bee");
+    save(stream(answer_for(&content, id)), &source, &Cancel::new()).await.unwrap();
+    let bytes = std::fs::read(&source).unwrap();
+
+    // A reader that is not a file on the disk: the bytes come in small pieces.
+    let (mut tx, rx) = tokio::io::duplex(10_000);
+    let feed = tokio::spawn({
+        let bytes = bytes.clone();
+        async move {
+            use tokio::io::AsyncWriteExt;
+            for piece in bytes.chunks(3000) {
+                tx.write_all(piece).await.unwrap();
+            }
+        }
+    });
+    let cancel = Cancel::new();
+    let imported = import_reader(rx, &d, &cancel, Storage::WithoutFilesystem).await.unwrap();
+    feed.await.unwrap();
+    assert_eq!(imported.service_id, id);
+    assert_eq!(imported.path, library_path(&d, &id));
+    assert!(!imported.filesystem_kept);
+    assert_eq!(imported.info.bytes, bytes.len() as u64);
+    assert_eq!(cancel.bytes(), bytes.len() as u64);
+    let stored = std::fs::metadata(&imported.path).unwrap().len();
+    assert_eq!(imported.stored_bytes, stored);
+    assert!(stored < 2_000, "{stored} bytes");
+    // The file is the same as the one that `import_with` makes from the file.
+    let other = d.join("other");
+    let from_file = celaut_client::package::import_with(&source, &other, &Cancel::new(), Storage::WithoutFilesystem)
+        .await
+        .unwrap();
+    assert_eq!(std::fs::read(&from_file.path).unwrap(), std::fs::read(&imported.path).unwrap());
+    // Nothing else stays in the library.
+    let names: Vec<_> = std::fs::read_dir(d.join("packages/library"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names, [format!("{}.bee", hex::encode(id))]);
+
+    // The whole file also works, byte for byte.
+    let whole = import_reader(bytes.as_slice(), &d, &Cancel::new(), Storage::Whole).await.unwrap();
+    assert!(whole.filesystem_kept);
+    assert_eq!(std::fs::read(&whole.path).unwrap(), bytes);
+    std::fs::remove_dir_all(d).unwrap();
+}
+
+#[tokio::test]
+async fn a_reader_that_fails_the_check_or_is_cancelled_leaves_nothing_in_the_library() {
+    use celaut_client::package::{import_reader, Storage};
+    let d = dir();
+    let content = vec![1u8; 500_000];
+    let id = id_of(&service_buffers(6, &content));
+    let source = d.join("source.bee");
+    save(stream(answer_for(&content, id)), &source, &Cancel::new()).await.unwrap();
+    let bytes = std::fs::read(&source).unwrap();
+    let library = d.join("packages/library");
+    let empty = || !library.exists() || std::fs::read_dir(&library).unwrap().count() == 0;
+
+    // A byte of the block changed.
+    let mut changed = bytes.clone();
+    let at = changed.len() - 100_000;
+    changed[at] ^= 1;
+    let error = import_reader(changed.as_slice(), &d, &Cancel::new(), Storage::WithoutFilesystem)
+        .await
+        .unwrap_err();
+    assert!(matches!(&error, PackageError::Invalid(t) if t.contains("holds other bytes")), "{error}");
+    assert!(empty());
+    // Cut.
+    let error = import_reader(&bytes[..bytes.len() / 2], &d, &Cancel::new(), Storage::WithoutFilesystem)
+        .await
+        .unwrap_err();
+    assert!(matches!(&error, PackageError::Invalid(_)), "{error}");
+    assert!(empty());
+    // Cancelled before it starts.
+    let cancel = Cancel::new();
+    cancel.cancel();
+    let error = import_reader(bytes.as_slice(), &d, &cancel, Storage::WithoutFilesystem).await.unwrap_err();
+    assert!(matches!(error, PackageError::Cancelled), "{error}");
+    assert!(empty());
     std::fs::remove_dir_all(d).unwrap();
 }

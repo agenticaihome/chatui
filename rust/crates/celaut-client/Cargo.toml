@@ -17,6 +17,9 @@ blake2 = "0.11"
 ring = "0.17"
 hex = { workspace = true }
 sha3 = "0.10"
+# The check of a package keeps its hash state on disk (a download that goes on): sha3 0.12 can
+# save it. It is the version that bee-rpc uses.
+sha3_state = { package = "sha3", version = "0.12" }
 data-encoding = "2"
 thiserror = { workspace = true }
 serde = { workspace = true }

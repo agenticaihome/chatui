@@ -50,6 +50,7 @@ class ImportProgress {
     this.chunk = 0,
     this.chunks = 0,
     this.retries = 0,
+    this.onePass = false,
   });
 
   final ImportPhase phase;
@@ -62,6 +63,10 @@ class ImportProgress {
 
   /// A download: the tries that failed and were tried again.
   final int retries;
+
+  /// True if the check is the whole import: the app read the file where it is, with no copy
+  /// first, so [ImportPhase.checking] is not the second half but all of it.
+  final bool onePass;
 
   /// The share of the phase that is done, or null while the total is not known.
   double? get fraction {
@@ -80,6 +85,7 @@ class ImportProgress {
       if (f != null) return f;
       return chunks > 0 ? ((chunk - 1) / chunks).clamp(0.0, 1.0).toDouble() : null;
     }
+    if (phase == ImportPhase.checking && onePass) return f;
     if (f == null) return phase == ImportPhase.checking ? 0.5 : null;
     return phase == ImportPhase.reading ? f / 2 : 0.5 + f / 2;
   }
@@ -94,6 +100,8 @@ class ImportProgress {
 class PackageLibrary {
   PackageLibrary({
     Future<LibraryPackageView> Function(String path, String name, String dir)? importPackage,
+    Future<LibraryPackageView> Function(OpenedFile file, String dir)? importOpened,
+    bool Function()? keepsNoFilesystem,
     List<LibraryPackageView> Function()? list,
     Future<void> Function(String serviceId)? remove,
     Future<String?> Function()? privateDir,
@@ -116,6 +124,14 @@ class PackageLibrary {
         _discardLink = discardLink ?? ((dir) => celautDiscardLink(dir: dir)),
         _import = importPackage ??
             ((path, name, dir) => celautImportPackage(path: path, name: name, dir: dir)),
+        _importOpened = importOpened ??
+            ((file, dir) => celautImportPackageFd(
+                  fd: file.fd,
+                  size: file.bytes == null ? null : BigInt.from(file.bytes!),
+                  name: file.name,
+                  dir: dir,
+                )),
+        _keepsNoFilesystem = keepsNoFilesystem ?? _settingKeepsNoFilesystem,
         _list = list ?? celautPackages,
         _remove = remove ?? ((id) => celautRemovePackage(serviceIdHex: id)),
         _privateDir = privateDir ?? _appPrivateDir,
@@ -123,6 +139,8 @@ class PackageLibrary {
         cancel = cancel ?? celautCancelTransfer;
 
   final Future<LibraryPackageView> Function(String, String, String) _import;
+  final Future<LibraryPackageView> Function(OpenedFile, String) _importOpened;
+  final bool Function() _keepsNoFilesystem;
   final Future<LibraryPackageView> Function(String, String, bool, int) _importLink;
   final LinkView Function(String) _checkLink;
   final PendingLinkView? Function(String) _pendingLink;
@@ -136,6 +154,15 @@ class PackageLibrary {
 
   /// Stop the load that runs.
   final void Function() cancel;
+
+  /// The setting "Do not keep the filesystem of a service"; off if the core is not ready.
+  static bool _settingKeepsNoFilesystem() {
+    try {
+      return celautPackagesWithoutFilesystem();
+    } on Object {
+      return false;
+    }
+  }
 
   /// The directory of the Celaut database: private to the app.
   static Future<String?> _appPrivateDir() async {
@@ -162,6 +189,7 @@ class PackageLibrary {
   }
 
   ImportPhase _phase = ImportPhase.reading;
+  bool _onePass = false;
   int? _size;
   PackageChannel? _channel;
   bool _cancelled = false;
@@ -187,6 +215,7 @@ class PackageLibrary {
       phase: _phase,
       bytes: view.bytes.toInt(),
       total: view.total?.toInt() ?? _size,
+      onePass: _onePass,
     );
   }
 
@@ -204,9 +233,27 @@ class PackageLibrary {
     final dir = await _privateDir();
     if (dir == null || dir.isEmpty) throw const PackageRefused(PackageRefusal.noDirectory);
     _phase = ImportPhase.reading;
+    _onePass = false;
     _size = file.bytes;
     _channel = channel;
     _cancelled = false;
+    if (_keepsNoFilesystem()) {
+      // No copy: the file is read where it is, and the library writes only its small part.
+      // The disk then never holds a service of many GB (`docs/celaut/package.md`). A
+      // provider that gives no descriptor falls back to the copy.
+      final opened = await channel.open(file);
+      if (opened != null) {
+        try {
+          if (_cancelled) throw const CopyCancelled();
+          _phase = ImportPhase.checking;
+          _onePass = true;
+          _size = opened.bytes ?? file.bytes;
+          return await _importOpened(opened, dir);
+        } finally {
+          _channel = null;
+        }
+      }
+    }
     final picked = await channel.copy(file);
     try {
       if (_cancelled) throw const CopyCancelled();

@@ -8,7 +8,7 @@ import 'celaut.dart';
 import 'celaut_service.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `begin`, `clean_name`, `client`, `content_range`, `describe`, `end`, `library_view`, `package_error`, `storage_now`, `transfer`, `view_of`
+// These functions are ignored because they are not marked as `pub`: `begin`, `clean_name`, `client`, `content_range`, `describe`, `end`, `library_view`, `package_error`, `record_import`, `storage_now`, `take_descriptor`, `transfer`, `view_of`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `HttpSource`, `Running`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `open`
 
@@ -41,6 +41,29 @@ Future<LibraryPackageView> celautImportPackage({
   required String dir,
 }) => RustLib.instance.api.crateApiCelautPackageCelautImportPackage(
   path: path,
+  name: name,
+  dir: dir,
+);
+
+/// Load a service file that the app reads where it is, with no copy of its own: `fd` is a
+/// file descriptor of the file that the user chose (Android gives one for a content uri).
+/// Only the setting "Do not keep the filesystem of a service" makes sense here: the file is
+/// checked and written to the library in the same pass, without the content of its blocks,
+/// so the disk needs the space of the small file that the library keeps, not the size of the
+/// service. The descriptor belongs to this call from the start: it is closed when the load
+/// ends, also if it fails. `size` is the size of the file if the provider said it (the
+/// progress); `name`, `dir`, the checks and the errors are those of
+/// [`celaut_import_package`]. A file that fails the check leaves nothing in the library, and
+/// the file that the user chose is not touched. `celaut_transfer_progress` and
+/// `celaut_cancel_transfer` work as for a file.
+Future<LibraryPackageView> celautImportPackageFd({
+  required int fd,
+  BigInt? size,
+  required String name,
+  required String dir,
+}) => RustLib.instance.api.crateApiCelautPackageCelautImportPackageFd(
+  fd: fd,
+  size: size,
   name: name,
   dir: dir,
 );

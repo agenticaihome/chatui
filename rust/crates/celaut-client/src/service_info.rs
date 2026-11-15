@@ -1142,7 +1142,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_package_kept_without_its_filesystem_gives_the_same_information() {
-        use crate::package::strip_filesystem;
+        use crate::package::Check;
         let dir = std::env::temp_dir().join(format!("celaut-info-stripped-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let (whole, stripped) = (dir.join("whole.bee"), dir.join("stripped.bee"));
@@ -1152,9 +1152,14 @@ mod tests {
             raw.extend((record.len() as u32).to_be_bytes());
             raw.extend(record);
         }
-        std::fs::write(&whole, raw).unwrap();
-        let kept = strip_filesystem(&whole, &stripped, &Cancel::new()).await.unwrap();
-        assert!(kept < 10_000, "{kept} bytes");
+        std::fs::write(&whole, &raw).unwrap();
+        // This package says no service id, so it cannot pass `finish`: only the output of
+        // the stripping check is used.
+        let mut check = Check::stripping();
+        check.feed(&raw).unwrap();
+        let kept = check.take_output();
+        assert!(kept.len() < 10_000, "{} bytes", kept.len());
+        std::fs::write(&stripped, kept).unwrap();
         let a = read_service_info_of_file(&whole).await.unwrap();
         let b = read_service_info_of_file(&stripped).await.unwrap();
         assert_eq!(a.filesystem_bytes, 300_000);

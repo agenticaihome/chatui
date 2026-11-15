@@ -17,7 +17,8 @@ use std::sync::Mutex;
 use celaut_client::db::PackageRecord;
 use celaut_client::link::{self, LinkOptions, LinkProgress, Scheme};
 use celaut_client::package::{
-    import_with, inspect, read, remove_file, save, Cancel, Layout, PackageError, PackageInfo, Storage,
+    import_open_file, import_with, inspect, read, remove_file, save, Cancel, Imported, Layout, PackageError,
+    PackageInfo, Storage,
 };
 
 use super::celaut::{error_of, invalid, CelautError, CelautErrorKind};
@@ -156,10 +157,60 @@ pub async fn celaut_import_package(
     let cancel = begin(TransferStage::Checking, Some(size))?;
     let imported = import_with(&source, &PathBuf::from(dir), &cancel, storage_now()).await;
     end();
-    let imported = imported.map_err(package_error)?;
+    record_import(imported.map_err(package_error)?, &name)
+}
+
+/// Load a service file that the app reads where it is, with no copy of its own: `fd` is a
+/// file descriptor of the file that the user chose (Android gives one for a content uri).
+/// Only the setting "Do not keep the filesystem of a service" makes sense here: the file is
+/// checked and written to the library in the same pass, without the content of its blocks,
+/// so the disk needs the space of the small file that the library keeps, not the size of the
+/// service. The descriptor belongs to this call from the start: it is closed when the load
+/// ends, also if it fails. `size` is the size of the file if the provider said it (the
+/// progress); `name`, `dir`, the checks and the errors are those of
+/// [`celaut_import_package`]. A file that fails the check leaves nothing in the library, and
+/// the file that the user chose is not touched. `celaut_transfer_progress` and
+/// `celaut_cancel_transfer` work as for a file.
+#[flutter_rust_bridge::frb]
+pub async fn celaut_import_package_fd(
+    fd: i32,
+    size: Option<u64>,
+    name: String,
+    dir: String,
+) -> Result<LibraryPackageView, CelautError> {
+    let file = take_descriptor(fd)?;
+    if dir.trim().is_empty() {
+        return Err(invalid("the app has no directory for the package"));
+    }
+    let cancel = begin(TransferStage::Checking, size)?;
+    let imported = import_open_file(file, &PathBuf::from(dir), &cancel, storage_now()).await;
+    end();
+    record_import(imported.map_err(package_error)?, &name)
+}
+
+/// The file of a descriptor that was given to the app. The descriptor is closed when the
+/// file is dropped.
+#[cfg(unix)]
+fn take_descriptor(fd: i32) -> Result<std::fs::File, CelautError> {
+    use std::os::fd::{FromRawFd, OwnedFd};
+    if fd < 0 {
+        return Err(invalid("the file descriptor is not valid"));
+    }
+    // SAFETY: Dart got `fd` from `detachFd` of Android: nothing else owns it, and this
+    // call is the only one that takes it.
+    Ok(std::fs::File::from(unsafe { OwnedFd::from_raw_fd(fd) }))
+}
+
+#[cfg(not(unix))]
+fn take_descriptor(_fd: i32) -> Result<std::fs::File, CelautError> {
+    Err(invalid("this system gives no file descriptors"))
+}
+
+/// Put a package that was loaded into the library into the records of the app.
+fn record_import(imported: Imported, name: &str) -> Result<LibraryPackageView, CelautError> {
     let id = hex::encode(imported.service_id);
     let record = PackageRecord {
-        name: clean_name(&name, &id),
+        name: clean_name(name, &id),
         path: imported.path.display().to_string(),
         bytes: imported.stored_bytes,
         imported_at: now_seconds(),
@@ -803,6 +854,24 @@ mod tests {
         assert_eq!(storage_now(), Storage::WithoutFilesystem);
         celaut_set_packages_without_filesystem(false).unwrap();
         assert_eq!(storage_now(), Storage::Whole);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_descriptor_that_android_gave_is_the_file_and_a_bad_one_is_refused() {
+        use std::io::Read;
+        use std::os::fd::IntoRawFd;
+        let path = std::env::temp_dir().join(format!("celaut-fd-{}", std::process::id()));
+        std::fs::write(&path, b"the file").unwrap();
+        let fd = std::fs::File::open(&path).unwrap().into_raw_fd();
+        let mut text = String::new();
+        take_descriptor(fd).unwrap().read_to_string(&mut text).unwrap();
+        assert_eq!(text, "the file");
+        std::fs::remove_file(path).unwrap();
+        for bad in [-1, i32::MIN] {
+            let error = take_descriptor(bad).unwrap_err();
+            assert_eq!(error.kind, CelautErrorKind::InvalidInput, "{bad}");
+        }
     }
 
     #[tokio::test]

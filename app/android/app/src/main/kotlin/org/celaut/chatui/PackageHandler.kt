@@ -19,6 +19,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 /// stream (a service can be large, so never into memory). Also says if the network is
 /// metered, so that the app can warn before a large transfer on mobile data.
 ///
+/// With the setting "Do not keep the filesystem of a service" there is no copy: `openPackage`
+/// gives a file descriptor that Rust reads.
+///
 /// The pick and the copy are two calls. The pick answers as soon as the user chose the
 /// file, with its name and size, so that the app shows its progress card before the copy
 /// starts. While the copy runs, it tells its bytes to Flutter (`copied`), and `cancelCopy`
@@ -43,6 +46,7 @@ object PackageHandler {
                 when (call.method) {
                     "pickPackage" -> pick(activity, result)
                     "copyPackage" -> copyInBackground(activity, call.argument<String>("uri"), result)
+                    "openPackage" -> openInBackground(activity, call.argument<String>("uri"), result)
                     "cancelCopy" -> {
                         cancelled.set(true)
                         result.success(null)
@@ -137,6 +141,32 @@ object PackageHandler {
                 main.post { result.error("cancelled", "the copy was cancelled", null) }
             } catch (e: Exception) {
                 main.post { result.error("copy_failed", e.message, null) }
+            }
+        }.start()
+    }
+
+    /// Give Flutter a file descriptor of the file that the user chose, with no copy: the
+    /// Rust side reads the file where it is (`celaut_import_package_fd`) and takes the
+    /// descriptor, so the storage of the phone does not hold the file a second time. That is
+    /// for the setting "Do not keep the filesystem of a service": a service of many GB is read
+    /// once and only its small part is written. The descriptor is detached, so Rust owns it
+    /// and closes it. An error means that the provider gives no descriptor; Flutter then
+    /// copies the file as before.
+    private fun openInBackground(context: Context, uri: String?, result: MethodChannel.Result) {
+        if (uri == null) {
+            result.error("open_failed", "the call has no uri", null)
+            return
+        }
+        // The provider can be slow (a cloud file): not on the main thread.
+        Thread {
+            try {
+                val pfd = context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")
+                    ?: throw IllegalStateException("the file cannot be opened")
+                val size = pfd.statSize
+                val fd = pfd.detachFd()
+                main.post { result.success(mapOf("fd" to fd, "bytes" to size)) }
+            } catch (e: Exception) {
+                main.post { result.error("open_failed", e.message, null) }
             }
         }.start()
     }

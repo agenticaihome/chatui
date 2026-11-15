@@ -558,3 +558,150 @@ fn the_check_of_a_real_export() {
     }
     println!("{}", hex::encode(check.finish().unwrap().service_id));
 }
+
+fn stripped() -> LinkOptions {
+    LinkOptions {
+        storage: celaut_client::package::Storage::WithoutFilesystem,
+        ..options()
+    }
+}
+
+/// The size of the file that a download keeps on disk while it runs.
+fn partial_len(d: &Path) -> u64 {
+    std::fs::read_dir(downloads_dir(d))
+        .unwrap()
+        .flatten()
+        .find_map(|e| std::fs::metadata(e.path().join("service.bee.partial")).ok())
+        .map_or(0, |m| m.len())
+}
+
+#[tokio::test]
+async fn a_download_without_the_filesystem_never_has_the_content_of_the_blocks_on_disk_and_goes_on() {
+    let (file, id) = package(&content(600_000), None);
+    let url = "https://h/x.celaut.bee";
+    let source = FakeSource::with(&[(url, file.clone())]);
+    // What a whole download of the same file keeps, for the comparison.
+    let whole_dir = dir();
+    let reference = download(&source, url, &whole_dir, &stripped(), &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap();
+    let want = std::fs::read(&reference.path).unwrap();
+
+    source.plan(url, &vec![Plan::CutAfter(40_000); 5]);
+    let d = dir();
+    let err = download(&source, url, &d, &stripped(), &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap_err();
+    assert!(can_resume(&err), "{err}");
+    // 200 000 bytes arrived, and the disk has only what is outside the blocks.
+    let left = pending(&d).unwrap();
+    assert_eq!(left.bytes, 200_000);
+    assert!(partial_len(&d) < 1_000, "{} bytes", partial_len(&d));
+
+    let before = source.log().len();
+    let cancel = Cancel::new();
+    let got = download(&source, url, &d, &stripped(), &cancel, &LinkProgress::new()).await.unwrap();
+    assert!(got.resumed);
+    assert!(!got.filesystem_kept);
+    assert_eq!(got.service_id, id);
+    // It went on with a Range from the byte that the check had read, not from the start.
+    assert_eq!(source.log()[before], (url.to_string(), 200_000));
+    assert_eq!(cancel.bytes(), file.len() as u64);
+    // The same file as a download with no stop.
+    assert_eq!(std::fs::read(&got.path).unwrap(), want);
+    assert_eq!(got.bytes, want.len() as u64);
+    assert!(want.len() < 1_000);
+    no_downloads_left(&d);
+}
+
+#[tokio::test]
+async fn a_download_without_the_filesystem_goes_on_by_chunks_and_without_a_range() {
+    let (file, id) = package(&content(600_000), None);
+    let parts: Vec<Vec<u8>> = file.chunks(150_000).map(<[u8]>::to_vec).collect();
+    let urls: Vec<String> = (0..parts.len()).map(|i| format!("https://c/{i}")).collect();
+    let mut files: Vec<(&str, Vec<u8>)> =
+        urls.iter().zip(&parts).map(|(u, p)| (u.as_str(), p.clone())).collect();
+    files.push(("https://h/m", urls.join("\n").into_bytes()));
+    let source = FakeSource::with(&files);
+    // The chunk 1 does not take a Range and the chunk 2 fails at each try.
+    source.no_range(&urls[1]);
+    source.plan(&urls[1], &[Plan::CutAfter(70_000)]);
+    source.plan(&urls[2], &vec![Plan::CutAfter(1000); 5]);
+    let d = dir();
+    let err = download(&source, "https://h/m", &d, &stripped(), &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap_err();
+    assert!(can_resume(&err), "{err}");
+    assert_eq!(pending(&d).unwrap().bytes, 2 * 150_000 + 5 * 1000);
+    assert!(partial_len(&d) < 1_000);
+
+    let before = source.log().len();
+    let got = download(&source, "https://h/m", &d, &stripped(), &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap();
+    assert!(got.resumed);
+    assert_eq!(got.service_id, id);
+    assert_eq!(got.chunks as usize, urls.len());
+    assert_eq!(source.log()[before], (urls[2].clone(), 5000));
+    assert!(got.bytes < 1_000);
+}
+
+#[tokio::test]
+async fn a_download_that_stopped_does_not_go_on_with_the_other_storage() {
+    let (file, id) = package(&content(300_000), None);
+    let url = "https://h/x.celaut.bee";
+    let source = FakeSource::with(&[(url, file.clone())]);
+    source.plan(url, &vec![Plan::CutAfter(40_000); 5]);
+    let d = dir();
+    download(&source, url, &d, &stripped(), &Cancel::new(), &LinkProgress::new()).await.unwrap_err();
+    let before = source.log().len();
+    let got = download(&source, url, &d, &options(), &Cancel::new(), &LinkProgress::new()).await.unwrap();
+    // The whole file was asked for from its start: the first bytes are not on disk.
+    assert!(!got.resumed);
+    assert_eq!(source.log()[before], (url.to_string(), 0));
+    assert!(got.filesystem_kept);
+    assert_eq!(std::fs::read(library_path(&d, &id)).unwrap(), file);
+}
+
+#[tokio::test]
+async fn a_download_without_the_filesystem_checks_the_blocks_as_it_reads_them() {
+    let d = dir();
+    let (mut changed, id) = package(&content(100_000), None);
+    let at = changed.len() - 60_000;
+    changed[at] ^= 1;
+    let (lie, lie_id) = package(&content(100_000), Some([9u8; 32]));
+    let source = FakeSource::with(&[("https://h/changed", changed), ("https://h/lie", lie)]);
+    let err = download(&source, "https://h/changed", &d, &stripped(), &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap_err();
+    assert!(matches!(&err, PackageError::Invalid(t) if t.contains("holds other bytes")), "{err}");
+    no_downloads_left(&d);
+    let err = download(&source, "https://h/lie", &d, &stripped(), &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains(&hex::encode(lie_id)), "{err}");
+    no_downloads_left(&d);
+    assert!(!library_path(&d, &id).exists() && !library_path(&d, &lie_id).exists());
+}
+
+#[tokio::test]
+async fn the_limit_of_a_download_without_the_filesystem_counts_the_bytes_that_are_kept() {
+    // The limit is smaller than the service, and the download is still good: the content of
+    // the blocks is not kept.
+    let (file, id) = package(&content(300_000), None);
+    let url = "https://h/x.celaut.bee";
+    let source = FakeSource::with(&[(url, file.clone())]);
+    let small = LinkOptions {
+        max_bytes: 50_000,
+        ..stripped()
+    };
+    let d = dir();
+    let got = download(&source, url, &d, &small, &Cancel::new(), &LinkProgress::new()).await.unwrap();
+    assert_eq!(got.service_id, id);
+    // The whole download with the same limit is refused.
+    let whole = LinkOptions { max_bytes: 50_000, ..options() };
+    let err = download(&source, url, &dir(), &whole, &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap_err();
+    assert!(matches!(err, PackageError::TooLarge(50_000)), "{err}");
+}

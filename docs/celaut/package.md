@@ -172,8 +172,8 @@ core keeps it in the Celaut database (`packages_without_filesystem`;
 `celaut_packages_without_filesystem`, `celaut_set_packages_without_filesystem`).
 
 With it on, a service that the user loads afterwards, from a file or from a link, is
-checked as before (the blocks, and the whole Service against its id) and then kept without
-the content of the filesystem (`package::strip_filesystem`):
+checked as before (the blocks, and the whole Service against its id) and kept without the
+content of the filesystem:
 
 - Of each top-level block of the Service, the library file keeps the two markers, the one
   that opens it and the one that ends it, and nothing between them: no chunk, and no marker
@@ -190,12 +190,49 @@ the content of the filesystem (`package::strip_filesystem`):
 - The service still **runs** on the nodes that have it: the node does not need the file.
 - The setting is read when a load starts. Services that are in the library do not change,
   and loading the same service again replaces its file, as before.
-- **Space during the load.** The app still needs the whole file once: the picker copy, or
-  the download (it goes on from the disk if it stops, and the check needs every byte). The
-  library file is written from it, and the whole file is deleted after. So the peak is the
-  size of the file; what stays is the small part. A node-to-node transfer
-  (`celaut_fetch_service`) is not changed: its copy is deleted after the send, and the send
-  needs every byte.
+
+**Space during the load: the disk never holds the filesystem.** A service can be hundreds
+of GB, so the app does not write the whole file first. The check and the cut are one pass:
+`Check::stripping` reads the bytes in order and hashes them, as for any package. It gives
+back only the records that the library keeps (`Check::take_output`). The bytes of the blocks
+are read, hashed and thrown away. The file that is written is the small file, and the app
+renames it into the library only when `Check::finish` says that the package is valid. A
+package that fails the check leaves nothing. What the disk needs is the size of the small
+file, not the size of the service. The time of the load is still the time to read all the
+bytes once.
+
+- **A file that the user chooses.** On Android the app does not copy the file to a folder
+  of its own. `PackageChannel.open` (`openPackage` in `PackageHandler.kt`) opens the content
+  uri and gives a file descriptor (`detachFd`); the core takes it and reads the file where
+  it is (`celaut_import_package_fd`, `package::import_reader`). The file that the user chose
+  is not touched. A provider that gives no descriptor makes the app copy the file as
+  before, with the same result, but then the copy needs the whole size once. The check is
+  the whole import in this case: the progress has no first half (`ImportProgress.onePass`).
+  The path of the copy (`celaut_import_package`, `import_with`) also reads the file once
+  and writes only the small file.
+- **A link.** `LinkOptions::storage = WithoutFilesystem` makes the download write only the
+  records that the library keeps (`service.bee.partial` is the small file). The check runs
+  on all the bytes that arrive. `max_bytes` limits the bytes that are **written**, not the
+  bytes that arrive: a link to a service larger than the limit is good if its small part is
+  not. A download of many GB takes its time and its mobile data; the user can cancel it.
+- **A download that stops goes on from a checkpoint.** The check cannot go back to read the
+  bytes again from the disk, as for a whole file, because the content of the blocks is not
+  on the disk. So the download saves its point in `check.state` next to `state.json`: the
+  number of bytes that the check read, the length of the small file at that point, and the
+  state of the check (`Check::snapshot`: the part of the record that is not complete, the
+  state of the SHA3-256 hash of the Service and of each open block, and the layout). It does
+  this every 64 MiB (`link::CHECKPOINT_EVERY`), at the end of each chunk of a manifest, and
+  when a try fails. The file and the checkpoint are written to disk (`fsync`) first, and the
+  checkpoint is renamed over the old one, so a stop in the middle leaves a valid one. The
+  next download of the same link opens the small file at the length that the checkpoint says,
+  restores the check, and asks for the rest with a `Range` from the saved byte. It loses at
+  most 64 MiB of download after a stop that the app did not see (a kill); a try that fails
+  or a cancel saves its point first. A server that does not take a `Range` gives a chunk
+  again from its start: the download goes back to the checkpoint at the start of the chunk.
+  A single file from such a server starts again from 0. What was downloaded with the other
+  setting does not go on (the files are not the same): it starts again.
+- A node-to-node transfer (`celaut_fetch_service`) is not changed: its copy is deleted after
+  the send, and the send needs every byte.
 
 ## Where the app gets a service
 
