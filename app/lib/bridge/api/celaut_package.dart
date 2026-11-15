@@ -10,7 +10,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `begin`, `clean_name`, `client`, `content_range`, `describe`, `end`, `library_view`, `package_error`, `record_import`, `storage_now`, `take_descriptor`, `transfer`, `view_of`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `HttpSource`, `Running`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `open`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `open`
 
 /// The setting "Do not keep the filesystem of a service". It makes no connection.
 bool celautPackagesWithoutFilesystem() =>
@@ -25,6 +25,12 @@ void celautSetPackagesWithoutFilesystem({required bool enabled}) => RustLib
     .instance
     .api
     .crateApiCelautPackageCelautSetPackagesWithoutFilesystem(enabled: enabled);
+
+/// The space that the services take in the private directory `dir` of the app: the library,
+/// the downloads that stopped and the copies that were left. It lists the files and reads
+/// their sizes: it does not read the services. It makes no connection.
+Future<PackagesStorageView> celautPackagesStorage({required String dir}) =>
+    RustLib.instance.api.crateApiCelautPackageCelautPackagesStorage(dir: dir);
 
 /// Load the service file at `path` (a copy of the file that the user chose, in the cache of
 /// the app) into the library of the app, which keeps it in a private directory `dir` under
@@ -308,6 +314,51 @@ class PackageView {
           serviceId == other.serviceId &&
           hasService == other.hasService &&
           nodoExport == other.nodoExport;
+}
+
+/// How much of the phone the services take (`docs/celaut/package.md`, "Space").
+class PackagesStorageView {
+  /// The services in the library whose file is there.
+  final int services;
+
+  /// Of them, the ones kept without their filesystem.
+  final int withoutFilesystem;
+
+  /// The bytes of the files of the library, as they are on the disk.
+  final BigInt libraryBytes;
+
+  /// The bytes of the downloads that stopped and can go on.
+  final BigInt downloadsBytes;
+
+  /// The bytes of copies of chosen files that were left (a load that stopped).
+  final BigInt incomingBytes;
+
+  const PackagesStorageView({
+    required this.services,
+    required this.withoutFilesystem,
+    required this.libraryBytes,
+    required this.downloadsBytes,
+    required this.incomingBytes,
+  });
+
+  @override
+  int get hashCode =>
+      services.hashCode ^
+      withoutFilesystem.hashCode ^
+      libraryBytes.hashCode ^
+      downloadsBytes.hashCode ^
+      incomingBytes.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PackagesStorageView &&
+          runtimeType == other.runtimeType &&
+          services == other.services &&
+          withoutFilesystem == other.withoutFilesystem &&
+          libraryBytes == other.libraryBytes &&
+          downloadsBytes == other.downloadsBytes &&
+          incomingBytes == other.incomingBytes;
 }
 
 /// A download of a link that stopped and can go on.

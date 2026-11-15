@@ -8417,6 +8417,48 @@ abstract class AppLocalizations {
   /// **'Without its filesystem: it cannot be given to a node'**
   String get celautPkgNoFilesystem;
 
+  /// No description provided for @celautStorageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Space used by services'**
+  String get celautStorageTitle;
+
+  /// No description provided for @celautStorageSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No services} =1{1 service} other{{count} services}} · {size}'**
+  String celautStorageSummary(int count, String size);
+
+  /// No description provided for @celautStorageWithout.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 kept without its filesystem} other{{count} kept without their filesystem}}'**
+  String celautStorageWithout(int count);
+
+  /// No description provided for @celautStorageDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads that stopped: {size}'**
+  String celautStorageDownloads(String size);
+
+  /// No description provided for @celautStorageIncoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies waiting to be loaded: {size}'**
+  String celautStorageIncoming(String size);
+
+  /// No description provided for @celautStorageUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'The space could not be read.'**
+  String get celautStorageUnknown;
+
+  /// No description provided for @celautStorageRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Read again'**
+  String get celautStorageRefresh;
+
   /// No description provided for @celautHomeComputeTitle.
   ///
   /// In en, this message translates to:

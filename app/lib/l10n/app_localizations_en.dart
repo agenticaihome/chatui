@@ -5282,6 +5282,48 @@ class AppLocalizationsEn extends AppLocalizations {
       'Without its filesystem: it cannot be given to a node';
 
   @override
+  String get celautStorageTitle => 'Space used by services';
+
+  @override
+  String celautStorageSummary(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count services',
+      one: '1 service',
+      zero: 'No services',
+    );
+    return '$_temp0 · $size';
+  }
+
+  @override
+  String celautStorageWithout(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kept without their filesystem',
+      one: '1 kept without its filesystem',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String celautStorageDownloads(String size) {
+    return 'Downloads that stopped: $size';
+  }
+
+  @override
+  String celautStorageIncoming(String size) {
+    return 'Copies waiting to be loaded: $size';
+  }
+
+  @override
+  String get celautStorageUnknown => 'The space could not be read.';
+
+  @override
+  String get celautStorageRefresh => 'Read again';
+
+  @override
   String get celautHomeComputeTitle => 'Offered compute';
 
   @override

@@ -1131,6 +1131,63 @@ pub async fn into_library_whole(
     Ok(target)
 }
 
+/// The space that the packages take on the disk under `dir`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct StorageUsage {
+    /// The files of the library (`packages/library`): the services that the user loaded,
+    /// and what a load that stopped left (`*.partial`).
+    pub library_bytes: u64,
+    /// The files of the library.
+    pub library_files: u64,
+    /// The downloads that stopped and can go on (`packages/downloads`).
+    pub downloads_bytes: u64,
+    /// The copies of a file that the user chose, made before the load
+    /// (`packages/incoming`). They are empty unless a copy or a load stopped.
+    pub incoming_bytes: u64,
+}
+
+/// The bytes and the number of the files in a folder and the folders in it. A folder that is
+/// not there is empty. It reads the sizes of the files and nothing more.
+fn folder_usage(path: &Path) -> (u64, u64) {
+    let (mut bytes, mut files) = (0u64, 0u64);
+    let Ok(entries) = std::fs::read_dir(path) else {
+        return (0, 0);
+    };
+    for entry in entries.flatten() {
+        // `symlink_metadata`: a link is not followed, so no size counts twice.
+        let Ok(meta) = entry.path().symlink_metadata() else {
+            continue;
+        };
+        if meta.is_dir() {
+            let (b, f) = folder_usage(&entry.path());
+            bytes += b;
+            files += f;
+        } else if meta.is_file() {
+            bytes += meta.len();
+            files += 1;
+        }
+    }
+    (bytes, files)
+}
+
+/// How much disk the packages under `dir` take now: the library, the downloads that
+/// stopped, and the copies that wait to be loaded. It reads the real sizes of the files, not
+/// what a record says.
+pub async fn storage_usage(dir: &Path) -> StorageUsage {
+    let dir = dir.to_path_buf();
+    tokio::task::spawn_blocking(move || {
+        let (library_bytes, library_files) = folder_usage(&library_dir(&dir));
+        StorageUsage {
+            library_bytes,
+            library_files,
+            downloads_bytes: folder_usage(&dir.join("packages").join("downloads")).0,
+            incoming_bytes: folder_usage(&dir.join("packages").join("incoming")).0,
+        }
+    })
+    .await
+    .unwrap_or_default()
+}
+
 /// Delete the file of a package in the library. A file that is not there is not an error.
 pub async fn remove_file(path: &Path) -> Result<(), PackageError> {
     match tokio::fs::remove_file(path).await {

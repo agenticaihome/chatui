@@ -3966,6 +3966,44 @@
   "celautKeepNoFilesystemTitle": "Do not keep the filesystem of a service",
   "celautKeepNoFilesystemSubtitle": "Services that you load from a file or a link are kept without their filesystem, which is most of their size. They still run on the nodes that have them, but you cannot give them to a node that does not. Off by default; services already loaded do not change.",
   "celautPkgNoFilesystem": "Without its filesystem: it cannot be given to a node",
+  "celautStorageTitle": "Space used by services",
+  "celautStorageSummary": "{count, plural, =0{No services} =1{1 service} other{{count} services}} · {size}",
+  "@celautStorageSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "celautStorageWithout": "{count, plural, =1{1 kept without its filesystem} other{{count} kept without their filesystem}}",
+  "@celautStorageWithout": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "celautStorageDownloads": "Downloads that stopped: {size}",
+  "@celautStorageDownloads": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "celautStorageIncoming": "Copies waiting to be loaded: {size}",
+  "@celautStorageIncoming": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "celautStorageUnknown": "The space could not be read.",
+  "celautStorageRefresh": "Read again",
   "celautHomeComputeTitle": "Offered compute",
   "celautHomeOfferedNote": "Sums of what the reachable nodes advertise: offered, not free.",
   "celautHomeNodes": "Nodes counted: {counted}. Not reachable: {unreachable}.",

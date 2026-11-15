@@ -234,6 +234,24 @@ bytes once.
 - A node-to-node transfer (`celaut_fetch_service`) is not changed: its copy is deleted after
   the send, and the send needs every byte.
 
+### Space
+
+Settings shows how much of the phone the services take (`PackagesUsageRow`,
+`celaut_packages_storage`, `package::storage_usage`). The sizes are those of the files on
+the disk, not what a record says:
+
+- **Services:** the number of services in the library whose file is there, and the bytes of
+  the files of `packages/library`. If some are kept without their filesystem, a line says how
+  many.
+- **Downloads that stopped:** the bytes in `packages/downloads`, which a link goes on from.
+  Shown only when they are not zero.
+- **Copies waiting to be loaded:** the bytes in `packages/incoming`, the copies of a chosen
+  file that a load left behind (the app was stopped). Shown only when they are not zero.
+
+The row reads the space when Settings opens, and again when the user taps it. It lists the
+files and reads their sizes; it does not read the services. Each service in "Your services"
+also shows its own size.
+
 ## Where the app gets a service
 
 1. **A node that has it.** `GetService` gives the indices 4, 5 and 6, the same as

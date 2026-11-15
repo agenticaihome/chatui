@@ -17,8 +17,8 @@ use std::sync::Mutex;
 use celaut_client::db::PackageRecord;
 use celaut_client::link::{self, LinkOptions, LinkProgress, Scheme};
 use celaut_client::package::{
-    import_open_file, import_with, inspect, read, remove_file, save, Cancel, Imported, Layout, PackageError,
-    PackageInfo, Storage,
+    import_open_file, import_with, inspect, read, remove_file, save, storage_usage, Cancel, Imported, Layout,
+    PackageError, PackageInfo, Storage,
 };
 
 use super::celaut::{error_of, invalid, CelautError, CelautErrorKind};
@@ -132,6 +132,47 @@ pub fn celaut_packages_without_filesystem() -> bool {
 pub fn celaut_set_packages_without_filesystem(enabled: bool) -> Result<(), CelautError> {
     db().update(|d| d.packages_without_filesystem = enabled)
         .map_err(super::celaut_db::storage_error)
+}
+
+/// How much of the phone the services take (`docs/celaut/package.md`, "Space").
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackagesStorageView {
+    /// The services in the library whose file is there.
+    pub services: u32,
+    /// Of them, the ones kept without their filesystem.
+    pub without_filesystem: u32,
+    /// The bytes of the files of the library, as they are on the disk.
+    pub library_bytes: u64,
+    /// The bytes of the downloads that stopped and can go on.
+    pub downloads_bytes: u64,
+    /// The bytes of copies of chosen files that were left (a load that stopped).
+    pub incoming_bytes: u64,
+}
+
+/// The space that the services take in the private directory `dir` of the app: the library,
+/// the downloads that stopped and the copies that were left. It lists the files and reads
+/// their sizes: it does not read the services. It makes no connection.
+#[flutter_rust_bridge::frb]
+pub async fn celaut_packages_storage(dir: String) -> Result<PackagesStorageView, CelautError> {
+    if dir.trim().is_empty() {
+        return Err(invalid("the app has no directory for the packages"));
+    }
+    let usage = storage_usage(&PathBuf::from(dir)).await;
+    let (services, without_filesystem) = db().read(|d| {
+        d.packages
+            .values()
+            .filter(|r| std::path::Path::new(&r.path).is_file())
+            .fold((0u32, 0u32), |(all, stripped), r| {
+                (all + 1, stripped + u32::from(r.without_filesystem))
+            })
+    });
+    Ok(PackagesStorageView {
+        services,
+        without_filesystem,
+        library_bytes: usage.library_bytes,
+        downloads_bytes: usage.downloads_bytes,
+        incoming_bytes: usage.incoming_bytes,
+    })
 }
 
 /// Load the service file at `path` (a copy of the file that the user chose, in the cache of

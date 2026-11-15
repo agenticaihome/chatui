@@ -5350,6 +5350,48 @@ class AppLocalizationsEs extends AppLocalizations {
       'Sin su sistema de archivos: no se puede dar a un nodo';
 
   @override
+  String get celautStorageTitle => 'Espacio que usan los servicios';
+
+  @override
+  String celautStorageSummary(int count, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count servicios',
+      one: '1 servicio',
+      zero: 'Ningún servicio',
+    );
+    return '$_temp0 · $size';
+  }
+
+  @override
+  String celautStorageWithout(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count guardados sin su sistema de archivos',
+      one: '1 guardado sin su sistema de archivos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String celautStorageDownloads(String size) {
+    return 'Descargas detenidas: $size';
+  }
+
+  @override
+  String celautStorageIncoming(String size) {
+    return 'Copias a la espera de cargarse: $size';
+  }
+
+  @override
+  String get celautStorageUnknown => 'No se pudo leer el espacio.';
+
+  @override
+  String get celautStorageRefresh => 'Leer de nuevo';
+
+  @override
   String get celautHomeComputeTitle => 'Cómputo ofrecido';
 
   @override

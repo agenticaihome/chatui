@@ -554,6 +554,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PackageView dco_decode_package_view(dynamic raw);
 
   @protected
+  PackagesStorageView dco_decode_packages_storage_view(dynamic raw);
+
+  @protected
   PaymentContractView dco_decode_payment_contract_view(dynamic raw);
 
   @protected
@@ -1310,6 +1313,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PackageView sse_decode_package_view(SseDeserializer deserializer);
+
+  @protected
+  PackagesStorageView sse_decode_packages_storage_view(
+    SseDeserializer deserializer,
+  );
 
   @protected
   PaymentContractView sse_decode_payment_contract_view(
@@ -2295,6 +2303,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_package_view(PackageView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_packages_storage_view(
+    PackagesStorageView self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_payment_contract_view(

@@ -778,3 +778,26 @@ async fn a_reader_that_fails_the_check_or_is_cancelled_leaves_nothing_in_the_lib
     assert!(empty());
     std::fs::remove_dir_all(d).unwrap();
 }
+
+#[tokio::test]
+async fn the_space_of_the_packages_is_read_from_the_files() {
+    use celaut_client::package::{storage_usage, StorageUsage};
+    let d = dir();
+    assert_eq!(storage_usage(&d).await, StorageUsage::default());
+    let library = d.join("packages/library");
+    let downloads = d.join("packages/downloads/abc");
+    let incoming = d.join("packages/incoming");
+    for f in [&library, &downloads, &incoming] {
+        std::fs::create_dir_all(f).unwrap();
+    }
+    std::fs::write(library.join("a.bee"), vec![0u8; 1000]).unwrap();
+    std::fs::write(library.join("b.bee"), vec![0u8; 24]).unwrap();
+    std::fs::write(downloads.join("service.bee.partial"), vec![0u8; 300]).unwrap();
+    std::fs::write(downloads.join("state.json"), vec![0u8; 12]).unwrap();
+    std::fs::write(incoming.join("picked.bee"), vec![0u8; 5]).unwrap();
+    assert_eq!(
+        storage_usage(&d).await,
+        StorageUsage { library_bytes: 1024, library_files: 2, downloads_bytes: 312, incoming_bytes: 5 }
+    );
+    std::fs::remove_dir_all(d).unwrap();
+}

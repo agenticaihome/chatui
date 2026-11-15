@@ -101,6 +101,7 @@ class PackageLibrary {
   PackageLibrary({
     Future<LibraryPackageView> Function(String path, String name, String dir)? importPackage,
     Future<LibraryPackageView> Function(OpenedFile file, String dir)? importOpened,
+    Future<PackagesStorageView> Function(String dir)? storageUsage,
     bool Function()? keepsNoFilesystem,
     List<LibraryPackageView> Function()? list,
     Future<void> Function(String serviceId)? remove,
@@ -131,6 +132,7 @@ class PackageLibrary {
                   name: file.name,
                   dir: dir,
                 )),
+        _storageUsage = storageUsage ?? ((dir) => celautPackagesStorage(dir: dir)),
         _keepsNoFilesystem = keepsNoFilesystem ?? _settingKeepsNoFilesystem,
         _list = list ?? celautPackages,
         _remove = remove ?? ((id) => celautRemovePackage(serviceIdHex: id)),
@@ -141,6 +143,7 @@ class PackageLibrary {
   final Future<LibraryPackageView> Function(String, String, String) _import;
   final Future<LibraryPackageView> Function(OpenedFile, String) _importOpened;
   final bool Function() _keepsNoFilesystem;
+  final Future<PackagesStorageView> Function(String) _storageUsage;
   final Future<LibraryPackageView> Function(String, String, bool, int) _importLink;
   final LinkView Function(String) _checkLink;
   final PendingLinkView? Function(String) _pendingLink;
@@ -177,6 +180,14 @@ class PackageLibrary {
 
   /// The loaded services, by name.
   List<LibraryPackageView> list() => _list();
+
+  /// The space that the services take on the phone: the library, the downloads that
+  /// stopped and the copies that were left. Null when the app has no private directory.
+  Future<PackagesStorageView?> storage() async {
+    final dir = await _privateDir();
+    if (dir == null || dir.isEmpty) return null;
+    return _storageUsage(dir);
+  }
 
   /// The loaded service with this id, if its file is there. A record whose file is gone is
   /// not a service that the app can send.
