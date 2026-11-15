@@ -62,7 +62,7 @@ fn peer_with(
         peer.payment_contracts = vec![ContractRate {
             contract: Some(Contract {
                 ledger: Some(Ledger {
-                    tags: vec!["ergo".into()],
+                    tags: vec!["ergo-mainnet".into()],
                     ..Default::default()
                 }),
                 xattrs: vec![BytesKeyValue {

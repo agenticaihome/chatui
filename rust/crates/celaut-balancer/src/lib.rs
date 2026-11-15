@@ -104,8 +104,14 @@ pub fn amount(value: Option<&Amount>) -> Result<u128, BalancerError> {
     text.parse::<u128>().map_err(|_| BalancerError::TooLarge)
 }
 
+/// The chain of a ledger tag. A tag names the chain and the network (`ergo-mainnet`,
+/// `bitcoin-regtest`). A tag of an older node names only the chain (`ergo`). Both give the chain.
+pub fn ledger_chain(tag: &str) -> &str {
+    tag.split_once('-').map_or(tag, |(chain, _)| chain)
+}
+
 /// The MU per nanoERG of the node: the `mu_per_unit` of its first payment contract on
-/// the ledger `ergo` with the asset `ERG`.
+/// the chain `ergo` with the asset `ERG`.
 pub fn erg_rate(peer: &Peer) -> Result<u128, BalancerError> {
     for rate in &peer.payment_contracts {
         let Some(contract) = &rate.contract else {
@@ -115,7 +121,7 @@ pub fn erg_rate(peer: &Peer) -> Result<u128, BalancerError> {
             .ledger
             .as_ref()
             .and_then(|l| l.tags.first())
-            .is_some_and(|t| t == "ergo");
+            .is_some_and(|t| ledger_chain(t) == "ergo");
         let erg = contract
             .xattrs
             .iter()

@@ -47,7 +47,7 @@ fn kv(key: &str, value: &[u8]) -> BytesKeyValue {
 fn btc_contract(formal: Vec<u8>, kind: &[u8], script: &[u8]) -> Contract {
     Contract {
         ledger: Some(Ledger {
-            tags: vec!["bitcoin".into()],
+            tags: vec!["bitcoin-regtest".into()],
             prose: "This ledger is Bitcoin.".into(),
             formal,
         }),

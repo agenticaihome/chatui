@@ -161,7 +161,7 @@ fn ergo_rate(token: &str, rate: &str) -> ContractRate {
     ContractRate {
         contract: Some(Contract {
             ledger: Some(Ledger {
-                tags: vec!["ergo".into()],
+                tags: vec!["ergo-mainnet".into()],
                 ..Default::default()
             }),
             xattrs: vec![BytesKeyValue {
@@ -401,4 +401,13 @@ fn rank_puts_the_better_interruption_class_before_the_score() {
         .map(|r| r.candidate.peer_id)
         .collect();
     assert_eq!(order, ["sleeps-soon", "stops-soon"]);
+}
+
+#[test]
+fn ledger_chain_reads_the_tag_of_a_node_with_or_without_the_network() {
+    use celaut_balancer::ledger_chain;
+    assert_eq!(ledger_chain("ergo-mainnet"), "ergo");
+    assert_eq!(ledger_chain("ergo-0123456789abcdef"), "ergo");
+    assert_eq!(ledger_chain("bitcoin-regtest"), "bitcoin");
+    assert_eq!(ledger_chain("bitcoin"), "bitcoin");
 }

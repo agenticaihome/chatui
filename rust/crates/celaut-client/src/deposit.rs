@@ -149,7 +149,7 @@ impl ErgPayment {
                 .ledger
                 .as_ref()
                 .and_then(|l| l.tags.first())
-                .is_some_and(|t| t == "ergo");
+                .is_some_and(|t| celaut_balancer::ledger_chain(t) == "ergo");
             if !on_ergo || xattr(contract, "token_id") != Some(b"ERG".as_slice()) {
                 continue;
             }
@@ -232,7 +232,7 @@ fn on_bitcoin(contract: &Contract) -> bool {
         .ledger
         .as_ref()
         .and_then(|l| l.tags.first())
-        .is_some_and(|t| t == "bitcoin")
+        .is_some_and(|t| celaut_balancer::ledger_chain(t) == "bitcoin")
         && xattr(contract, "token_id") == Some(b"BTC".as_slice())
 }
 

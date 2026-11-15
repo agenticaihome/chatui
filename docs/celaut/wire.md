@@ -22,6 +22,18 @@ changes, all of them additive on the wire except the first:
 - The notice of the node (nodo#645): `Container.notice_declaration`. chatui does not use it.
 - A local instance of the node can call `Deposit` with an empty `client_id` (nodo#630). Only a comment.
 
+`celaut.proto` was re-pinned to nodo dev `425ba843` (2026-11-14, head `54f3531d`). Since `798e3b81` the
+contract has these changes. All are additive on the wire:
+
+- The start `ExecutionReceipt` has the resources that the node reserved (nodo#419): `cpu_period`,
+  `cpu_quota`, `mem_limit`, `disk_space`, `kernel` and `devices` (fields 25 to 30). chatui does not use them.
+- `BalanceMovement.detail` can have `actor` (`operator`, `client` or `instance`). Only a comment.
+
+The tag of a ledger now names the chain and the network (nodo `e1eca3d8`): `ergo-mainnet`,
+`bitcoin-regtest`. It is not on the wire as a new field, but it is a breaking change of the value. The
+`chain` line in the `formal` of the ledger did not change (`ergo`, `bitcoin`). chatui reads the chain
+of the tag with `celaut_balancer::ledger_chain`: the part before the first `-`. It accepts the old tag
+(`ergo`) and the new one.
 
 ## 1. Transport
 

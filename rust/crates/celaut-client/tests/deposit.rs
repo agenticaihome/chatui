@@ -89,7 +89,7 @@ fn script() -> Vec<u8> {
 
 fn erg_contract() -> Contract {
     contract(
-        "ergo",
+        "ergo-mainnet",
         "ERG",
         ergo_formal("mainnet", R4_BINDING),
         Some(&script()),
@@ -106,14 +106,14 @@ fn peer_with(rates: Vec<ContractRate>) -> Peer {
 #[test]
 fn the_erg_contract_is_kept_without_a_change() {
     let token_contract = contract(
-        "ergo",
+        "ergo-mainnet",
         "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04",
         ergo_formal("mainnet", R4_BINDING),
         Some(&script()),
     );
     let peer = peer_with(vec![
         rate(
-            contract("bitcoin", "BTC", Vec::new(), Some(b"\x00\x14")),
+            contract("bitcoin-mainnet", "BTC", Vec::new(), Some(b"\x00\x14")),
             "1400000",
         ),
         rate(token_contract, "5"),
@@ -134,12 +134,12 @@ fn a_node_without_a_usable_erg_contract_is_refused() {
         ErgPayment::of(&peer_with(vec![])).unwrap_err(),
         DepositError::NoErgContract
     );
-    let no_script = contract("ergo", "ERG", ergo_formal("mainnet", R4_BINDING), None);
+    let no_script = contract("ergo-mainnet", "ERG", ergo_formal("mainnet", R4_BINDING), None);
     assert_eq!(
         ErgPayment::of(&peer_with(vec![rate(no_script, "1")])).unwrap_err(),
         DepositError::NoScript
     );
-    let empty_script = contract("ergo", "ERG", ergo_formal("mainnet", R4_BINDING), Some(b""));
+    let empty_script = contract("ergo-mainnet", "ERG", ergo_formal("mainnet", R4_BINDING), Some(b""));
     assert_eq!(
         ErgPayment::of(&peer_with(vec![rate(empty_script, "1")])).unwrap_err(),
         DepositError::NoScript
@@ -160,7 +160,7 @@ fn only_ergo_mainnet_with_the_token_in_r4_is_paid() {
         (ergo_formal("mainnet", "an OP_RETURN output"), "OP_RETURN"),
     ];
     for (formal, what) in cases {
-        let c = contract("ergo", "ERG", formal, Some(&script()));
+        let c = contract("ergo-mainnet", "ERG", formal, Some(&script()));
         let err = ErgPayment::of(&peer_with(vec![rate(c, "1")])).unwrap_err();
         assert!(
             matches!(
@@ -174,7 +174,7 @@ fn only_ergo_mainnet_with_the_token_in_r4_is_paid() {
     // A declaration that does not name the binding is accepted (R4 is the rule of
     // `docs/celaut/wire.md`).
     let unnamed = contract(
-        "ergo",
+        "ergo-mainnet",
         "ERG",
         b"chain=ergo\nnetwork=mainnet".to_vec(),
         Some(&script()),
