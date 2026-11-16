@@ -12,7 +12,8 @@ use blake2::{Blake2b, Digest};
 use celaut_proto::celaut::peer::signature_scheme::Protocol as SchemeProtocol;
 use celaut_proto::celaut::peer::uri::Protocol;
 use celaut_proto::celaut::{
-    ActivityWindow, AmountKeyValue, ArchitectureResources, Contract, ContractRate, Peer, Sysresources,
+    ActivityWindow, AmountKeyValue, ArchitectureResources, Contract, ContractRate, Device, Peer,
+    Sysresources,
 };
 use ring::signature::{UnparsedPublicKey, ED25519};
 
@@ -165,6 +166,36 @@ fn canonical_architecture_resources(entry: &ArchitectureResources) -> String {
     [protocol, resources].join("~")
 }
 
+/// `_canonical_device` (nodo#536): the architecture, the two halves of the resources
+/// (each `-` when absent, and both `-` when the entry has no `resources`), and the
+/// `attach` values as numbers, sorted, joined by `,`.
+fn canonical_device(entry: &Device) -> String {
+    let architecture = entry.architecture.clone().unwrap_or_default();
+    let protocol = format!(
+        "{}~{}~{}",
+        hex::encode(&architecture.formal),
+        sorted(architecture.tags.clone()).join(","),
+        architecture.prose
+    );
+    let halves = match &entry.resources {
+        Some(resources) => [&resources.at_init, &resources.at_most]
+            .map(|half| match half {
+                Some(r) => canonical_sysresources(r),
+                None => "-".to_string(),
+            })
+            .join("~"),
+        None => "-".to_string(),
+    };
+    let mut attach = entry.attach.clone();
+    attach.sort_unstable();
+    let attach = attach
+        .iter()
+        .map(|a| a.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+    [protocol, halves, attach].join("~")
+}
+
 fn canonical_rates(entries: &[AmountKeyValue]) -> String {
     items(
         entries,
@@ -226,6 +257,7 @@ pub fn content_digest(peer: &Peer) -> String {
             .map(canonical_architecture_resources)
             .collect(),
     );
+    let devices = sorted(peer.devices.iter().map(canonical_device).collect());
     let canonical = [
         uris.join("/"),
         contracts.join("/"),
@@ -234,6 +266,7 @@ pub fn content_digest(peer: &Peer) -> String {
         scheme,
         resources.join("/"),
         canonical_activity_window(peer.activity_window.as_ref()),
+        devices.join("/"),
     ]
     .join("|");
     let mut hasher = Blake2b::<U32>::new();

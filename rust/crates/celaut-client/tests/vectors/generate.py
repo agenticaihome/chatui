@@ -158,12 +158,29 @@ def main():
     for start, end in ((600, 720), (1320, 60), (0, 30)):
         windowed.activity_window.spans.add(start_minute=start, end_minute=end)
     windowed.activity_window.on_close = celaut_pb2.ON_CLOSE_HIBERNATE
+    # The devices (#536, nodo): `devices` is the 8th part of the digest. An entry with
+    # both halves of the resources and `attach` in the wrong order (ON_REQUEST first), an
+    # entry with only `at_init`, an entry with no `resources`, and an empty Peer.devices
+    # in the other vectors (a trailing `|`).
+    with_devices = full_peer(pub)
+    d1 = with_devices.devices.add()
+    protocol(d1.architecture, ["pci:10de:2204+sha256:abc", "pci:10de:2204+md5:def"], "GPU")
+    d1.resources.at_init.mem_limit = 1024 ** 3
+    d1.resources.at_most.mem_limit = 4 * 1024 ** 3
+    d1.resources.at_most.cpu_quota = 0
+    d1.attach.extend([celaut_pb2.Device.ATTACH_ON_REQUEST, celaut_pb2.Device.ATTACH_AT_START])
+    d2 = with_devices.devices.add()
+    protocol(d2.architecture, ["pci:1234:5678+sha256:aaa"])
+    d2.resources.at_init.disk_space = 0
+    d3 = with_devices.devices.add()
+    protocol(d3.architecture, ["pci:0001:0002+sha256:bbb"], "no resources")
     edge = edge_peer(pub)
     edge.activity_window.SetInParent()
     peers = [
         peer_vector("full", full_peer(pub), key),
         peer_vector("edge", edge, key),
         peer_vector("window", windowed, key),
+        peer_vector("devices", with_devices, key),
     ]
     scheme = ni.node_signature_scheme().components[0]
     print(json.dumps({
