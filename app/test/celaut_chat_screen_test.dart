@@ -73,14 +73,21 @@ class _FakeChat extends ChatClient {
   int syncs = 0;
   void Function()? onSync;
 
-  /// While this is true the service makes no answer: each message waits.
+  /// While this is true the service makes no answer: it takes each message in its queue
+  /// with an open answer that has no text yet (`docs/celaut/chat.md`, section 5.2), and the
+  /// answer waits.
   bool holdAnswers = false;
   int _unanswered = 0;
 
-  /// The service makes the answers that it held.
+  /// The service ends the answers that it held.
   void releaseAnswers() {
     holdAnswers = false;
-    _flush();
+    for (var i = 0; i < _messages.length; i++) {
+      final m = _messages[i];
+      if (m.fromUser || !m.isOpen) continue;
+      final asked = _messages.firstWhere((u) => u.seq == m.replyTo);
+      _messages[i] = ChatMessage(seq: m.seq, role: 'assistant', text: 'echo: ${asked.text}', replyTo: m.replyTo);
+    }
   }
 
   void _flush() {
@@ -186,8 +193,19 @@ class _FakeChat extends ChatClient {
           ChatAttachment(kind: f.kind!, mime: f.mime, size: f.bytes.length, name: f.name),
       ],
     ));
+    if (holdAnswers) {
+      final asked = _messages.last.seq;
+      _messages.add(ChatMessage(
+        seq: _messages.length + 1,
+        role: 'assistant',
+        text: '',
+        status: ChatMessage.statusStreaming,
+        replyTo: asked,
+      ));
+      return;
+    }
     _unanswered++;
-    if (!holdAnswers) _flush();
+    _flush();
   }
 }
 
@@ -561,6 +579,21 @@ void main() {
     expect(find.text('echo: think hard'), findsOneWidget);
     expect(find.byKey(const Key('chat-typing')), findsNothing);
     expect(notes.lastMessage('i1')?.text, 'echo: think hard');
+  });
+
+  testWidgets('a user message with no answer shows no dots, and the screen reads at the idle pace',
+      (tester) async {
+    // A service does not have to answer each user message (`docs/celaut/chat.md`, section
+    // 10): only an open message is a wait.
+    chat = _FakeChat(history: [const ChatMessage(seq: 1, role: 'user', text: 'are you there?')]);
+    await open(tester);
+    expect(find.byKey(const Key('chat-bubble-1')), findsOneWidget);
+    expect(find.byKey(const Key('chat-typing')), findsNothing);
+    final before = chat.syncs;
+    await tester.pump(const Duration(seconds: 9));
+    expect(chat.syncs, before);
+    await tester.pump(const Duration(seconds: 1));
+    expect(chat.syncs, before + 1);
   });
 
   testWidgets('an idle conversation is read every 10 seconds', (tester) async {

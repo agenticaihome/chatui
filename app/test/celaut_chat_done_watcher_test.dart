@@ -172,29 +172,33 @@ void main() {
     });
 
     test('an answer that was done before the hand-over is history: no notice', () async {
-      // The history has a done answer; the user asked again, and no answer came yet.
-      final chat = _Chat([_user, _answer(1, 'done'), const ChatMessage(seq: 2, role: 'user', text: 'more')]);
-      await handOver('a', chat, statuses: {0: 'done', 1: 'done', 2: 'done'});
+      // The history has a done answer; the user asked again, and the new answer is open.
+      final chat = _Chat([
+        _user,
+        _answer(1, 'done'),
+        const ChatMessage(seq: 2, role: 'user', text: 'more'),
+        _answer(3, 'streaming'),
+      ]);
+      await handOver('a', chat, statuses: {0: 'done', 1: 'done', 2: 'done', 3: 'streaming'});
       expect(shown, isEmpty);
       expect(watcher.watching, {'a'});
-      chat.onSync = (m) => m.add(_answer(3, 'done'));
+      chat.onSync = (m) => m[3] = _answer(3, 'done');
       await tick();
       expect(shown, hasLength(1));
       expect(watcher.watching, isEmpty);
     });
 
-    test('an unanswered user message is watched until an answer is done', () async {
+    test('a user message with no answer is not a wait: the watch ends at the first read', () async {
+      // A service does not have to answer each user message (`docs/celaut/chat.md`,
+      // section 10): only an open message is a wait.
       final chat = _Chat([_user]);
       await handOver('a', chat, statuses: {0: 'done'});
-      expect(watcher.watching, {'a'});
-      chat.onSync = (m) => m.add(_answer(1, 'streaming'));
-      await tick();
-      expect(shown, isEmpty);
-      expect(watcher.watching, {'a'});
-      chat.onSync = (m) => m[1] = _answer(1, 'done');
-      await tick();
-      expect(shown, hasLength(1));
+      expect(chat.syncs, 1);
       expect(watcher.watching, isEmpty);
+      expect(holds.reasons, isEmpty);
+      expect(closed, ['a']);
+      expect(timers.where((t) => t.isActive), isEmpty);
+      expect(shown, isEmpty);
     });
 
     test('many answers done between two reads give one notice', () async {
@@ -295,8 +299,9 @@ void main() {
     });
 
     test('the hold stays while one other instance is watched', () async {
-      await handOver('a', _Chat([_user]));
-      await handOver('b', _Chat([_user]));
+      await handOver('a', _Chat([_user, _answer(1, 'streaming')]));
+      await handOver('b', _Chat([_user, _answer(1, 'streaming')]));
+      expect(watcher.watching, {'a', 'b'});
       expect(holds.reasons, {KeepAliveReason.answer});
       watcher.release('a');
       expect(holds.reasons, {KeepAliveReason.answer});
@@ -305,8 +310,9 @@ void main() {
     });
 
     test('stopAll ends every watch', () async {
-      await handOver('a', _Chat([_user]));
-      await handOver('b', _Chat([_user]));
+      await handOver('a', _Chat([_user, _answer(1, 'streaming')]));
+      await handOver('b', _Chat([_user, _answer(1, 'streaming')]));
+      expect(watcher.watching, {'a', 'b'});
       watcher.stopAll();
       expect(watcher.watching, isEmpty);
       expect(holds.reasons, isEmpty);
@@ -362,7 +368,7 @@ void main() {
     });
 
     test('a good read resets the time of the failure', () async {
-      final chat = _Chat([_user])..broken = true;
+      final chat = _Chat([_user, _answer(1, 'streaming')])..broken = true;
       await handOver('a', chat);
       clock = clock.add(const Duration(minutes: 4));
       chat.broken = false;
@@ -386,7 +392,7 @@ void main() {
     });
 
     test('opens one tunnel for the whole watch', () async {
-      await handOver('a', _Chat([_user]));
+      await handOver('a', _Chat([_user, _answer(1, 'streaming')]));
       await tick();
       await tick();
       expect(connects, 1);
