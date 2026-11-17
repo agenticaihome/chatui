@@ -848,6 +848,7 @@ dependencies = [
  "hex",
  "prost",
  "ring",
+ "rustix",
  "serde",
  "serde_json",
  "sha3 0.10.9",

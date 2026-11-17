@@ -1,9 +1,11 @@
 //! Import a service from a link (issue #135): a `.celaut.bee` file or a manifest of chunks,
-//! checked while the bytes arrive, with retries, resume, cancel and a size limit. The
-//! server is in memory ([`FakeSource`]).
+//! checked while the bytes arrive, with retries, resume, cancel, a size limit and the check
+//! of the free space (issue #151). The server is in memory ([`FakeSource`]), and so is the
+//! free space ([`FreeSpace`]).
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -12,7 +14,7 @@ use bee_rpc::buffer::Buffer;
 use bee_rpc::hash::HashAlgorithm;
 use bee_rpc::pointer::block_pointer;
 use celaut_client::link::{
-    can_resume, discard, download, downloads_dir, pending, FetchError, LinkOptions,
+    can_resume, discard, download, downloads_dir, pending, FetchError, FreeSpace, LinkOptions,
     LinkProgress, Opened, Source,
 };
 use celaut_client::package::{library_path, Cancel, Check, Layout, PackageError};
@@ -126,6 +128,8 @@ struct Server {
     log: Vec<(String, u64)>,
     /// The body bytes that the server gave.
     sent: u64,
+    /// The links whose answers do not say their size (no `Content-Length`).
+    no_total: Vec<String>,
 }
 
 #[derive(Clone, Default)]
@@ -144,6 +148,9 @@ impl FakeSource {
     }
     fn no_range(&self, url: &str) {
         self.0.lock().unwrap().no_range.push(url.into());
+    }
+    fn no_total(&self, url: &str) {
+        self.0.lock().unwrap().no_total.push(url.into());
     }
     fn log(&self) -> Vec<(String, u64)> {
         self.0.lock().unwrap().log.clone()
@@ -182,9 +189,10 @@ impl Source for FakeSource {
             if cut.is_some() {
                 items.push(Err(FetchError::Retry("connection reset".into())));
             }
+            let total = (!s.no_total.contains(&url)).then_some(file.len() as u64);
             Ok(Opened {
                 start,
-                total: Some(file.len() as u64),
+                total,
                 body: Box::pin(futures::stream::iter(items)),
             })
         })
@@ -195,6 +203,9 @@ fn options() -> LinkOptions {
     LinkOptions {
         backoff: Duration::from_millis(1),
         idle: Duration::from_secs(5),
+        // The free space of the machine of the test is not checked, except in the tests of
+        // the free space.
+        free_space: FreeSpace(Arc::new(|_| None)),
         ..LinkOptions::default()
     }
 }
@@ -704,4 +715,265 @@ async fn the_limit_of_a_download_without_the_filesystem_counts_the_bytes_that_ar
         .await
         .unwrap_err();
     assert!(matches!(err, PackageError::TooLarge(50_000)), "{err}");
+}
+
+// ─── Free space (issue #151) ─────────────────────────────────────────────────────────
+
+/// The space that must stay free in these tests.
+const MARGIN: u64 = 1000;
+
+/// A phone with `free` bytes free, which the test can change.
+fn free_of(free: &Arc<AtomicU64>) -> FreeSpace {
+    let free = free.clone();
+    FreeSpace(Arc::new(move |_| Some(free.load(Ordering::Acquire))))
+}
+
+/// A phone with a disk of `cap` bytes for the download: the bytes of the download on disk
+/// take from it.
+fn disk_of(cap: &Arc<AtomicU64>) -> FreeSpace {
+    let cap = cap.clone();
+    FreeSpace(Arc::new(move |folder: &Path| {
+        let used = std::fs::metadata(folder.join("service.bee.partial")).map_or(0, |m| m.len());
+        Some(cap.load(Ordering::Acquire).saturating_sub(used))
+    }))
+}
+
+fn with_free(space: FreeSpace, base: LinkOptions) -> LinkOptions {
+    LinkOptions {
+        min_free: MARGIN,
+        free_space: space,
+        ..base
+    }
+}
+
+fn no_space(err: &PackageError) -> (u64, u64) {
+    match err {
+        PackageError::NoSpace { needed, available } => (*needed, *available),
+        e => panic!("not NoSpace: {e}"),
+    }
+}
+
+#[tokio::test]
+async fn a_file_that_does_not_fit_is_refused_before_its_first_byte() {
+    let (file, id) = package(&content(300_000), None);
+    let len = file.len() as u64;
+    let url = "https://h/x.celaut.bee";
+    let source = FakeSource::with(&[(url, file.clone())]);
+    let free = Arc::new(AtomicU64::new(len + MARGIN - 1));
+    let opts = with_free(free_of(&free), options());
+    let d = dir();
+    let cancel = Cancel::new();
+    let err = download(&source, url, &d, &opts, &cancel, &LinkProgress::new()).await.unwrap_err();
+    // The size of the file and the margin.
+    assert_eq!(no_space(&err), (len + MARGIN, len + MARGIN - 1));
+    // Nothing was written, and nothing is kept: there is nothing to go on from.
+    assert_eq!(cancel.bytes(), 0);
+    assert!(pending(&d).is_none());
+    no_downloads_left(&d);
+    assert_eq!(source.log().len(), 1);
+
+    // With the space, the same link downloads.
+    free.store(len + MARGIN, Ordering::Release);
+    let got = download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap();
+    assert_eq!(got.service_id, id);
+    assert!(!got.resumed);
+    assert_eq!(std::fs::read(&got.path).unwrap(), file);
+}
+
+#[tokio::test]
+async fn the_limit_of_4_gib_is_checked_before_the_free_space() {
+    let (file, _) = package(&content(300_000), None);
+    let source = FakeSource::with(&[("https://h/x", file)]);
+    let opts = LinkOptions {
+        max_bytes: 250_000,
+        ..with_free(FreeSpace(Arc::new(|_| Some(0))), options())
+    };
+    let d = dir();
+    let err = download(&source, "https://h/x", &d, &opts, &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap_err();
+    assert!(matches!(err, PackageError::TooLarge(250_000)), "{err}");
+    assert_eq!(LinkOptions::default().max_bytes, 4 * 1024 * 1024 * 1024);
+    assert_eq!(LinkOptions::default().min_free, 256 * 1024 * 1024);
+}
+
+#[tokio::test]
+async fn a_download_that_goes_on_needs_only_the_space_of_the_rest() {
+    let (file, id) = package(&content(300_000), None);
+    let len = file.len() as u64;
+    let url = "https://h/x.celaut.bee";
+    let source = FakeSource::with(&[(url, file.clone())]);
+    source.plan(url, &vec![Plan::CutAfter(40_000); 5]);
+    let d = dir();
+    let free = Arc::new(AtomicU64::new(u64::MAX));
+    let opts = with_free(free_of(&free), options());
+    download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap_err();
+    assert_eq!(pending(&d).unwrap().bytes, 200_000);
+
+    // Less than the rest: refused, and the 200 000 bytes stay.
+    let rest = len - 200_000;
+    free.store(rest + MARGIN - 1, Ordering::Release);
+    let err = download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap_err();
+    assert_eq!(no_space(&err), (rest + MARGIN, rest + MARGIN - 1));
+    assert!(can_resume(&err));
+    assert_eq!(pending(&d).unwrap().bytes, 200_000);
+
+    // The rest fits, not the whole file: it goes on.
+    free.store(rest + MARGIN, Ordering::Release);
+    let got = download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap();
+    assert!(got.resumed);
+    assert_eq!(got.service_id, id);
+    assert_eq!(std::fs::read(&got.path).unwrap(), file);
+    assert_eq!(source.log().last().unwrap(), &(url.to_string(), 200_000));
+}
+
+#[tokio::test]
+async fn a_manifest_stops_at_the_chunk_that_does_not_fit_and_keeps_the_ones_before() {
+    let (file, id) = package(&content(400_000), None);
+    let (a, b) = file.split_at(200_000);
+    let source = FakeSource::with(&[
+        ("https://h/m", b"https://c/a\nhttps://c/b\n".to_vec()),
+        ("https://c/a", a.to_vec()),
+        ("https://c/b", b.to_vec()),
+    ]);
+    // Room for the chunk a and 50 bytes more.
+    let cap = Arc::new(AtomicU64::new(200_000 + MARGIN + 50));
+    let opts = with_free(disk_of(&cap), options());
+    let d = dir();
+    let progress = LinkProgress::new();
+    let err = download(&source, "https://h/m", &d, &opts, &Cancel::new(), &progress).await.unwrap_err();
+    // The chunk b is checked with its own size when it starts.
+    assert_eq!(no_space(&err), (b.len() as u64 + MARGIN, MARGIN + 50));
+    assert_eq!(progress.chunk(), (2, 2));
+    assert!(can_resume(&err));
+    assert_eq!(pending(&d).unwrap().bytes, 200_000);
+    assert_eq!(
+        source.log(),
+        vec![
+            ("https://h/m".to_string(), 0),
+            ("https://c/a".to_string(), 0),
+            ("https://c/b".to_string(), 0),
+        ]
+    );
+
+    // The user frees space and taps Continue: the chunk a is not asked again.
+    cap.store(u64::MAX, Ordering::Release);
+    let got = download(&source, "https://h/m", &d, &opts, &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap();
+    assert!(got.resumed);
+    assert_eq!(got.service_id, id);
+    assert_eq!(std::fs::read(&got.path).unwrap(), file);
+    assert_eq!(source.log()[3..], [("https://c/b".to_string(), 0)]);
+}
+
+#[tokio::test]
+async fn a_manifest_refused_at_its_first_chunk_keeps_nothing() {
+    let (file, _) = package(&content(300_000), None);
+    let (a, b) = file.split_at(200_000);
+    let source = FakeSource::with(&[
+        ("https://h/m", b"https://c/a\nhttps://c/b\n".to_vec()),
+        ("https://c/a", a.to_vec()),
+        ("https://c/b", b.to_vec()),
+    ]);
+    let opts = with_free(FreeSpace(Arc::new(|_| Some(10_000))), options());
+    let d = dir();
+    let err = download(&source, "https://h/m", &d, &opts, &Cancel::new(), &LinkProgress::new())
+        .await
+        .unwrap_err();
+    assert_eq!(no_space(&err), (200_000 + MARGIN, 10_000));
+    assert!(pending(&d).is_none());
+    no_downloads_left(&d);
+}
+
+#[tokio::test]
+async fn without_the_filesystem_only_the_margin_counts() {
+    let (file, id) = package(&content(600_000), None);
+    let url = "https://h/x.celaut.bee";
+    let source = FakeSource::with(&[(url, file)]);
+    let free = Arc::new(AtomicU64::new(MARGIN - 1));
+    let opts = with_free(free_of(&free), stripped());
+    let d = dir();
+    // The size of what is written is not known: the margin is checked at the start.
+    let err = download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap_err();
+    assert_eq!(no_space(&err), (MARGIN, MARGIN - 1));
+    no_downloads_left(&d);
+    // The service is 600 000 bytes, and the margin is enough: its blocks are not written.
+    free.store(MARGIN, Ordering::Release);
+    let got = download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap();
+    assert_eq!(got.service_id, id);
+}
+
+/// A phone whose free space falls to `after` once the download asked for it `calls` times.
+fn falls(calls: u32, before: u64, after: u64) -> (FreeSpace, Arc<AtomicU64>) {
+    let asked = Arc::new(AtomicU64::new(0));
+    let count = asked.clone();
+    let space = FreeSpace(Arc::new(move |_| {
+        let n = count.fetch_add(1, Ordering::AcqRel);
+        Some(if n < calls as u64 { before } else { after })
+    }));
+    (space, asked)
+}
+
+#[tokio::test]
+async fn without_the_filesystem_the_margin_is_checked_again_and_the_download_goes_on() {
+    let (file, id) = package(&content(600_000), None);
+    let url = "https://h/x.celaut.bee";
+    let source = FakeSource::with(&[(url, file.clone())]);
+    // The phone fills (another app) after the check at the start.
+    let (space, asked) = falls(1, 1_000_000, 10);
+    let opts = LinkOptions {
+        room_every: 100_000,
+        ..with_free(space, stripped())
+    };
+    let d = dir();
+    let err = download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap_err();
+    assert_eq!(no_space(&err), (MARGIN, 10));
+    assert_eq!(asked.load(Ordering::Acquire), 2);
+    // It stopped after 100 000 bytes (in pieces of 7000), and keeps its checkpoint.
+    let kept = pending(&d).unwrap().bytes;
+    assert_eq!(kept, 105_000);
+    assert!(partial_len(&d) < 1_000);
+
+    let opts = LinkOptions {
+        room_every: 100_000,
+        ..with_free(FreeSpace(Arc::new(|_| Some(u64::MAX))), stripped())
+    };
+    let got = download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap();
+    assert!(got.resumed);
+    assert_eq!(got.service_id, id);
+    assert_eq!(source.log().last().unwrap(), &(url.to_string(), kept));
+}
+
+#[tokio::test]
+async fn an_answer_with_no_size_checks_the_margin_at_the_start_and_as_it_writes() {
+    let (file, id) = package(&content(300_000), None);
+    let url = "https://h/x.celaut.bee";
+    let source = FakeSource::with(&[(url, file.clone())]);
+    source.no_total(url);
+    let d = dir();
+    // An unknown size alone is not refused.
+    let opts = with_free(FreeSpace(Arc::new(|_| Some(MARGIN))), options());
+    let got = download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap();
+    assert_eq!(got.service_id, id);
+
+    let d = dir();
+    let opts = with_free(FreeSpace(Arc::new(|_| Some(MARGIN - 1))), options());
+    let err = download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap_err();
+    assert_eq!(no_space(&err), (MARGIN, MARGIN - 1));
+    no_downloads_left(&d);
+
+    // The disk fills during the download: it stops, keeps its bytes, and goes on.
+    let (space, _) = falls(1, u64::MAX, 0);
+    let opts = LinkOptions {
+        room_every: 100_000,
+        ..with_free(space, options())
+    };
+    let err = download(&source, url, &d, &opts, &Cancel::new(), &LinkProgress::new()).await.unwrap_err();
+    assert_eq!(no_space(&err), (MARGIN, 0));
+    assert_eq!(pending(&d).unwrap().bytes, 105_000);
+    let got = download(&source, url, &d, &options(), &Cancel::new(), &LinkProgress::new()).await.unwrap();
+    assert!(got.resumed);
+    assert_eq!(std::fs::read(&got.path).unwrap(), file);
+    assert_eq!(source.log().last().unwrap(), &(url.to_string(), 105_000));
 }

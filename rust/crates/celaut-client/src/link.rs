@@ -21,6 +21,11 @@
 //! that chunk, with a `Range`). A cancel deletes the files. Only the last download is kept:
 //! a download of another link deletes the files of the one before.
 //!
+//! Before it writes, a download checks the free space of the phone ([`LinkOptions::min_free`]):
+//! a file that does not fit is refused before its first byte, and a download that fills the
+//! disk later stops and is kept, like a download that lost the network
+//! ([`PackageError::NoSpace`], issue #151).
+//!
 //! The requests go through a [`Source`]: the app gives one on its HTTP client (with the
 //! network route of the app), and the tests give one in memory.
 
@@ -36,7 +41,10 @@ use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
-use crate::package::{into_library_whole, Cancel, Check, Layout, PackageError, Storage, MAX_RECORD};
+use crate::package::{
+    free_space, into_library_whole, is_disk_full, Cancel, Check, Layout, PackageError, Storage,
+    MAX_RECORD,
+};
 
 /// The largest manifest, in bytes. 1 MiB holds thousands of links.
 pub const MAX_MANIFEST: usize = 1024 * 1024;
@@ -202,6 +210,36 @@ pub trait Source: Send + Sync {
     fn open(&self, url: &str, from: u64) -> BoxFuture<'static, Result<Opened, FetchError>>;
 }
 
+/// The space that a download leaves free on the phone, so that the phone keeps working:
+/// 256 MiB.
+pub const MIN_FREE: u64 = 256 * 1024 * 1024;
+
+/// How a download reads the free space of a folder, in bytes: [`free_space`] (`statvfs`) in
+/// the app. The tests give a fake one. `None`: not known, and then nothing is refused.
+#[derive(Clone)]
+pub struct FreeSpace(pub Arc<FreeSpaceFn>);
+
+/// The function of a [`FreeSpace`].
+pub type FreeSpaceFn = dyn Fn(&Path) -> Option<u64> + Send + Sync;
+
+impl FreeSpace {
+    pub fn of(&self, folder: &Path) -> Option<u64> {
+        (self.0)(folder)
+    }
+}
+
+impl Default for FreeSpace {
+    fn default() -> Self {
+        FreeSpace(Arc::new(free_space))
+    }
+}
+
+impl std::fmt::Debug for FreeSpace {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("FreeSpace")
+    }
+}
+
 /// The limits of a download.
 #[derive(Debug, Clone)]
 pub struct LinkOptions {
@@ -223,6 +261,22 @@ pub struct LinkOptions {
     /// from the last checkpoint ([`CHECKPOINT`]). `max_bytes` then limits the bytes that are
     /// written, not the bytes that arrive.
     pub storage: Storage,
+    /// The space that must stay free after the download ([`MIN_FREE`]). Before it writes, a
+    /// download checks that what it still writes, plus this, fits in the free space:
+    ///
+    /// - at each answer that says its size: a file (or the rest of it, when it goes on), a
+    ///   chunk of a manifest when it starts;
+    /// - again every [`room_every`](Self::room_every) bytes that arrive;
+    /// - only this margin when the size of what is written is not known: no
+    ///   `Content-Length`, or [`Storage::WithoutFilesystem`].
+    ///
+    /// [`max_bytes`](Self::max_bytes) is checked first.
+    pub min_free: u64,
+    /// How the free space is read.
+    pub free_space: FreeSpace,
+    /// The bytes that arrive between two checks of the free space during an answer:
+    /// [`CHECKPOINT_EVERY`]. The tests make it small.
+    pub room_every: u64,
 }
 
 impl Default for LinkOptions {
@@ -234,6 +288,9 @@ impl Default for LinkOptions {
             backoff: Duration::from_secs(1),
             idle: Duration::from_secs(60),
             storage: Storage::Whole,
+            min_free: MIN_FREE,
+            free_space: FreeSpace::default(),
+            room_every: CHECKPOINT_EVERY,
         }
     }
 }
@@ -420,10 +477,37 @@ pub fn discard(dir: &Path) -> Result<(), PackageError> {
     }
 }
 
-/// True for an error after which the download can go on from the disk: the network failed.
-/// The other errors delete the files.
+/// True for an error after which the download can go on from the disk: the network failed,
+/// or the phone had no more free space ([`PackageError::NoSpace`]; its files are kept only
+/// if it wrote bytes). The other errors delete the files.
 pub fn can_resume(e: &PackageError) -> bool {
-    matches!(e, PackageError::Network(_))
+    matches!(e, PackageError::Network(_) | PackageError::NoSpace { .. })
+}
+
+/// Refuse with [`PackageError::NoSpace`] when `rest` (the bytes that the download still
+/// writes, 0 when not known) and [`LinkOptions::min_free`] do not fit in the free space of
+/// `folder`. An unknown free space passes.
+fn ensure_room(options: &LinkOptions, folder: &Path, rest: u64) -> Result<(), PackageError> {
+    let Some(available) = options.free_space.of(folder) else {
+        return Ok(());
+    };
+    let needed = rest.saturating_add(options.min_free);
+    if needed > available {
+        return Err(PackageError::NoSpace { needed, available });
+    }
+    Ok(())
+}
+
+/// The error of a write to a full disk becomes [`PackageError::NoSpace`], the error of the
+/// check, with `rest` as in [`ensure_room`].
+fn full_disk(e: PackageError, options: &LinkOptions, folder: &Path, rest: u64) -> PackageError {
+    match e {
+        PackageError::Io(io) if is_disk_full(&io) => PackageError::NoSpace {
+            needed: rest.saturating_add(options.min_free),
+            available: options.free_space.of(folder).unwrap_or(0),
+        },
+        e => e,
+    }
 }
 
 /// Download the service at `url` into `dir` (a private directory of the app), check it while
@@ -454,18 +538,26 @@ pub async fn download<S: Source + ?Sized>(
             }
         }
     }
-    let result = run(source, url, dir, &folder, options, cancel, progress).await;
+    let result = run(source, url, dir, &folder, options, cancel, progress)
+        .await
+        .map_err(|e| full_disk(e, options, &downloads, 0));
     // A download that stopped is kept if it got something: bytes, or the list of a manifest.
-    let worth = || {
-        read_state(&folder).is_some_and(|s| s.chunks.is_some())
-            || std::fs::metadata(folder.join(PARTIAL)).is_ok_and(|m| m.len() > 0)
-            || read_checkpoint(&folder).is_some()
+    // Without free space, only bytes: a download refused before its first byte keeps nothing.
+    let has_bytes = || {
+        std::fs::metadata(folder.join(PARTIAL)).is_ok_and(|m| m.len() > 0)
+            || read_checkpoint(&folder).is_some_and(|c| c.pos > 0)
     };
-    match &result {
-        Err(e) if can_resume(e) && worth() => {}
-        _ => {
-            let _ = tokio::fs::remove_dir_all(&folder).await;
+    let kept = match &result {
+        Err(PackageError::NoSpace { .. }) => has_bytes(),
+        Err(e) if can_resume(e) => {
+            has_bytes()
+                || read_checkpoint(&folder).is_some()
+                || read_state(&folder).is_some_and(|s| s.chunks.is_some())
         }
+        _ => false,
+    };
+    if !kept {
+        let _ = tokio::fs::remove_dir_all(&folder).await;
     }
     result
 }
@@ -482,6 +574,8 @@ struct Sink {
     check: Check,
     /// Set for a download without the filesystem.
     strip: Option<Stripped>,
+    /// `pos` at the last check of the free space.
+    room_at: u64,
 }
 
 /// What a download without the filesystem keeps to go on after a stop.
@@ -515,7 +609,13 @@ impl Sink {
                 last: None,
                 boundary: None,
             }),
+            room_at: 0,
         })
+    }
+
+    /// The folder of the download, where the free space is read.
+    fn folder(&self) -> &Path {
+        self.path.parent().unwrap_or(Path::new("."))
     }
 
     /// The bytes that count against the size limit: the ones that the library keeps.
@@ -657,6 +757,14 @@ impl Sink {
         }
         strip.last = Some(cp);
         Ok(())
+    }
+
+    /// Keep what is on disk for a download that stops because the phone has no free space:
+    /// the bytes in the buffer, and a checkpoint without the filesystem. With a full disk this
+    /// can fail: the download then goes on from what did reach the disk.
+    async fn keep(&mut self) {
+        let _ = self.file.flush().await;
+        let _ = self.checkpoint(false).await;
     }
 
     async fn sync(&mut self) -> Result<(), PackageError> {
@@ -956,6 +1064,18 @@ async fn fetch<S: Source + ?Sized>(
                     return Err(PackageError::TooLarge(options.max_bytes));
                 }
             }
+            // The bytes of this resource that are still to write, when they are known: the
+            // size that the answer says, less the bytes of it on disk.
+            let total = opened.total;
+            let rest = |sink: &Sink| match total {
+                Some(total) if sink.strip.is_none() => total.saturating_sub(sink.pos - start),
+                _ => 0,
+            };
+            if let Err(e) = ensure_room(options, sink.folder(), rest(sink)) {
+                sink.keep().await;
+                return Err(e);
+            }
+            sink.room_at = sink.pos;
             let mut piece = Some(head);
             loop {
                 let data = match piece.take() {
@@ -969,7 +1089,21 @@ async fn fetch<S: Source + ?Sized>(
                 if sink.kept() + data.len() as u64 > options.max_bytes {
                     return Err(PackageError::TooLarge(options.max_bytes));
                 }
-                sink.write(&data, cancel).await?;
+                if sink.pos.saturating_sub(sink.room_at) >= options.room_every {
+                    if let Err(e) = ensure_room(options, sink.folder(), rest(sink)) {
+                        sink.keep().await;
+                        return Err(e);
+                    }
+                    sink.room_at = sink.pos;
+                }
+                let left = rest(sink);
+                if let Err(e) = sink.write(&data, cancel).await {
+                    let e = full_disk(e, options, sink.folder(), left);
+                    if matches!(e, PackageError::NoSpace { .. }) {
+                        sink.keep().await;
+                    }
+                    return Err(e);
+                }
             }
             let got = sink.pos - start;
             match opened.total {
@@ -1007,6 +1141,56 @@ const _: () = assert!(MAX_RECORD <= (1 << 24));
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_full_disk_gives_the_error_of_the_check() {
+        let options = LinkOptions {
+            min_free: 100,
+            free_space: FreeSpace(Arc::new(|_| Some(7))),
+            ..LinkOptions::default()
+        };
+        let full = PackageError::Io(std::io::Error::from(std::io::ErrorKind::StorageFull));
+        let e = full_disk(full, &options, Path::new("/x"), 50);
+        assert!(
+            matches!(e, PackageError::NoSpace { needed: 150, available: 7 }),
+            "{e}"
+        );
+        let quota = PackageError::Io(std::io::Error::from(std::io::ErrorKind::QuotaExceeded));
+        assert!(matches!(
+            full_disk(quota, &options, Path::new("/x"), 0),
+            PackageError::NoSpace { needed: 100, .. }
+        ));
+        // Another error stays as it is.
+        let other = PackageError::Io(std::io::Error::from(std::io::ErrorKind::PermissionDenied));
+        assert!(matches!(full_disk(other, &options, Path::new("/x"), 0), PackageError::Io(_)));
+        // The free space that the system does not say is 0 in the error.
+        let unknown = LinkOptions {
+            free_space: FreeSpace(Arc::new(|_| None)),
+            ..options
+        };
+        let full = PackageError::Io(std::io::Error::from(std::io::ErrorKind::StorageFull));
+        assert!(matches!(
+            full_disk(full, &unknown, Path::new("/x"), 0),
+            PackageError::NoSpace { available: 0, .. }
+        ));
+    }
+
+    #[test]
+    fn an_unknown_free_space_refuses_nothing() {
+        let options = LinkOptions {
+            free_space: FreeSpace(Arc::new(|_| None)),
+            ..LinkOptions::default()
+        };
+        assert!(ensure_room(&options, Path::new("/x"), u64::MAX).is_ok());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_free_space_of_the_phone_is_read() {
+        let free = FreeSpace::default().of(&std::env::temp_dir());
+        assert!(free.is_some_and(|f| f > 0), "{free:?}");
+        assert_eq!(FreeSpace::default().of(Path::new("/no/such/folder/151")), None);
+    }
 
     #[test]
     fn links_are_checked() {
