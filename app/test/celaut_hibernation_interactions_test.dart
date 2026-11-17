@@ -365,7 +365,7 @@ void main() {
       await tester.longPress(find.byKey(const Key('chats-row-b')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('chats-action-hibernate')), findsNothing);
-      expect(find.byKey(const Key('chats-action-stop')), findsOneWidget);
+      expect(find.byKey(const Key('chats-action-stop')), findsNothing);
     });
 
     testWidgets('the dialog does not open for such a node, and no call is made', (tester) async {

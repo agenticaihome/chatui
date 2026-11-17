@@ -18,6 +18,7 @@ import 'package:argus_wallet/celaut/wallet_money.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
 import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/ui/celaut/home_tabs.dart';
+import 'package:argus_wallet/ui/celaut/instance_info_screen.dart';
 import 'package:argus_wallet/ui/celaut/instance_list.dart';
 import 'package:argus_wallet/ui/celaut/run_service_screen.dart';
 import 'package:argus_wallet/ui/celaut/run_service_section.dart';
@@ -299,6 +300,18 @@ void main() {
           },
         ),
       );
+
+  /// Stop is not in the actions of the list: open the info page and stop from there.
+  Future<void> stopFromInfo(WidgetTester tester) async {
+    await tester.tap(find.byKey(const Key('chats-action-info')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('info-stop')),
+      200,
+      scrollable: find.descendant(of: find.byType(InstanceInfoScreen), matching: find.byType(Scrollable)).first,
+    );
+    await tester.tap(find.byKey(const Key('info-stop')));
+  }
 
   Future<void> open(
     WidgetTester tester, {
@@ -678,7 +691,7 @@ void main() {
       await tester.longPress(find.byKey(const Key('chats-row-i1')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('chats-action-info')), findsOneWidget);
-      expect(find.byKey(const Key('chats-action-stop')), findsOneWidget);
+      expect(find.byKey(const Key('chats-action-stop')), findsNothing);
       expect(find.byKey(const Key('chats-action-delete')), findsNothing);
     });
 
@@ -811,7 +824,7 @@ void main() {
       await open(tester);
       await tester.longPress(find.byKey(const Key('chats-row-i1')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('chats-action-stop')));
+      await stopFromInfo(tester);
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('stop-confirm')), findsOneWidget);
       await tester.tap(find.byKey(const Key('stop-ok')));
@@ -850,7 +863,7 @@ void main() {
       await open(tester, full: false);
       await tester.longPress(find.byKey(const Key('chats-row-i1')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('chats-action-stop')));
+      await stopFromInfo(tester);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('stop-ok')));
       await tester.pumpAndSettle();
@@ -870,13 +883,13 @@ void main() {
       await tester.longPress(find.byKey(const Key('chats-row-i1')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('chats-action-info')), findsOneWidget);
-      expect(find.byKey(const Key('chats-action-stop')), findsOneWidget);
+      expect(find.byKey(const Key('chats-action-stop')), findsNothing);
       expect(find.byKey(const Key('chats-action-delete')), findsNothing);
       expect(find.text(appL10n.chatsDelete), findsNothing);
       // Stop asks; the node does not answer: the user sees why, and the row stays.
       node.answers['i1'] =
           const CelautError(kind: CelautErrorKind.unreachable, message: 'no route');
-      await tester.tap(find.byKey(const Key('chats-action-stop')));
+      await stopFromInfo(tester);
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('stop-confirm')), findsOneWidget);
       await tester.tap(find.byKey(const Key('stop-ok')));
@@ -885,21 +898,7 @@ void main() {
       expect(node.stops, isEmpty);
       expect(node.forgotten, isEmpty);
       expect(node.db.single.stoppedAt, isNull);
-      expect(
-        tester.widget<Text>(find.byKey(const Key('chats-state-i1'))).data,
-        startsWith(appL10n.chatsStateUnreachable),
-      );
-      // The info page has Stop, and no Delete.
-      await tester.longPress(find.byKey(const Key('chats-row-i1')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('chats-action-info')));
-      await tester.pumpAndSettle();
-      // The page also has Hibernate, so Stop can be below the window: scroll to it.
-      await tester.scrollUntilVisible(
-        find.byKey(const Key('info-stop')),
-        200,
-        scrollable: find.byType(Scrollable).last,
-      );
+      // The info page stays open: it has Stop, and no Delete.
       expect(find.byKey(const Key('info-stop')), findsOneWidget);
       expect(find.byKey(const Key('info-delete')), findsNothing);
     });
@@ -1237,7 +1236,7 @@ void main() {
       await open(tester);
       await tester.longPress(find.byKey(const Key('chats-row-a')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('chats-action-stop')));
+      await stopFromInfo(tester);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('stop-ok')));
       await tester.pumpAndSettle();

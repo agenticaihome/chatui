@@ -200,7 +200,7 @@ void main() {
       await open(tester);
       await actions(tester, 'i1');
       expect(find.byKey(const Key('chats-action-hibernate')), findsOneWidget);
-      expect(find.byKey(const Key('chats-action-stop')), findsOneWidget);
+      expect(find.byKey(const Key('chats-action-stop')), findsNothing);
       expect(find.byKey(const Key('chats-action-wake')), findsNothing);
       expect(find.byKey(const Key('chats-action-delete')), findsNothing);
     });
@@ -210,7 +210,7 @@ void main() {
       await open(tester);
       await actions(tester, 'h1');
       expect(find.byKey(const Key('chats-action-wake')), findsOneWidget);
-      expect(find.byKey(const Key('chats-action-stop')), findsOneWidget);
+      expect(find.byKey(const Key('chats-action-stop')), findsNothing);
       expect(find.byKey(const Key('chats-action-hibernate')), findsNothing);
       expect(find.byKey(const Key('chats-action-delete')), findsNothing);
     });

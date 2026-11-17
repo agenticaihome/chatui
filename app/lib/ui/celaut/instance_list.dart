@@ -82,8 +82,8 @@ class ChatPane extends InheritedWidget {
 /// poll. The answer gives the state (running or not answering) and the cost so far.
 ///
 /// A tap opens the conversation, or the info page of an instance without a chat slot or
-/// that stopped. A long press gives the actions: info and stop, or info and delete for
-/// a stopped instance. An instance whose node does not answer stays in the list: only
+/// that stopped. A long press gives the actions (info, rename, move, and the others); stop is only on
+/// the info page, and a stopped instance can be deleted. An instance whose node does not answer stays in the list: only
 /// a stopped instance can be deleted, and only by the user.
 class InstanceList extends StatefulWidget {
   const InstanceList({
@@ -504,13 +504,6 @@ class InstanceListState extends State<InstanceList> {
                 title: Text(l.chatsWake),
                 onTap: () => Navigator.pop(context, 'wake'),
               ),
-            if (state != InstanceState.stopped)
-              ListTile(
-                key: const Key('chats-action-stop'),
-                leading: const Icon(Icons.stop_circle_outlined),
-                title: Text(l.chatStop),
-                onTap: () => Navigator.pop(context, 'stop'),
-              ),
             if (state == InstanceState.stopped)
               ListTile(
                 key: const Key('chats-action-delete'),
@@ -548,15 +541,6 @@ class InstanceListState extends State<InstanceList> {
           i,
           wallets: widget.wallets,
           wake: widget.wake,
-        );
-        if (done != null && mounted) await refresh();
-      case 'stop':
-        final done = await confirmAndStopInstance(
-          context,
-          i,
-          wallets: widget.wallets,
-          stop: widget.stop,
-          notes: _notes,
         );
         if (done != null && mounted) await refresh();
       case 'delete':
