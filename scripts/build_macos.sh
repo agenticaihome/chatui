@@ -57,6 +57,10 @@ fi
 # The same minimum as MACOSX_DEPLOYMENT_TARGET of app/macos: the C code of the crates
 # (ring, SQLite, zstd) is built for it, and the linker does not warn about newer objects.
 export MACOSX_DEPLOYMENT_TARGET=13.0
+# liblzma-sys (xz, used by arti) links the liblzma of pkg-config when it finds one (Homebrew
+# xz): then the static library has no lzma_* code and the app does not link. Build its own
+# copy, as in the cross builds of iOS and Android, where pkg-config is not used.
+export LZMA_API_STATIC=1
 # The same path remapping as build_android.sh: no absolute path of the build in the library.
 export RUSTFLAGS="${RUSTFLAGS:-} --remap-path-prefix=$REPO_ROOT=/argus --remap-path-prefix=$HOME/.cargo=/cargo"
 
@@ -70,4 +74,8 @@ cargo rustc --release -p wallet-ffi --lib --target "$TARGET" --crate-type static
   -- --print native-static-libs
 lib="$RUST_DIR/target/$TARGET/release/libwallet_ffi.a"
 [ -s "$lib" ] || { echo "no library at $lib" >&2; exit 1; }
+# A library with a system liblzma left outside fails only later, at the link of the app.
+# (grep without -q reads all of the output: no SIGPIPE for nm under pipefail.)
+nm -g "$lib" 2>/dev/null | grep ' T _lzma_code$' >/dev/null \
+  || { echo "$lib has no lzma_code: liblzma was not built into it (LZMA_API_STATIC)" >&2; exit 1; }
 echo "$TARGET: $(ls -lh "$lib" | awk '{print $5}') $lib"
