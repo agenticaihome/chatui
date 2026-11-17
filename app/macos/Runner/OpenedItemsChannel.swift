@@ -49,9 +49,9 @@ final class OpenedItemsChannel: NSObject, FlutterAppLifecycleDelegate {
     self.incoming = incoming
   }
 
-  /// `application(_:open:)` of the app delegate, through `FlutterAppDelegate`.
-  @objc(handleOpenURLs:)
-  func handleOpenURLs(_ urls: [URL]) -> Bool {
+  /// `application(_:open:)` of the app delegate, through `FlutterAppDelegate`
+  /// (`handleOpenURLs:` of `FlutterAppLifecycleDelegate`).
+  func handleOpen(_ urls: [URL]) -> Bool {
     var handled = false
     for url in urls {
       if url.isFileURL {

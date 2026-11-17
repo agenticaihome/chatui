@@ -114,6 +114,13 @@ jobs:
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
+      # The core takes about 8 minutes to build from nothing.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            rust/target/aarch64-apple-darwin
+          key: macos-rust-${{ hashFiles('rust/Cargo.lock', 'rust/rust-toolchain.toml') }}
       # The Xcode build runs scripts/build_macos.sh ("Build the Rust core").
       - name: Run the smoke test in the macOS app
         working-directory: app
