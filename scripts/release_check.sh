@@ -27,7 +27,14 @@ ABIS=(arm64-v8a x86_64)
 # overwrites the split APKs with ones carrying the bare base code. That
 # shipped once as a silent downgrade: an arm64 user on a +2000 code cannot
 # install a later release numbered without it.
-declare -A ABI_OFFSET=([arm64-v8a]=2000 [x86_64]=4000)
+# A function, not an associative array: pack_ipa.sh runs this on macOS, whose bash is 3.2.
+abi_offset() {
+  case "$1" in
+    arm64-v8a) echo 2000 ;;
+    x86_64) echo 4000 ;;
+    *) echo "no versionCode offset for the ABI $1" >&2; return 1 ;;
+  esac
+}
 
 FAIL=0
 pass() { printf '  \033[32mok\033[0m    %s\n' "$1"; }
@@ -42,7 +49,7 @@ sdk_tool() {
 }
 
 # ── version ───────────────────────────────────────────────────────────────
-declare -g BASE_CODE="" VERSION_NAME=""
+BASE_CODE="" VERSION_NAME=""
 
 read_version() {
   local bi="$APP/lib/build_info.dart" ps="$APP/pubspec.yaml"
@@ -129,7 +136,7 @@ check_apks() {
     local apk="${found[0]}"
 
     local want=$BASE_CODE
-    [ "$kind" != universal ] && want=$(( BASE_CODE + ${ABI_OFFSET[$kind]} ))
+    [ "$kind" != universal ] && want=$(( BASE_CODE + $(abi_offset "$kind") ))
 
     local badging code name abis
     badging="$("$aapt" dump badging "$apk" 2>/dev/null)"
