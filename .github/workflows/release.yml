@@ -128,7 +128,9 @@ jobs:
             echo "The tag $GITHUB_REF_NAME does not match appVersion $version."
             exit 1
           fi
-      # The "Build the Rust core" phase of the Xcode project runs scripts/build_ios.sh.
+      # The "Build the Rust core" phase of the Xcode project runs it too, and finds it done.
+      - name: Build the Rust core for iOS
+        run: scripts/build_ios.sh device
       - name: Build the release app, unsigned
         working-directory: app
         run: |

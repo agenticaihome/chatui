@@ -112,7 +112,9 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
       - run: xcodebuild -version
-      # The "Build the Rust core" phase of the Xcode project runs scripts/build_ios.sh.
+      # The "Build the Rust core" phase of the Xcode project runs it too, and finds it done.
+      - name: Build the Rust core for iOS
+        run: scripts/build_ios.sh device
       - name: Build the release app, unsigned
         working-directory: app
         run: |
@@ -162,6 +164,8 @@ jobs:
           xcrun simctl bootstatus "$udid" -b
           echo "SIM=$udid" >> "$GITHUB_ENV"
           xcrun simctl list devices booted
+      - name: Build the Rust core for the simulator
+        run: scripts/build_ios.sh simulator
       - name: Run the smoke test on the simulator
         working-directory: app
         run: |
