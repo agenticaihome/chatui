@@ -119,7 +119,7 @@ jobs:
         with:
           path: |
             ~/.cargo/registry
-            rust/target/aarch64-apple-darwin
+            rust/target
           key: macos-rust-${{ hashFiles('rust/Cargo.lock', 'rust/rust-toolchain.toml') }}
       # The Xcode build runs scripts/build_macos.sh ("Build the Rust core").
       - name: Run the smoke test in the macOS app
