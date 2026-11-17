@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../celaut/auto_top_up.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
+import '../ios_limits.dart';
 import '../layout.dart';
 
 /// Settings, Compute, "Keep running" (Josemi, 2026-10-29): when the app tops up an instance
@@ -84,6 +85,8 @@ class _AutoTopUpScreenState extends State<AutoTopUpScreen> {
                 padding: EdgeInsets.fromLTRB(homeGutter, 8, homeGutter, 32 + MediaQuery.paddingOf(context).bottom),
                 children: [
                   Text(l.celautTopUpIntro, key: const Key('top-up-intro'), style: t.secondary),
+                  // iOS stops the app soon after it leaves the screen, and the top-up with it.
+                  const IosTopUpWarning(padding: EdgeInsets.only(top: 12)),
                   const SizedBox(height: 16),
                   TextField(
                     key: const Key('top-up-threshold'),

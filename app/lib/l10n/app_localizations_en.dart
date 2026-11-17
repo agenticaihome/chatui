@@ -8853,4 +8853,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get celautHomeBalancesNote =>
       'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.';
+
+  @override
+  String get iosLimitsTitle => 'On iPhone, the app works only while it is open';
+
+  @override
+  String get iosLimitsConversations =>
+      'Conversations do not stay connected when the app is in the background or closed. Your messages wait on the node, and the app syncs them when you open it.';
+
+  @override
+  String get iosLimitsNotifications =>
+      'No notification arrives for a new message while the app is suspended.';
+
+  @override
+  String get iosLimitsTopUp =>
+      'Automatic top-up (Keep running) does not always work. It runs only while the app runs, and iOS stops it when the app is suspended or closed. When the balance of an instance runs out, the node stops the instance.';
+
+  @override
+  String get iosLimitsOk => 'I understand';
 }

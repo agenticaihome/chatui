@@ -14212,6 +14212,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.'**
   String get celautHomeBalancesNote;
+
+  /// No description provided for @iosLimitsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'On iPhone, the app works only while it is open'**
+  String get iosLimitsTitle;
+
+  /// No description provided for @iosLimitsConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations do not stay connected when the app is in the background or closed. Your messages wait on the node, and the app syncs them when you open it.'**
+  String get iosLimitsConversations;
+
+  /// No description provided for @iosLimitsNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'No notification arrives for a new message while the app is suspended.'**
+  String get iosLimitsNotifications;
+
+  /// No description provided for @iosLimitsTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic top-up (Keep running) does not always work. It runs only while the app runs, and iOS stops it when the app is suspended or closed. When the balance of an instance runs out, the node stops the instance.'**
+  String get iosLimitsTopUp;
+
+  /// No description provided for @iosLimitsOk.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand'**
+  String get iosLimitsOk;
 }
 
 class _AppLocalizationsDelegate

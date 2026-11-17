@@ -56,7 +56,8 @@ class NotificationService {
     deepLinkController.push('argus://$payload');
   }
 
-  /// Asks once per launch, after the wallet is unlocked (Android 13+).
+  /// Asks once per launch, after the wallet is unlocked (Android 13+, iOS). On iOS the
+  /// notifications come only while the app runs: iOS suspends it in the background.
   Future<void> requestPermission() async {
     if (!_ready || _permissionAsked) return;
     _permissionAsked = true;
@@ -64,6 +65,9 @@ class NotificationService {
       await _plugin
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.requestNotificationsPermission();
+      await _plugin
+          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, sound: true);
     } catch (_) {}
   }
 

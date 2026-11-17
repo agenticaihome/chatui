@@ -96,3 +96,99 @@ jobs:
           for abi in arm64-v8a x86_64; do
             unzip -l "$apk" "lib/$abi/libwallet_ffi.so" | grep -q libwallet_ffi.so
           done
+
+  # The iOS app, unsigned (docs/ios.md). A macOS runner is free for a public repository.
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.99.0
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - run: xcodebuild -version
+      # The "Build the Rust core" phase of the Xcode project runs scripts/build_ios.sh.
+      - name: Build the release app, unsigned
+        working-directory: app
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter build ios --release --no-codesign
+      - name: Check the bridge in the executable and pack the .ipa
+        run: |
+          app=app/build/ios/iphoneos/Runner.app
+          lipo -archs "$app/Runner"
+          # Dart finds the bridge in the process (dlsym): its entry points must be exported.
+          nm -gU "$app/Runner" > exports.txt
+          for sym in frb_pde_ffi_dispatcher_primary frb_pde_ffi_dispatcher_sync frb_get_rust_content_hash \
+            frb_init_frb_dart_api_dl store_dart_post_cobject; do
+            grep -q " _$sym\$" exports.txt || { echo "missing export: $sym"; exit 1; }
+          done
+          echo "bridge exports: $(grep -c ' _frb_' exports.txt)"
+          version="$(sed -n "s/^const appVersion = '\(.*\)';/\1/p" app/lib/build_info.dart)"
+          mkdir -p dist/Payload
+          cp -R "$app" dist/Payload/
+          (cd dist && zip -qry "chatui-$version-unsigned.ipa" Payload && rm -rf Payload)
+          scripts/release_check.sh ipa "dist/chatui-$version-unsigned.ipa"
+          (cd dist && shasum -a 256 *.ipa | tee SHA256SUMS-ipa)
+      - uses: actions/upload-artifact@v5
+        with:
+          name: unsigned-ipa
+          path: dist/
+          if-no-files-found: error
+
+  # The app on the iOS simulator: it starts, the home screen and the iOS warnings show, the
+  # Rust core loads and opens the Celaut database (integration_test/ios_smoke_test.dart).
+  ios-simulator:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.99.0
+        with:
+          targets: aarch64-apple-ios-sim
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - name: Boot a simulator
+        run: |
+          udid="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devs = json.load(sys.stdin)["devices"]
+          ios = sorted((k, d) for k, l in devs.items() if "iOS" in k for d in l if d["name"].startswith("iPhone"))
+          print(ios[-1][1]["udid"])')"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          echo "SIM=$udid" >> "$GITHUB_ENV"
+          xcrun simctl list devices booted
+      - name: Run the smoke test on the simulator
+        working-directory: app
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter test integration_test/ios_smoke_test.dart -d "$SIM"
+      # Not a gate: the Tor network can be slow or blocked from a runner. The log says how
+      # long Arti took to bootstrap on iOS (docs/ios.md, "Tor").
+      - name: Tor (Arti) on the simulator
+        continue-on-error: true
+        working-directory: app
+        run: flutter test integration_test/ios_tor_test.dart -d "$SIM"
+      - name: Screenshot of the first start
+        run: |
+          xcrun simctl uninstall "$SIM" org.celaut.chatui || true
+          (cd app && flutter build ios --simulator --debug)
+          xcrun simctl install "$SIM" app/build/ios/iphonesimulator/Runner.app
+          xcrun simctl launch "$SIM" org.celaut.chatui
+          sleep 25
+          mkdir -p shots
+          xcrun simctl io "$SIM" screenshot shots/first-start.png
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ios-simulator
+          path: shots/
+          if-no-files-found: error
