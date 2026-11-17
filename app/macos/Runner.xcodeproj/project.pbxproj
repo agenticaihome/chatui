@@ -320,6 +320,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(RUST_CORE_LIB)",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
