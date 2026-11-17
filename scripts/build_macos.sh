@@ -75,7 +75,23 @@ cargo rustc --release -p wallet-ffi --lib --target "$TARGET" --crate-type static
 lib="$RUST_DIR/target/$TARGET/release/libwallet_ffi.a"
 [ -s "$lib" ] || { echo "no library at $lib" >&2; exit 1; }
 # A library with a system liblzma left outside fails only later, at the link of the app.
-# (grep without -q reads all of the output: no SIGPIPE for nm under pipefail.)
-nm -g "$lib" 2>/dev/null | grep ' T _lzma_code$' >/dev/null \
-  || { echo "$lib has no lzma_code: liblzma was not built into it (LZMA_API_STATIC)" >&2; exit 1; }
+# nm writes to a file, not to a pipe: nm can end with an error on one member of the
+# archive, and under pipefail that failed the check although the symbol was there.
+syms="$(mktemp)"; nm_err="$(mktemp)"
+nm_rc=0; nm -g "$lib" > "$syms" 2> "$nm_err" || nm_rc=$?
+if ! grep -qE '^[0-9a-f]+ T _lzma_code$' "$syms"; then
+  {
+    echo "$lib has no lzma_code: liblzma was not built into it (LZMA_API_STATIC)"
+    echo "nm exit $nm_rc, $(wc -l < "$syms") lines; nm errors:"; head -5 "$nm_err"
+    echo "lzma symbols:"; grep -m5 lzma "$syms" || true
+    # The link lines of the build script of liblzma-sys: static=lzma is the copy built
+    # from source, a plain lzma with a Homebrew search path is the one of pkg-config.
+    for o in "$RUST_DIR/target/$TARGET/release/build"/liblzma-sys-*/output; do
+      [ -f "$o" ] && { echo "$o:"; grep -E 'rustc-link-(lib|search)' "$o" || true; }
+    done
+  } >&2
+  exit 1
+fi
+[ "$nm_rc" = 0 ] || { echo "(nm exit $nm_rc on some members:)"; head -3 "$nm_err"; }
+rm -f "$syms" "$nm_err"
 echo "$TARGET: $(ls -lh "$lib" | awk '{print $5}') $lib"

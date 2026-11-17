@@ -157,6 +157,8 @@ jobs:
           # The Rust core is in the executable, and Dart finds the functions of the bridge in it.
           check bridge "$(nm -gU "$exe" | grep -cE ' _(frb_pde_ffi_dispatcher_primary|frb_pde_ffi_dispatcher_sync|frb_get_rust_content_hash|store_dart_post_cobject)$')" 4
           otool -L "$exe" | sed 's/^/  /'
+          # Only system libraries: a Homebrew one (liblzma of xz) is not on the Mac of a user.
+          check homebrew "$(otool -L "$exe" | grep -cE '/(opt/homebrew|usr/local)/')" 0
           codesign -dvv "$app" 2>&1 | grep -E 'Signature|Identifier|TeamIdentifier' | sed 's/^/  /'
           codesign -d --entitlements - --xml "$app" 2>/dev/null | plutil -p - | sed 's/^/  /'
           check sandbox "$(codesign -d --entitlements - --xml "$app" 2>/dev/null | plutil -extract com.apple.security.app-sandbox raw - 2>/dev/null)" false
