@@ -53,9 +53,9 @@ final class MotionPlugin: NSObject, FlutterPlugin, CLLocationManagerDelegate {
     plugin.locations.delegate = plugin
     let messenger = registrar.messenger()
     FlutterEventChannel(name: "argus/motion", binaryMessenger: messenger)
-      .setStreamHandler(Stream(listen: plugin.listenMotion, cancel: plugin.cancelMotion))
+      .setStreamHandler(EventStream(listen: plugin.listenMotion, cancel: plugin.cancelMotion))
     FlutterEventChannel(name: "argus/speed", binaryMessenger: messenger)
-      .setStreamHandler(Stream(listen: plugin.listenSpeed, cancel: plugin.cancelSpeed))
+      .setStreamHandler(EventStream(listen: plugin.listenSpeed, cancel: plugin.cancelSpeed))
     let permission = FlutterMethodChannel(name: "argus/motion_permission", binaryMessenger: messenger)
     registrar.addMethodCallDelegate(plugin, channel: permission)
   }
@@ -165,7 +165,7 @@ final class MotionPlugin: NSObject, FlutterPlugin, CLLocationManagerDelegate {
 }
 
 /// A `FlutterStreamHandler` made of two functions.
-final class Stream: NSObject, FlutterStreamHandler {
+final class EventStream: NSObject, FlutterStreamHandler {
   private let listen: (@escaping FlutterEventSink) -> FlutterError?
   private let cancel: () -> FlutterError?
 
@@ -211,7 +211,7 @@ final class CardsSensorsPlugin: NSObject, FlutterPlugin {
       }
     }
     FlutterEventChannel(name: "argus/cards_gyro", binaryMessenger: messenger)
-      .setStreamHandler(Stream(listen: plugin.listenGyro, cancel: plugin.cancelGyro))
+      .setStreamHandler(EventStream(listen: plugin.listenGyro, cancel: plugin.cancelGyro))
     let sound = FlutterMethodChannel(name: "argus/cards_sound", binaryMessenger: messenger)
     sound.setMethodCallHandler { [weak plugin] call, result in
       guard let plugin = plugin else { return result(false) }

@@ -9,12 +9,12 @@ import UIKit
 enum ChatuiPlugins {
   static func register(with registry: FlutterPluginRegistry) {
     let plugins: [(String, (FlutterPluginRegistrar) -> Void)] = [
-      ("ChatuiSecureStorage", SecureStoragePlugin.register),
-      ("ChatuiLinks", LinksPlugin.register),
-      ("ChatuiPackage", PackagePlugin.register),
-      ("ChatuiMotion", MotionPlugin.register),
-      ("ChatuiCardsSensors", CardsSensorsPlugin.register),
-      ("ChatuiLifecycle", LifecyclePlugin.register),
+      ("ChatuiSecureStorage", SecureStoragePlugin.register(with:)),
+      ("ChatuiLinks", LinksPlugin.register(with:)),
+      ("ChatuiPackage", PackagePlugin.register(with:)),
+      ("ChatuiMotion", MotionPlugin.register(with:)),
+      ("ChatuiCardsSensors", CardsSensorsPlugin.register(with:)),
+      ("ChatuiLifecycle", LifecyclePlugin.register(with:)),
     ]
     for (name, register) in plugins {
       if let registrar = registry.registrar(forPlugin: name) {

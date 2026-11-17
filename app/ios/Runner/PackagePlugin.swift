@@ -124,7 +124,7 @@ final class PackagePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate {
     // The copy reads and writes the disk: not on the main thread.
     DispatchQueue.global(qos: .userInitiated).async { [self] in
       do {
-        let copied = try copy(url)
+        let copied = try copyFile(url)
         DispatchQueue.main.async { result(copied) }
       } catch is CopyCancelled {
         DispatchQueue.main.async {
@@ -162,7 +162,7 @@ final class PackagePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate {
     return url.standardizedFileURL.path.hasPrefix(inbox + "/")
   }
 
-  private func copy(_ source: URL) throws -> [String: Any] {
+  private func copyFile(_ source: URL) throws -> [String: Any] {
     let folder = try Self.incomingFolder()
     let target = folder.appendingPathComponent("picked-\(Int64(Date().timeIntervalSince1970 * 1000)).bee")
     let fm = FileManager.default
@@ -193,7 +193,7 @@ final class PackagePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate {
       while true {
         if cancelled.get() { throw CopyCancelled() }
         let n = input.read(&buffer, maxLength: buffer.count)
-        if n < 0 { throw input.streamError ?? NSError(domain: "chatui", code: 3) }
+        if n < 0 { throw input.streamError ?? (NSError(domain: "chatui", code: 3) as Error) }
         if n == 0 { break }
         output.write(Data(buffer[0..<n]))
         total += Int64(n)
