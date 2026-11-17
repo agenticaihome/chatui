@@ -319,6 +319,81 @@ void main() {
     });
   });
 
+  group('not enough free space (issue #151)', () {
+    const needed = 300 * 1024 * 1024;
+    const available = 120 * 1024 * 1024;
+    final error = CelautError(kind: CelautErrorKind.noSpace, message: '$needed $available');
+
+    testWidgets('refused before the first byte: the sizes, and try again', (tester) async {
+      lib.linkError = error;
+      await open(tester);
+      await openSheet(tester);
+      await download(tester, 'https://example.org/big.celaut.bee');
+      await tester.pumpAndSettle();
+      expect(
+        find.text(appL10n.celautLinkNoSpaceRetry(CelautStrings.bytes(needed), CelautStrings.bytes(available))),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('link-retry')), findsNothing);
+      // Not the text of the limit of 4 GiB.
+      expect(find.textContaining(CelautStrings.bytes(maxLinkBytes)), findsNothing);
+    });
+
+    testWidgets('stopped during the download: its bytes stay, and Continue goes on', (tester) async {
+      lib.linkError = error;
+      await open(tester);
+      await openSheet(tester);
+      lib.pending = PendingLinkView(url: 'https://example.org/big.celaut.bee', bytes: BigInt.from(1 << 20));
+      await download(tester, 'https://example.org/big.celaut.bee');
+      await tester.pumpAndSettle();
+      expect(
+        find.text(appL10n.celautLinkNoSpace(CelautStrings.bytes(needed), CelautStrings.bytes(available))),
+        findsOneWidget,
+      );
+      lib.linkError = null;
+      await tester.tap(find.byKey(const Key('link-retry')));
+      await tester.pumpAndSettle();
+      expect(lib.calls.length, 2);
+      expect(lib.calls.last, startsWith('link https://example.org/big.celaut.bee '));
+      expect(find.text(appL10n.celautPkgLoaded('echo')), findsOneWidget);
+    });
+
+    testWidgets('a kept download of another link does not offer Continue', (tester) async {
+      lib.linkError = error;
+      await open(tester);
+      await openSheet(tester);
+      lib.pending = PendingLinkView(url: 'https://example.org/other.celaut.bee', bytes: BigInt.from(1 << 20));
+      await download(tester, 'https://example.org/big.celaut.bee');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('link-retry')), findsNothing);
+    });
+
+    test('the sizes are read from the error', () {
+      expect(noSpaceOf(error), (needed: needed, available: available));
+      expect(noSpaceOf(const CelautError(kind: CelautErrorKind.noSpace, message: 'x')), isNull);
+      expect(noSpaceOf(const CelautError(kind: CelautErrorKind.noSpace, message: '1 -2')), isNull);
+      expect(noSpaceOf(const CelautError(kind: CelautErrorKind.limitReached, message: '1 2')), isNull);
+    });
+
+    testWidgets('a message without the sizes still says what is wrong', (tester) async {
+      lib.linkError = const CelautError(kind: CelautErrorKind.noSpace, message: '');
+      await open(tester);
+      await openSheet(tester);
+      await download(tester, 'https://example.org/big.celaut.bee');
+      await tester.pumpAndSettle();
+      expect(find.text(appL10n.celautErrorNoSpace), findsOneWidget);
+    });
+
+    test('the Spanish texts have both sizes', () {
+      final es = lookupAppLocalizations(const Locale('es'));
+      final text = es.celautLinkNoSpace('300 MiB', '120 MiB');
+      expect(text, contains('300 MiB'));
+      expect(text, contains('120 MiB'));
+      expect(text, contains('Continuar'));
+      expect(es.celautLinkNoSpaceRetry('300 MiB', '120 MiB'), contains('vuelve a intentarlo'));
+    });
+  });
+
   group('a download that stopped', () {
     testWidgets('the sheet offers to continue it or to delete it', (tester) async {
       lib.pending = PendingLinkView(url: 'https://example.org/big.celaut.bee', bytes: BigInt.from(5 * 1024 * 1024));

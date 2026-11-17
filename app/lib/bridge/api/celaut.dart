@@ -132,6 +132,11 @@ enum CelautErrorKind {
   /// The address is an onion and the route is direct: only Tor (the client of the app or
   /// an external proxy) opens it. The app makes no lookup of the name.
   onionNeedsTor,
+
+  /// The phone has not enough free space for a download. The message is the bytes that it
+  /// needs (with the space that stays free) and the bytes that are free: `"<needed>
+  /// <available>"`.
+  noSpace,
 }
 
 /// One key and its value, as text.

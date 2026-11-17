@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../bridge/api/celaut.dart';
 import '../bridge/api/celaut_package.dart';
 import '../services/secure_storage.dart';
 import 'package_channel.dart';
@@ -306,7 +307,9 @@ class PackageLibrary {
   /// (`celautImportLink`). [allowHttp]: the user said yes to the warning for `http://`.
   /// Throws [CelautError]: `invalidInput` (not a valid service; its bytes are deleted),
   /// `unreachable` (the download stopped; the same link goes on from there),
-  /// `limitReached` (larger than [maxLinkBytes]), `transferFailed` (cancelled; deleted).
+  /// `limitReached` (larger than [maxLinkBytes]), `noSpace` (the phone has not enough free
+  /// space, [noSpaceOf]; the bytes that arrived stay, if any: [pendingLink]),
+  /// `transferFailed` (cancelled; deleted).
   Future<LibraryPackageView> importLink(String url, {required bool allowHttp}) async {
     final dir = await _privateDir();
     if (dir == null || dir.isEmpty) throw const PackageRefused(PackageRefusal.noDirectory);
@@ -332,4 +335,17 @@ class PackageLibrary {
 
   /// Remove a loaded service: its file is deleted. The nodes that have it keep it.
   Future<void> remove(String serviceId) => _remove(serviceId);
+}
+
+/// The sizes of a `noSpace` error of a download (issue #151), in bytes: what it needs (with
+/// the 256 MiB that stay free) and what is free. Null for another error, or a message that
+/// does not have them.
+({int needed, int available})? noSpaceOf(CelautError e) {
+  if (e.kind != CelautErrorKind.noSpace) return null;
+  final parts = e.message.trim().split(' ');
+  if (parts.length != 2) return null;
+  final needed = int.tryParse(parts[0]);
+  final available = int.tryParse(parts[1]);
+  if (needed == null || available == null || needed < 0 || available < 0) return null;
+  return (needed: needed, available: available);
 }

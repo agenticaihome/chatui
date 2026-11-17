@@ -73,6 +73,7 @@ class CelautStrings {
         CelautErrorKind.transferFailed => appL10n.celautErrorTransferFailed,
         CelautErrorKind.noDescendants => appL10n.celautErrorNoDescendants,
         CelautErrorKind.onionNeedsTor => appL10n.celautErrorOnionNeedsTor,
+        CelautErrorKind.noSpace => appL10n.celautErrorNoSpace,
       };
 
   static String detailLabel(String detail) => appL10n.celautDetailLabel(detail);
