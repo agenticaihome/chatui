@@ -1,8 +1,9 @@
 name: release
 
-# A tag v<appVersion> builds the release APKs unsigned. After a reviewer
-# approves the release environment, the publish job signs them with the key in
-# that environment's secrets and creates a prerelease.
+# A tag v<appVersion> builds the release APKs unsigned, and the iOS app as an
+# unsigned .ipa. After a reviewer approves the release environment, the publish
+# job signs the APKs with the key in that environment's secrets and creates a
+# prerelease with them and the .ipa (the user signs it, docs/ios.md).
 on:
   push:
     tags: ['v*']
@@ -11,7 +12,10 @@ on:
     paths:
       - .github/workflows/release.yml
       - app/android/**
+      - app/ios/**
       - scripts/build_android.sh
+      - scripts/build_ios.sh
+      - scripts/pack_ipa.sh
       - scripts/release_check.sh
 
 permissions:
@@ -102,11 +106,47 @@ jobs:
           path: dist/
           if-no-files-found: error
 
+  # The iOS app, unsigned: no Apple signing secret in CI (docs/ios.md).
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.99.0
+        with:
+          targets: aarch64-apple-ios
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - name: Check the version and the tag
+        run: |
+          scripts/release_check.sh version
+          version="$(sed -n "s/^const appVersion = '\(.*\)';/\1/p" app/lib/build_info.dart)"
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "The tag $GITHUB_REF_NAME does not match appVersion $version."
+            exit 1
+          fi
+      # The "Build the Rust core" phase of the Xcode project runs scripts/build_ios.sh.
+      - name: Build the release app, unsigned
+        working-directory: app
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter build ios --release --no-codesign
+      - name: Pack and check the .ipa
+        run: scripts/pack_ipa.sh
+      - uses: actions/upload-artifact@v5
+        with:
+          name: unsigned-ipa
+          path: dist/
+          if-no-files-found: error
+
   # The release environment holds the signing secrets. It accepts only tags
   # v* and waits for a required reviewer before this job starts.
   publish:
     if: github.ref_type == 'tag'
-    needs: build
+    needs: [build, ios]
     runs-on: ubuntu-24.04
     environment: release
     permissions:
@@ -119,9 +159,17 @@ jobs:
         with:
           name: unsigned-apks
           path: unsigned
+      - uses: actions/download-artifact@v5
+        with:
+          name: unsigned-ipa
+          path: ipa
       - name: Check the unsigned APKs
         working-directory: unsigned
         run: sha256sum --check SHA256SUMS-unsigned
+      - name: Check the .ipa
+        run: |
+          (cd ipa && sha256sum --check SHA256SUMS-ipa)
+          scripts/release_check.sh ipa "ipa/chatui-${GITHUB_REF_NAME#v}-unsigned.ipa"
       - name: Sign the APKs
         env:
           KEYSTORE_BASE64: ${{ secrets.CHATUI_KEYSTORE_BASE64 }}
@@ -152,8 +200,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          (cd dist && sha256sum *.apk > SHA256SUMS)
+          cp "ipa/chatui-${GITHUB_REF_NAME#v}-unsigned.ipa" dist/
+          (cd dist && sha256sum *.apk *.ipa > SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
             --title "chatui ${GITHUB_REF_NAME#v}" \
-            --notes "Mark this release as latest after the test on GrapheneOS. The updater ignores prereleases."
+            --notes "Mark this release as latest after the test on GrapheneOS. The updater ignores prereleases. The .ipa is unsigned: install it with AltStore, SideStore or Sideloadly (docs/ios.md)."

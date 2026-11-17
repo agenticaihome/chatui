@@ -118,23 +118,8 @@ jobs:
         run: |
           flutter pub get --enforce-lockfile
           flutter build ios --release --no-codesign
-      - name: Check the bridge in the executable and pack the .ipa
-        run: |
-          app=app/build/ios/iphoneos/Runner.app
-          lipo -archs "$app/Runner"
-          # Dart finds the bridge in the process (dlsym): its entry points must be exported.
-          nm -gU "$app/Runner" > exports.txt
-          for sym in frb_pde_ffi_dispatcher_primary frb_pde_ffi_dispatcher_sync frb_get_rust_content_hash \
-            frb_init_frb_dart_api_dl store_dart_post_cobject; do
-            grep -q " _$sym\$" exports.txt || { echo "missing export: $sym"; exit 1; }
-          done
-          echo "bridge exports: $(grep -c ' _frb_' exports.txt)"
-          version="$(sed -n "s/^const appVersion = '\(.*\)';/\1/p" app/lib/build_info.dart)"
-          mkdir -p dist/Payload
-          cp -R "$app" dist/Payload/
-          (cd dist && zip -qry "chatui-$version-unsigned.ipa" Payload && rm -rf Payload)
-          scripts/release_check.sh ipa "dist/chatui-$version-unsigned.ipa"
-          (cd dist && shasum -a 256 *.ipa | tee SHA256SUMS-ipa)
+      - name: Pack and check the .ipa
+        run: scripts/pack_ipa.sh
       - uses: actions/upload-artifact@v5
         with:
           name: unsigned-ipa
