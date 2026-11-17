@@ -9,6 +9,7 @@ import '../../celaut/launcher.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
 import 'closing_text.dart';
+import 'mac_keep_note.dart';
 
 /// What the user chose in the confirmation of a launch.
 class RunChoice {
@@ -234,6 +235,7 @@ class _RunConfirmDialogState extends State<_RunConfirmDialog> {
               )
             else ...[
               _KeepWarning(text: l.celautKeepWarning),
+              const MacKeepNote(top: 8),
               const SizedBox(height: 12),
               TextField(
                 key: const Key('run-confirm-limit'),

@@ -5,6 +5,7 @@ import '../../celaut/auto_top_up.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
 import '../layout.dart';
+import 'mac_keep_note.dart';
 
 /// Settings, Compute, "Keep running" (Josemi, 2026-10-29): when the app tops up an instance
 /// that the user asked to keep running, and how much time each top-up gives ([AutoTopUp]).
@@ -125,6 +126,7 @@ class _AutoTopUpScreenState extends State<AutoTopUpScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(l.celautTopUpNote, key: const Key('top-up-note'), style: t.secondary),
+                  const MacKeepNote(top: 12),
                   const SizedBox(height: 12),
                   Text(l.celautTopUpWindowNote, key: const Key('top-up-window-note'), style: t.secondary),
                 ],

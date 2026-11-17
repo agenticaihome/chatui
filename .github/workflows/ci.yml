@@ -96,3 +96,55 @@ jobs:
           for abi in arm64-v8a x86_64; do
             unzip -l "$apk" "lib/$abi/libwallet_ffi.so" | grep -q libwallet_ffi.so
           done
+
+  # The macOS app (issue #154) on an Apple Silicon runner: a debug build of the app with the
+  # Rust core linked in, running integration_test/macos_smoke_test.dart (keychain, links,
+  # files, App Nap, zxing, plugins, Tor). The release .dmg is built and launched by release.yml.
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.99.0
+        with:
+          targets: aarch64-apple-darwin
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      # The core takes about 8 minutes to build from nothing.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            rust/target
+          key: macos-rust-${{ hashFiles('rust/Cargo.lock', 'rust/rust-toolchain.toml') }}
+      # The Xcode build runs scripts/build_macos.sh ("Build the Rust core").
+      - name: Run the smoke test in the macOS app
+        working-directory: app
+        run: |
+          flutter pub get --enforce-lockfile
+          set -o pipefail
+          flutter test integration_test/macos_smoke_test.dart -d macos 2>&1 | tee "$RUNNER_TEMP/macos-smoke.log"
+      - name: Summary of the smoke test
+        if: always()
+        run: grep MACOS_SMOKE "$RUNNER_TEMP/macos-smoke.log" || true
+      # The build must not change the tracked files of app/macos (CocoaPods integration,
+      # Podfile.lock): they are committed as a Mac build writes them.
+      - name: The build changed no tracked file
+        run: |
+          git status --porcelain
+          git diff --exit-code
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: macos-smoke
+          path: |
+            ${{ runner.temp }}/macos-smoke.log
+            app/macos/Podfile.lock
+            app/macos/Runner.xcodeproj/project.pbxproj
+            app/macos/Flutter/Flutter-Debug.xcconfig
+            app/macos/Flutter/Flutter-Release.xcconfig
+            app/macos/Runner.xcworkspace/contents.xcworkspacedata

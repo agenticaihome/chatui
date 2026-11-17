@@ -189,4 +189,37 @@ void main() {
       expect(find.text('work'), findsOneWidget);
     });
   });
+
+  group('macOS (App Nap)', () {
+    ForegroundHolds mac() => ForegroundHolds(isAndroid: false, isMacOS: true);
+
+    test('the holds go to the channel, as on Android', () async {
+      final keepAlive = ChannelConversationKeepAlive(holds: mac());
+      await keepAlive.start();
+      await keepAlive.stop();
+      await pumpEventQueue();
+      expect(calls, ['requestNotificationPermission', 'start conversation', 'stop']);
+    });
+
+    test('automatic top-up holds the activity', () async {
+      final holds = mac();
+      final release = holds.hold(KeepAliveReason.topUp);
+      await pumpEventQueue();
+      await release();
+      expect(calls, ['start topUp', 'stop']);
+    });
+  });
+
+  test('on Android automatic top-up does not start the foreground service', () async {
+    final holds = holds0();
+    final topUp = holds.hold(KeepAliveReason.topUp);
+    await pumpEventQueue();
+    final talk = holds.hold(KeepAliveReason.conversation);
+    await pumpEventQueue();
+    await talk();
+    await topUp();
+    expect(calls, ['start conversation', 'stop']);
+  });
 }
+
+ForegroundHolds holds0() => ForegroundHolds(isAndroid: true);
