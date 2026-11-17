@@ -174,6 +174,15 @@ jobs:
         working-directory: app
         run: |
           flutter pub get --enforce-lockfile
+          # flutter test gives the Xcode build of the app 12 minutes, and on the Intel runner
+          # the first one takes longer: build the app first (no time limit), then the test
+          # build is incremental. The log says whether the Rust phase of Xcode rebuilt the core.
+          flutter build ios --simulator --debug -v > "$RUNNER_TEMP/ios-sim-build.log" 2>&1 || {
+            grep -n -E 'error:|BUILD FAILED|PhaseScriptExecution|ld: |Undefined symbols' "$RUNNER_TEMP/ios-sim-build.log" | head -100
+            tail -100 "$RUNNER_TEMP/ios-sim-build.log"
+            exit 1
+          }
+          grep -E '=== Building wallet-ffi|Compiling wallet-ffi|Finished .release' "$RUNNER_TEMP/ios-sim-build.log" || true
           flutter test integration_test/ios_smoke_test.dart -d "$SIM"
       # Not a gate: the Tor network can be slow or blocked from a runner. The log says how
       # long Arti took to bootstrap on iOS (docs/ios.md, "Tor").
