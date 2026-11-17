@@ -4,6 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:share_plus/share_plus.dart' show SharePlus, ShareParams;
 
+import '../l10n/l10n.dart';
+
 /// True in the Linux app (app/linux, issue #153). False in `flutter test`, which runs on a
 /// Linux host too but has no runner behind the platform channels.
 final bool isLinuxApp =
@@ -20,6 +22,10 @@ Future<void> shareFiles(ShareParams params) async {
   for (var i = 0; i < files.length; i++) {
     final overrides = params.fileNameOverrides;
     final name = overrides != null && i < overrides.length ? overrides[i] : files[i].name;
-    await FilePicker.platform.saveFile(fileName: name, bytes: await files[i].readAsBytes());
+    await FilePicker.platform.saveFile(
+      dialogTitle: appL10n.commonSave,
+      fileName: name,
+      bytes: await files[i].readAsBytes(),
+    );
   }
 }

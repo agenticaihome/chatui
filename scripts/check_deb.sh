@@ -51,6 +51,7 @@ fields() {
       "./usr/share/icons/hicolor/256x256/apps/$APP_ID.png" ./usr/share/doc/chatui/copyright; do
     grep -qx "$want" <<<"$files" && pass "has $want" || fail "has no $want"
   done
+  if grep -q '/libdartjni.so$' <<<"$files"; then fail "has libdartjni.so (needs a JVM)"; else pass "no libdartjni.so"; fi
   local machine tmp
   tmp="$(mktemp -d)"
   dpkg-deb --fsys-tarfile "$deb" | tar -x -C "$tmp" ./opt/chatui/lib/libwallet_ffi.so

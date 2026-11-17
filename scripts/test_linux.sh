@@ -30,10 +30,10 @@ if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ ! -w "${XDG_RUNTIME_DIR:-/nonexistent}" ];
 fi
 chmod 700 "$XDG_RUNTIME_DIR"
 
-# The Secret Service: the login keyring, made and unlocked with a test password.
-eval "$(printf test | gnome-keyring-daemon --unlock --components=secrets)"
-eval "$(gnome-keyring-daemon --start --components=secrets)"
-export GNOME_KEYRING_CONTROL
+# The Secret Service: the login keyring, made and unlocked with a test password. libsecret
+# finds the daemon by its name on the session bus.
+printf test | gnome-keyring-daemon --unlock --components=secrets >/dev/null
+gnome-keyring-daemon --start --components=secrets >/dev/null
 
 stop_sound=()
 case "${SOUND:-pulseaudio}" in

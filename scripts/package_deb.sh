@@ -47,6 +47,9 @@ ROOT="$WORK/root"
 install -d "$ROOT/opt/chatui" "$ROOT/usr/bin" "$ROOT/DEBIAN"
 cp -R "$BUNDLE/." "$ROOT/opt/chatui/"
 ln -s /opt/chatui/chatui "$ROOT/usr/bin/chatui"
+# The jni plugin (path_provider_android, for Android only) builds libdartjni.so when the
+# build machine has a JDK. Nothing loads it on Linux, and it needs libjvm.so.
+rm -f "$ROOT/opt/chatui/lib/libdartjni.so"
 install -Dm644 "$PACKAGING/$APP_ID.desktop" "$ROOT/usr/share/applications/$APP_ID.desktop"
 install -Dm644 "$PACKAGING/$APP_ID.xml" "$ROOT/usr/share/mime/packages/$APP_ID.xml"
 for size in 64 128 256 512; do

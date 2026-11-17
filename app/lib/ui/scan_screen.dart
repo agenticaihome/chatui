@@ -66,8 +66,9 @@ class _ScanScreenState extends State<ScanScreen> {
       _imageError = null;
     });
     final noCode = context.l10n.scanImageNoCode;
+    final title = context.l10n.scanFromImage;
     try {
-      final picked = await FilePicker.platform.pickFiles(type: FileType.image);
+      final picked = await FilePicker.platform.pickFiles(type: FileType.image, dialogTitle: title);
       final path = picked?.files.single.path;
       if (path == null || !mounted) return;
       final code = await zx.readBarcodeImagePathString(
