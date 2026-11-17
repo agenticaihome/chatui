@@ -72,12 +72,55 @@ export IPHONEOS_DEPLOYMENT_TARGET="${IPHONEOS_DEPLOYMENT_TARGET:-13.0}"
 export RUSTFLAGS="${RUSTFLAGS:-} --remap-path-prefix=$REPO_ROOT=/argus --remap-path-prefix=$HOME/.cargo=/cargo"
 
 cd "$RUST_DIR"
+
+# sysinfo 0.38 (through tor-memquota of arti) calls proc_pidinfo in Process::open_files on
+# every Apple system, and the libc crate has it only for macOS: it does not build for iOS.
+# sysinfo 0.39 has the fix, but tor-memquota asks for 0.38. Build iOS with a copy of the
+# crate of Cargo.lock (checksum checked) where open_files is None on iOS. Cargo.lock is
+# restored after the build. Remove this when arti moves to sysinfo >= 0.39.
+SYSINFO_VERSION="0.38.4"
+SYSINFO_PATCH_DIR="$RUST_DIR/target/ios-patch/sysinfo-$SYSINFO_VERSION"
+prepare_sysinfo() {
+  local sum crate
+  sum="$(awk -v v="$SYSINFO_VERSION" '
+    $0 == "name = \"sysinfo\"" { s = 1; next }
+    s && $1 == "version" { if ($3 != "\"" v "\"") s = 0; next }
+    s && $1 == "checksum" { gsub(/"/, "", $3); print $3; exit }
+    /^\[\[package\]\]/ { s = 0 }' Cargo.lock)"
+  if [ -z "$sum" ]; then
+    echo "Cargo.lock has no sysinfo $SYSINFO_VERSION: check the iOS patch of build_ios.sh." >&2
+    exit 1
+  fi
+  [ -f "$SYSINFO_PATCH_DIR/.patched-$sum" ] && return 0
+  cargo fetch --target aarch64-apple-ios >/dev/null
+  crate="$(ls "${CARGO_HOME:-$HOME/.cargo}"/registry/cache/*/"sysinfo-$SYSINFO_VERSION.crate" 2>/dev/null | head -1)"
+  [ -n "$crate" ] || { echo "sysinfo-$SYSINFO_VERSION.crate is not in the cargo cache" >&2; exit 1; }
+  if [ "$(shasum -a 256 "$crate" | awk '{print $1}')" != "$sum" ]; then
+    echo "$crate does not have the checksum of Cargo.lock" >&2
+    exit 1
+  fi
+  rm -rf "$SYSINFO_PATCH_DIR"
+  mkdir -p "$(dirname "$SYSINFO_PATCH_DIR")"
+  tar -xzf "$crate" -C "$(dirname "$SYSINFO_PATCH_DIR")"
+  local src="$SYSINFO_PATCH_DIR/src/unix/apple/process.rs"
+  perl -0pi -e 's/(\n    )(pub\(crate\) fn open_files\(&self\) -> Option<usize> \{)/$1#[cfg(target_os = "ios")]$1pub(crate) fn open_files(&self) -> Option<usize> {$1    None$1}$1$1#[cfg(not(target_os = "ios"))]$1$2/' "$src"
+  if [ "$(grep -c 'fn open_files(&self)' "$src")" != 2 ]; then
+    echo "the iOS patch of sysinfo $SYSINFO_VERSION did not apply to $src" >&2
+    exit 1
+  fi
+  touch "$SYSINFO_PATCH_DIR/.patched-$sum"
+}
+prepare_sysinfo
+cp Cargo.lock "$RUST_DIR/target/ios-patch/Cargo.lock.orig"
+trap 'cp "$RUST_DIR/target/ios-patch/Cargo.lock.orig" "$RUST_DIR/Cargo.lock"' EXIT
+
 build() {
   local target="$1"
   rustup target list --installed 2>/dev/null | grep -qx "$target" || rustup target add "$target"
   echo "=== Building wallet-ffi for $target ==="
   # Only the static library: the cdylib of the crate is for Android and Linux.
-  cargo rustc --release -p wallet-ffi --lib --target "$target" --crate-type staticlib
+  cargo rustc --release -p wallet-ffi --lib --target "$target" --crate-type staticlib \
+    --config "patch.crates-io.sysinfo.path=\"$SYSINFO_PATCH_DIR\""
   local lib="$RUST_DIR/target/$target/release/libwallet_ffi.a"
   [ -s "$lib" ] || { echo "no library at $lib" >&2; exit 1; }
   echo "$target: $(ls -lh "$lib" | awk '{print $5}') $lib"
