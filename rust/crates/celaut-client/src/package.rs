@@ -105,6 +105,9 @@ pub struct PackageInfo {
     /// The id of the service (SHA3-256), from the Metadata or a hash part. `None` if the
     /// package does not say it.
     pub service_id: Option<[u8; 32]>,
+    /// The main name of the service for a person: the first tag of the Metadata. `None`
+    /// if the Metadata has no tag.
+    pub tag: Option<String>,
     /// True if a Service part starts in the package.
     pub has_service: bool,
 }
@@ -256,6 +259,18 @@ fn id_in_metadata(metadata: &Metadata) -> Option<[u8; 32]> {
         .find_map(id_in_hash)
 }
 
+/// The main name in a Metadata: its first tag that is not empty.
+fn tag_in_metadata(metadata: &Metadata) -> Option<String> {
+    metadata
+        .hashtag
+        .as_ref()?
+        .tag
+        .iter()
+        .map(|t| t.trim())
+        .find(|t| !t.is_empty())
+        .map(str::to_string)
+}
+
 fn id_in_hash(hash: &Hash) -> Option<[u8; 32]> {
     (hash.r#type == SHA3_256_TYPE).then(|| hash.value.as_slice().try_into().ok())?
 }
@@ -268,6 +283,7 @@ pub async fn inspect(path: &Path) -> Result<PackageInfo, PackageError> {
     let mut reader = BufReader::new(file);
     let mut layout = None;
     let mut service_id = None;
+    let mut tag = None;
     let mut has_service = false;
     // The message that is open: its index and its bytes (only small parts are kept).
     let mut open: Option<(i32, Vec<u8>)> = None;
@@ -305,6 +321,7 @@ pub async fn inspect(path: &Path) -> Result<PackageInfo, PackageError> {
                     let metadata = Metadata::decode(data.as_slice())
                         .map_err(|e| PackageError::Invalid(format!("the Metadata: {e}")))?;
                     service_id = service_id.or(id_in_metadata(&metadata));
+                    tag = tag.or(tag_in_metadata(&metadata));
                 } else if index == 4 {
                     if let Ok(hash) = Hash::decode(data.as_slice()) {
                         service_id = service_id.or(id_in_hash(&hash));
@@ -318,6 +335,7 @@ pub async fn inspect(path: &Path) -> Result<PackageInfo, PackageError> {
         layout,
         bytes,
         service_id,
+        tag,
         has_service,
     })
 }
@@ -1055,6 +1073,7 @@ pub async fn import_reader<R: AsyncRead + Unpin>(
             layout: checked.layout,
             bytes: checked.bytes,
             service_id: Some(checked.service_id),
+            tag: None,
             has_service: true,
         },
         stored_bytes,

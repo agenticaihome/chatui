@@ -248,6 +248,12 @@ fn take_descriptor(_fd: i32) -> Result<std::fs::File, CelautError> {
 }
 
 /// Put a package that was loaded into the library into the records of the app.
+/// The name that the library gives to a service from a link: its tag, or the first 8
+/// characters of its id if it has no tag. The name in the path of the link is not used.
+fn link_package_name(tag: Option<&str>, service_id: &str) -> String {
+    clean_name(tag.unwrap_or_default(), service_id)
+}
+
 fn record_import(imported: Imported, name: &str) -> Result<LibraryPackageView, CelautError> {
     let id = hex::encode(imported.service_id);
     let record = PackageRecord {
@@ -428,8 +434,11 @@ pub async fn celaut_import_link(
         progress.retries(),
         if downloaded.resumed { ", resumed" } else { "" }
     );
+    // The name of a link is often an id that means nothing (a uuid): the library names the
+    // service by its tag, or by its hash if the package has no tag.
+    let tag = inspect(&downloaded.path).await.ok().and_then(|i| i.tag);
     let record = PackageRecord {
-        name: clean_name(&checked.name, &id),
+        name: link_package_name(tag.as_deref(), &id),
         path: downloaded.path.display().to_string(),
         bytes: downloaded.bytes,
         imported_at: now_seconds(),
@@ -835,6 +844,14 @@ pub fn celaut_cancel_transfer() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_service_from_a_link_is_named_by_its_tag_or_its_hash() {
+        let id = "0123456789abcdef".repeat(4);
+        assert_eq!(link_package_name(Some("Echo Chat"), &id), "Echo Chat");
+        assert_eq!(link_package_name(None, &id), "01234567");
+        assert_eq!(link_package_name(Some("  "), &id), "01234567");
+    }
 
     #[test]
     fn the_name_of_a_file_is_cleaned() {

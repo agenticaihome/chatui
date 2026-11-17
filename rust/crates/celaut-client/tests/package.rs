@@ -44,12 +44,18 @@ fn metadata() -> Vec<u8> {
 
 /// A Metadata that names the service `id`.
 fn metadata_of(id: [u8; 32]) -> Vec<u8> {
+    metadata_tagged(id, &[])
+}
+
+/// [`metadata_of`] with the names `tags` for a person.
+fn metadata_tagged(id: [u8; 32], tags: &[&str]) -> Vec<u8> {
     Metadata {
         hashtag: Some(HashTag {
             hash: vec![Hash {
                 r#type: SHA3_256_TYPE.to_vec(),
                 value: id.to_vec(),
             }],
+            tag: tags.iter().map(|t| t.to_string()).collect(),
             ..Default::default()
         }),
         ..Default::default()
@@ -108,12 +114,17 @@ fn get_service_answer(content: &[u8]) -> Vec<Buffer> {
 
 /// [`get_service_answer`] for the service `id`.
 fn answer_for(content: &[u8], id: [u8; 32]) -> Vec<Buffer> {
+    answer_tagged(content, id, &[])
+}
+
+/// [`answer_for`] with the names `tags` in its Metadata.
+fn answer_tagged(content: &[u8], id: [u8; 32], tags: &[&str]) -> Vec<Buffer> {
     let hash = Hash {
         r#type: SHA3_256_TYPE.to_vec(),
         value: id.to_vec(),
     };
     let mut out: Vec<Buffer> = serialize_part(&Part::new(4, hash.encode_to_vec())).collect();
-    out.extend(serialize_part(&Part::new(5, metadata_of(id))));
+    out.extend(serialize_part(&Part::new(5, metadata_tagged(id, tags))));
     out.extend(service_buffers(6, content));
     out.push(Buffer {
         signal: Some(true),
@@ -159,6 +170,7 @@ async fn the_answer_of_get_service_is_saved_and_read_back_for_a_node() {
     let info = inspect(&path).await.unwrap();
     assert_eq!(info.layout, Layout::Gateway);
     assert_eq!(info.service_id, Some(SERVICE_ID));
+    assert_eq!(info.tag, None);
     assert!(info.has_service);
     assert_eq!(info.bytes, bytes);
 
@@ -800,4 +812,15 @@ async fn the_space_of_the_packages_is_read_from_the_files() {
         StorageUsage { library_bytes: 1024, library_files: 2, downloads_bytes: 312, incoming_bytes: 5 }
     );
     std::fs::remove_dir_all(d).unwrap();
+}
+
+#[tokio::test]
+async fn the_first_tag_of_the_metadata_is_the_main_name() {
+    let d = dir();
+    let path = d.join("tagged.bee");
+    let answer = answer_tagged(&[1u8; 64], SERVICE_ID, &["", " Echo Chat ", "other"]);
+    save(stream(answer), &path, &Cancel::new()).await.unwrap();
+    let info = inspect(&path).await.unwrap();
+    assert_eq!(info.service_id, Some(SERVICE_ID));
+    assert_eq!(info.tag.as_deref(), Some("Echo Chat"));
 }
