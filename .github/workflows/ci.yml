@@ -120,6 +120,8 @@ jobs:
           flutter build ios --release --no-codesign
       - name: Pack and check the .ipa
         run: scripts/pack_ipa.sh
+      - name: The pods
+        run: cat app/ios/Podfile.lock
       - uses: actions/upload-artifact@v5
         with:
           name: unsigned-ipa
@@ -146,8 +148,10 @@ jobs:
           udid="$(xcrun simctl list devices available -j | python3 -c '
           import json, sys
           devs = json.load(sys.stdin)["devices"]
-          ios = sorted((k, d) for k, l in devs.items() if "iOS" in k for d in l if d["name"].startswith("iPhone"))
-          print(ios[-1][1]["udid"])')"
+          ver = lambda k: [int(x) for x in k.rsplit("iOS-", 1)[1].split("-")]
+          ios = sorted((ver(k), d["name"], d["udid"]) for k, l in devs.items() if "iOS-" in k
+                       for d in l if d["name"].startswith("iPhone"))
+          print(ios[-1][2])')"
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
           echo "SIM=$udid" >> "$GITHUB_ENV"
