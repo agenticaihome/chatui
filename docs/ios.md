@@ -145,7 +145,11 @@ exists.
 ## 6. Tor (Arti)
 
 `celaut-tor` (Arti 0.47, rustls, bundled SQLite, `onion-service-client`) builds for
-`aarch64-apple-ios` and `aarch64-apple-ios-sim` with no change, and keeps its state in the
+`aarch64-apple-ios` and `aarch64-apple-ios-sim` with one patch: sysinfo 0.38 (of
+`tor-memquota`) calls the macOS-only `proc_pidinfo` in `Process::open_files`, so
+`scripts/build_ios.sh` builds iOS with a copy of the crate of `Cargo.lock` (checksum checked)
+where that function returns `None` on iOS (sysinfo 0.39 has the fix; Arti 0.47 asks for 0.38;
+chatui never calls it). Arti keeps its state in the
 private folder of the app, next to the Celaut database. The CI job `ios-simulator` runs
 `integration_test/ios_tor_test.dart`: Arti bootstraps inside the iOS app, then a connection
 goes through its SOCKS5 proxy to a web server through an exit, and to an onion service. It
