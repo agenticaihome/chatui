@@ -153,6 +153,32 @@ the one before, and the sheet has "Delete".
 **Size limit.** 4 GiB. A file that the server says is larger stops before a byte is written;
 a manifest stops when its chunks pass the limit. Its bytes are deleted.
 
+**Free space** (issue #151). A download leaves 256 MiB free on the phone
+(`LinkOptions::min_free`), so that the phone keeps working. The app reads the space that it
+can use with `statvfs` (`f_bavail × f_frsize`) on the folder of the downloads; the library is
+on the same disk, so the file is renamed into it, not copied. The 4 GiB limit is checked
+first, and its message does not change. The download checks that what it still writes, plus
+the 256 MiB, fits:
+
+| When | What it still writes |
+|---|---|
+| The answer says its size (a file) | The size, less the bytes on disk when it goes on |
+| A chunk of a manifest starts | The size of that chunk |
+| Without the filesystem, or no `Content-Length` | Not known: only the 256 MiB, at the start |
+| Every 64 MiB that arrive | The same again: another app can fill the phone |
+
+- **Before the first byte**, a file that does not fit is refused, and nothing is kept: "Not
+  enough free space. The download needs {needed} and the phone has {available} free. Free
+  some space, then try again." *needed* counts the 256 MiB.
+- **During the download** (a chunk, a check every 64 MiB, or a write to a full disk), the
+  download stops and **keeps** its bytes, like a download that lost the network: "…Free some
+  space, then tap Continue." Continue goes on from there and checks again.
+- An unknown size alone is not refused.
+- If the rename into the library ever fell back to a copy (another disk), the copy needs the
+  size of the file again, plus the 256 MiB; it is refused without them.
+
+The FFI error is `noSpace`; its message is `"<needed> <available>"` in bytes.
+
 "Your services" lists the loaded files with Run and Remove. Run launches the service by
 its id, like a service of the catalog. If no node has it, the failure sheet offers to send
 **the loaded file** to the first node that lacks it, with no file to pick; the file stays
