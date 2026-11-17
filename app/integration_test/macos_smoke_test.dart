@@ -258,15 +258,30 @@ void main() {
     expect(proxy.kind, NetworkProxyKind.socks);
     final client = routedHttpClient();
     try {
-      final reply = await client
-          .get(Uri.parse('https://check.torproject.org/api/ip'))
-          .timeout(const Duration(minutes: 2));
-      say('tor_request', '${reply.statusCode} ${reply.body.trim()}');
+      // "ready" can come before arti has a circuit (0% after 2 s on a runner): then the
+      // proxy answers SOCKS code 1 for a while. Try again for up to 3 minutes.
+      final deadline = DateTime.now().add(const Duration(minutes: 3));
+      var attempt = 0;
+      final reply = await () async {
+        while (true) {
+          attempt++;
+          try {
+            return await client
+                .get(Uri.parse('https://check.torproject.org/api/ip'))
+                .timeout(const Duration(minutes: 2));
+          } catch (e) {
+            say('tor_retry', '$attempt ${celautNetworkStatus().percent}% $e');
+            if (DateTime.now().isAfter(deadline)) rethrow;
+            await Future<void>.delayed(const Duration(seconds: 10));
+          }
+        }
+      }();
+      say('tor_request', '${reply.statusCode} ${reply.body.trim()} after $attempt tries');
       expect(reply.statusCode, 200);
       expect((jsonDecode(reply.body) as Map)['IsTor'], isTrue);
     } finally {
       client.close();
       await celautSetNetwork(choice: NetworkChoice.off, dataDir: dataDir);
     }
-  }, timeout: const Timeout(Duration(minutes: 8)));
+  }, timeout: const Timeout(Duration(minutes: 10)));
 }
