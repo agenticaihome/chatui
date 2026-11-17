@@ -133,7 +133,13 @@ jobs:
         working-directory: app
         run: |
           flutter pub get --enforce-lockfile
-          flutter build ios --release --no-codesign
+          # Flutter hides the error of xcodebuild behind a generic message: show it.
+          flutter build ios --release --no-codesign -v > "$RUNNER_TEMP/ios-build.log" 2>&1 || {
+            grep -n -E 'error:|BUILD FAILED|PhaseScriptExecution|ld: |Undefined symbols|warning: unable' "$RUNNER_TEMP/ios-build.log" | head -150
+            tail -200 "$RUNNER_TEMP/ios-build.log"
+            exit 1
+          }
+          grep -E '^=== Building wallet-ffi|^aarch64-apple-ios|native-static-libs' "$RUNNER_TEMP/ios-build.log" || true
       - name: Pack and check the .ipa
         run: scripts/pack_ipa.sh
       - uses: actions/upload-artifact@v5
