@@ -2,7 +2,8 @@
 # ─── test_linux.sh ────────────────────────────────────────────────────────
 # Run app/integration_test/linux_platform_test.dart in the real Linux runner,
 # in a session with no display: Xvfb, a D-Bus session bus, GNOME Keyring (the
-# Secret Service) and a sound server whose microphone is a 440 Hz tone.
+# Secret Service) and a sound server with a microphone (a 440 Hz tone on
+# PulseAudio, silence on PipeWire).
 #
 #   scripts/test_linux.sh                  # PulseAudio
 #   SOUND=pipewire scripts/test_linux.sh   # PipeWire, through pipewire-pulse
@@ -44,19 +45,20 @@ case "${SOUND:-pulseaudio}" in
     stop_sound=(pulseaudio --kill)
     ;;
   pipewire)
+    # No Bluetooth: its monitor needs logind, and wireplumber stops without it.
+    export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$(mktemp -d)}"
+    mkdir -p "$XDG_CONFIG_HOME/wireplumber/bluetooth.lua.d"
+    printf 'bluez_monitor.enabled = false\nbluez_midi_monitor.enabled = false\n' \
+      > "$XDG_CONFIG_HOME/wireplumber/bluetooth.lua.d/60-no-bluetooth.lua"
     pipewire & pids=($!)
     sleep 1
     wireplumber & pids+=($!)
     pipewire-pulse & pids+=($!)
     for _ in $(seq 50); do pactl info >/dev/null 2>&1 && break; sleep 0.2; done
-    # A tone played into a null sink; its monitor is the microphone.
-    pactl load-module module-null-sink sink_name=tone >/dev/null
-    pw-cat --playback --target tone --rate 16000 --channels 1 --format s16 \
-      <(python3 -c 'import math,struct,sys
-while True: sys.stdout.buffer.write(b"".join(struct.pack("<h", int(8000*math.sin(2*math.pi*440*i/16000))) for i in range(16000)))') &
-    pids+=($!)
-    for _ in $(seq 50); do pactl list short sources | grep -q tone.monitor && break; sleep 0.2; done
-    pactl set-default-source tone.monitor
+    # A virtual source (silence) is the microphone: PipeWire refuses a monitor as default.
+    pactl load-module module-null-sink media.class=Audio/Source/Virtual sink_name=mic channel_map=mono >/dev/null
+    for _ in $(seq 50); do pactl list short sources | grep -qw mic && break; sleep 0.2; done
+    pactl set-default-source mic
     stop_sound=(kill "${pids[@]}")
     ;;
   *) echo "SOUND is pulseaudio or pipewire"; exit 2 ;;
