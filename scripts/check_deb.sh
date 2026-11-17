@@ -38,8 +38,10 @@ fields() {
   depends="$(dpkg-deb --field "$deb" Depends)"
   echo "  Depends: $depends"
   echo "  Recommends: $(dpkg-deb --field "$deb" Recommends)"
+  local names
+  names="$(tr ',|' '\n\n' <<<"$depends" | awk '{print $1}')"
   for want in libc6 libgtk-3-0t64 libglib2.0-0t64 libsecret-1-0 libstdc++6 pulseaudio-utils xdg-desktop-portal; do
-    grep -Eq "(^|, )$want( |,|$)" <<<"$depends" && pass "Depends has $want" || fail "Depends has no $want"
+    grep -Fqx "$want" <<<"$names" && pass "Depends has $want" || fail "Depends has no $want"
   done
   local files
   files="$(dpkg-deb --contents "$deb" | awk '{print $6}')"
@@ -49,8 +51,12 @@ fields() {
       "./usr/share/icons/hicolor/256x256/apps/$APP_ID.png" ./usr/share/doc/chatui/copyright; do
     grep -qx "$want" <<<"$files" && pass "has $want" || fail "has no $want"
   done
-  local machine
-  machine="$(dpkg-deb --fsys-tarfile "$deb" | tar -xO ./opt/chatui/lib/libwallet_ffi.so | head -c 20 | od -An -tx1 -j18 -N2 | tr -d ' ')"
+  local machine tmp
+  tmp="$(mktemp -d)"
+  dpkg-deb --fsys-tarfile "$deb" | tar -x -C "$tmp" ./opt/chatui/lib/libwallet_ffi.so
+  # e_machine of the ELF header: 0x3e x86-64, 0xb7 AArch64.
+  machine="$(od -An -tx1 -j18 -N2 "$tmp/opt/chatui/lib/libwallet_ffi.so" | tr -d ' ')"
+  rm -rf "$tmp"
   case "$arch:$machine" in
     amd64:3e00 | arm64:b700) pass "libwallet_ffi.so is for $arch" ;;
     *) fail "libwallet_ffi.so machine $machine is not $arch" ;;

@@ -89,8 +89,10 @@ gboolean report_idle(gpointer data) {
   return G_SOURCE_REMOVE;
 }
 
+// At the priority of the answer of the copy, so that the last count comes before it.
 void report(gint64 bytes) {
-  g_idle_add(report_idle, GSIZE_TO_POINTER(static_cast<gsize>(bytes)));
+  g_idle_add_full(G_PRIORITY_DEFAULT, report_idle,
+                  GSIZE_TO_POINTER(static_cast<gsize>(bytes)), nullptr);
 }
 
 struct Copy {

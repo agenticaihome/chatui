@@ -68,3 +68,11 @@ jobs:
           name: deb-${{ matrix.arch }}
           path: dist/
           if-no-files-found: error
+      # The channels of the runner and the plugins, in the real app: the Secret
+      # Service (GNOME Keyring), the package channel, zxing on an image file, and
+      # the microphone of `record` (PulseAudio with a tone as the microphone).
+      - name: Test the Linux platform in the runner
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xauth dbus-x11 gnome-keyring pulseaudio pulseaudio-utils
+          scripts/test_linux.sh
