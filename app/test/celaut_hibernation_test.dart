@@ -190,6 +190,11 @@ void main() {
       await tester.tap(find.byKey(const Key('chats-row-h1')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('info-wake')), findsOneWidget);
+      // The wake button is in the banner at the top, on screen with no scroll.
+      final banner = tester.getRect(find.byKey(const Key('info-wake-banner')));
+      final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+      expect(banner.bottom, lessThan(screen.height));
+      expect(find.byKey(const Key('info-hibernated-note')), findsOneWidget);
       expect(find.byKey(const Key('chat-connecting')), findsNothing);
     });
   });

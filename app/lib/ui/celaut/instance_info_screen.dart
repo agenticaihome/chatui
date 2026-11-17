@@ -359,6 +359,34 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
               ],
             ),
             const SizedBox(height: 20),
+            if (hibernated && !hibernationSupport.isUnsupported(i.address)) ...[
+              Container(
+                key: const Key('info-wake-banner'),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Theme.of(context).colorScheme.primary),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l.chatsInfoHibernatedNote,
+                      key: const Key('info-hibernated-note'),
+                      style: t.secondary,
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      key: const Key('info-wake'),
+                      onPressed: _changing || _stopping ? null : () => _hibernateOrWake(wakeUp: true),
+                      icon: const Icon(Icons.wb_sunny_outlined),
+                      label: Text(l.chatsWake),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
             for (final (label, value, key) in rows)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -409,18 +437,7 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
                     style: t.secondary,
                   ),
                 ] else if (hibernated) ...[
-                  FilledButton.icon(
-                    key: const Key('info-wake'),
-                    onPressed: _changing || _stopping ? null : () => _hibernateOrWake(wakeUp: true),
-                    icon: const Icon(Icons.wb_sunny_outlined),
-                    label: Text(l.chatsWake),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l.chatsInfoHibernatedNote,
-                    key: const Key('info-hibernated-note'),
-                    style: t.secondary,
-                  ),
+                  // The wake button is at the top of the page: the user sees it first.
                 ] else ...[
                   OutlinedButton.icon(
                     key: const Key('info-hibernate'),
