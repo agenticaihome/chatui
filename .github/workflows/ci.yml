@@ -99,7 +99,9 @@ jobs:
 
   # The iOS app, unsigned (docs/ios.md). A macOS runner is free for a public repository.
   ios:
-    runs-on: macos-15
+    # The repository variable IOS_RUNNER can pick another macOS runner (macos-15-intel when the
+    # arm64 runners are busy: GitHub cancels a job that waits too long for one).
+    runs-on: ${{ vars.IOS_RUNNER || 'macos-15' }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -139,7 +141,9 @@ jobs:
   # The app on the iOS simulator: it starts, the home screen and the iOS warnings show, the
   # Rust core loads and opens the Celaut database (integration_test/ios_smoke_test.dart).
   ios-simulator:
-    runs-on: macos-15
+    # The repository variable IOS_RUNNER can pick another macOS runner (macos-15-intel when the
+    # arm64 runners are busy: GitHub cancels a job that waits too long for one).
+    runs-on: ${{ vars.IOS_RUNNER || 'macos-15' }}
     steps:
       - uses: actions/checkout@v5
         with:
