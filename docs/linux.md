@@ -74,7 +74,7 @@ the mail program. Notifications go to the notification server of the desktop ove
 On Ubuntu 24.04, `amd64` or `arm64`, with Rust 1.99.0 and Flutter 3.41.2:
 
 ```sh
-sudo apt install clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev liblzma-dev \
+sudo apt install clang lld cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev liblzma-dev \
   dpkg-dev imagemagick
 cd app && flutter build linux --release && cd ..
 scripts/package_deb.sh dist                # dist/chatui_<version>_<arch>.deb
