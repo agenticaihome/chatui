@@ -2,94 +2,32 @@ import Flutter
 import LocalAuthentication
 import UIKit
 
-/// `com.argus.wallet/secure_storage` on iOS: the port of `SecureStorageHandler.kt`.
-///
-/// Each value is a generic password item of the Keychain, with the access
-/// `AfterFirstUnlockThisDeviceOnly`: it is never in a backup and never goes to another
-/// device, like the Android `EncryptedSharedPreferences` with `allowBackup="false"`.
-///
-/// The Keychain outlives the app: an item stays after the app is deleted. On Android the
-/// data goes with the app. So the first start of an install deletes the items that a former
-/// install left ([claimKeychain]); a new sideload of the same Apple ID (every 7 days with a
-/// free account) is not a new install and keeps them.
+/// `com.argus.wallet/secure_storage` on iOS: the port of `SecureStorageHandler.kt`, over the
+/// shared `KeychainStore` (`app/darwin`). Each value is an item of the Keychain that is never
+/// in a backup and never goes to another device, like the Android `EncryptedSharedPreferences`
+/// with `allowBackup="false"`. The first start of an install deletes the items that a former
+/// install left (`KeychainStore.claim`), so a deleted app loses its data as on Android.
 final class SecureStoragePlugin: NSObject, FlutterPlugin {
   private static let channelName = "com.argus.wallet/secure_storage"
-  private static let service = "org.celaut.chatui.secure"
   private static let walletRegistryKey = "wallet_registry"
   // The key of the Celaut database: one for the app, not one per wallet.
   private static let celautDbKey = "celaut_db_key_v1"
   private static let pinGateKey = "pin_gate"
+  private static let service = "org.celaut.chatui.secure"
   private static let installedFlag = "org.celaut.chatui.keychain_owner"
 
   static func register(with registrar: FlutterPluginRegistrar) {
-    claimKeychain()
+    KeychainStore(service: service).claim(flag: installedFlag)
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: registrar.messenger())
     registrar.addMethodCallDelegate(SecureStoragePlugin(), channel: channel)
   }
 
-  /// Delete the items of a former install of the app, once per install.
-  private static func claimKeychain() {
-    let defaults = UserDefaults.standard
-    if defaults.bool(forKey: installedFlag) { return }
-    let query: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: service,
-    ]
-    SecItemDelete(query as CFDictionary)
-    defaults.set(true, forKey: installedFlag)
-  }
+  private let store = KeychainStore(service: SecureStoragePlugin.service)
 
-  // MARK: - Keychain
-
-  private struct KeychainError: Error {
-    let status: OSStatus
-    var message: String {
-      (SecCopyErrorMessageString(status, nil) as String?) ?? "Keychain error \(status)"
-    }
-  }
-
-  private func query(_ key: String) -> [String: Any] {
-    [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: Self.service,
-      kSecAttrAccount as String: key,
-    ]
-  }
-
-  private func read(_ key: String) throws -> String? {
-    var q = query(key)
-    q[kSecReturnData as String] = true
-    q[kSecMatchLimit as String] = kSecMatchLimitOne
-    var item: CFTypeRef?
-    let status = SecItemCopyMatching(q as CFDictionary, &item)
-    if status == errSecItemNotFound { return nil }
-    guard status == errSecSuccess, let data = item as? Data else { throw KeychainError(status: status) }
-    return String(data: data, encoding: .utf8)
-  }
-
-  private func write(_ key: String, _ value: String) throws {
-    let data = Data(value.utf8)
-    let attributes: [String: Any] = [
-      kSecValueData as String: data,
-      kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-    ]
-    var status = SecItemUpdate(query(key) as CFDictionary, attributes as CFDictionary)
-    if status == errSecItemNotFound {
-      var add = query(key)
-      add.merge(attributes) { _, new in new }
-      status = SecItemAdd(add as CFDictionary, nil)
-    }
-    guard status == errSecSuccess else { throw KeychainError(status: status) }
-  }
-
-  private func remove(_ key: String) throws {
-    let status = SecItemDelete(query(key) as CFDictionary)
-    guard status == errSecSuccess || status == errSecItemNotFound else {
-      throw KeychainError(status: status)
-    }
-  }
-
-  private func has(_ key: String) throws -> Bool { try read(key) != nil }
+  private func read(_ key: String) throws -> String? { try store.read(key) }
+  private func write(_ key: String, _ value: String) throws { try store.write(key, value) }
+  private func remove(_ key: String) throws { try store.remove(key) }
+  private func has(_ key: String) throws -> Bool { try store.has(key) }
 
   private func seedKey(_ walletId: String?) -> String { walletId.map { "seed_\($0)" } ?? "encrypted_seed" }
   private func wrapKey(_ walletId: String?) -> String { walletId.map { "wrap_\($0)" } ?? "wrap_key" }
@@ -229,25 +167,15 @@ final class SecureStoragePlugin: NSObject, FlutterPlugin {
       default:
         result(FlutterMethodNotImplemented)
       }
-    } catch let e as KeychainError {
+    } catch let e as KeychainStore.Failure {
       result(FlutterError(code: "STORAGE_ERROR", message: e.message, details: nil))
     } catch {
       result(FlutterError(code: "STORAGE_ERROR", message: error.localizedDescription, details: nil))
     }
   }
 
-  /// The Celaut database: in Application Support, out of the backups (the file is useless
-  /// without its key, which stays on this device).
-  static func celautDbPath() throws -> String {
-    let support = try FileManager.default.url(
-      for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-    var dir = support.appendingPathComponent("celaut", isDirectory: true)
-    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-    var values = URLResourceValues()
-    values.isExcludedFromBackup = true
-    try dir.setResourceValues(values)
-    return dir.appendingPathComponent("celaut.db").path
-  }
+  /// The Celaut database (`AppPaths`, shared with macOS).
+  static func celautDbPath() throws -> String { try AppPaths.celautDbPath() }
 
   // MARK: - Device authentication
 
@@ -261,7 +189,7 @@ final class SecureStoragePlugin: NSObject, FlutterPlugin {
     let answer: () -> Void = { [self] in
       do {
         result(try read(wrapKey(walletId)))
-      } catch let e as KeychainError {
+      } catch let e as KeychainStore.Failure {
         result(FlutterError(code: "STORAGE_ERROR", message: e.message, details: nil))
       } catch {
         result(FlutterError(code: "STORAGE_ERROR", message: error.localizedDescription, details: nil))

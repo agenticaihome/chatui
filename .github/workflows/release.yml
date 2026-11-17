@@ -12,6 +12,7 @@ on:
     paths:
       - .github/workflows/release.yml
       - app/android/**
+      - app/darwin/**
       - app/ios/**
       - scripts/build_android.sh
       - scripts/build_ios.sh

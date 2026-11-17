@@ -75,7 +75,10 @@ calls (#143), background downloads (#151), push notifications, TestFlight, App S
 ## 3. What each Android part is on iOS
 
 The Swift code is in `app/ios/Runner`. Each handler has the channel, the methods and the
-answers of its Android version, so the Dart side does not change.
+answers of its Android version, so the Dart side does not change. The parts with no Flutter
+and no UIKit are in `app/darwin`, for the macOS app too (#154): `KeychainStore.swift` (the
+Keychain, and the clean-up of a former install) and `AppPaths.swift` (the private folder of
+the Celaut database, and the rules of the `celaut:`/`ergopay:` links and of a given file).
 
 | Android | iOS |
 |---|---|

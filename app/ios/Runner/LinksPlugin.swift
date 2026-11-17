@@ -21,7 +21,6 @@ import UIKit
 final class LinksPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelegate {
   private static let deepLinkChannel = "argus/deeplink"
   private static let incomingChannel = "org.celaut.chatui/incoming"
-  private static let maxCelautLink = 4096
 
   private var deepLink: FlutterMethodChannel?
   private var incoming: FlutterMethodChannel?
@@ -88,17 +87,12 @@ final class LinksPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelegate 
       give(Self.describe(url))
       return true
     }
-    guard let scheme = url.scheme?.lowercased() else { return false }
-    if scheme == "celaut", let service = Self.importLink(url) {
+    if let service = LinkRules.importLink(url) {
       // A link to a service (issue #135): Flutter asks before the download.
       give(["link": service])
       return true
     }
-    guard scheme == "ergopay" || scheme == "celaut" else { return false }
-    var link = url.absoluteString
-    if scheme == "celaut", link.count > Self.maxCelautLink {
-      link = String(link.prefix(Self.maxCelautLink + 1))
-    }
+    guard let link = LinkRules.deepLink(url) else { return false }
     if launch || deepLink == nil {
       initialLink = link
     } else {
@@ -107,26 +101,12 @@ final class LinksPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelegate 
     return true
   }
 
-  /// The `url` of `celaut://import?url=<the link, encoded>`, if it is an http(s) link.
-  static func importLink(_ url: URL) -> String? {
-    guard url.scheme?.lowercased() == "celaut", url.host?.lowercased() == "import",
-      let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
-      let value = items.first(where: { $0.name == "url" })?.value?.trimmingCharacters(in: .whitespaces)
-    else { return nil }
-    let lower = value.lowercased()
-    return lower.hasPrefix("http://") || lower.hasPrefix("https://") ? value : nil
-  }
-
-  /// The uri, the name and the size of a file (-1 if unknown), as `PackageHandler.describe`.
+  /// The uri, the name and the size of a file (`LinkRules.describe`). The URL object keeps
+  /// the right to read the file (a security-scoped URL of the file picker); the copy finds it
+  /// by its string.
   static func describe(_ url: URL) -> [String: Any] {
-    let scoped = url.startAccessingSecurityScopedResource()
-    defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-    let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? -1
-    let name = url.lastPathComponent.isEmpty ? "package" : url.lastPathComponent
-    // The URL object keeps the right to read the file (a security-scoped URL of the file
-    // picker); the copy finds it by its string.
     PackagePlugin.remember(url)
-    return ["uri": url.absoluteString, "name": name, "bytes": size]
+    return LinkRules.describe(url)
   }
 
   /// The file or the link waits here until Flutter has it: `incoming` gives it at once if

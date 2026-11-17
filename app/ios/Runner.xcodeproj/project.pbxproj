@@ -21,6 +21,8 @@
 		FA7C67E394F7AAF881416903 /* PackagePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB945CB596969441497F479 /* PackagePlugin.swift */; };
 		64A2B9A20D3486C7F0D0564B /* MotionPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B462B4E9E1EAE2E1E378ACE /* MotionPlugin.swift */; };
 		3F7163FF4B15F47FC832A1AF /* LifecyclePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096362D2A93180FCD5E48B89 /* LifecyclePlugin.swift */; };
+		322697E0EE2D3A241EE5FB2E /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA9FF72F48884836E931EE9 /* KeychainStore.swift */; };
+		F7EAE6547BC3533856ACC1BF /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 965956E3DE85CB333CC535FD /* AppPaths.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +71,8 @@
 		4AB945CB596969441497F479 /* PackagePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackagePlugin.swift; sourceTree = "<group>"; };
 		7B462B4E9E1EAE2E1E378ACE /* MotionPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionPlugin.swift; sourceTree = "<group>"; };
 		096362D2A93180FCD5E48B89 /* LifecyclePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecyclePlugin.swift; sourceTree = "<group>"; };
+		BDA9FF72F48884836E931EE9 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeychainStore.swift; path = ../darwin/KeychainStore.swift; sourceTree = SOURCE_ROOT; };
+		965956E3DE85CB333CC535FD /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppPaths.swift; path = ../darwin/AppPaths.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -131,6 +135,8 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
+				965956E3DE85CB333CC535FD /* AppPaths.swift */,
+				BDA9FF72F48884836E931EE9 /* KeychainStore.swift */,
 				096362D2A93180FCD5E48B89 /* LifecyclePlugin.swift */,
 				7B462B4E9E1EAE2E1E378ACE /* MotionPlugin.swift */,
 				4AB945CB596969441497F479 /* PackagePlugin.swift */,
@@ -308,6 +314,8 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
+				F7EAE6547BC3533856ACC1BF /* AppPaths.swift in Sources */,
+				322697E0EE2D3A241EE5FB2E /* KeychainStore.swift in Sources */,
 				3F7163FF4B15F47FC832A1AF /* LifecyclePlugin.swift in Sources */,
 				64A2B9A20D3486C7F0D0564B /* MotionPlugin.swift in Sources */,
 				FA7C67E394F7AAF881416903 /* PackagePlugin.swift in Sources */,
