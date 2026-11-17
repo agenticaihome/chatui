@@ -54,12 +54,6 @@ jobs:
           flutter build linux --release
       - name: Make the .deb
         run: scripts/package_deb.sh dist
-      - name: Check the .deb
-        run: scripts/check_deb.sh fields dist/chatui_*_${{ matrix.arch }}.deb ${{ matrix.arch }}
-      - name: Install the .deb in a clean Ubuntu 24.04 and start the app
-        run: |
-          docker run --rm -v "$PWD:/src:ro" -w /src ubuntu:24.04 \
-            scripts/check_deb.sh install dist/chatui_*_${{ matrix.arch }}.deb
       - name: SHA-256
         working-directory: dist
         run: sha256sum ./*.deb | tee "SHA256SUMS-${{ matrix.arch }}"
@@ -68,6 +62,12 @@ jobs:
           name: deb-${{ matrix.arch }}
           path: dist/
           if-no-files-found: error
+      - name: Check the .deb
+        run: scripts/check_deb.sh fields dist/chatui_*_${{ matrix.arch }}.deb ${{ matrix.arch }}
+      - name: Install the .deb in a clean Ubuntu 24.04 and start the app
+        run: |
+          docker run --rm -v "$PWD:/src:ro" -w /src ubuntu:24.04 \
+            scripts/check_deb.sh install dist/chatui_*_${{ matrix.arch }}.deb
       # The channels of the runner and the plugins, in the real app: the Secret
       # Service (GNOME Keyring), the package channel, zxing on an image file, and
       # the microphone of `record` (PulseAudio with a tone as the microphone).

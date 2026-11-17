@@ -70,7 +70,7 @@ install_check() {
   # A desktop has these; a clean container does not. They make the caches of the
   # .desktop files and of the MIME types, and xdg-open/xdg-mime read them.
   apt-get install -y -qq --no-install-recommends desktop-file-utils shared-mime-info xdg-utils \
-    xvfb xauth dbus >/dev/null
+    libglib2.0-bin xvfb xauth dbus >/dev/null
   if apt-get install -y -qq "$(realpath "$deb")" >/tmp/apt.log 2>&1; then
     pass "apt install $(basename "$deb")"
   else
@@ -80,7 +80,8 @@ install_check() {
   fi
   [ -x /usr/bin/chatui ] && pass "/usr/bin/chatui" || fail "/usr/bin/chatui"
   local missing
-  missing="$(ldd /opt/chatui/chatui /opt/chatui/lib/*.so 2>&1 | grep 'not found' | sort -u)"
+  # The plugins find libflutter_linux_gtk.so through the executable, which loads it first.
+  missing="$(LD_LIBRARY_PATH=/opt/chatui/lib ldd /opt/chatui/chatui /opt/chatui/lib/*.so 2>&1 | grep 'not found' | sort -u)"
   [ -z "$missing" ] && pass "every library is found (ldd)" || fail "missing libraries: $missing"
   desktop-file-validate "/usr/share/applications/$APP_ID.desktop" \
     && pass "desktop-file-validate" || fail "desktop-file-validate"
@@ -88,9 +89,12 @@ install_check() {
     grep -q "^x-scheme-handler/$scheme=.*$APP_ID.desktop" /usr/share/applications/mimeinfo.cache \
       && pass "x-scheme-handler/$scheme -> $APP_ID.desktop" || fail "x-scheme-handler/$scheme"
   done
-  touch /tmp/x.celaut.bee
-  [ "$(xdg-mime query filetype /tmp/x.celaut.bee)" = application/x-celaut-bee ] \
-    && pass "*.celaut.bee is application/x-celaut-bee" || fail "MIME type of *.celaut.bee: $(xdg-mime query filetype /tmp/x.celaut.bee)"
+  # GIO (GNOME, and xdg-open through gio) reads the type from the shared MIME database.
+  printf 'x' > /tmp/x.celaut.bee
+  local type
+  type="$(gio info -a standard::content-type /tmp/x.celaut.bee | sed -n 's/.*standard::content-type: //p')"
+  [ "$type" = application/x-celaut-bee ] \
+    && pass "*.celaut.bee is application/x-celaut-bee" || fail "MIME type of *.celaut.bee: $type"
   grep -q "^application/x-celaut-bee=.*$APP_ID.desktop" /usr/share/applications/mimeinfo.cache \
     && pass "application/x-celaut-bee -> $APP_ID.desktop" || fail "application/x-celaut-bee"
   # The app starts and keeps running: 124 is the exit of timeout.
