@@ -14212,6 +14212,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.'**
   String get celautHomeBalancesNote;
+
+  /// No description provided for @celautKeepMacNote.
+  ///
+  /// In en, this message translates to:
+  /// **'On a Mac, automatic top-up works only while Chatui is open and the Mac is awake. If you quit the app (⌘Q) or the Mac sleeps, nothing is added, and the node stops the instance when its balance runs out.'**
+  String get celautKeepMacNote;
+
+  /// No description provided for @scanFromImageNote.
+  ///
+  /// In en, this message translates to:
+  /// **'On a Mac the app cannot scan with the camera. Choose an image of the QR code, for example a screenshot (⇧⌘4).'**
+  String get scanFromImageNote;
+
+  /// No description provided for @scanChooseImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an image'**
+  String get scanChooseImage;
+
+  /// No description provided for @scanNoCodeInImage.
+  ///
+  /// In en, this message translates to:
+  /// **'No QR code was found in this image.'**
+  String get scanNoCodeInImage;
 }
 
 class _AppLocalizationsDelegate

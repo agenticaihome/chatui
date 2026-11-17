@@ -8936,4 +8936,19 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get celautHomeBalancesNote =>
       'El saldo es lo que dice el nodo ahora. El gasto sale del último extracto que la app leyó en cada nodo, y aquí incluye lo que aún tienen tus instancias en marcha. Abre un nodo para leerlo, por día o por semana.';
+
+  @override
+  String get celautKeepMacNote =>
+      'En un Mac, la recarga automática funciona solo mientras Chatui está abierta y el Mac está despierto. Si cierras la app (⌘Q) o el Mac entra en reposo, no se añade nada, y el nodo detiene la instancia cuando se le acaba el saldo.';
+
+  @override
+  String get scanFromImageNote =>
+      'En un Mac la app no puede escanear con la cámara. Elige una imagen del código QR, por ejemplo una captura de pantalla (⇧⌘4).';
+
+  @override
+  String get scanChooseImage => 'Elegir una imagen';
+
+  @override
+  String get scanNoCodeInImage =>
+      'No se encontró ningún código QR en esta imagen.';
 }

@@ -25,6 +25,7 @@ class NotificationService {
         settings: const InitializationSettings(
           android: AndroidInitializationSettings('@mipmap/ic_launcher'),
           iOS: DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
+          macOS: DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
         ),
         // A tap while the app runs: the payload names the screen.
         onDidReceiveNotificationResponse: (response) => _openTap(response.payload),
@@ -56,7 +57,7 @@ class NotificationService {
     deepLinkController.push('argus://$payload');
   }
 
-  /// Asks once per launch, after the wallet is unlocked (Android 13+).
+  /// Asks once per launch, after the wallet is unlocked (Android 13+, macOS).
   Future<void> requestPermission() async {
     if (!_ready || _permissionAsked) return;
     _permissionAsked = true;
@@ -64,6 +65,9 @@ class NotificationService {
       await _plugin
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.requestNotificationsPermission();
+      await _plugin
+          .resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, sound: true);
     } catch (_) {}
   }
 

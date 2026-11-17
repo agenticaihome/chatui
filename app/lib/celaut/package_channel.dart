@@ -113,7 +113,9 @@ class AndroidPackageChannel implements PackageChannel {
 
   final bool? _android;
 
-  bool get _onAndroid => _android ?? Platform.isAndroid;
+  /// Android, and macOS with the same channel (`PackageChannel.swift`, the uri is a
+  /// `file://` URL).
+  bool get _onAndroid => _android ?? (Platform.isAndroid || Platform.isMacOS);
 
   /// Take the counts of the copy that the Android side sends.
   static void _listen() {

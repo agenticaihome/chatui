@@ -15,6 +15,7 @@ import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 import 'closing_text.dart';
 import 'deposit_screen.dart';
+import 'mac_keep_note.dart';
 import 'move_mu_sheet.dart';
 import 'run_confirm_dialog.dart' show formatSurvival;
 
@@ -253,6 +254,7 @@ class _InstanceTimeSectionState extends State<InstanceTimeSection> {
           value: keep,
           onChanged: _toggle,
         ),
+        const MacKeepNote(),
         // nodo#344: the node stops the instance at its next close, and keep-alive cannot
         // keep it past that time.
         if (stopNote != null)
