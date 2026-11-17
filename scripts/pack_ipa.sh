@@ -23,7 +23,12 @@ echo "architectures: $archs"
 exports="$(nm -gU "$APP/Runner")"
 for sym in frb_pde_ffi_dispatcher_primary frb_pde_ffi_dispatcher_sync frb_get_rust_content_hash \
   frb_init_frb_dart_api_dl store_dart_post_cobject; do
-  grep -q " _$sym\$" <<<"$exports" || { echo "the executable does not export $sym" >&2; exit 1; }
+  grep -q " _$sym\$" <<<"$exports" || {
+    echo "the executable does not export $sym" >&2
+    # Linked but stripped (a large executable), or not linked at all (a small one)?
+    echo "executable: $(ls -lh "$APP/Runner" | awk '{print $5}'), $(wc -l <<<"$exports") exported symbols, $(grep -c ' _frb_' <<<"$exports" || true) _frb_" >&2
+    exit 1
+  }
 done
 echo "exported bridge functions: $(grep -c ' _frb_' <<<"$exports")"
 
