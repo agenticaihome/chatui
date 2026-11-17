@@ -10,4 +10,9 @@ MACOSX_DEPLOYMENT_TARGET = 13.0
 
 RUST_CORE_LIB = $(PROJECT_DIR)/../../rust/target/aarch64-apple-darwin/release/libwallet_ffi.a
 // The system libraries of the crates (cargo rustc -- --print native-static-libs).
-OTHER_LDFLAGS = $(inherited) -force_load "$(RUST_CORE_LIB)" -framework Security -framework SystemConfiguration -framework CoreFoundation -liconv -lresolv
+// -export_dynamic: the link strips dead code (DEAD_CODE_STRIPPING), and in an app the global
+// symbols are not kept without it, so the functions of the bridge can go away after -force_load
+// loaded them (the release build had none of them). The same as app/ios.
+OTHER_LDFLAGS = $(inherited) -force_load "$(RUST_CORE_LIB)" -Wl,-export_dynamic -framework Security -framework SystemConfiguration -framework CoreFoundation -liconv -lresolv
+// The release build strips the executable: keep its global symbols, Dart looks them up by name.
+STRIP_STYLE = non-global

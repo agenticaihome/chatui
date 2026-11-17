@@ -160,8 +160,11 @@ jobs:
           # Only system libraries: a Homebrew one (liblzma of xz) is not on the Mac of a user.
           check homebrew "$(otool -L "$exe" | grep -cE '/(opt/homebrew|usr/local)/')" 0
           codesign -dvv "$app" 2>&1 | grep -E 'Signature|Identifier|TeamIdentifier' | sed 's/^/  /'
-          codesign -d --entitlements - --xml "$app" 2>/dev/null | plutil -p - | sed 's/^/  /'
-          check sandbox "$(codesign -d --entitlements - --xml "$app" 2>/dev/null | plutil -extract com.apple.security.app-sandbox raw - 2>/dev/null)" false
+          ent="$RUNNER_TEMP/entitlements.plist"
+          codesign -d --entitlements - --xml "$app" > "$ent" 2>/dev/null
+          plutil -p "$ent" | sed 's/^/  /'
+          # PlistBuddy: plutil -extract reads the dots of the key as a key path.
+          check sandbox "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' "$ent" 2>&1)" false
           codesign --verify --deep --strict "$app" && echo "ok   ad hoc signature verifies"
           exit "$fail"
       - name: Pack the .dmg
