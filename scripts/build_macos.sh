@@ -24,9 +24,20 @@ case "${1:-}" in
   "") ;;
   xcode)
     # Xcode gives the script its own environment (its SDK, compiler flags and paths).
-    # The build scripts of the crates run on the Mac too: build in a clean environment.
+    # The build scripts of the crates run on the Mac too: build in a clean environment,
+    # with the folder of cargo (rustup) on the PATH.
+    cargo_dir=""
+    for d in "$(dirname "$(command -v cargo 2>/dev/null || echo /nonexistent/cargo)")" \
+      "${CARGO_HOME:-$HOME/.cargo}/bin" "$HOME/.cargo/bin" "$(eval echo "~${USER:-$(id -un)}")/.cargo/bin" \
+      /opt/homebrew/bin /usr/local/bin; do
+      if [ -x "$d/cargo" ]; then cargo_dir="$d"; break; fi
+    done
+    if [ -z "$cargo_dir" ]; then
+      echo "build_macos.sh: no cargo (HOME=$HOME CARGO_HOME=${CARGO_HOME:-} PATH=$PATH)" >&2
+      exit 1
+    fi
     exec env -i HOME="$HOME" USER="${USER:-}" TMPDIR="${TMPDIR:-/tmp}" \
-      PATH="$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+      PATH="$cargo_dir:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" \
       ${RUSTUP_TOOLCHAIN:+RUSTUP_TOOLCHAIN="$RUSTUP_TOOLCHAIN"} \
       ${CARGO_HOME:+CARGO_HOME="$CARGO_HOME"} ${RUSTUP_HOME:+RUSTUP_HOME="$RUSTUP_HOME"} \
       "$0"

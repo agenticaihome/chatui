@@ -10,4 +10,4 @@ MACOSX_DEPLOYMENT_TARGET = 13.0
 
 RUST_CORE_LIB = $(PROJECT_DIR)/../../rust/target/aarch64-apple-darwin/release/libwallet_ffi.a
 // The system libraries of the crates (cargo rustc -- --print native-static-libs).
-OTHER_LDFLAGS = $(inherited) -force_load "$(RUST_CORE_LIB)" -framework Security -framework SystemConfiguration -framework CoreFoundation -liconv -lresolv -lc++
+OTHER_LDFLAGS = $(inherited) -force_load "$(RUST_CORE_LIB)" -framework Security -framework SystemConfiguration -framework CoreFoundation -liconv -lresolv
