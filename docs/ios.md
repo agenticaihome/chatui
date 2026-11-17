@@ -167,7 +167,7 @@ The "Build the Rust core" phase of the Xcode project runs `scripts/build_ios.sh`
 builds `libwallet_ffi.a` for the SDK of the build. `app/ios/Flutter/RustCore.xcconfig` links
 it with `-force_load`, and Runner keeps its global symbols (`STRIP_STYLE = non-global`):
 Dart finds the functions of the bridge in the process (`ExternalLibrary.process`). The
-simulator build is arm64 only (no Intel Mac simulator).
+simulator library has the architectures that Xcode asks for (arm64 on Apple silicon, x86_64 on Intel).
 
 CI (`ci.yml`): the `ios` job builds the release app unsigned and packs and checks the `.ipa`
 (`scripts/pack_ipa.sh`: arm64, the exports of the bridge, and `release_check.sh ipa`:

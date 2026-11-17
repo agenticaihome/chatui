@@ -4,8 +4,7 @@
 // in the process with dlsym (flutter_rust_bridge, ExternalLibrary.process). Runner adds
 // RUST_CORE_LDFLAGS to OTHER_LDFLAGS, and keeps its global symbols (STRIP_STYLE non-global).
 RUST_CORE_DIR = $(PROJECT_DIR)/../../rust/target
-RUST_CORE_LDFLAGS[sdk=iphoneos*] = -force_load "$(RUST_CORE_DIR)/aarch64-apple-ios/release/libwallet_ffi.a" -framework Security -framework SystemConfiguration -lresolv -lc++
-RUST_CORE_LDFLAGS[sdk=iphonesimulator*] = -force_load "$(RUST_CORE_DIR)/aarch64-apple-ios-sim/release/libwallet_ffi.a" -framework Security -framework SystemConfiguration -lresolv -lc++
-
-// The library is built for arm64 only: the simulator of an Apple silicon Mac.
-EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64
+RUST_CORE_LDFLAGS[sdk=iphoneos*] = -force_load "$(RUST_CORE_DIR)/aarch64-apple-ios/release/libwallet_ffi.a" -framework Security -framework SystemConfiguration -lresolv
+RUST_CORE_LDFLAGS[sdk=iphonesimulator*] = -force_load "$(RUST_CORE_DIR)/ios-simulator/libwallet_ffi.a" -framework Security -framework SystemConfiguration -lresolv
+// The simulator library has each architecture of the simulator build (arm64 on Apple
+// silicon, x86_64 on Intel): build_ios.sh reads ARCHS.
