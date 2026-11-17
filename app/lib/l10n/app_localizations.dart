@@ -5664,6 +5664,24 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get scanBack;
 
+  /// No description provided for @scanNoCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'This computer does not scan with the camera. Read the code from an image: a screenshot or a photo of the code.'**
+  String get scanNoCamera;
+
+  /// No description provided for @scanFromImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the code from an image'**
+  String get scanFromImage;
+
+  /// No description provided for @scanImageNoCode.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no QR code in this image.'**
+  String get scanImageNoCode;
+
   /// No description provided for @txArgusFee.
   ///
   /// In en, this message translates to:

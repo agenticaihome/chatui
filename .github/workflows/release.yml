@@ -1,8 +1,9 @@
 name: release
 
-# A tag v<appVersion> builds the release APKs unsigned. After a reviewer
-# approves the release environment, the publish job signs them with the key in
-# that environment's secrets and creates a prerelease.
+# A tag v<appVersion> builds the release APKs unsigned, and the .deb files of
+# the Linux app (linux.yml). After a reviewer approves the release environment,
+# the publish job signs the APKs with the key in that environment's secrets and
+# creates a prerelease with the APKs, the .deb files and their SHA-256 sums.
 on:
   push:
     tags: ['v*']
@@ -13,6 +14,7 @@ on:
       - app/android/**
       - scripts/build_android.sh
       - scripts/release_check.sh
+      - .github/workflows/linux.yml
 
 permissions:
   contents: read
@@ -102,11 +104,15 @@ jobs:
           path: dist/
           if-no-files-found: error
 
+  # The .deb files for amd64 and arm64, checked and installed in a clean Ubuntu.
+  linux:
+    uses: ./.github/workflows/linux.yml
+
   # The release environment holds the signing secrets. It accepts only tags
   # v* and waits for a required reviewer before this job starts.
   publish:
     if: github.ref_type == 'tag'
-    needs: build
+    needs: [build, linux]
     runs-on: ubuntu-24.04
     environment: release
     permissions:
@@ -122,6 +128,19 @@ jobs:
       - name: Check the unsigned APKs
         working-directory: unsigned
         run: sha256sum --check SHA256SUMS-unsigned
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: deb-*
+          path: debs
+          merge-multiple: true
+      - name: Check the .deb files
+        working-directory: debs
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          cat SHA256SUMS-amd64 SHA256SUMS-arm64 | sha256sum --check
+          for arch in amd64 arm64; do
+            [ -f "chatui_${version}_${arch}.deb" ] || { echo "No chatui_${version}_${arch}.deb"; exit 1; }
+          done
       - name: Sign the APKs
         env:
           KEYSTORE_BASE64: ${{ secrets.CHATUI_KEYSTORE_BASE64 }}
@@ -152,7 +171,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          (cd dist && sha256sum *.apk > SHA256SUMS)
+          cp debs/*.deb dist/
+          (cd dist && sha256sum *.apk *.deb > SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
             --title "chatui ${GITHUB_REF_NAME#v}" \

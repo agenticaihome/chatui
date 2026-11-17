@@ -3517,6 +3517,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get scanBack => 'Volver';
 
   @override
+  String get scanNoCamera =>
+      'Este ordenador no escanea con la cámara. Lee el código de una imagen: una captura de pantalla o una foto del código.';
+
+  @override
+  String get scanFromImage => 'Leer el código de una imagen';
+
+  @override
+  String get scanImageNoCode => 'No hay ningún código QR en esta imagen.';
+
+  @override
   String get txArgusFee => 'Comisión de Argus';
 
   @override

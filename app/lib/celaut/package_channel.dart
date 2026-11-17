@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../services/linux_app.dart';
+
 /// A `.celaut.bee` file that the user chose, or a link to one ([isLink], issue #135). The
 /// app did not read it yet.
 @immutable
@@ -75,7 +77,8 @@ class CopyFailed implements Exception {
 }
 
 /// The Android side of a transfer of a service (`docs/celaut/package.md`): the file
-/// picker, the copy of the chosen file, and whether the network is metered. Off Android,
+/// picker, the copy of the chosen file, and whether the network is metered. The Linux app
+/// has the same channel (app/linux/runner/package_channel.cc). Off Android and Linux,
 /// or without the channel, the picker and the metered check do nothing and never throw.
 abstract class PackageChannel {
   /// Let the user pick a `.celaut.bee` file. It answers as soon as the user chose the
@@ -113,7 +116,7 @@ class AndroidPackageChannel implements PackageChannel {
 
   final bool? _android;
 
-  bool get _onAndroid => _android ?? Platform.isAndroid;
+  bool get _onAndroid => _android ?? (Platform.isAndroid || isLinuxApp);
 
   /// Take the counts of the copy that the Android side sends.
   static void _listen() {
