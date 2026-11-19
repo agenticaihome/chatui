@@ -14,6 +14,7 @@ import 'package:argus_wallet/celaut/launcher.dart';
 import 'package:argus_wallet/celaut/package_channel.dart';
 import 'package:argus_wallet/celaut/package_library.dart';
 import 'package:argus_wallet/celaut/payers.dart';
+import 'package:argus_wallet/celaut/service_presets.dart';
 import 'package:argus_wallet/celaut/service_transfer.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
 import 'package:argus_wallet/theme/argus_theme.dart';
@@ -278,6 +279,9 @@ void main() {
     IncomingPackages? incoming,
     bool settle = true,
     Size size = const Size(390, 2400),
+    ServicePreset? preset,
+    ServicePresets? presets,
+    VoidCallback? onPresetDone,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -326,6 +330,9 @@ void main() {
               library: (lib ?? _Lib()).library,
               importFile: importFile,
               incoming: incoming ?? IncomingPackages(),
+              preset: preset,
+              presets: presets ?? ServicePresets(),
+              onPresetDone: onPresetDone,
             ),
         ),
       ),
@@ -1599,6 +1606,138 @@ void main() {
       DeclaredVariableView(name: 'API_KEY', tags: ['text'], prose: 'The key of the API'),
       DeclaredVariableView(name: 'MODE', tags: [], prose: ''),
     ];
+
+    group('presets (docs/celaut/presets.md)', () {
+      ServicePreset preset(List<PresetVariable> variables, {bool known = true}) => ServicePreset(
+            id: 'p1',
+            serviceId: _best,
+            name: 'My key',
+            fromInstance: 'old-1',
+            known: known,
+            variables: variables,
+          );
+
+      Future<void> start(WidgetTester tester, ServicePreset p, {VoidCallback? done}) async {
+        await open(
+          tester,
+          askEnvironment: true,
+          inspect: (id, node) async => _info(env: declared),
+          envStore: store,
+          preset: p,
+          onPresetDone: done,
+        );
+        // Nothing of the store: only the confirmation of the launch.
+        expect(find.byKey(const Key('run-preset')), findsOneWidget);
+        expect(find.byKey(const Key('run-objective-objective-sat')), findsNothing);
+        expect(find.byKey(const Key('run-confirm')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('run-confirm-ok')));
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('all the values known: the questions open on the review, and the start gets them', (tester) async {
+        await start(tester, preset(const [
+          PresetVariable.container('API_KEY', 'OPENAI_KEY'),
+          PresetVariable.text('MODE', 'fast'),
+        ]));
+        expect(launched, [_best]);
+        expect(find.byKey(const Key('env-step')), findsNothing);
+        expect(find.textContaining(appL10n.celautEnvReviewFromContainer('OPENAI_KEY')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('env-run')));
+        await tester.pumpAndSettle();
+        expect(envChosen!.map((c) => (c.name, c.container, c.text)), [
+          ('API_KEY', 'OPENAI_KEY', null),
+          ('MODE', null, 'fast'),
+        ]);
+      });
+
+      testWidgets('a secret that the preset does not keep is asked for, and only it', (tester) async {
+        await start(tester, preset(const [PresetVariable.ask('API_KEY'), PresetVariable.text('MODE', 'fast')]));
+        expect(find.text('Variable 1 of 2'), findsOneWidget);
+        await tester.tap(find.byKey(const Key('env-ask-type')));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byKey(const Key('env-typed')), 'sk-typed');
+        await tester.tap(find.byKey(const Key('env-typed-use')));
+        await tester.pumpAndSettle();
+        // MODE has its value from the preset: straight to the review.
+        expect(find.byKey(const Key('env-step')), findsNothing);
+        await tester.tap(find.byKey(const Key('env-run')));
+        await tester.pumpAndSettle();
+        expect(envChosen!.map((c) => (c.name, c.text)), [('API_KEY', 'sk-typed'), ('MODE', 'fast')]);
+      });
+
+      testWidgets('a variable of the container that is gone is asked for; a review row changes a value', (tester) async {
+        await start(tester, preset(const [
+          PresetVariable.container('API_KEY', 'GONE_KEY'),
+          PresetVariable.skip('MODE'),
+        ]));
+        expect(find.text('Variable 1 of 2'), findsOneWidget);
+        await tester.tap(find.byKey(const Key('env-ask-skip')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('env-review-MODE')));
+        await tester.pumpAndSettle();
+        expect(find.text('Variable 2 of 2'), findsOneWidget);
+        await tester.tap(find.byKey(const Key('env-ask-type')));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byKey(const Key('env-typed')), 'slow');
+        await tester.tap(find.byKey(const Key('env-typed-use')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('env-run')));
+        await tester.pumpAndSettle();
+        expect(envChosen!.map((c) => (c.name, c.text)), [('MODE', 'slow')]);
+      });
+
+      testWidgets('a preset of an instance whose variables were not known asks for each one', (tester) async {
+        await start(tester, preset(const [], known: false));
+        expect(find.text('Variable 1 of 2'), findsOneWidget);
+      });
+
+      testWidgets('Cancel in the confirmation starts nothing and ends the launch page', (tester) async {
+        var done = 0;
+        await open(
+          tester,
+          askEnvironment: true,
+          inspect: (id, node) async => _info(env: declared),
+          envStore: store,
+          preset: preset(const []),
+          onPresetDone: () => done++,
+        );
+        await tester.tap(find.byKey(const Key('run-confirm-cancel')));
+        await tester.pumpAndSettle();
+        expect(launched, isEmpty);
+        expect(done, 1);
+      });
+
+      testWidgets('a start keeps the variables for a pin, without the secret typed values', (tester) async {
+        final kept = ServicePresets();
+        await open(
+          tester,
+          askEnvironment: true,
+          inspect: (id, node) async => _info(env: declared),
+          envStore: store,
+          presets: kept,
+        );
+        await run(tester);
+        await tester.tap(find.byKey(const Key('env-ask-type')));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byKey(const Key('env-typed')), 'sk-very-secret');
+        await tester.tap(find.byKey(const Key('env-typed-sensitive')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('env-typed-use')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('env-ask-type')));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byKey(const Key('env-typed')), 'fast');
+        await tester.tap(find.byKey(const Key('env-typed-use')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('env-run')));
+        await tester.pumpAndSettle();
+        expect(envChosen!.map((c) => (c.name, c.text)), [('API_KEY', 'sk-very-secret'), ('MODE', 'fast')]);
+        expect(kept.launchedWith('inst-1'), const [PresetVariable.ask('API_KEY'), PresetVariable.text('MODE', 'fast')]);
+        final stored = (await SharedPreferences.getInstance()).getString('celaut_presets_v1') ?? '';
+        expect(stored, contains('fast'));
+        expect(stored, isNot(contains('sk-very-secret')));
+      });
+    });
 
     testWidgets('a service that declares nothing starts with no question', (tester) async {
       await open(tester, askEnvironment: true, inspect: (id, node) async => _info(), envStore: store);
