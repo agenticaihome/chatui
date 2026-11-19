@@ -107,10 +107,8 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     }
   }
 
-  Future<QuoteView?> _previewOf(String serviceId) => _previews.putIfAbsent(
-        serviceId,
-        () => widget.previewQuote!(serviceId).catchError((_) => null),
-      );
+  Future<QuoteView?> _previewOf(String serviceId) =>
+      _previews.putIfAbsent(serviceId, () => widget.previewQuote!(serviceId).catchError((_) => null));
 
   bool get _canRun => _gate != FullWalletGate.none;
 
@@ -126,115 +124,131 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
     final action = widget.actionLabel ?? l.celautRunButton;
     final glow = skillGlow(skill, Theme.of(context).brightness);
     final prose = skill.prose.trim();
-    final tags = [for (final tag in skill.tags) if (tag.trim().isNotEmpty) tag.trim()];
+    final tags = [
+      for (final tag in skill.tags)
+        if (tag.trim().isNotEmpty) tag.trim(),
+    ];
     return SceneBackdrop(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(),
-        body: Stack(
-          children: [
-            // The glow of the skill, behind its header.
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 260,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(-0.6, -1),
-                      radius: 1.2,
-                      colors: [glow, glow.withValues(alpha: 0)],
-                    ),
+      child: Stack(
+        children: [
+          // The glow of the skill, from the top of the screen (behind the bar) down to
+          // nothing: no edge.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: MediaQuery.paddingOf(context).top + kToolbarHeight + 300,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      glow,
+                      glow.withValues(alpha: glow.a * 0.6),
+                      glow.withValues(alpha: 0),
+                    ],
+                    stops: const [0, 0.5, 1],
                   ),
                 ),
               ),
             ),
-            ReadableWidth(
-              child: ListView(
-                key: const Key('skill-detail'),
-                padding: EdgeInsets.fromLTRB(homeGutter, 4, homeGutter, 32 + MediaQuery.paddingOf(context).bottom),
-                children: [
-                  SkillDetailHeader(
-                    skill: skill,
-                    heroTag: widget.heroTag,
-                    action: SkillRunButton(
-                      key: const Key('skill-detail-run'),
-                      filled: true,
-                      label: action,
-                      busy: _loading,
-                      semanticsLabel: '$action ${skill.name}',
-                      onPressed: chosen == null || !_canRun ? null : () => _runService(chosen),
-                    ),
-                  ),
-                  if (chosen != null && widget.previewQuote != null) ...[
-                    const SizedBox(height: 10),
-                    _preview(context, chosen),
-                  ],
-                  if (!_canRun) ...[
-                    const SizedBox(height: 10),
-                    Text(l.celautNoFullWallet, key: const Key('skill-detail-no-wallet'), style: t.secondary),
-                  ],
-                  const SizedBox(height: 18),
-                  SkillStats(skill: skill, rank: widget.rank),
-                  if (prose.isNotEmpty) ...[
-                    const SizedBox(height: 22),
-                    StoreSectionTitle(l.celautSkillAbout),
-                    const SizedBox(height: 8),
-                    SkillProse(prose),
-                  ],
-                  if (tags.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    Wrap(
-                      key: const Key('skill-detail-tags'),
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [for (final tag in tags) SkillTag(tag)],
-                    ),
-                  ],
-                  const SizedBox(height: 26),
-                  StoreSectionTitle(l.celautRunServicesTitle),
-                  const SizedBox(height: 10),
-                  if (_loading)
-                    const _ServicesSkeleton(key: Key('skill-detail-loading'))
-                  else if (_error != null)
-                    StoreMessage(
-                      icon: Icons.cloud_off_outlined,
-                      text: CelautStrings.errorText(_error!.kind),
-                      textKey: const Key('skill-detail-error'),
-                      action: OutlinedButton(
-                        key: const Key('skill-detail-retry'),
-                        // The theme asks for the full width, which a column of text does not need.
-                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40), shape: const StadiumBorder()),
-                        onPressed: _read,
-                        child: Text(l.celautRunRetry),
+          ),
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(),
+            body: Stack(
+              children: [
+                ReadableWidth(
+                  child: ListView(
+                    key: const Key('skill-detail'),
+                    padding: EdgeInsets.fromLTRB(homeGutter, 4, homeGutter, 32 + MediaQuery.paddingOf(context).bottom),
+                    children: [
+                      SkillDetailHeader(
+                        skill: skill,
+                        heroTag: widget.heroTag,
+                        action: SkillRunButton(
+                          key: const Key('skill-detail-run'),
+                          filled: true,
+                          label: action,
+                          busy: _loading,
+                          semanticsLabel: '$action ${skill.name}',
+                          onPressed: chosen == null || !_canRun ? null : () => _runService(chosen),
+                        ),
                       ),
-                    )
-                  else if (services != null && services.isEmpty)
-                    StoreMessage(
-                      icon: Icons.inventory_2_outlined,
-                      text: l.celautRunNoServices,
-                      textKey: const Key('skill-detail-empty'),
-                    ),
-                  if (services != null && services.isNotEmpty) ...[
-                    const SkillTestDataBanner(),
-                    const SizedBox(height: 10),
-                    SkillServiceChoice(
-                      services: services,
-                      chosen: chosen,
-                      onChoose: (id) => setState(() => _chosen = id),
-                      keyPrefix: 'skill-service',
-                      showRun: true,
-                      runLabel: widget.actionLabel,
-                      onRun: _canRun ? _runService : null,
-                    ),
-                  ],
-                ],
-              ),
+                      if (chosen != null && widget.previewQuote != null) ...[
+                        const SizedBox(height: 10),
+                        _preview(context, chosen),
+                      ],
+                      if (!_canRun) ...[
+                        const SizedBox(height: 10),
+                        Text(l.celautNoFullWallet, key: const Key('skill-detail-no-wallet'), style: t.secondary),
+                      ],
+                      const SizedBox(height: 18),
+                      SkillStats(skill: skill, rank: widget.rank),
+                      if (prose.isNotEmpty) ...[
+                        const SizedBox(height: 22),
+                        StoreSectionTitle(l.celautSkillAbout),
+                        const SizedBox(height: 8),
+                        SkillProse(prose),
+                      ],
+                      if (tags.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Wrap(
+                          key: const Key('skill-detail-tags'),
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [for (final tag in tags) SkillTag(tag)],
+                        ),
+                      ],
+                      const SizedBox(height: 26),
+                      StoreSectionTitle(l.celautRunServicesTitle),
+                      const SizedBox(height: 10),
+                      if (_loading)
+                        const _ServicesSkeleton(key: Key('skill-detail-loading'))
+                      else if (_error != null)
+                        StoreMessage(
+                          icon: Icons.cloud_off_outlined,
+                          text: CelautStrings.errorText(_error!.kind),
+                          textKey: const Key('skill-detail-error'),
+                          action: OutlinedButton(
+                            key: const Key('skill-detail-retry'),
+                            // The theme asks for the full width, which a column of text does not need.
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 40),
+                              shape: const StadiumBorder(),
+                            ),
+                            onPressed: _read,
+                            child: Text(l.celautRunRetry),
+                          ),
+                        )
+                      else if (services != null && services.isEmpty)
+                        StoreMessage(
+                          icon: Icons.inventory_2_outlined,
+                          text: l.celautRunNoServices,
+                          textKey: const Key('skill-detail-empty'),
+                        ),
+                      if (services != null && services.isNotEmpty) ...[
+                        const SkillTestDataBanner(),
+                        const SizedBox(height: 10),
+                        SkillServiceChoice(
+                          services: services,
+                          chosen: chosen,
+                          onChoose: (id) => setState(() => _chosen = id),
+                          keyPrefix: 'skill-service',
+                          showRun: true,
+                          runLabel: widget.actionLabel,
+                          onRun: _canRun ? _runService : null,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -247,11 +261,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       future: _previewOf(serviceId),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return Text(
-            l.celautRunPreviewLoading,
-            key: const Key('skill-detail-preview-loading'),
-            style: t.secondary,
-          );
+          return Text(l.celautRunPreviewLoading, key: const Key('skill-detail-preview-loading'), style: t.secondary);
         }
         final quote = snapshot.data;
         if (quote == null) return const SizedBox.shrink();
@@ -307,10 +317,7 @@ class SkillDetailHeader extends StatelessWidget {
                   style: t.secondary.copyWith(fontSize: 14),
                 ),
               ],
-              if (action != null) ...[
-                const SizedBox(height: 12),
-                action!,
-              ],
+              if (action != null) ...[const SizedBox(height: 12), action!],
             ],
           ),
         ),
@@ -336,7 +343,12 @@ class SkillStats extends StatelessWidget {
     final r = rank;
     final stats = <Widget>[
       if (r != null)
-        _Stat(key: const Key('skill-stat-rank'), caption: l.celautSkillStatRank, value: '#$r', note: l.celautSkillStatRankNote),
+        _Stat(
+          key: const Key('skill-stat-rank'),
+          caption: l.celautSkillStatRank,
+          value: '#$r',
+          note: l.celautSkillStatRankNote,
+        ),
       _Stat(
         key: const Key('skill-stat-services'),
         caption: l.celautSkillStatServices,
