@@ -8906,4 +8906,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get registryOpenSettings => 'Open the registry settings';
+
+  @override
+  String get presetPin => 'Pin as preset';
+
+  @override
+  String get presetPinNote =>
+      'Start a new instance of this service with the same settings from the ✏ button of Chats.';
+
+  @override
+  String get presetPinBody =>
+      'The ✏ button of Chats will show it on a wheel. One tap starts a new instance of this service with the same variables. You still see the cost and confirm it before it starts.';
+
+  @override
+  String get presetPinUnknown =>
+      'This phone does not know the variables that this instance was started with (it started on an earlier version of the app, or on another phone): the launch asks for them.';
+
+  @override
+  String presetPinAsks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count secret values were typed and not saved, so the preset does not keep them: the launch asks for them each time.',
+      one:
+          'One secret value was typed and not saved, so the preset does not keep it: the launch asks for it each time.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get presetPinAction => 'Pin';
+
+  @override
+  String get presetPinnedDone =>
+      'Pinned. Hold or tap the ✏ button of Chats to start it.';
+
+  @override
+  String presetPinned(String name) {
+    return 'Pinned to the ✏ button as \"$name\"';
+  }
+
+  @override
+  String get presetUnpin => 'Unpin';
+
+  @override
+  String presetFull(int max) {
+    return 'The wheel holds $max presets. Remove one first: long-press it on the wheel.';
+  }
+
+  @override
+  String get presetNameLabel => 'Name on the wheel';
+
+  @override
+  String get presetRemove => 'Remove from the wheel';
+
+  @override
+  String presetRemoved(String name) {
+    return '\"$name\" removed from the wheel';
+  }
+
+  @override
+  String get presetWheelHint =>
+      'Opens your presets. Slide to one and let go to start it.';
+
+  @override
+  String get presetWheelObjectives => 'Objectives';
+
+  @override
+  String get presetWheelObjectivesLabel => 'Objectives: choose a new service';
+
+  @override
+  String presetWheelStart(String name) {
+    return 'Start $name';
+  }
+
+  @override
+  String get presetWheelEditHint => 'Rename or remove';
 }
