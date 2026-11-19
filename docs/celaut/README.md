@@ -24,6 +24,7 @@ Sources read for these notes:
 | [network.md](network.md) | The network route and optional Tor (M5): direct, Arti inside the app, or a SOCKS5 proxy, and the rule that Tor on never goes direct |
 | [package.md](package.md) | Give a service to a node that does not have it: from a node that has it, or from a `.celaut.bee` file, with cancel markers so that a node never keeps half a service |
 | [env-variables.md](env-variables.md) | Environment variables: a container in the app, and one question per variable at a launch (choose, type or skip) |
+| [presets.md](presets.md) | Presets: "Pin as preset" on the info page of an instance, and the wheel of the pencil button of Chats that starts one with the same variables (no secret kept in plain text), always through the confirmation of the cost |
 | [invite.md](invite.md) | The peer invitation of nodo in a QR code: what the app reads, the binary scanner, and how it chooses the address that can work on the route |
 | [service-info.md](service-info.md) | The details of a service, read from its Service as a stream that skips the filesystem, and the check of the chat interface before a launch |
 | [receipts.md](receipts.md) | The execution receipts of nodo#419: the start receipt, the checkpoints and the close of each tunnel, how the app checks them against what the phone sent and got, what it keeps, the Receipts part of the info page, and the export for `nodo receipt verify` |

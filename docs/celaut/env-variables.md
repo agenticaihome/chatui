@@ -189,6 +189,11 @@ there are none, so a service with no variables sends the same message as today.
 The app does not keep the values after the start: the instance record has no environment.
 The node holds them in the file `/__config__` of the instance (`ConfigurationFile`).
 
+Since the presets (2026-11-19, [presets.md](presets.md), section 3) the app keeps, by
+instance id, what each declared variable got, for "Pin as preset": the name of a variable of
+the container, a typed value that is not sensitive, or only "ask" for a typed sensitive value
+that was not saved. No secret value is kept outside the container.
+
 ## 5. Where the code goes
 
 | Change | File |
@@ -208,6 +213,7 @@ The node holds them in the file `/__config__` of the instance (`ConfigurationFil
 | `KnownNodeView.trusted`, `celaut_set_node_trusted`; the switch on the node card | `rust/crates/wallet-ffi/src/api/celaut_home.rs`, `app/lib/ui/celaut/known_nodes_screen.dart` |
 | The switch "Save in my variables" of a typed value (`EnvTyped.save`), and the questions for one secret of the chat (`EnvQuestionsPurpose.chat`) | `app/lib/ui/celaut/env_questions_screen.dart` |
 | Strings in English and Spanish | `app/lib/l10n/app_en.arb`, `app_es.arb` (`celautEnv*`) |
+| The answers of a launch for a preset (`presetVariablesOf`), and the questions filled from a preset (`EnvQuestionsScreen.initial`, `envAnswersOfPreset`) | `app/lib/ui/celaut/env_questions_screen.dart`, `app/lib/celaut/service_presets.dart` ([presets.md](presets.md)) |
 
 A launch from the screen "Celaut service" of the Compute section has no question: it starts
 with no variables, as before.
