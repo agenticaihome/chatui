@@ -610,6 +610,7 @@ mod tests {
             transport: Some(protocol(&[transport])),
             protocol_stack: stack.iter().map(|t| protocol(t)).collect(),
             mu_per_call: Vec::new(),
+            policies: Vec::new(),
         }
     }
 
@@ -640,7 +641,7 @@ mod tests {
                 filesystem: vec![7u8; fs],
                 init: Some(Init {
                     entry_path: vec!["usr".into(), "bin".into(), "serve".into()],
-                    xattrs: Vec::new(),
+                    policies: Vec::new(),
                 }),
                 resources: Some(ContainerResources {
                     at_init: Some(resources()),
@@ -933,6 +934,7 @@ mod tests {
                     formal: Vec::new(),
                 }],
                 mu_per_call: Vec::new(),
+                policies: Vec::new(),
             })
             .collect();
         assert!(svc.api.as_ref().unwrap().encoded_len() as u64 > MAX_ENTRY);

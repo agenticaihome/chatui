@@ -270,3 +270,28 @@ fn ts_rules() {
         })
     );
 }
+
+#[test]
+fn the_protocol_of_a_contract_is_part_of_the_digest() {
+    // nodo adds the formal, the sorted tags and the prose of Contract.protocol to the
+    // text of each payment contract (node_identity._canonical_contract_message).
+    let vectors = common::vectors();
+    let base = vectors.peers[0].peer();
+    let with = |tags: &[&str], prose: &str, formal: &[u8]| {
+        let mut peer = base.clone();
+        peer.payment_contracts[0].contract.as_mut().unwrap().protocol =
+            Some(celaut_proto::celaut::contract::Protocol {
+                tags: tags.iter().map(|t| t.to_string()).collect(),
+                prose: prose.into(),
+                formal: formal.to_vec(),
+            });
+        content_digest(&peer)
+    };
+    let none = content_digest(&base);
+    let a = with(&["b", "a"], "text", b"formal");
+    assert_ne!(a, none);
+    assert_eq!(a, with(&["a", "b"], "text", b"formal"));
+    assert_ne!(a, with(&["a", "b"], "other", b"formal"));
+    assert_ne!(a, with(&["a", "b"], "text", b"other"));
+    assert_ne!(a, with(&["a"], "text", b"formal"));
+}

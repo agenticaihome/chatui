@@ -88,7 +88,7 @@ publisher cap 5 ERG, `W_d = 0.3`. A weight W can overcome a price ratio of e^W.
 
 ## MU conversion (`nodo:src/payment_system/mu_conversion.py`)
 
-- Payment method key: `(ledger tag, sha3_256(contract_type).hex, token_id)`. The first
+- Payment method key: `(ledger tag, sha3_256(protocol.formal).hex, token_id)`. The first
   method that both sides have is used.
 - `convert(amount, from, to)` = `amount * to / from`, integers of any size.
 - Configuration sent to a node: round down. Quote received: round up.

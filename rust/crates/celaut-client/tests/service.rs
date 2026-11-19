@@ -69,6 +69,7 @@ fn peer_with(
                     key: "token_id".into(),
                     value: Some(b"ERG".to_vec()),
                 }],
+                ..Default::default()
             }),
             mu_per_unit: mu(rate),
         }];

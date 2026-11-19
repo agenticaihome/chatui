@@ -86,6 +86,7 @@ fn canonical_scheme_protocol(p: &SchemeProtocol) -> String {
 
 fn canonical_contract_message(contract: &Contract) -> String {
     let ledger = contract.ledger.clone().unwrap_or_default();
+    let protocol = contract.protocol.clone().unwrap_or_default();
     let xattrs = items(
         &contract.xattrs,
         |e| e.key.as_str(),
@@ -99,6 +100,9 @@ fn canonical_contract_message(contract: &Contract) -> String {
         hex::encode(&ledger.formal),
         sorted(ledger.tags.clone()).join(","),
         ledger.prose.clone(),
+        hex::encode(&protocol.formal),
+        sorted(protocol.tags.clone()).join(","),
+        protocol.prose.clone(),
         xattrs,
     ]
     .join("~")

@@ -35,6 +35,17 @@ The tag of a ledger now names the chain and the network (nodo `e1eca3d8`): `ergo
 of the tag with `celaut_balancer::ledger_chain`: the part before the first `-`. It accepts the old tag
 (`ergo`) and the new one.
 
+`celaut.proto` was re-pinned to nodo dev `17e63ca4`. Since `54f3531d` the contract has these changes:
+
+- Breaking: `Contract.xattrs` moved from field 2 to field 3. `Contract.protocol` (tags, prose, formal) is the
+  new field 2. The xattr `contract_type` is removed: the kind of contract is in `protocol.tags`
+  (`ergo-p2pk`, `bitcoin-p2wpkh`). The digest of a `Peer` has the formal, the sorted tags and the prose of
+  each `protocol`, so the vectors in `celaut-client/tests/vectors` were made again.
+- Breaking: the settings of a service moved from xattrs to `repeated Policy policies` in `Slot` (field 5),
+  `ItemBranch` (6), the root `Filesystem` (2) and `Init` (2). chatui reads none of them.
+- New and not used by chatui: `Policy`, `FaultEvidence`, `ReputationOpinion`, `ReputationProof`,
+  `ReputationProofAck`, and the Gateway calls `GetReputationProofs` and `PushReputationProof`.
+
 ## 1. Transport
 
 - **Port:** no fixed default. `network.GATEWAY_PORT: auto` picks a free port on the first
@@ -212,13 +223,14 @@ Notes:
 3. `GetPeerInfo` → `Peer.payment_contracts`. Take the first `ContractRate` with
    `contract.ledger.tags[0] == "ergo"`, xattr `token_id == "ERG"` and `mu_per_unit` more
    than 0 (the balancer takes the same one for the price). Xattr `script` is the
-   ErgoTree of the node wallet (P2PK). Xattr `contract_type` is
-   `proveDlog(decodePoint())`. `mu_per_unit` is MU per nanoERG, an integer (default 1,
-   `ledgers.ergo.payments.MU_PER_NANOERG`).
+   ErgoTree of the node wallet (P2PK). The kind of contract is in `contract.protocol`
+   (tags, prose, formal), not in an xattr: the tag is `ergo-p2pk`. `mu_per_unit` is MU
+   per nanoERG, an integer (default 1, `ledgers.ergo.payments.MU_PER_NANOERG`).
    - `contract.ledger.formal` is the ledger declaration: `key=value` lines sorted by key
      (`component_formal`, `nodo:src/utils/ledger_descriptors.py`). Pay only if it has
      `chain=ergo` and `network=mainnet` (a node on another chain declares
-     `network=genesis <id>`), and if `payment.deposit_token` starts with `R4`.
+     `network=genesis <id>`), and if `payment.deposit_token` starts with `R4`. nodo puts the `payment.*` lines in
+     the formal of `contract.protocol`. The client reads them there first, then in the ledger.
 4. `GenerateDepositToken` (`Client` at 1) → `TokenMessage.token` at 1: the text of a
    UUID4 with hyphens (36 characters, `str(uuid.uuid4())`). The node only writes it in its
    database as `pending` for the client. Nothing goes on a ledger. It expires after
@@ -242,7 +254,7 @@ Notes:
      that exists.
    - `contract.ledger` is the same declaration as the ledger of the node
      (`same_declaration`), and the payment method is found by the ledger tag, the
-     SHA3-256 of xattr `contract_type` and xattr `token_id`. A changed `Contract` fails,
+     SHA3-256 of the formal of `contract.protocol` and xattr `token_id`. A changed `Contract` fails,
      so send the one from GetPeerInfo without a change.
    - The address of `script` is the wallet address of the node.
    - The explorer of the node shows an unspent box with the deposit token in R4 and a

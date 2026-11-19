@@ -386,6 +386,7 @@ mod tests {
                 key: "send".into(),
                 value: Some(Amount { n: "5".into() }),
             }],
+            policies: Vec::new(),
         }
     }
 
@@ -399,7 +400,7 @@ mod tests {
             filesystem_bytes: 123,
             init: Some(Init {
                 entry_path: vec!["bin".into(), "run".into()],
-                xattrs: Vec::new(),
+                policies: Vec::new(),
             }),
             resources: Some(Resources {
                 at_init: Some(Sysresources {

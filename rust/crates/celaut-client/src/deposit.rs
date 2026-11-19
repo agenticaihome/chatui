@@ -110,6 +110,7 @@ fn check_ledger(contract: &Contract) -> Result<(), DepositError> {
         .map(|l| l.formal.as_slice())
         .unwrap_or_default();
     let pairs = formal_pairs(formal);
+    let payment = payment_pairs(contract);
     match formal_value(&pairs, "chain") {
         Some("ergo") => {}
         other => {
@@ -128,7 +129,7 @@ fn check_ledger(contract: &Contract) -> Result<(), DepositError> {
             )))
         }
     }
-    if let Some(binding) = formal_value(&pairs, "payment.deposit_token") {
+    if let Some(binding) = formal_value(&payment, "payment.deposit_token") {
         if !binding.starts_with("R4") {
             return Err(DepositError::UnknownBinding(binding.to_string()));
         }
@@ -236,6 +237,19 @@ fn on_bitcoin(contract: &Contract) -> bool {
         && xattr(contract, "token_id") == Some(b"BTC".as_slice())
 }
 
+/// The `key=value` lines of the ledger declaration, then those of the formal of the
+/// protocol. nodo puts the `payment.*` lines in the protocol (`Contract.protocol`), and
+/// older nodes put them in the ledger. The first line with a key wins.
+fn payment_pairs(contract: &Contract) -> Vec<(String, String)> {
+    let mut pairs = formal_of(contract);
+    if let Some(protocol) = &contract.protocol {
+        let mut own = formal_pairs(&protocol.formal);
+        own.extend(pairs);
+        pairs = own;
+    }
+    pairs
+}
+
 fn formal_of(contract: &Contract) -> Vec<(String, String)> {
     formal_pairs(
         contract
@@ -292,16 +306,18 @@ impl BtcPayment {
                 other = Some(node_network.to_string());
                 continue;
             }
-            if let Some(binding) = formal_value(&pairs, "payment.deposit_token") {
+            let payment = payment_pairs(contract);
+            if let Some(binding) = formal_value(&payment, "payment.deposit_token") {
                 if !binding.contains("OP_RETURN") {
                     return Err(DepositError::UnknownBinding(binding.to_string()));
                 }
             }
-            if let Some(kind) = xattr(contract, "contract_type") {
-                if kind != b"p2wpkh" {
-                    return Err(DepositError::NotP2wpkh(
-                        String::from_utf8_lossy(kind).into_owned(),
-                    ));
+            // The kind of the contract is in the tags of Contract.protocol (nodo removed the
+            // xattr contract_type). A protocol with no tag is decided by the script below.
+            if let Some(protocol) = &contract.protocol {
+                let is_p2wpkh_tag = |t: &String| t == "p2wpkh" || t.ends_with("-p2wpkh");
+                if !protocol.tags.is_empty() && !protocol.tags.iter().any(is_p2wpkh_tag) {
+                    return Err(DepositError::NotP2wpkh(protocol.tags.join(",")));
                 }
             }
             let script = xattr(contract, "script")
@@ -311,7 +327,7 @@ impl BtcPayment {
             if !is_p2wpkh(&script) {
                 return Err(DepositError::NotP2wpkh(hex::encode(&script)));
             }
-            let min_confirmations = formal_value(&pairs, "payment.min_confirmations")
+            let min_confirmations = formal_value(&payment, "payment.min_confirmations")
                 .and_then(|v| v.trim().parse::<u32>().ok())
                 .filter(|n| *n > 0);
             return Ok(BtcPayment {

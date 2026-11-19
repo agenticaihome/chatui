@@ -1,6 +1,6 @@
 """Known-answer vectors for celaut-client, made with the nodo code.
 
-Run from a nodo checkout (nodo dev 76dcac3b was used):
+Run from a nodo checkout (nodo dev 17e63ca4 is the pin):
 
     PYTHONPATH=<nodo> python3 generate.py > vectors.json
 
@@ -69,6 +69,10 @@ def full_peer(pub):
     rate.contract.ledger.tags.extend(["ergo", "erg"])
     rate.contract.ledger.prose = "Ergo, in nanoERG"
     rate.contract.ledger.formal = b"network=mainnet\nunit=nanoerg"
+    # The payment protocol (Contract.protocol, nodo 743a2224): part of the digest. The
+    # edge peer has none: its protocol parts are empty.
+    protocol(rate.contract.protocol, ["ergo-p2pk", "p2pk"], "Pay to a public key",
+             b"payment.accepted=that box exists\npayment.kind=p2pk")
     keyvalue.from_dict(rate.contract.xattrs, {
         "script": bytes.fromhex("0008cd" + "02" + "ab" * 32),
         "token_id": b"ERG",
