@@ -23,7 +23,7 @@
   After that, the app uses the nodo formula.
 - **Node discovery:** reputation-proof boxes that nodes publish about themselves (see
   [catalog.md](catalog.md)), plus nodes that the user adds by address or QR code.
-- **Service catalog:** celaut-project/skills. The user picks a skill. The app selects
+- **Service catalog:** celaut-project/registry. The user picks an objective. The app selects
   the service with the highest score. The user can also launch by service hash, or
   upload a package from the phone.
 - **Wallets and storage (2026-10-16, replaces 2026-10-13):** the app holds one Ergo

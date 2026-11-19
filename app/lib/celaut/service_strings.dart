@@ -45,14 +45,14 @@ class ServiceStrings {
   static const start = 'Start here';
   static const starting = 'Starting…';
 
-  // Pick a skill (the catalog)
-  static const pickSkill = 'Pick a skill';
-  static const skillsTitle = 'Skills';
-  static const skillsLoading = 'Reading the catalog…';
-  static const skillsEmpty = 'The catalog has no skills.';
-  static const servicesLoading = 'Reading the services of this skill…';
-  static const servicesEmpty = 'No service covers this skill yet.';
-  static const otherSkill = 'Other skills';
+  // Pick an objective (the catalog)
+  static const pickObjective = 'Pick an objective';
+  static const objectivesTitle = 'Objectives';
+  static const objectivesLoading = 'Reading the catalog…';
+  static const objectivesEmpty = 'The catalog has no objectives.';
+  static const servicesLoading = 'Reading the services of this objective…';
+  static const servicesEmpty = 'No service covers this objective yet.';
+  static const otherObjective = 'Other objectives';
   static const retry = 'Try again';
 
   // Launch (the balancer picks the node)

@@ -12,24 +12,24 @@ import '../../theme/argus_theme.dart';
 import '../home/home_scene.dart';
 import '../home/home_style.dart';
 import '../layout.dart';
-import 'skill_service_choice.dart';
-import 'skill_store.dart';
+import 'objective_service_choice.dart';
+import 'objective_store.dart';
 
-/// The page of one skill, as the page of an app in a store: its big mark (it flies from
+/// The page of one objective, as the page of an app in a store: its big mark (it flies from
 /// the card that opened it), its name and field, one main action (Run), a row of facts that
 /// the catalog has (rank, declared services, the backing of its publisher, the block of its
 /// box), its text with "more", its tags, and its services, ranked, the best first and
-/// recommended ([SkillServiceChoice], issue #122). The main action runs the chosen service
+/// recommended ([ObjectiveServiceChoice], issue #122). The main action runs the chosen service
 /// (the recommended one at first); each service also has its own pill.
 ///
 /// For the chosen service it shows the node that the balancer would use and its start
 /// cost, if [previewQuote] is given and a node gives a quote. The page returns the id of
 /// the service to run, or nothing if the user goes back. Running is done by the caller
 /// (the confirmation, then the launch), as from the sheet that this page replaces.
-class SkillDetailScreen extends StatefulWidget {
-  const SkillDetailScreen({
+class ObjectiveDetailScreen extends StatefulWidget {
+  const ObjectiveDetailScreen({
     super.key,
-    required this.skill,
+    required this.objective,
     required this.loadServices,
     this.previewQuote,
     this.wallets,
@@ -38,10 +38,10 @@ class SkillDetailScreen extends StatefulWidget {
     this.actionLabel,
   });
 
-  final SkillView skill;
+  final ObjectiveView objective;
 
-  /// The ranked services of the skill (its box id).
-  final Future<List<SkillServiceView>> Function(String skillBoxId) loadServices;
+  /// The ranked services of the objective (its box id).
+  final Future<List<ObjectiveServiceView>> Function(String objectiveBoxId) loadServices;
 
   /// The best quote for a service on the nodes of the list, or null if there is none.
   final Future<QuoteView?> Function(String serviceId)? previewQuote;
@@ -52,18 +52,18 @@ class SkillDetailScreen extends StatefulWidget {
   /// The tag of the hero of the mark on the card that opened the page.
   final Object? heroTag;
 
-  /// The place of the skill in "Top skills" (1 is the most backed); null if not known.
+  /// The place of the objective in "Top objectives" (1 is the most backed); null if not known.
   final int? rank;
 
   /// The word of the actions; null for Run.
   final String? actionLabel;
 
   @override
-  State<SkillDetailScreen> createState() => _SkillDetailScreenState();
+  State<ObjectiveDetailScreen> createState() => _ObjectiveDetailScreenState();
 }
 
-class _SkillDetailScreenState extends State<SkillDetailScreen> {
-  List<SkillServiceView>? _services;
+class _ObjectiveDetailScreenState extends State<ObjectiveDetailScreen> {
+  List<ObjectiveServiceView>? _services;
   bool _loading = true;
   CelautError? _error;
   String? _chosen;
@@ -90,7 +90,7 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       _error = null;
     });
     try {
-      final services = await widget.loadServices(widget.skill.boxId);
+      final services = await widget.loadServices(widget.objective.boxId);
       if (!mounted) return;
       setState(() {
         _services = services;
@@ -118,20 +118,20 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final skill = widget.skill;
+    final objective = widget.objective;
     final services = _services;
     final chosen = _chosen;
     final action = widget.actionLabel ?? l.celautRunButton;
-    final glow = skillGlow(skill, Theme.of(context).brightness);
-    final prose = skill.prose.trim();
+    final glow = objectiveGlow(objective, Theme.of(context).brightness);
+    final prose = objective.prose.trim();
     final tags = [
-      for (final tag in skill.tags)
+      for (final tag in objective.tags)
         if (tag.trim().isNotEmpty) tag.trim(),
     ];
     return SceneBackdrop(
       child: Stack(
         children: [
-          // The glow of the skill, from the top of the screen (behind the bar) down to
+          // The glow of the objective, from the top of the screen (behind the bar) down to
           // nothing: no edge.
           Positioned(
             top: 0,
@@ -162,18 +162,18 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
               children: [
                 ReadableWidth(
                   child: ListView(
-                    key: const Key('skill-detail'),
+                    key: const Key('objective-detail'),
                     padding: EdgeInsets.fromLTRB(homeGutter, 4, homeGutter, 32 + MediaQuery.paddingOf(context).bottom),
                     children: [
-                      SkillDetailHeader(
-                        skill: skill,
+                      ObjectiveDetailHeader(
+                        objective: objective,
                         heroTag: widget.heroTag,
-                        action: SkillRunButton(
-                          key: const Key('skill-detail-run'),
+                        action: ObjectiveRunButton(
+                          key: const Key('objective-detail-run'),
                           filled: true,
                           label: action,
                           busy: _loading,
-                          semanticsLabel: '$action ${skill.name}',
+                          semanticsLabel: '$action ${objective.name}',
                           onPressed: chosen == null || !_canRun ? null : () => _runService(chosen),
                         ),
                       ),
@@ -183,37 +183,37 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                       ],
                       if (!_canRun) ...[
                         const SizedBox(height: 10),
-                        Text(l.celautNoFullWallet, key: const Key('skill-detail-no-wallet'), style: t.secondary),
+                        Text(l.celautNoFullWallet, key: const Key('objective-detail-no-wallet'), style: t.secondary),
                       ],
                       const SizedBox(height: 18),
-                      SkillStats(skill: skill, rank: widget.rank),
+                      ObjectiveStats(objective: objective, rank: widget.rank),
                       if (prose.isNotEmpty) ...[
                         const SizedBox(height: 22),
-                        StoreSectionTitle(l.celautSkillAbout),
+                        StoreSectionTitle(l.celautObjectiveAbout),
                         const SizedBox(height: 8),
-                        SkillProse(prose),
+                        ObjectiveProse(prose),
                       ],
                       if (tags.isNotEmpty) ...[
                         const SizedBox(height: 14),
                         Wrap(
-                          key: const Key('skill-detail-tags'),
+                          key: const Key('objective-detail-tags'),
                           spacing: 8,
                           runSpacing: 8,
-                          children: [for (final tag in tags) SkillTag(tag)],
+                          children: [for (final tag in tags) ObjectiveTag(tag)],
                         ),
                       ],
                       const SizedBox(height: 26),
                       StoreSectionTitle(l.celautRunServicesTitle),
                       const SizedBox(height: 10),
                       if (_loading)
-                        const _ServicesSkeleton(key: Key('skill-detail-loading'))
+                        const _ServicesSkeleton(key: Key('objective-detail-loading'))
                       else if (_error != null)
                         StoreMessage(
                           icon: Icons.cloud_off_outlined,
                           text: CelautStrings.errorText(_error!.kind),
-                          textKey: const Key('skill-detail-error'),
+                          textKey: const Key('objective-detail-error'),
                           action: OutlinedButton(
-                            key: const Key('skill-detail-retry'),
+                            key: const Key('objective-detail-retry'),
                             // The theme asks for the full width, which a column of text does not need.
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size(0, 40),
@@ -227,16 +227,16 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
                         StoreMessage(
                           icon: Icons.inventory_2_outlined,
                           text: l.celautRunNoServices,
-                          textKey: const Key('skill-detail-empty'),
+                          textKey: const Key('objective-detail-empty'),
                         ),
                       if (services != null && services.isNotEmpty) ...[
-                        const SkillTestDataBanner(),
+                        const ObjectiveTestDataBanner(),
                         const SizedBox(height: 10),
-                        SkillServiceChoice(
+                        ObjectiveServiceChoice(
                           services: services,
                           chosen: chosen,
                           onChoose: (id) => setState(() => _chosen = id),
-                          keyPrefix: 'skill-service',
+                          keyPrefix: 'objective-service',
                           showRun: true,
                           runLabel: widget.actionLabel,
                           onRun: _canRun ? _runService : null,
@@ -261,13 +261,13 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
       future: _previewOf(serviceId),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return Text(l.celautRunPreviewLoading, key: const Key('skill-detail-preview-loading'), style: t.secondary);
+          return Text(l.celautRunPreviewLoading, key: const Key('objective-detail-preview-loading'), style: t.secondary);
         }
         final quote = snapshot.data;
         if (quote == null) return const SizedBox.shrink();
         return Text(
           l.celautRunPreview('${quote.address.host}:${quote.address.port}', muOrUnknown(quote.costMu)),
-          key: const Key('skill-detail-preview'),
+          key: const Key('objective-detail-preview'),
           style: t.secondary,
         );
       },
@@ -275,11 +275,11 @@ class _SkillDetailScreenState extends State<SkillDetailScreen> {
   }
 }
 
-/// The top of the page of a skill: its big mark, its name, its field and the main action.
-class SkillDetailHeader extends StatelessWidget {
-  const SkillDetailHeader({super.key, required this.skill, this.heroTag, this.action, this.nameKey});
+/// The top of the page of an objective: its big mark, its name, its field and the main action.
+class ObjectiveDetailHeader extends StatelessWidget {
+  const ObjectiveDetailHeader({super.key, required this.objective, this.heroTag, this.action, this.nameKey});
 
-  final SkillView skill;
+  final ObjectiveView objective;
   final Object? heroTag;
   final Widget? action;
   final Key? nameKey;
@@ -287,11 +287,11 @@ class SkillDetailHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = HomeText.of(context);
-    final field = skill.domain.trim();
+    final field = objective.domain.trim();
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SkillMark(skill: skill, size: 104, heroTag: heroTag),
+        ObjectiveMark(objective: objective, size: 104, heroTag: heroTag),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -300,8 +300,8 @@ class SkillDetailHeader extends StatelessWidget {
               Semantics(
                 header: true,
                 child: Text(
-                  skill.name,
-                  key: nameKey ?? const Key('skill-detail-name'),
+                  objective.name,
+                  key: nameKey ?? const Key('objective-detail-name'),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: t.primary.copyWith(fontSize: 22, fontWeight: FontWeight.w700, height: 1.2),
@@ -311,7 +311,7 @@ class SkillDetailHeader extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   field,
-                  key: const Key('skill-detail-field'),
+                  key: const Key('objective-detail-field'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: t.secondary.copyWith(fontSize: 14),
@@ -326,53 +326,53 @@ class SkillDetailHeader extends StatelessWidget {
   }
 }
 
-/// The facts of a skill in a row, as the row under the name of an app in a store: each a
+/// The facts of an objective in a row, as the row under the name of an app in a store: each a
 /// small caption, a big value and a note. Only what the catalog has: the rank in "Top
-/// skills", the declared services, the backing of the publisher (its reputation, in ERG)
-/// and the block of the skill box. A fact that is not known is left out.
-class SkillStats extends StatelessWidget {
-  const SkillStats({super.key, required this.skill, this.rank});
+/// objectives", the declared services, the backing of the publisher (its reputation, in ERG)
+/// and the block of the objective box. A fact that is not known is left out.
+class ObjectiveStats extends StatelessWidget {
+  const ObjectiveStats({super.key, required this.objective, this.rank});
 
-  final SkillView skill;
+  final ObjectiveView objective;
   final int? rank;
 
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
-    final backing = skillBackingText(skill);
+    final backing = objectiveBackingText(objective);
     final r = rank;
     final stats = <Widget>[
       if (r != null)
         _Stat(
-          key: const Key('skill-stat-rank'),
-          caption: l.celautSkillStatRank,
+          key: const Key('objective-stat-rank'),
+          caption: l.celautObjectiveStatRank,
           value: '#$r',
-          note: l.celautSkillStatRankNote,
+          note: l.celautObjectiveStatRankNote,
         ),
       _Stat(
-        key: const Key('skill-stat-services'),
-        caption: l.celautSkillStatServices,
-        value: '${skill.serviceIds.length}',
-        note: l.celautSkillStatServicesNote,
+        key: const Key('objective-stat-services'),
+        caption: l.celautObjectiveStatServices,
+        value: '${objective.serviceIds.length}',
+        note: l.celautObjectiveStatServicesNote,
       ),
       if (backing != null)
         _Stat(
-          key: const Key('skill-stat-backing'),
-          caption: l.celautSkillStatBacking,
+          key: const Key('objective-stat-backing'),
+          caption: l.celautObjectiveStatBacking,
           value: backing,
-          note: l.celautSkillStatBackingNote,
+          note: l.celautObjectiveStatBackingNote,
         ),
-      if (skill.height > 0)
+      if (objective.height > 0)
         _Stat(
-          key: const Key('skill-stat-block'),
-          caption: l.celautSkillStatBlock,
-          value: NumberFormat.decimalPattern(Localizations.localeOf(context).toLanguageTag()).format(skill.height),
-          note: l.celautSkillStatBlockNote,
+          key: const Key('objective-stat-block'),
+          caption: l.celautObjectiveStatBlock,
+          value: NumberFormat.decimalPattern(Localizations.localeOf(context).toLanguageTag()).format(objective.height),
+          note: l.celautObjectiveStatBlockNote,
         ),
     ];
     final line = Theme.of(context).dividerColor;
     return Container(
-      key: const Key('skill-detail-stats'),
+      key: const Key('objective-detail-stats'),
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         border: Border.symmetric(horizontal: BorderSide(color: line.withValues(alpha: 0.6))),
@@ -430,17 +430,17 @@ class _Stat extends StatelessWidget {
   }
 }
 
-/// The text of a skill: three lines, and "more" for the rest if it does not fit.
-class SkillProse extends StatefulWidget {
-  const SkillProse(this.text, {super.key});
+/// The text of an objective: three lines, and "more" for the rest if it does not fit.
+class ObjectiveProse extends StatefulWidget {
+  const ObjectiveProse(this.text, {super.key});
 
   final String text;
 
   @override
-  State<SkillProse> createState() => _SkillProseState();
+  State<ObjectiveProse> createState() => _ObjectiveProseState();
 }
 
-class _SkillProseState extends State<SkillProse> {
+class _ObjectiveProseState extends State<ObjectiveProse> {
   static const _lines = 3;
   bool _open = false;
 
@@ -467,7 +467,7 @@ class _SkillProseState extends State<SkillProse> {
               alignment: Alignment.topCenter,
               child: Text(
                 widget.text,
-                key: const Key('skill-detail-prose'),
+                key: const Key('objective-detail-prose'),
                 maxLines: _open ? null : _lines,
                 overflow: _open ? null : TextOverflow.ellipsis,
                 style: style,
@@ -477,10 +477,10 @@ class _SkillProseState extends State<SkillProse> {
               Align(
                 alignment: AlignmentDirectional.centerEnd,
                 child: TextButton(
-                  key: const Key('skill-detail-more'),
+                  key: const Key('objective-detail-more'),
                   style: TextButton.styleFrom(minimumSize: const Size(48, 36), visualDensity: VisualDensity.compact),
                   onPressed: () => setState(() => _open = !_open),
-                  child: Text(_open ? l.celautSkillLess : l.celautSkillMore),
+                  child: Text(_open ? l.celautObjectiveLess : l.celautObjectiveMore),
                 ),
               ),
           ],
@@ -498,7 +498,7 @@ class _ServicesSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final shade = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.07);
     return Semantics(
-      label: context.l10n.celautSkillServicesLoading,
+      label: context.l10n.celautObjectiveServicesLoading,
       child: Column(
         children: [
           for (var i = 0; i < 2; i++)

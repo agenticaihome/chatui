@@ -4380,12 +4380,12 @@
   "celautErrorInsufficientCredit": "Your credit on the node is less than the price of the service. Add a deposit on this node or choose another one.",
   "celautErrorLaunchFailed": "The node tried to start the service and could not.",
   "celautRunTitle": "Run a service",
-  "celautRunSearchHint": "Search skills and tags",
-  "celautRunLoading": "Loading skills…",
-  "celautRunEmpty": "No skill matches.",
-  "celautRunCatalogError": "The skill catalog is not available now.",
+  "celautRunSearchHint": "Search objectives and tags",
+  "celautRunLoading": "Loading objectives…",
+  "celautRunEmpty": "No objective matches.",
+  "celautRunCatalogError": "The objective catalog is not available now.",
   "celautRunRetry": "Try again",
-  "celautRunNoServices": "No service has this skill yet.",
+  "celautRunNoServices": "No service has this objective yet.",
   "celautRunButton": "Run",
   "celautRunLaunching": "Launching {name}…",
   "celautRunLaunchingNote": "The app asks the nodes, then starts the service on the best one.",
@@ -5775,7 +5775,7 @@
   "descendantsOpenConfirm": "Open and pay",
   "serviceInfoWorkloadsInitial": "First instances that it starts",
   "serviceInfoWorkloadOr": "or",
-  "celautSkillsIntro": "Pick a skill to see the services that do it.",
+  "celautObjectivesIntro": "Pick an objective to see the services that do it.",
   "celautStoreOtherField": "Other",
   "celautStoreShowMore": "Show more ({count})",
   "@celautStoreShowMore": {
@@ -5786,50 +5786,50 @@
     }
   },
   "celautStoreShowFewer": "Show fewer",
-  "celautSkillAbout": "About this skill",
-  "celautSkillTestBanner": "Most results are tests. Check before you trust them.",
-  "celautSkillRecommended": "Recommended",
-  "celautSkillOtherOptions": "Other options ({count})",
-  "@celautSkillOtherOptions": {
+  "celautObjectiveAbout": "About this objective",
+  "celautObjectiveTestBanner": "Most results are tests. Check before you trust them.",
+  "celautObjectiveRecommended": "Recommended",
+  "celautObjectiveOtherOptions": "Other options ({count})",
+  "@celautObjectiveOtherOptions": {
     "placeholders": {
       "count": {
         "type": "String"
       }
     }
   },
-  "celautSkillRating": "Rating: {level}",
-  "@celautSkillRating": {
+  "celautObjectiveRating": "Rating: {level}",
+  "@celautObjectiveRating": {
     "placeholders": {
       "level": {
         "type": "String"
       }
     }
   },
-  "celautSkillRatingHigh": "High",
-  "celautSkillRatingMedium": "Medium",
-  "celautSkillRatingLow": "Low",
-  "celautSkillRatingExact": "Exact rating: {score} of 1",
-  "@celautSkillRatingExact": {
+  "celautObjectiveRatingHigh": "High",
+  "celautObjectiveRatingMedium": "Medium",
+  "celautObjectiveRatingLow": "Low",
+  "celautObjectiveRatingExact": "Exact rating: {score} of 1",
+  "@celautObjectiveRatingExact": {
     "placeholders": {
       "score": {
         "type": "String"
       }
     }
   },
-  "celautSkillDeclared": "Declared by the publisher",
-  "celautSkillFromResults": "Seen only in test results, not declared by a publisher",
-  "celautSkillUnverified": "Unverified",
-  "celautSkillServiceId": "Service id {id}",
-  "@celautSkillServiceId": {
+  "celautObjectiveDeclared": "Declared by the publisher",
+  "celautObjectiveFromResults": "Seen only in test results, not declared by a publisher",
+  "celautObjectiveUnverified": "Unverified",
+  "celautObjectiveServiceId": "Service id {id}",
+  "@celautObjectiveServiceId": {
     "placeholders": {
       "id": {
         "type": "String"
       }
     }
   },
-  "celautSkillIdCopied": "Service id copied",
-  "celautSkillUse": "Use this service",
-  "celautRunServicesTitle": "Services with this skill",
+  "celautObjectiveIdCopied": "Service id copied",
+  "celautObjectiveUse": "Use this service",
+  "celautRunServicesTitle": "Services with this objective",
   "celautRunBest": "Best",
   "celautRunScore": "Score {score}",
   "@celautRunScore": {
@@ -5869,17 +5869,17 @@
   "celautRunFewerOptions": "Show fewer options",
   "celautRunCategoryAll": "All",
   "celautStoreFeatured": "Featured",
-  "celautStoreFeaturedHint": "One skill of each field, from the publisher with the most reputation",
+  "celautStoreFeaturedHint": "One objective of each field, from the publisher with the most reputation",
   "celautStoreSuggested": "Suggested for you",
-  "celautStoreSuggestedHint": "In the fields of the skills that you ran",
+  "celautStoreSuggestedHint": "In the fields of the objectives that you ran",
   "celautStoreNew": "New",
-  "celautStoreNewHint": "The last skills published on Ergo",
+  "celautStoreNewHint": "The last objectives published on Ergo",
   "celautStorePopular": "Popular",
-  "celautStorePopularHint": "The skills with the most services",
+  "celautStorePopularHint": "The objectives with the most services",
   "celautStoreCategories": "Categories",
-  "celautStoreAll": "All skills",
-  "celautStoreSkills": "{count, plural, =1{1 skill} other{{count} skills}}",
-  "@celautStoreSkills": {
+  "celautStoreAll": "All objectives",
+  "celautStoreObjectives": "{count, plural, =1{1 objective} other{{count} objectives}}",
+  "@celautStoreObjectives": {
     "placeholders": {
       "count": {
         "type": "int"
@@ -6368,7 +6368,23 @@
   },
   "celautHomeBalancesTitle": "Balance and spending by node",
   "celautHomeBalancesNote": "The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.",
-  "celautStoreFeatured": "Most backed",
+  "registrySettingsTitle": "Celaut Registry",
+  "registrySettingsRowSubtitle": "Type ids of the registry",
+  "registrySettingsIntro": "The Celaut Registry keeps its boxes on Ergo. Each kind of box has a type id. The app reads the catalog of objectives with these ids. Registry: https://github.com/celaut-project/registry",
+  "registryTypesGroup": "Type ids",
+  "registryTypeObjective": "Objective type id",
+  "registryTypeBenchmark": "Benchmark type id",
+  "registryTypeCoverage": "Coverage type id",
+  "registryTypeResult": "Result type id",
+  "registryTypeObjectiveHelper": "Empty by default. With no id, the catalog is empty.",
+  "registryTypeInvalid": "Enter 64 hexadecimal characters.",
+  "registryTypeInvalidOrEmpty": "Enter 64 hexadecimal characters, or leave it empty.",
+  "registryRestoreDefault": "Restore default",
+  "registryTypesSaved": "Type ids saved.",
+  "registryNoObjectiveTitle": "No objective type id",
+  "registryNoObjectiveBody": "The catalog has no objectives, because the objective type id is empty. Enter the id in the settings of the Celaut Registry.",
+  "registryOpenSettings": "Open the registry settings",
+  "celautStoreMostBacked": "Most backed",
   "celautStoreRank": "Number {rank}",
   "@celautStoreRank": {
     "placeholders": {
@@ -6377,21 +6393,21 @@
       }
     }
   },
-  "celautStoreRunSkill": "Run {name}",
-  "@celautStoreRunSkill": {
+  "celautStoreRunObjective": "Run {name}",
+  "@celautStoreRunObjective": {
     "placeholders": {
       "name": {
         "type": "String"
       }
     }
   },
-  "celautStoreOpenHint": "Opens the page of the skill",
-  "celautStoreTopSkills": "Top skills",
+  "celautStoreOpenHint": "Opens the page of the objective",
+  "celautStoreTopObjectives": "Top objectives",
   "celautStoreMoreFields": "More fields",
   "celautStoreByField": "By field",
-  "celautStoreCatalogEmpty": "The catalog has no skills yet.",
-  "celautSkillRunService": "{action} this service (rating: {rating})",
-  "@celautSkillRunService": {
+  "celautStoreCatalogEmpty": "The catalog has no objectives yet.",
+  "celautObjectiveRunService": "{action} this service (rating: {rating})",
+  "@celautObjectiveRunService": {
     "placeholders": {
       "action": {
         "type": "String"
@@ -6401,15 +6417,15 @@
       }
     }
   },
-  "celautSkillStatRank": "Rank",
-  "celautSkillStatRankNote": "most backed",
-  "celautSkillStatServices": "Services",
-  "celautSkillStatServicesNote": "declared",
-  "celautSkillStatBacking": "Backing",
-  "celautSkillStatBackingNote": "of the publisher",
-  "celautSkillStatBlock": "Block",
-  "celautSkillStatBlockNote": "published",
-  "celautSkillMore": "more",
-  "celautSkillLess": "less",
-  "celautSkillServicesLoading": "Loading the services…"
+  "celautObjectiveStatRank": "Rank",
+  "celautObjectiveStatRankNote": "most backed",
+  "celautObjectiveStatServices": "Services",
+  "celautObjectiveStatServicesNote": "declared",
+  "celautObjectiveStatBacking": "Backing",
+  "celautObjectiveStatBackingNote": "of the publisher",
+  "celautObjectiveStatBlock": "Block",
+  "celautObjectiveStatBlockNote": "published",
+  "celautObjectiveMore": "more",
+  "celautObjectiveLess": "less",
+  "celautObjectiveServicesLoading": "Loading the services…"
 }

@@ -8,14 +8,14 @@ Sources read for these notes:
 
 - celaut-project/nodo at `b5c1e8a5` (paths below start with `nodo:`).
 - bee-rpc-over-grpc-py v0.0.1/v0.0.2 (`bee_rpc:`).
-- celaut-project/skills at its `main` branch of 2026-10-11 (`skills:`).
+- celaut-project/registry (named celaut-project/skills then) at its `main` branch of 2026-10-11 (`registry:`).
 
 | File | Content |
 |---|---|
 | [decisions.md](decisions.md) | Product decisions |
 | [wire.md](wire.md) | Transport, TLS identity, bee-rpc framing, Gateway RPCs, client lifecycle, deposits, ServiceTunnel |
 | [balancer.md](balancer.md) | Execution balancer: candidates, filters, scoring, MU conversion, cache, reputation |
-| [catalog.md](catalog.md) | Node directory and service catalog on Ergo (reputation proofs, Skill DB) |
+| [catalog.md](catalog.md) | Node directory and service catalog on Ergo (reputation proofs, Celaut Registry) |
 | [ui.md](ui.md) | Wallets (full and read-only), one database for instances, home screen focused on compute |
 | [ui-chat-first.md](ui-chat-first.md) | Chat-first UI: the bottom bar (Chats, Wallet, Compute, Settings), the list of conversations, the conversation (messages and files) and the info page of an instance, stop and delete |
 | [chat.md](chat.md) | Chat interface (specification in ASD-STE100, revision 6): gRPC over HTTP/2 (h2c) through the tunnel, defined by [chat.proto](chat.proto); history in the service, real time with `Connect`, streamed answers and reasoning, pinned messages, files by SHA3-256 hash in `FileService`, gRPC error mapping, conformance tests, and the migration from revision 5. Each chat service must follow it |

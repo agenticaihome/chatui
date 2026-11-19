@@ -18,7 +18,7 @@ import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
 import 'chat_screen.dart';
 import 'client_unknown_dialog.dart';
-import 'skill_picker.dart';
+import 'objective_picker.dart';
 
 /// Debug screen of milestone M2: quote a service on several nodes, start it on one,
 /// call it through a local port, and stop it, on the balance of the client of the app
@@ -31,8 +31,8 @@ class ServiceScreen extends StatefulWidget {
     this.http,
     this.wallets = const AppFullWallets(),
     this.newClient,
-    this.loadSkills,
-    this.loadSkillServices,
+    this.loadObjectives,
+    this.loadObjectiveServices,
   });
 
   /// The HTTP client of the local ports. Tests give their own.
@@ -44,11 +44,11 @@ class ServiceScreen extends StatefulWidget {
   /// Make a new client on a node that forgot the client id. Tests give their own.
   final Future<NewClientView> Function(NodeAddress node)? newClient;
 
-  /// Read the skills of the catalog. Tests give their own.
-  final Future<List<SkillView>> Function()? loadSkills;
+  /// Read the objectives of the catalog. Tests give their own.
+  final Future<List<ObjectiveView>> Function()? loadObjectives;
 
-  /// Read the ranked services of a skill. Tests give their own.
-  final Future<List<SkillServiceView>> Function(String skillBoxId)? loadSkillServices;
+  /// Read the ranked services of an objective. Tests give their own.
+  final Future<List<ObjectiveServiceView>> Function(String objectiveBoxId)? loadObjectiveServices;
 
   @override
   State<ServiceScreen> createState() => _ServiceScreenState();
@@ -192,14 +192,14 @@ class _ServiceScreenState extends State<ServiceScreen> {
   /// Start the service on the node that the balancer chooses, with no choice by the
   /// user (`docs/celaut/balancer.md`). A node that fails is skipped. The user decides
   /// what to do with a node that forgot the client id.
-  /// Pick a skill of the catalog and one of its services (the best is chosen at first).
+  /// Pick an objective of the catalog and one of its services (the best is chosen at first).
   /// The id of the service goes into the field. Then the user launches it.
-  Future<void> _pickSkill() async {
+  Future<void> _pickObjective() async {
     final serviceId = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => SkillPickerScreen(
-          loadSkills: widget.loadSkills,
-          loadServices: widget.loadSkillServices,
+        builder: (_) => ObjectivePickerScreen(
+          loadObjectives: widget.loadObjectives,
+          loadServices: widget.loadObjectiveServices,
         ),
       ),
     );
@@ -505,9 +505,9 @@ class _ServiceScreenState extends State<ServiceScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton(
-                  key: const Key('service-pick-skill'),
-                  onPressed: _pickSkill,
-                  child: const Text(ServiceStrings.pickSkill),
+                  key: const Key('service-pick-objective'),
+                  onPressed: _pickObjective,
+                  child: const Text(ServiceStrings.pickObjective),
                 ),
               ),
               const SizedBox(height: 4),

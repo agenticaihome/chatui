@@ -873,7 +873,7 @@ pub struct InstanceListView {
     pub started_at: i64,
     /// What the start took from the balance of the client, in MU (empty if unknown).
     pub start_charge_mu: String,
-    /// The name of the skill or the service file at the start (empty if unknown).
+    /// The name of the objective or the service file at the start (empty if unknown).
     pub name: String,
     /// The name that the user gave the instance in the app (empty if none). Local only.
     pub alias: String,
@@ -922,7 +922,7 @@ pub fn celaut_instances() -> Vec<InstanceListView> {
     })
 }
 
-/// Keep the name that the user saw at the start (the skill or the service file), so
+/// Keep the name that the user saw at the start (the objective or the service file), so
 /// that the list of conversations shows it after a restart. An empty name removes it.
 #[flutter_rust_bridge::frb(sync)]
 pub fn celaut_name_instance(instance_id: String, name: String) -> Result<(), CelautError> {
@@ -978,7 +978,7 @@ pub(crate) const ALIAS_MAX_CHARS: usize = 60;
 
 /// Give an instance a name of the user's choice, for this app only (Josemi, 2026-10-23).
 /// The name stays in the Celaut database of the app and never goes to the node. An empty
-/// name removes it: the list shows the name of the skill or the service file again.
+/// name removes it: the list shows the name of the objective or the service file again.
 #[flutter_rust_bridge::frb(sync)]
 pub fn celaut_rename_instance(instance_id: String, alias: String) -> Result<(), CelautError> {
     let alias = alias.split_whitespace().collect::<Vec<_>>().join(" ");

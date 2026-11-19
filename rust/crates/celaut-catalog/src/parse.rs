@@ -4,7 +4,7 @@
 //! | Register | Content |
 //! |---|---|
 //! | R4 | Type NFT id |
-//! | R5 | The subject: the id of the skill or of the benchmark that the box is about |
+//! | R5 | The subject: the id of the objective or of the benchmark that the box is about |
 //! | R9 | UTF-8 JSON (`renderedValue` is its hex) |
 //!
 //! `assets[0]` is the reputation token of the publisher: the profile of the box.
@@ -15,9 +15,9 @@
 
 use serde_json::Value;
 
-/// A skill: what the user picks.
+/// An objective: what the user picks.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Skill {
+pub struct Objective {
     pub box_id: String,
     /// The reputation token of the publisher.
     pub profile: Option<String>,
@@ -25,13 +25,13 @@ pub struct Skill {
     pub prose: String,
     pub tags: Vec<String>,
     pub domain: String,
-    /// The skills that this one extends. Not used by the ranking yet.
-    pub extended_skill_boxes: Vec<String>,
+    /// The objectives that this one extends. Not used by the ranking yet.
+    pub extended_objective_boxes: Vec<String>,
     /// The height of the block that has the box ([`height`]); 0 if the explorer gave none.
     pub height: u32,
 }
 
-/// A service that a publisher says covers a skill.
+/// A service that a publisher says covers an objective.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Coverage {
     pub box_id: String,
@@ -47,13 +47,13 @@ pub struct Metric {
     pub higher_is_better: bool,
 }
 
-/// A benchmark of a skill.
+/// A benchmark of an objective.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Benchmark {
     /// The box id.
     pub id: String,
     pub profile: Option<String>,
-    pub skill_box_id: String,
+    pub objective_box_id: String,
     pub name: String,
     pub metrics: Vec<Metric>,
 }
@@ -110,7 +110,7 @@ pub fn height(b: &Value) -> u32 {
         .unwrap_or(0)
 }
 
-/// The R5 register as a lowercase id, if it has one: the skill or the benchmark that the
+/// The R5 register as a lowercase id, if it has one: the objective or the benchmark that the
 /// box is about.
 pub fn subject(b: &Value) -> Option<String> {
     let id = register(b, "R5")?;
@@ -138,27 +138,27 @@ fn texts(content: &Value, key: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// A skill box. A box whose content is not JSON is still a skill, with no name.
-pub fn parse_skill(b: &Value) -> Option<Skill> {
+/// An objective box. A box whose content is not JSON is still an objective, with no name.
+pub fn parse_objective(b: &Value) -> Option<Objective> {
     let content = content(b).unwrap_or(Value::Null);
     let name = text(&content, "name");
-    Some(Skill {
+    Some(Objective {
         box_id: box_id(b)?,
         profile: profile(b),
         name: if name.is_empty() {
-            "Unnamed Skill".to_string()
+            "Unnamed Objective".to_string()
         } else {
             name
         },
         prose: text(&content, "prose"),
         tags: texts(&content, "tags"),
         domain: text(&content, "domain"),
-        extended_skill_boxes: texts(&content, "extended_skill_boxes"),
+        extended_objective_boxes: texts(&content, "extended_objective_boxes"),
         height: height(b),
     })
 }
 
-/// A coverage box about a skill. A coverage with no service id, or one that is about a
+/// A coverage box about an objective. A coverage with no service id, or one that is about a
 /// benchmark (a runner, not a solution), is left out.
 pub fn parse_coverage(b: &Value) -> Option<Coverage> {
     let content = content(b)?;
@@ -198,12 +198,12 @@ fn metric(raw: &Value) -> Option<Metric> {
 /// A benchmark box.
 pub fn parse_benchmark(b: &Value) -> Option<Benchmark> {
     let content = content(b)?;
-    let skill_box_id = subject(b).or_else(|| Some(text(&content, "skill_box_id")).filter(|s| !s.is_empty()))?;
+    let objective_box_id = subject(b).or_else(|| Some(text(&content, "objective_box_id")).filter(|s| !s.is_empty()))?;
     let name = text(&content, "name");
     Some(Benchmark {
         id: box_id(b)?,
         profile: profile(b),
-        skill_box_id,
+        objective_box_id,
         name: if name.is_empty() {
             "Unnamed Benchmark".to_string()
         } else {
@@ -282,19 +282,19 @@ mod tests {
     }
 
     #[test]
-    fn a_skill_has_its_name_tags_and_publisher() {
+    fn an_objective_has_its_name_tags_and_publisher() {
         let b = explorer_box(
             "aa",
             Some("tok"),
             Some(""),
-            Some(r#"{"name":"Sat","prose":"p","tags":["a",5,"b"],"domain":"d","extended_skill_boxes":["x"]}"#),
+            Some(r#"{"name":"Sat","prose":"p","tags":["a",5,"b"],"domain":"d","extended_objective_boxes":["x"]}"#),
         );
-        let s = parse_skill(&b).unwrap();
+        let s = parse_objective(&b).unwrap();
         assert_eq!(s.box_id, "aa");
         assert_eq!(s.profile.as_deref(), Some("tok"));
         assert_eq!((s.name.as_str(), s.prose.as_str(), s.domain.as_str()), ("Sat", "p", "d"));
         assert_eq!(s.tags, ["a", "b"]);
-        assert_eq!(s.extended_skill_boxes, ["x"]);
+        assert_eq!(s.extended_objective_boxes, ["x"]);
     }
 
     #[test]
@@ -303,7 +303,7 @@ mod tests {
         assert_eq!(height(&b), 0);
         b["creationHeight"] = json!(1816212);
         assert_eq!(height(&b), 1816212);
-        assert_eq!(parse_skill(&b).unwrap().height, 1816212);
+        assert_eq!(parse_objective(&b).unwrap().height, 1816212);
         b["settlementHeight"] = json!(1816213);
         assert_eq!(height(&b), 1816213);
         b["settlementHeight"] = json!("x");
@@ -313,20 +313,20 @@ mod tests {
     }
 
     #[test]
-    fn a_skill_whose_content_is_not_json_has_no_name_but_is_kept() {
+    fn an_objective_whose_content_is_not_json_has_no_name_but_is_kept() {
         let b = explorer_box("aa", None, None, Some("plain text"));
-        let s = parse_skill(&b).unwrap();
-        assert_eq!(s.name, "Unnamed Skill");
+        let s = parse_objective(&b).unwrap();
+        assert_eq!(s.name, "Unnamed Objective");
         assert_eq!(s.profile, None);
         let b = explorer_box("bb", None, None, None);
-        assert_eq!(parse_skill(&b).unwrap().name, "Unnamed Skill");
+        assert_eq!(parse_objective(&b).unwrap().name, "Unnamed Objective");
     }
 
     #[test]
     fn a_box_with_no_id_or_not_a_box_is_left_out() {
-        assert!(parse_skill(&json!({})).is_none());
-        assert!(parse_skill(&json!("text")).is_none());
-        assert!(parse_skill(&json!({"boxId": ""})).is_none());
+        assert!(parse_objective(&json!({})).is_none());
+        assert!(parse_objective(&json!("text")).is_none());
+        assert!(parse_objective(&json!({"boxId": ""})).is_none());
         assert!(parse_coverage(&Value::Null).is_none());
         assert!(parse_benchmark(&Value::Null).is_none());
         assert!(parse_result(&Value::Null).is_none());
@@ -361,7 +361,7 @@ mod tests {
             ),
         );
         let bm = parse_benchmark(&b).unwrap();
-        assert_eq!(bm.skill_box_id, "abcd");
+        assert_eq!(bm.objective_box_id, "abcd");
         let metrics: Vec<(&str, bool)> = bm
             .metrics
             .iter()
@@ -374,9 +374,9 @@ mod tests {
     }
 
     #[test]
-    fn a_benchmark_takes_the_skill_from_r9_when_r5_is_empty() {
-        let b = explorer_box("bm", None, Some(""), Some(r#"{"skill_box_id":"s9"}"#));
-        assert_eq!(parse_benchmark(&b).unwrap().skill_box_id, "s9");
+    fn a_benchmark_takes_the_objective_from_r9_when_r5_is_empty() {
+        let b = explorer_box("bm", None, Some(""), Some(r#"{"objective_box_id":"s9"}"#));
+        assert_eq!(parse_benchmark(&b).unwrap().objective_box_id, "s9");
         let lost = explorer_box("bm", None, None, Some(r#"{"name":"x"}"#));
         assert!(parse_benchmark(&lost).is_none());
     }
@@ -421,6 +421,6 @@ mod tests {
         let mut b = explorer_box("c", None, Some("x"), None);
         b["additionalRegisters"]["R9"] = json!({"renderedValue": "zz-not-hex"});
         assert!(parse_coverage(&b).is_none());
-        assert_eq!(parse_skill(&b).unwrap().name, "Unnamed Skill");
+        assert_eq!(parse_objective(&b).unwrap().name, "Unnamed Objective");
     }
 }

@@ -58,7 +58,7 @@ each node are one tap away. In this order:
 
 1. **Running instances**, only when there are some: they cost money now. Each has its cost
    so far and a stop action. With no instance, nothing is shown.
-2. **Run a service**: one button. It opens a screen of its own with the catalog of skills,
+2. **Run a service**: one button. It opens a screen of its own with the catalog of objectives,
    the service files of the user and the import of a file
    (`app/lib/ui/celaut/run_service_screen.dart`). The catalog is read only there.
 3. **One card of state**, three lines, each opens its detail:
@@ -106,8 +106,8 @@ Rules for the numbers:
 The pencil button of the Chats tab ("New conversation"), "Services" in the Compute tab and
 the button "Run a service" of the Compute tab open this screen
 (`app/lib/ui/celaut/run_service_screen.dart`, with the section
-`app/lib/ui/celaut/run_service_section.dart`). It lists the skills of the catalog with a
-search field. A skill opens its page with its services, best first, and the node that the
+`app/lib/ui/celaut/run_service_section.dart`). It lists the objectives of the catalog with a
+search field. An objective opens its page with its services, best first, and the node that the
 balancer would use with its start cost. Run needs the wallet open.
 
 Settings has a switch, **Do not keep the filesystem of a service**
@@ -118,7 +118,11 @@ still runs on the nodes that have it (`docs/celaut/package.md`, "Without the fil
 disk never holds the filesystem, also during the load: a service of 200 GB needs the space of
 its small file, not 200 GB.
 
-- The screen lists every skill of the catalog; the search narrows the list.
+- The screen lists every objective of the catalog; the search narrows the list. With no
+  Objective type id (the default) it shows "No objective type id" and a button that opens
+  Settings, Compute, "Celaut Registry", where the user sets the type ids of the registry
+  (`docs/celaut/catalog.md`, "Type ids in the settings"). The objective picker of the service
+  screen shows the same state.
 - Run asks first: "Run <name>?", with what a running instance costs and the node that the
   balancer would use now with its start cost (or that no node gave a price yet). Run in
   the list of the service files of the user asks in the same way. The launch again after
@@ -152,45 +156,45 @@ scrolls:
 Under them, the store home (#122; the "app store" look of 2026-11-19). It shows the data
 of the catalog and nothing more: no price, no stars, no reviews, no screenshots.
 
-- **Featured:** the most backed skill (the first of the order below), as a tall card in the
+- **Featured:** the most backed objective (the first of the order below), as a tall card in the
   glow of its hue, with a ring and "#1": its mark, name, field, two lines of its text, its
   number of declared services and a Run pill.
 - **Shelves by field:** a row of tiles that scrolls sideways for each field with two
-  skills or more, titled by the field; the fields of one skill each (and the skills with no
+  objectives or more, titled by the field; the fields of one objective each (and the objectives with no
   field) share one last shelf, "More fields" ("By field" if it is the only shelf), where each
   tile names its field. A shelf of one tile for each field would be most of the store: the
-  live catalog of 2026-11 has 7 skills in 6 fields. A tile has the mark, the name, one line
+  live catalog of 2026-11 has 7 objectives in 6 fields. A tile has the mark, the name, one line
   of the text and the number of services.
-- **Top skills:** all the skills, ranked, as numbered rows (two columns from 600 dp): the
+- **Top objectives:** all the objectives, ranked, as numbered rows (two columns from 600 dp): the
   mark, the rank, the name, one line of the text, the field, and a Run pill on the right.
   The first 6 rows and "Show more (N)".
 
 The order is the one of #122, the most backed first: the reputation of the publisher
-(nanoERG of the boxes that hold the profile token of the skill box), then the number of
-declared services, then the newest, then the name. A search shows all the skills that
+(nanoERG of the boxes that hold the profile token of the objective box), then the number of
+declared services, then the newest, then the name. A search shows all the objectives that
 match, as rows (no rank) in groups by field, the field as the title of its group ("Other"
-for the skills with no field). The search looks in the name, the text, the tags and the
+for the objectives with no field). The search looks in the name, the text, the tags and the
 field.
 
-A tap on a card, a tile or a row opens the page of the skill (2.2); its mark flies there.
-The Run pill of a card or a row runs the recommended service of the skill (the first of its
-ranking) at once, with the same confirmation as Run on the page; if the skill has no
+A tap on a card, a tile or a row opens the page of the objective (2.2); its mark flies there.
+The Run pill of a card or a row runs the recommended service of the objective (the first of its
+ranking) at once, with the same confirmation as Run on the page; if the objective has no
 service, or its services cannot be read, the page opens and says why.
 
 While the catalog loads, grey shapes stand where the cards will be (they do not move). An
 empty catalog, a search with no match and a catalog that cannot be read each show an icon
 and one line; the last one has "Try again".
 
-#### 2.2 The page of a skill (#122; a page since 2026-11-19)
+#### 2.2 The page of an objective (#122; a page since 2026-11-19)
 
-A skill of the store opens its page (`skill_detail_screen.dart`), as the page of an app in a
+An objective of the store opens its page (`objective_detail_screen.dart`), as the page of an app in a
 store: the big mark, the name, the field, one main action (Run) and, under it, the node that
 the balancer would use with its start cost. Then a row of facts, each left out when it is
-not known: the rank in Top skills, the declared services, the backing of the publisher (its
-reputation in ERG) and the block of the skill box. Then "About this skill": the text, three
-lines and "more"; the tags as chips. Then the services of the skill. The main Run runs the
+not known: the rank in Top objectives, the declared services, the backing of the publisher (its
+reputation in ERG) and the block of the objective box. Then "About this objective": the text, three
+lines and "more"; the tags as chips. Then the services of the objective. The main Run runs the
 chosen service (the recommended one at first); each service also has its own Run pill. Back
-returns to the store and runs nothing. The skill picker of the service screen shows the same
+returns to the store and runs nothing. The objective picker of the service screen shows the same
 rows and the same top of the page, with "Use this service".
 
 The ranking of the services does not change (`catalog.md`); the page shows less at each

@@ -54,7 +54,7 @@ of the wallet and the pages under a tab open over the bar.
 
 | Place | Where | What it holds | Code |
 |---|---|---|---|
-| New conversation | Chats, pencil button | The skills of the catalog (a skill opens its ranked services), the service files of the user, the import of a file | `RunServiceScreen` with the title "New conversation" |
+| New conversation | Chats, pencil button | The objectives of the catalog (an objective opens its ranked services), the service files of the user, the import of a file | `RunServiceScreen` with the title "New conversation" |
 | Conversation | Chats, a row | Bubbles, with images and files (section 7); the bar has the name of the service and "state · node · cost so far"; ⋮ has Info and Stop | `ChatScreen` |
 | Instance info | The bar of a conversation, ⋮, a long press, a tap on a stopped row | State, node address, peer id of the node, service id, chat slot, start time, cost so far (or the refund at the stop). Stop, or Delete for a stopped instance | `InstanceInfoScreen` |
 | Page of the wallet (the details) | Wallet, "Wallet details" | Balance, Send, Receive, activity, the tools (tokens, UTXOs, addresses, Deposit to a node, lock) and the settings of the wallet. It is the Ergo part of the app, and always has the Ergo look: black and orange (`ergoPalette`), whatever theme the user chose. The look covers the pages that open from it (`ergoThemeActive`) | `DashboardScreen` (wallet page) |
@@ -66,7 +66,7 @@ of the wallet and the pages under a tab open over the bar.
 
 A row of the list has the robot of the instance, its name, the cost so far, the last
 message that the app saw in this run (or a note that it saw none), and "state · node". The
-name is the name of the skill or the service file at the start; the database keeps it with
+name is the name of the objective or the service file at the start; the database keeps it with
 the instance (`InstanceRecord.name`). An instance of an earlier version has no name: the row
 shows the short service id.
 
@@ -118,7 +118,7 @@ so the conversation keeps room above it.
 
 ## 3. Flows
 
-- **New conversation.** Pencil → "New conversation" → a skill → its services, best first →
+- **New conversation.** Pencil → "New conversation" → an objective → its services, best first →
   Run → "Run <name>?" with the node, the start cost and the least time that the
   instance must run ([balancer.md](balancer.md), "The least time of a launch") → the PIN or fingerprint if the wallet
   is locked → the launch → back to the list and into the conversation, which says that the
@@ -167,7 +167,7 @@ view is the Compute tab, not a first screen.
 | The conversation screen: leaving it (decision of 2026-10-14, first written in `chat.md` revision 1; since revision 2 of `chat.md` the rules for the app are in this file and not there) | The app asks "Stop the instance" or "Leave it running" | Back goes to the list without a question. The instance runs on and stays in the list. Stop is in ⋮, the info page and the long press |
 | [ui.md](ui.md), section 2: the home screen (decision of 2026-10-16) | The compute view: running instances, "Run a service", the card of state | The Chats tab. The compute view is unchanged and is the Compute tab |
 | [ui.md](ui.md), section 2: "Run a service" | A button of the home screen | The pencil button ("New conversation") and "Services" in the Compute tab; the Compute tab keeps its button. The confirmation is the same |
-| The Celaut database | An instance has no name, and leaves the database at its stop | An instance keeps the name of its skill or service file (`InstanceRecord.name`), and stays after its stop, as stopped, until the user deletes it |
+| The Celaut database | An instance has no name, and leaves the database at its stop | An instance keeps the name of its objective or service file (`InstanceRecord.name`), and stays after its stop, as stopped, until the user deletes it |
 
 ## 6. Open questions
 

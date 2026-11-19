@@ -38,7 +38,7 @@ like the English. Imperatives: "Escribe" (not "Introduce" or "Ingresa"),
 | unlock / lock | desbloquear / bloquear |
 | sync / synced | sincronizar / sincronizada |
 | node | nodo |
-| skill (of the catalog) | habilidad |
+| objective (of the catalog) | objetivo |
 | service | servicio |
 | attachment / file (of a message) | adjunto / archivo |
 | photo | foto |

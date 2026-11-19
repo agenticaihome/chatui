@@ -348,7 +348,7 @@ const instanceAliasMaxChars = 60;
 
 /// Ask the user for a new name of [instance], and keep it in the Celaut database of the
 /// app. The name is local: the node never gets it. An empty name removes it, and the
-/// name of the skill or the service file shows again. Gives the instance with its new
+/// name of the objective or the service file shows again. Gives the instance with its new
 /// name, or null if nothing changed.
 Future<InstanceListView?> renameInstance(
   BuildContext context,

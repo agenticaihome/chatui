@@ -20,8 +20,8 @@ import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/ui/celaut/launch_failure_sheet.dart';
 import 'package:argus_wallet/ui/celaut/run_service_section.dart';
 import 'package:argus_wallet/ui/celaut/service_info_screen.dart';
-import 'package:argus_wallet/ui/celaut/skill_service_choice.dart';
-import 'package:argus_wallet/ui/celaut/skill_store.dart';
+import 'package:argus_wallet/ui/celaut/objective_service_choice.dart';
+import 'package:argus_wallet/ui/celaut/objective_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -54,8 +54,8 @@ ServiceInfoView _info({
 final _best = 'aa' * 32;
 final _other = 'bb' * 32;
 
-const _sat = SkillView(
-  boxId: 'skill-sat',
+const _sat = ObjectiveView(
+  boxId: 'objective-sat',
   name: 'Boolean SAT Solver',
   prose: 'Decides if a formula can be satisfied.',
   tags: ['logic'],
@@ -64,12 +64,12 @@ const _sat = SkillView(
   serviceIds: [],
   publisherReputation: 0,
 );
-const _summary = SkillView(boxId: 'skill-md', name: 'Markdown Summarization', prose: '', tags: ['summary'], domain: 'nlp', height: 0, serviceIds: [], publisherReputation: 0);
+const _summary = ObjectiveView(boxId: 'objective-md', name: 'Markdown Summarization', prose: '', tags: ['summary'], domain: 'nlp', height: 0, serviceIds: [], publisherReputation: 0);
 
-/// A service id of a skill of [_catalog].
-String _serviceOf(String skill, int i) => '$skill-$i'.padRight(64, '0');
+/// A service id of an objective of [_catalog].
+String _serviceOf(String objective, int i) => '$objective-$i'.padRight(64, '0');
 
-SkillView _storeSkill(String id, String name, String domain, int height, int services, double reputation) => SkillView(
+ObjectiveView _storeObjective(String id, String name, String domain, int height, int services, double reputation) => ObjectiveView(
   boxId: id,
   name: name,
   prose: 'About $name.',
@@ -83,18 +83,18 @@ SkillView _storeSkill(String id, String name, String domain, int height, int ser
 /// The catalog of mainnet on 2026-11-05: heights, declared services and the reputation of
 /// the publisher (nanoERG) as the explorer gave them.
 final _catalog = [
-  _storeSkill('satisfiability', 'Boolean Satisfiability Problem Solver', 'SAT', 1811888, 1, 32e6),
-  _storeSkill('markdown', 'Markdown Summarization', 'nlp', 1816212, 2, 96e6),
-  _storeSkill('address', 'Ergo Address Validation', 'blockchain', 1816214, 2, 96e6),
-  _storeSkill('satsolver', 'Boolean SAT Solver', 'algorithms', 1816301, 2, 96e6),
-  _storeSkill('audit', 'ErgoScript Contract Audit', 'blockchain-security', 1816382, 1, 96e6),
-  _storeSkill('market', 'market-strategy', 'finance', 1844990, 4, 96e6),
-  _storeSkill('reserves', 'proof-of-reserves', 'finance', 1846051, 3, 96e6),
+  _storeObjective('satisfiability', 'Boolean Satisfiability Problem Solver', 'SAT', 1811888, 1, 32e6),
+  _storeObjective('markdown', 'Markdown Summarization', 'nlp', 1816212, 2, 96e6),
+  _storeObjective('address', 'Ergo Address Validation', 'blockchain', 1816214, 2, 96e6),
+  _storeObjective('satsolver', 'Boolean SAT Solver', 'algorithms', 1816301, 2, 96e6),
+  _storeObjective('audit', 'ErgoScript Contract Audit', 'blockchain-security', 1816382, 1, 96e6),
+  _storeObjective('market', 'market-strategy', 'finance', 1844990, 4, 96e6),
+  _storeObjective('reserves', 'proof-of-reserves', 'finance', 1846051, 3, 96e6),
 ];
 
-List<SkillServiceView> _ranked() => [
-  SkillServiceView(serviceId: _best, score: 0.8455, direct: true),
-  SkillServiceView(serviceId: _other, score: 0.7, direct: true),
+List<ObjectiveServiceView> _ranked() => [
+  ObjectiveServiceView(serviceId: _best, score: 0.8455, direct: true),
+  ObjectiveServiceView(serviceId: _other, score: 0.7, direct: true),
 ];
 
 QuoteView _quote({String credit = '', String cost = '1000000'}) => QuoteView(
@@ -258,14 +258,14 @@ void main() {
   // A launch that waits for the test: the rocket shows meanwhile.
   Completer<void>? launchGate;
   List<EnvChoice>? envChosen;
-  Object? skillsError;
-  var skills = <SkillView>[_sat, _summary];
+  Object? objectivesError;
+  var objectives = <ObjectiveView>[_sat, _summary];
 
   Future<void> open(
     WidgetTester tester, {
     FullWallets? wallets,
     QuoteView? preview,
-    List<SkillServiceView>? services,
+    List<ObjectiveServiceView>? services,
     ServiceTransfer? transfer,
     PackageChannel? packages,
     _Lib? lib,
@@ -278,7 +278,7 @@ void main() {
     IncomingPackages? incoming,
     bool settle = true,
     Size size = const Size(390, 2400),
-    Completer<void>? skillsGate,
+    Completer<void>? objectivesGate,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -292,10 +292,10 @@ void main() {
               onChanged: () => changed++,
               newClient: (node) async =>
                   NewClientView(peerId: 'aa' * 32, freeCreditMu: '4500000', earlierClients: 1),
-              loadSkills: () async {
-                if (skillsGate != null) await skillsGate.future;
-                if (skillsError != null) throw skillsError!;
-                return skills;
+              loadObjectives: () async {
+                if (objectivesGate != null) await objectivesGate.future;
+                if (objectivesError != null) throw objectivesError!;
+                return objectives;
               },
               loadServices: (id) async => services ?? _ranked(),
               previewQuote: (id) async => preview,
@@ -350,8 +350,8 @@ void main() {
     launchError = null;
     launchGate = null;
     envChosen = null;
-    skillsError = null;
-    skills = [_sat, _summary];
+    objectivesError = null;
+    objectives = [_sat, _summary];
     outcome = () => LaunchOutcome(quote: _quote(), instance: _instance(), skipped: const []);
   });
 
@@ -362,32 +362,32 @@ void main() {
   }
 
   Future<void> run(WidgetTester tester, {String? serviceId}) async {
-    await tester.ensureVisible(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.ensureVisible(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
     if (serviceId != null) {
       // The services beyond the best are folded until the user asks for them.
-      if (find.byKey(Key('skill-service-$serviceId')).evaluate().isEmpty) {
-        await tester.tap(find.byKey(const Key('skill-service-others')));
+      if (find.byKey(Key('objective-service-$serviceId')).evaluate().isEmpty) {
+        await tester.tap(find.byKey(const Key('objective-service-others')));
         await tester.pumpAndSettle();
       }
-      await tester.tap(find.byKey(Key('skill-service-$serviceId')));
+      await tester.tap(find.byKey(Key('objective-service-$serviceId')));
       await tester.pump();
     }
-    await tester.tap(find.byKey(const Key('skill-detail-run')));
+    await tester.tap(find.byKey(const Key('objective-detail-run')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('run-confirm-ok')));
     await tester.pumpAndSettle();
   }
 
-  testWidgets('the skills are cards with a Run button; the files on this phone are behind a small action', (
+  testWidgets('the objectives are cards with a Run button; the files on this phone are behind a small action', (
     tester,
   ) async {
     await open(tester);
     expect(find.byKey(const Key('run-mode')), findsNothing);
-    expect(find.descendant(of: find.byKey(const Key('run-skill-skill-sat')), matching: find.byType(SkillMark)), findsOneWidget);
-    expect(find.byKey(const Key('run-skill-run-skill-sat')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('run-objective-objective-sat')), matching: find.byType(ObjectiveMark)), findsOneWidget);
+    expect(find.byKey(const Key('run-objective-run-objective-sat')), findsOneWidget);
     // No file list on the page: it is in the sheet of the action at the top.
     expect(find.byKey(const Key('run-on-phone')), findsNothing);
     await showFiles(tester);
@@ -398,42 +398,42 @@ void main() {
     expect(find.byKey(const Key('pkg-empty')), findsOneWidget);
   });
 
-  testWidgets('a tap on a skill opens its page, the best service chosen', (tester) async {
+  testWidgets('a tap on an objective opens its page, the best service chosen', (tester) async {
     await open(tester);
-    await tester.tap(find.byKey(const Key('run-skill-skill-md')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-md')));
     await tester.pumpAndSettle();
-    expect(tester.widget<Text>(find.byKey(const Key('skill-detail-name'))).data, _summary.name);
-    expect(find.byKey(const Key('skill-service-recommended')), findsOneWidget);
+    expect(tester.widget<Text>(find.byKey(const Key('objective-detail-name'))).data, _summary.name);
+    expect(find.byKey(const Key('objective-service-recommended')), findsOneWidget);
     // Back goes to the store, which starts nothing.
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('skill-detail')), findsNothing);
-    expect(find.byKey(const Key('run-skill-skill-md')), findsOneWidget);
+    expect(find.byKey(const Key('objective-detail')), findsNothing);
+    expect(find.byKey(const Key('run-objective-objective-md')), findsOneWidget);
     expect(launched, isEmpty);
   });
 
   testWidgets('the Run pill of a row runs the recommended service, after the confirmation', (tester) async {
     await open(tester, preview: _quote());
-    await tester.tap(find.byKey(const Key('run-skill-run-skill-md')));
+    await tester.tap(find.byKey(const Key('run-objective-run-objective-md')));
     await tester.pumpAndSettle();
     // No page in between: the confirmation, as from the page.
-    expect(find.byKey(const Key('skill-detail')), findsNothing);
+    expect(find.byKey(const Key('objective-detail')), findsNothing);
     expect(find.text(appL10n.celautRunConfirmTitle(_summary.name)), findsOneWidget);
     await tester.tap(find.byKey(const Key('run-confirm-ok')));
     await tester.pumpAndSettle();
     expect(launched, [_best]);
   });
 
-  testWidgets('the Run pill of a skill with no service opens its page, which says so', (tester) async {
+  testWidgets('the Run pill of an objective with no service opens its page, which says so', (tester) async {
     await open(tester, services: const []);
-    await tester.tap(find.byKey(const Key('run-skill-run-skill-md')));
+    await tester.tap(find.byKey(const Key('run-objective-run-objective-md')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('skill-detail-empty')), findsOneWidget);
+    expect(find.byKey(const Key('objective-detail-empty')), findsOneWidget);
     expect(find.text(appL10n.celautRunConfirmTitle(_summary.name)), findsNothing);
     expect(launched, isEmpty);
   });
 
-  testWidgets('the Run pill of the featured skill runs it too', (tester) async {
+  testWidgets('the Run pill of the featured objective runs it too', (tester) async {
     await open(tester);
     await tester.tap(find.byKey(const Key('store-featured-run')));
     await tester.pumpAndSettle();
@@ -444,12 +444,12 @@ void main() {
 
   testWidgets('each service of the page has its own Run, which runs that one', (tester) async {
     await open(tester);
-    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('skill-service-others')));
+    await tester.tap(find.byKey(const Key('objective-service-others')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(Key('skill-service-run-$_other')));
-    await tester.tap(find.byKey(Key('skill-service-run-$_other')));
+    await tester.ensureVisible(find.byKey(Key('objective-service-run-$_other')));
+    await tester.tap(find.byKey(Key('objective-service-run-$_other')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('run-confirm-ok')));
     await tester.pumpAndSettle();
@@ -457,35 +457,35 @@ void main() {
   });
 
   group('the store (#122, app store look)', () {
-    setUp(() => skills = _catalog);
+    setUp(() => objectives = _catalog);
 
     Rect rectOf(WidgetTester tester, String key) => tester.getRect(find.byKey(Key(key)));
 
-    /// The skills of the ranked rows, from the top (two columns: left, then right).
+    /// The objectives of the ranked rows, from the top (two columns: left, then right).
     List<String> listed(WidgetTester tester) {
       final rows = [
-        for (final e in find.byType(SkillRow).evaluate())
-          ((e.widget as SkillRow).skill.boxId, tester.getTopLeft(find.byWidget(e.widget))),
+        for (final e in find.byType(ObjectiveRow).evaluate())
+          ((e.widget as ObjectiveRow).objective.boxId, tester.getTopLeft(find.byWidget(e.widget))),
       ]..sort((a, b) => a.$2.dy != b.$2.dy ? a.$2.dy.compareTo(b.$2.dy) : a.$2.dx.compareTo(b.$2.dx));
       return [for (final c in rows) c.$1];
     }
 
-    /// The skills of a shelf, from the left.
+    /// The objectives of a shelf, from the left.
     List<String> shelf(WidgetTester tester, String key) {
       final tiles = [
-        for (final e in find.descendant(of: find.byKey(Key('store-shelf-list-$key')), matching: find.byType(SkillTile)).evaluate())
-          ((e.widget as SkillTile).skill.boxId, tester.getTopLeft(find.byWidget(e.widget)).dx),
+        for (final e in find.descendant(of: find.byKey(Key('store-shelf-list-$key')), matching: find.byType(ObjectiveTile)).evaluate())
+          ((e.widget as ObjectiveTile).objective.boxId, tester.getTopLeft(find.byWidget(e.widget)).dx),
       ]..sort((a, b) => a.$2.compareTo(b.$2));
       return [for (final c in tiles) c.$1];
     }
 
-    testWidgets('the home: the most backed skill featured, the shelves by field, then Top skills', (tester) async {
+    testWidgets('the home: the most backed objective featured, the shelves by field, then Top objectives', (tester) async {
       await open(tester, size: const Size(390, 3000));
       expect(tester.takeException(), isNull);
-      // Featured: the first of the ranking, with the ring of the top skill.
-      expect(tester.widget<SkillFeatureCard>(find.byKey(const Key('store-featured'))).skill.boxId, 'market');
-      // A shelf for the one field with two skills, then one for the fields of one skill each,
-      // in the order of the ranking; every skill is on one shelf.
+      // Featured: the first of the ranking, with the ring of the top objective.
+      expect(tester.widget<ObjectiveFeatureCard>(find.byKey(const Key('store-featured'))).objective.boxId, 'market');
+      // A shelf for the one field with two objectives, then one for the fields of one objective each,
+      // in the order of the ranking; every objective is on one shelf.
       expect(shelf(tester, 'finance'), ['market', 'reserves']);
       expect(shelf(tester, mixedShelfKey), ['satsolver', 'address', 'markdown', 'audit', 'satisfiability']);
       expect(find.text('finance'), findsOneWidget);
@@ -502,14 +502,14 @@ void main() {
       expect(featured.top, lessThan(finance.top));
       expect(finance.top, lessThan(mixed.top));
       expect(mixed.top, lessThan(top.top));
-      // Top skills: the ranking, the most backed six first, numbered, then "Show more".
+      // Top objectives: the ranking, the most backed six first, numbered, then "Show more".
       expect(listed(tester), ['market', 'reserves', 'satsolver', 'address', 'markdown', 'audit']);
-      expect(tester.widget<SkillRow>(find.byKey(const Key('run-skill-audit'))).rank, 6);
+      expect(tester.widget<ObjectiveRow>(find.byKey(const Key('run-objective-audit'))).rank, 6);
       expect(find.text('Show more (1)'), findsOneWidget);
       await tester.tap(find.byKey(const Key('store-more')));
       await tester.pumpAndSettle();
       expect(listed(tester).last, 'satisfiability');
-      expect(tester.widget<SkillRow>(find.byKey(const Key('run-skill-satisfiability'))).rank, 7);
+      expect(tester.widget<ObjectiveRow>(find.byKey(const Key('run-objective-satisfiability'))).rank, 7);
       expect(find.text('Show fewer'), findsOneWidget);
       // No chips and no other rows of #102.
       for (final key in ['store-suggested', 'store-new', 'store-popular', 'store-categories', 'run-category-all']) {
@@ -519,24 +519,24 @@ void main() {
 
     testWidgets('a row has its mark, its rank, its name, one line, its field and Run: no tag', (tester) async {
       await open(tester, size: const Size(390, 3000));
-      final row = find.byKey(const Key('run-skill-market'));
+      final row = find.byKey(const Key('run-objective-market'));
       final texts = [
         for (final t in tester.widgetList<Text>(find.descendant(of: row, matching: find.byType(Text)))) t.data,
       ];
       expect(texts, ['M', '1', 'market-strategy', 'About market-strategy.', 'FINANCE', appL10n.celautRunButton]);
     });
 
-    testWidgets('a tile opens the page of its skill, with the facts of the catalog', (tester) async {
+    testWidgets('a tile opens the page of its objective, with the facts of the catalog', (tester) async {
       await open(tester, size: const Size(390, 3000));
       await tester.tap(find.byKey(const Key('store-tile-reserves')));
       await tester.pumpAndSettle();
-      expect(tester.widget<Text>(find.byKey(const Key('skill-detail-name'))).data, 'proof-of-reserves');
-      expect(find.byKey(const Key('skill-detail-field')), findsOneWidget);
-      final stats = find.byKey(const Key('skill-detail-stats'));
-      expect(find.descendant(of: find.byKey(const Key('skill-stat-rank')), matching: find.text('#2')), findsOneWidget);
-      expect(find.descendant(of: find.byKey(const Key('skill-stat-services')), matching: find.text('3')), findsOneWidget);
-      expect(find.descendant(of: find.byKey(const Key('skill-stat-backing')), matching: find.textContaining('0.096')), findsOneWidget);
-      expect(find.descendant(of: find.byKey(const Key('skill-stat-block')), matching: find.text('1,846,051')), findsOneWidget);
+      expect(tester.widget<Text>(find.byKey(const Key('objective-detail-name'))).data, 'proof-of-reserves');
+      expect(find.byKey(const Key('objective-detail-field')), findsOneWidget);
+      final stats = find.byKey(const Key('objective-detail-stats'));
+      expect(find.descendant(of: find.byKey(const Key('objective-stat-rank')), matching: find.text('#2')), findsOneWidget);
+      expect(find.descendant(of: find.byKey(const Key('objective-stat-services')), matching: find.text('3')), findsOneWidget);
+      expect(find.descendant(of: find.byKey(const Key('objective-stat-backing')), matching: find.textContaining('0.096')), findsOneWidget);
+      expect(find.descendant(of: find.byKey(const Key('objective-stat-block')), matching: find.text('1,846,051')), findsOneWidget);
       // Nothing that the catalog does not have: no price, no stars, no reviews.
       expect(find.descendant(of: stats, matching: find.byIcon(Icons.star)), findsNothing);
       expect(find.descendant(of: stats, matching: find.textContaining('MU')), findsNothing);
@@ -545,18 +545,18 @@ void main() {
     testWidgets('the mark flies from the card to the page (a hero), and back', (tester) async {
       await open(tester, size: const Size(390, 3000));
       expect(find.byType(Hero), findsWidgets);
-      await tester.tap(find.byKey(const Key('run-skill-reserves')));
+      await tester.tap(find.byKey(const Key('run-objective-reserves')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       // In flight: the mark is in the overlay of the navigator.
-      expect(find.byType(SkillMark), findsWidgets);
+      expect(find.byType(ObjectiveMark), findsWidgets);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      final hero = tester.widget<Hero>(find.descendant(of: find.byKey(const Key('skill-detail')), matching: find.byType(Hero)));
-      expect(hero.tag, skillHeroTag('top', _catalog.firstWhere((s) => s.boxId == 'reserves')));
+      final hero = tester.widget<Hero>(find.descendant(of: find.byKey(const Key('objective-detail')), matching: find.byType(Hero)));
+      expect(hero.tag, objectiveHeroTag('top', _catalog.firstWhere((s) => s.boxId == 'reserves')));
     });
 
-    testWidgets('a search shows all the skills that match, as rows in their groups', (tester) async {
+    testWidgets('a search shows all the objectives that match, as rows in their groups', (tester) async {
       await open(tester, size: const Size(390, 3000));
       await tester.enterText(find.byKey(const Key('run-search')), 'boolean');
       await tester.pumpAndSettle();
@@ -564,7 +564,7 @@ void main() {
       expect(find.byKey(const Key('store-group-algorithms')), findsOneWidget);
       expect(find.byKey(const Key('store-group-sat')), findsOneWidget);
       expect(find.byKey(const Key('store-featured')), findsNothing);
-      expect(find.byType(SkillTile), findsNothing);
+      expect(find.byType(ObjectiveTile), findsNothing);
       expect(find.byKey(const Key('store-more')), findsNothing);
       await tester.enterText(find.byKey(const Key('run-search')), 'blockchain');
       await tester.pumpAndSettle();
@@ -577,7 +577,7 @@ void main() {
 
     for (final scale in [1.0, 1.3]) {
       for (final palette in [argusTheme(watchful: true), argusTheme(watchful: false)]) {
-        testWidgets('on a small phone (360 x 640, font x$scale, ${palette.brightness.name}): the featured skill shows '
+        testWidgets('on a small phone (360 x 640, font x$scale, ${palette.brightness.name}): the featured objective shows '
             'with no scroll, and the actions of this phone stay at the top', (tester) async {
           tester.platformDispatcher.textScaleFactorTestValue = scale;
           addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
@@ -613,41 +613,41 @@ void main() {
           expect(find.byKey(const Key('phone-sheet')), findsOneWidget);
         });
 
-        testWidgets('the page of a skill on a small phone (font x$scale, ${palette.brightness.name}) lays out', (tester) async {
+        testWidgets('the page of an objective on a small phone (font x$scale, ${palette.brightness.name}) lays out', (tester) async {
           tester.platformDispatcher.textScaleFactorTestValue = scale;
           addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
           await open(tester, size: const Size(360, 640), theme: palette);
           await tester.tap(find.byKey(const Key('store-featured')));
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
-          expect(rectOf(tester, 'skill-detail-run').bottom, lessThan(640));
-          await tester.drag(find.byKey(const Key('skill-detail')), const Offset(0, -2000));
+          expect(rectOf(tester, 'objective-detail-run').bottom, lessThan(640));
+          await tester.drag(find.byKey(const Key('objective-detail')), const Offset(0, -2000));
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
         });
       }
     }
 
-    testWidgets('on a wide screen the actions have their text, and Top skills is in two columns', (tester) async {
+    testWidgets('on a wide screen the actions have their text, and Top objectives is in two columns', (tester) async {
       await open(tester, size: const Size(1000, 1800));
       expect(tester.takeException(), isNull);
       expect(find.descendant(of: find.byKey(const Key('run-import')), matching: find.text(appL10n.celautRunImport)), findsOneWidget);
       expect(find.descendant(of: find.byKey(const Key('run-phone')), matching: find.text(appL10n.celautRunOnPhone)), findsOneWidget);
       expect(rectOf(tester, 'run-import').top, lessThan(80));
-      final first = rectOf(tester, 'run-skill-market');
-      final second = rectOf(tester, 'run-skill-reserves');
+      final first = rectOf(tester, 'run-objective-market');
+      final second = rectOf(tester, 'run-objective-reserves');
       expect(second.top, first.top);
       expect(second.left, greaterThan(first.right));
       expect(listed(tester), ['market', 'reserves', 'satsolver', 'address', 'markdown', 'audit']);
     });
   });
 
-  testWidgets('with no field in the catalog, one shelf holds the skills; a search shows them as one group', (tester) async {
-    skills = [for (var i = 0; i < 3; i++) SkillView(boxId: 'skill-$i', name: 'Skill $i', prose: '', tags: const [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0)];
+  testWidgets('with no field in the catalog, one shelf holds the objectives; a search shows them as one group', (tester) async {
+    objectives = [for (var i = 0; i < 3; i++) ObjectiveView(boxId: 'objective-$i', name: 'Objective $i', prose: '', tags: const [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0)];
     await open(tester);
     expect(find.byKey(const Key('store-shelf-$mixedShelfKey')), findsOneWidget);
-    expect(find.byKey(const Key('run-skill-skill-2')), findsOneWidget);
-    await tester.enterText(find.byKey(const Key('run-search')), 'skill');
+    expect(find.byKey(const Key('run-objective-objective-2')), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('run-search')), 'objective');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('store-group-')), findsOneWidget);
     expect(find.text(appL10n.celautStoreOtherField.toUpperCase()), findsOneWidget);
@@ -655,28 +655,28 @@ void main() {
 
   testWidgets('while the catalog loads, a still skeleton shows; an empty catalog says so', (tester) async {
     final gate = Completer<void>();
-    final all = skills;
-    skills = const [];
-    await open(tester, skillsGate: gate);
+    final all = objectives;
+    objectives = const [];
+    await open(tester, objectivesGate: gate);
     expect(find.byKey(const Key('run-loading')), findsOneWidget);
     expect(find.byType(StoreSkeleton), findsOneWidget);
     gate.complete();
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('run-loading')), findsNothing);
     expect(find.text(appL10n.celautStoreCatalogEmpty), findsOneWidget);
-    skills = all;
+    objectives = all;
   });
 
-  testWidgets('the search finds a skill by a tag or by its field too', (tester) async {
+  testWidgets('the search finds an objective by a tag or by its field too', (tester) async {
     await open(tester);
     await tester.enterText(find.byKey(const Key('run-search')), 'summary');
     await tester.pump();
-    expect(find.byKey(const Key('run-skill-skill-sat')), findsNothing);
-    expect(find.byKey(const Key('run-skill-skill-md')), findsOneWidget);
+    expect(find.byKey(const Key('run-objective-objective-sat')), findsNothing);
+    expect(find.byKey(const Key('run-objective-objective-md')), findsOneWidget);
     await tester.enterText(find.byKey(const Key('run-search')), 'ALGORITHMS');
     await tester.pump();
-    expect(find.byKey(const Key('run-skill-skill-sat')), findsOneWidget);
-    expect(find.byKey(const Key('run-skill-skill-md')), findsNothing);
+    expect(find.byKey(const Key('run-objective-objective-sat')), findsOneWidget);
+    expect(find.byKey(const Key('run-objective-objective-md')), findsNothing);
   });
 
   testWidgets('On this phone: the saved services run from there, and import is a small action', (
@@ -694,14 +694,14 @@ void main() {
     expect(find.byKey(const Key('pkg-empty')), findsNothing);
   });
 
-  testWidgets('it lists the skills and the search narrows them', (tester) async {
+  testWidgets('it lists the objectives and the search narrows them', (tester) async {
     await open(tester);
     expect(find.text('RUN A SERVICE'), findsOneWidget);
-    // On the featured card or a shelf, and once in Top skills.
+    // On the featured card or a shelf, and once in Top objectives.
     expect(find.text('Boolean SAT Solver'), findsWidgets);
     expect(find.text('Markdown Summarization'), findsWidgets);
-    expect(find.byKey(const Key('run-skill-skill-sat')), findsOneWidget);
-    expect(find.byKey(const Key('run-skill-skill-md')), findsOneWidget);
+    expect(find.byKey(const Key('run-objective-objective-sat')), findsOneWidget);
+    expect(find.byKey(const Key('run-objective-objective-md')), findsOneWidget);
     await tester.enterText(find.byKey(const Key('run-search')), 'markdown');
     await tester.pump();
     expect(find.text('Boolean SAT Solver'), findsNothing);
@@ -711,65 +711,65 @@ void main() {
     expect(find.byKey(const Key('run-empty')), findsOneWidget);
   });
 
-  testWidgets('every skill of the catalog is listed after "Show more", not only the first ones', (tester) async {
-    skills = [
-      for (var i = 0; i < 9; i++) SkillView(boxId: 'skill-$i', name: 'Skill $i', prose: '', tags: const [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0),
+  testWidgets('every objective of the catalog is listed after "Show more", not only the first ones', (tester) async {
+    objectives = [
+      for (var i = 0; i < 9; i++) ObjectiveView(boxId: 'objective-$i', name: 'Objective $i', prose: '', tags: const [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0),
     ];
     await open(tester, size: const Size(390, 3000));
-    expect(find.byKey(const Key('run-skill-skill-6')), findsNothing);
+    expect(find.byKey(const Key('run-objective-objective-6')), findsNothing);
     await tester.tap(find.byKey(const Key('store-more')));
     await tester.pumpAndSettle();
     for (var i = 0; i < 9; i++) {
-      expect(find.byKey(Key('run-skill-skill-$i')), findsOneWidget);
+      expect(find.byKey(Key('run-objective-objective-$i')), findsOneWidget);
     }
   });
 
   testWidgets('a failure to read the catalog shows a retry that reads it again', (tester) async {
-    skillsError = StateError('no bridge');
+    objectivesError = StateError('no bridge');
     await open(tester);
     expect(find.byKey(const Key('run-error')), findsOneWidget);
-    skillsError = null;
+    objectivesError = null;
     await tester.tap(find.byKey(const Key('run-retry')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('run-error')), findsNothing);
-    expect(find.byKey(const Key('run-skill-skill-sat')), findsOneWidget);
+    expect(find.byKey(const Key('run-objective-objective-sat')), findsOneWidget);
   });
 
-  testWidgets('a skill opens its services, the best first and chosen, with the best node', (tester) async {
+  testWidgets('an objective opens its services, the best first and chosen, with the best node', (tester) async {
     await open(tester, preview: _quote());
-    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('skill-detail')), findsOneWidget);
-    expect(find.byKey(const Key('skill-service-recommended')), findsOneWidget);
-    expect(find.byKey(const Key('skill-test-banner')), findsOneWidget);
+    expect(find.byKey(const Key('objective-detail')), findsOneWidget);
+    expect(find.byKey(const Key('objective-service-recommended')), findsOneWidget);
+    expect(find.byKey(const Key('objective-test-banner')), findsOneWidget);
     // Only the best shows at first; the others are one tap away. No id and no score yet.
-    expect(find.byKey(Key('skill-service-$_best')), findsOneWidget);
-    expect(find.byKey(Key('skill-service-$_other')), findsNothing);
+    expect(find.byKey(Key('objective-service-$_best')), findsOneWidget);
+    expect(find.byKey(Key('objective-service-$_other')), findsNothing);
     expect(find.textContaining(_best.substring(0, 6)), findsNothing);
     expect(find.textContaining('%'), findsNothing);
     // One main action, and a pill on the one service shown.
-    expect(find.byKey(const Key('skill-detail-run')), findsOneWidget);
-    expect(find.byKey(Key('skill-service-run-$_best')), findsOneWidget);
-    await tester.tap(find.byKey(Key('skill-service-details-$_best')));
+    expect(find.byKey(const Key('objective-detail-run')), findsOneWidget);
+    expect(find.byKey(Key('objective-service-run-$_best')), findsOneWidget);
+    await tester.tap(find.byKey(Key('objective-service-details-$_best')));
     await tester.pumpAndSettle();
     expect(find.text('Service id ${shortServiceId(_best)}'), findsOneWidget);
     expect(find.text(_best), findsNothing);
-    await tester.tap(find.byKey(const Key('skill-service-others')));
+    await tester.tap(find.byKey(const Key('objective-service-others')));
     await tester.pumpAndSettle();
-    final best = tester.getTopLeft(find.byKey(Key('skill-service-$_best')));
-    final other = tester.getTopLeft(find.byKey(Key('skill-service-$_other')));
+    final best = tester.getTopLeft(find.byKey(Key('objective-service-$_best')));
+    final other = tester.getTopLeft(find.byKey(Key('objective-service-$_other')));
     expect(best.dy, lessThan(other.dy));
-    expect(find.byKey(const Key('skill-service-chosen')), findsOneWidget);
+    expect(find.byKey(const Key('objective-service-chosen')), findsOneWidget);
     expect(find.textContaining('127.0.0.1:18460'), findsOneWidget);
     expect(find.textContaining('1,000,000 MU'), findsOneWidget);
   });
 
-  testWidgets('a skill with no service says so, and has no Run button', (tester) async {
+  testWidgets('an objective with no service says so, and has no Run button', (tester) async {
     await open(tester, services: const []);
-    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('skill-detail-empty')), findsOneWidget);
-    expect(tester.widget<SkillRunButton>(find.byKey(const Key('skill-detail-run'))).onPressed, isNull);
+    expect(find.byKey(const Key('objective-detail-empty')), findsOneWidget);
+    expect(tester.widget<ObjectiveRunButton>(find.byKey(const Key('objective-detail-run'))).onPressed, isNull);
   });
 
   testWidgets('Run starts the best service with the default balance', (tester) async {
@@ -780,9 +780,9 @@ void main() {
 
   testWidgets('Run asks first, with the best node and its start cost', (tester) async {
     await open(tester, preview: _quote());
-    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('skill-detail-run')));
+    await tester.tap(find.byKey(const Key('objective-detail-run')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('run-confirm')), findsOneWidget);
     expect(find.text(appL10n.celautRunConfirmTitle('Boolean SAT Solver')), findsOneWidget);
@@ -816,9 +816,9 @@ void main() {
       clientBalanceMu: '',
     );
     await open(tester, preview: best);
-    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('skill-detail-run')));
+    await tester.tap(find.byKey(const Key('objective-detail-run')));
     await tester.pumpAndSettle();
     final error = Theme.of(tester.element(find.byKey(const Key('run-confirm')))).colorScheme.error;
     Text closing() => tester.widget<Text>(find.byKey(const Key('run-confirm-closing')));
@@ -859,9 +859,9 @@ void main() {
       clientBalanceMu: '',
     );
     await open(tester, preview: best);
-    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('skill-detail-run')));
+    await tester.tap(find.byKey(const Key('objective-detail-run')));
     await tester.pumpAndSettle();
     // Empty: the app sends no balance, the node chooses it; the dialog shows the build.
     expect(
@@ -910,9 +910,9 @@ void main() {
 
     Future<void> confirm(WidgetTester tester) async {
       await open(tester, preview: best);
-      await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+      await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('skill-detail-run')));
+      await tester.tap(find.byKey(const Key('objective-detail-run')));
       await tester.pumpAndSettle();
     }
 
@@ -967,9 +967,9 @@ void main() {
 
   group('the rocket of a launch', () {
     Future<void> confirm(WidgetTester tester) async {
-      await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+      await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('skill-detail-run')));
+      await tester.tap(find.byKey(const Key('objective-detail-run')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('run-confirm-ok')));
       // The launch waits: the rocket hovers, so the frames never settle.
@@ -1048,9 +1048,9 @@ void main() {
 
   testWidgets('Cancel in the confirmation starts nothing', (tester) async {
     await open(tester, preview: _quote());
-    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('skill-detail-run')));
+    await tester.tap(find.byKey(const Key('objective-detail-run')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('run-confirm-cancel')));
     await tester.pumpAndSettle();
@@ -1061,9 +1061,9 @@ void main() {
 
   testWidgets('with no price yet, the confirmation says so and Run still asks the nodes', (tester) async {
     await open(tester);
-    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('skill-detail-run')));
+    await tester.tap(find.byKey(const Key('objective-detail-run')));
     await tester.pumpAndSettle();
     expect(find.text(appL10n.celautRunConfirmNoQuote), findsOneWidget);
     await tester.tap(find.byKey(const Key('run-confirm-ok')));
@@ -1098,11 +1098,11 @@ void main() {
 
   testWidgets('with no full wallet the sheet says so and Run is off', (tester) async {
     await open(tester, wallets: _Wallets(full: false));
-    await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('skill-detail-no-wallet')), findsOneWidget);
-    expect(tester.widget<SkillRunButton>(find.byKey(const Key('skill-detail-run'))).onPressed, isNull);
-    expect(tester.widget<SkillRunButton>(find.byKey(Key('skill-service-run-$_best'))).onPressed, isNull);
+    expect(find.byKey(const Key('objective-detail-no-wallet')), findsOneWidget);
+    expect(tester.widget<ObjectiveRunButton>(find.byKey(const Key('objective-detail-run'))).onPressed, isNull);
+    expect(tester.widget<ObjectiveRunButton>(find.byKey(Key('objective-service-run-$_best'))).onPressed, isNull);
   });
 
   testWidgets('a locked wallet that is not opened stops the launch', (tester) async {
@@ -1889,9 +1889,9 @@ void main() {
     /// Run, and stop at the dialog: the progress bar of the section animates for as long as
     /// it is open, so the test cannot wait for it to settle.
     Future<void> runUntilDialog(WidgetTester tester) async {
-      await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+      await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('skill-detail-run')));
+      await tester.tap(find.byKey(const Key('objective-detail-run')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('run-confirm-ok')));
       await tester.pump();
@@ -2018,9 +2018,9 @@ void main() {
 
     testWidgets('the confirmation has a button for the details of the service', (tester) async {
       await open(tester, preview: _quote(), inspect: (id, node) async => _info());
-      await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+      await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('skill-detail-run')));
+      await tester.tap(find.byKey(const Key('objective-detail-run')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('run-confirm-details')));
       await tester.pumpAndSettle();
@@ -2034,11 +2034,11 @@ void main() {
       // app, so the larger text sizes are checked on a device.)
       tester.view.physicalSize = const Size(360, 640);
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const Key('run-skill-skill-sat')));
+      await tester.ensureVisible(find.byKey(const Key('run-objective-objective-sat')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('run-skill-skill-sat')));
+      await tester.tap(find.byKey(const Key('run-objective-objective-sat')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('skill-detail-run')));
+      await tester.tap(find.byKey(const Key('objective-detail-run')));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       final cancel = tester.getRect(find.byKey(const Key('run-confirm-cancel')));

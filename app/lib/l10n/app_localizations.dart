@@ -9584,25 +9584,25 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search skills and tags'**
+  /// **'Search objectives and tags'**
   String get celautRunSearchHint;
 
   /// No description provided for @celautRunLoading.
   ///
   /// In en, this message translates to:
-  /// **'Loading skills…'**
+  /// **'Loading objectives…'**
   String get celautRunLoading;
 
   /// No description provided for @celautRunEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No skill matches.'**
+  /// **'No objective matches.'**
   String get celautRunEmpty;
 
   /// No description provided for @celautRunCatalogError.
   ///
   /// In en, this message translates to:
-  /// **'The skill catalog is not available now.'**
+  /// **'The objective catalog is not available now.'**
   String get celautRunCatalogError;
 
   /// No description provided for @celautRunRetry.
@@ -9614,7 +9614,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunNoServices.
   ///
   /// In en, this message translates to:
-  /// **'No service has this skill yet.'**
+  /// **'No service has this objective yet.'**
   String get celautRunNoServices;
 
   /// No description provided for @celautRunButton.
@@ -12755,11 +12755,11 @@ abstract class AppLocalizations {
   /// **'or'**
   String get serviceInfoWorkloadOr;
 
-  /// No description provided for @celautSkillsIntro.
+  /// No description provided for @celautObjectivesIntro.
   ///
   /// In en, this message translates to:
-  /// **'Pick a skill to see the services that do it.'**
-  String get celautSkillsIntro;
+  /// **'Pick an objective to see the services that do it.'**
+  String get celautObjectivesIntro;
 
   /// No description provided for @celautStoreOtherField.
   ///
@@ -12779,100 +12779,100 @@ abstract class AppLocalizations {
   /// **'Show fewer'**
   String get celautStoreShowFewer;
 
-  /// No description provided for @celautSkillAbout.
+  /// No description provided for @celautObjectiveAbout.
   ///
   /// In en, this message translates to:
-  /// **'About this skill'**
-  String get celautSkillAbout;
+  /// **'About this objective'**
+  String get celautObjectiveAbout;
 
-  /// No description provided for @celautSkillTestBanner.
+  /// No description provided for @celautObjectiveTestBanner.
   ///
   /// In en, this message translates to:
   /// **'Most results are tests. Check before you trust them.'**
-  String get celautSkillTestBanner;
+  String get celautObjectiveTestBanner;
 
-  /// No description provided for @celautSkillRecommended.
+  /// No description provided for @celautObjectiveRecommended.
   ///
   /// In en, this message translates to:
   /// **'Recommended'**
-  String get celautSkillRecommended;
+  String get celautObjectiveRecommended;
 
-  /// No description provided for @celautSkillOtherOptions.
+  /// No description provided for @celautObjectiveOtherOptions.
   ///
   /// In en, this message translates to:
   /// **'Other options ({count})'**
-  String celautSkillOtherOptions(String count);
+  String celautObjectiveOtherOptions(String count);
 
-  /// No description provided for @celautSkillRating.
+  /// No description provided for @celautObjectiveRating.
   ///
   /// In en, this message translates to:
   /// **'Rating: {level}'**
-  String celautSkillRating(String level);
+  String celautObjectiveRating(String level);
 
-  /// No description provided for @celautSkillRatingHigh.
+  /// No description provided for @celautObjectiveRatingHigh.
   ///
   /// In en, this message translates to:
   /// **'High'**
-  String get celautSkillRatingHigh;
+  String get celautObjectiveRatingHigh;
 
-  /// No description provided for @celautSkillRatingMedium.
+  /// No description provided for @celautObjectiveRatingMedium.
   ///
   /// In en, this message translates to:
   /// **'Medium'**
-  String get celautSkillRatingMedium;
+  String get celautObjectiveRatingMedium;
 
-  /// No description provided for @celautSkillRatingLow.
+  /// No description provided for @celautObjectiveRatingLow.
   ///
   /// In en, this message translates to:
   /// **'Low'**
-  String get celautSkillRatingLow;
+  String get celautObjectiveRatingLow;
 
-  /// No description provided for @celautSkillRatingExact.
+  /// No description provided for @celautObjectiveRatingExact.
   ///
   /// In en, this message translates to:
   /// **'Exact rating: {score} of 1'**
-  String celautSkillRatingExact(String score);
+  String celautObjectiveRatingExact(String score);
 
-  /// No description provided for @celautSkillDeclared.
+  /// No description provided for @celautObjectiveDeclared.
   ///
   /// In en, this message translates to:
   /// **'Declared by the publisher'**
-  String get celautSkillDeclared;
+  String get celautObjectiveDeclared;
 
-  /// No description provided for @celautSkillFromResults.
+  /// No description provided for @celautObjectiveFromResults.
   ///
   /// In en, this message translates to:
   /// **'Seen only in test results, not declared by a publisher'**
-  String get celautSkillFromResults;
+  String get celautObjectiveFromResults;
 
-  /// No description provided for @celautSkillUnverified.
+  /// No description provided for @celautObjectiveUnverified.
   ///
   /// In en, this message translates to:
   /// **'Unverified'**
-  String get celautSkillUnverified;
+  String get celautObjectiveUnverified;
 
-  /// No description provided for @celautSkillServiceId.
+  /// No description provided for @celautObjectiveServiceId.
   ///
   /// In en, this message translates to:
   /// **'Service id {id}'**
-  String celautSkillServiceId(String id);
+  String celautObjectiveServiceId(String id);
 
-  /// No description provided for @celautSkillIdCopied.
+  /// No description provided for @celautObjectiveIdCopied.
   ///
   /// In en, this message translates to:
   /// **'Service id copied'**
-  String get celautSkillIdCopied;
+  String get celautObjectiveIdCopied;
 
-  /// No description provided for @celautSkillUse.
+  /// No description provided for @celautObjectiveUse.
   ///
   /// In en, this message translates to:
   /// **'Use this service'**
-  String get celautSkillUse;
+  String get celautObjectiveUse;
 
   /// No description provided for @celautRunServicesTitle.
   ///
   /// In en, this message translates to:
-  /// **'Services with this skill'**
+  /// **'Services with this objective'**
   String get celautRunServicesTitle;
 
   /// No description provided for @celautRunBest.
@@ -12920,13 +12920,13 @@ abstract class AppLocalizations {
   /// No description provided for @celautStoreFeatured.
   ///
   /// In en, this message translates to:
-  /// **'Most backed'**
+  /// **'Featured'**
   String get celautStoreFeatured;
 
   /// No description provided for @celautStoreFeaturedHint.
   ///
   /// In en, this message translates to:
-  /// **'One skill of each field, from the publisher with the most reputation'**
+  /// **'One objective of each field, from the publisher with the most reputation'**
   String get celautStoreFeaturedHint;
 
   /// No description provided for @celautStoreSuggested.
@@ -12938,7 +12938,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautStoreSuggestedHint.
   ///
   /// In en, this message translates to:
-  /// **'In the fields of the skills that you ran'**
+  /// **'In the fields of the objectives that you ran'**
   String get celautStoreSuggestedHint;
 
   /// No description provided for @celautStoreNew.
@@ -12950,7 +12950,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautStoreNewHint.
   ///
   /// In en, this message translates to:
-  /// **'The last skills published on Ergo'**
+  /// **'The last objectives published on Ergo'**
   String get celautStoreNewHint;
 
   /// No description provided for @celautStorePopular.
@@ -12962,7 +12962,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautStorePopularHint.
   ///
   /// In en, this message translates to:
-  /// **'The skills with the most services'**
+  /// **'The objectives with the most services'**
   String get celautStorePopularHint;
 
   /// No description provided for @celautStoreCategories.
@@ -12974,14 +12974,14 @@ abstract class AppLocalizations {
   /// No description provided for @celautStoreAll.
   ///
   /// In en, this message translates to:
-  /// **'All skills'**
+  /// **'All objectives'**
   String get celautStoreAll;
 
-  /// No description provided for @celautStoreSkills.
+  /// No description provided for @celautStoreObjectives.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 skill} other{{count} skills}}'**
-  String celautStoreSkills(int count);
+  /// **'{count, plural, =1{1 objective} other{{count} objectives}}'**
+  String celautStoreObjectives(int count);
 
   /// No description provided for @cardsLoading.
   ///
@@ -14207,29 +14207,131 @@ abstract class AppLocalizations {
   /// **'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.'**
   String get celautHomeBalancesNote;
 
+  /// No description provided for @registrySettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Celaut Registry'**
+  String get registrySettingsTitle;
+
+  /// No description provided for @registrySettingsRowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Type ids of the registry'**
+  String get registrySettingsRowSubtitle;
+
+  /// No description provided for @registrySettingsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'The Celaut Registry keeps its boxes on Ergo. Each kind of box has a type id. The app reads the catalog of objectives with these ids. Registry: https://github.com/celaut-project/registry'**
+  String get registrySettingsIntro;
+
+  /// No description provided for @registryTypesGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Type ids'**
+  String get registryTypesGroup;
+
+  /// No description provided for @registryTypeObjective.
+  ///
+  /// In en, this message translates to:
+  /// **'Objective type id'**
+  String get registryTypeObjective;
+
+  /// No description provided for @registryTypeBenchmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Benchmark type id'**
+  String get registryTypeBenchmark;
+
+  /// No description provided for @registryTypeCoverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Coverage type id'**
+  String get registryTypeCoverage;
+
+  /// No description provided for @registryTypeResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Result type id'**
+  String get registryTypeResult;
+
+  /// No description provided for @registryTypeObjectiveHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty by default. With no id, the catalog is empty.'**
+  String get registryTypeObjectiveHelper;
+
+  /// No description provided for @registryTypeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 64 hexadecimal characters.'**
+  String get registryTypeInvalid;
+
+  /// No description provided for @registryTypeInvalidOrEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 64 hexadecimal characters, or leave it empty.'**
+  String get registryTypeInvalidOrEmpty;
+
+  /// No description provided for @registryRestoreDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore default'**
+  String get registryRestoreDefault;
+
+  /// No description provided for @registryTypesSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Type ids saved.'**
+  String get registryTypesSaved;
+
+  /// No description provided for @registryNoObjectiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No objective type id'**
+  String get registryNoObjectiveTitle;
+
+  /// No description provided for @registryNoObjectiveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The catalog has no objectives, because the objective type id is empty. Enter the id in the settings of the Celaut Registry.'**
+  String get registryNoObjectiveBody;
+
+  /// No description provided for @registryOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the registry settings'**
+  String get registryOpenSettings;
+
+  /// No description provided for @celautStoreMostBacked.
+  ///
+  /// In en, this message translates to:
+  /// **'Most backed'**
+  String get celautStoreMostBacked;
+
   /// No description provided for @celautStoreRank.
   ///
   /// In en, this message translates to:
   /// **'Number {rank}'**
   String celautStoreRank(int rank);
 
-  /// No description provided for @celautStoreRunSkill.
+  /// No description provided for @celautStoreRunObjective.
   ///
   /// In en, this message translates to:
   /// **'Run {name}'**
-  String celautStoreRunSkill(String name);
+  String celautStoreRunObjective(String name);
 
   /// No description provided for @celautStoreOpenHint.
   ///
   /// In en, this message translates to:
-  /// **'Opens the page of the skill'**
+  /// **'Opens the page of the objective'**
   String get celautStoreOpenHint;
 
-  /// No description provided for @celautStoreTopSkills.
+  /// No description provided for @celautStoreTopObjectives.
   ///
   /// In en, this message translates to:
-  /// **'Top skills'**
-  String get celautStoreTopSkills;
+  /// **'Top objectives'**
+  String get celautStoreTopObjectives;
 
   /// No description provided for @celautStoreMoreFields.
   ///
@@ -14246,80 +14348,80 @@ abstract class AppLocalizations {
   /// No description provided for @celautStoreCatalogEmpty.
   ///
   /// In en, this message translates to:
-  /// **'The catalog has no skills yet.'**
+  /// **'The catalog has no objectives yet.'**
   String get celautStoreCatalogEmpty;
 
-  /// No description provided for @celautSkillRunService.
+  /// No description provided for @celautObjectiveRunService.
   ///
   /// In en, this message translates to:
   /// **'{action} this service (rating: {rating})'**
-  String celautSkillRunService(String action, String rating);
+  String celautObjectiveRunService(String action, String rating);
 
-  /// No description provided for @celautSkillStatRank.
+  /// No description provided for @celautObjectiveStatRank.
   ///
   /// In en, this message translates to:
   /// **'Rank'**
-  String get celautSkillStatRank;
+  String get celautObjectiveStatRank;
 
-  /// No description provided for @celautSkillStatRankNote.
+  /// No description provided for @celautObjectiveStatRankNote.
   ///
   /// In en, this message translates to:
   /// **'most backed'**
-  String get celautSkillStatRankNote;
+  String get celautObjectiveStatRankNote;
 
-  /// No description provided for @celautSkillStatServices.
+  /// No description provided for @celautObjectiveStatServices.
   ///
   /// In en, this message translates to:
   /// **'Services'**
-  String get celautSkillStatServices;
+  String get celautObjectiveStatServices;
 
-  /// No description provided for @celautSkillStatServicesNote.
+  /// No description provided for @celautObjectiveStatServicesNote.
   ///
   /// In en, this message translates to:
   /// **'declared'**
-  String get celautSkillStatServicesNote;
+  String get celautObjectiveStatServicesNote;
 
-  /// No description provided for @celautSkillStatBacking.
+  /// No description provided for @celautObjectiveStatBacking.
   ///
   /// In en, this message translates to:
   /// **'Backing'**
-  String get celautSkillStatBacking;
+  String get celautObjectiveStatBacking;
 
-  /// No description provided for @celautSkillStatBackingNote.
+  /// No description provided for @celautObjectiveStatBackingNote.
   ///
   /// In en, this message translates to:
   /// **'of the publisher'**
-  String get celautSkillStatBackingNote;
+  String get celautObjectiveStatBackingNote;
 
-  /// No description provided for @celautSkillStatBlock.
+  /// No description provided for @celautObjectiveStatBlock.
   ///
   /// In en, this message translates to:
   /// **'Block'**
-  String get celautSkillStatBlock;
+  String get celautObjectiveStatBlock;
 
-  /// No description provided for @celautSkillStatBlockNote.
+  /// No description provided for @celautObjectiveStatBlockNote.
   ///
   /// In en, this message translates to:
   /// **'published'**
-  String get celautSkillStatBlockNote;
+  String get celautObjectiveStatBlockNote;
 
-  /// No description provided for @celautSkillMore.
+  /// No description provided for @celautObjectiveMore.
   ///
   /// In en, this message translates to:
   /// **'more'**
-  String get celautSkillMore;
+  String get celautObjectiveMore;
 
-  /// No description provided for @celautSkillLess.
+  /// No description provided for @celautObjectiveLess.
   ///
   /// In en, this message translates to:
   /// **'less'**
-  String get celautSkillLess;
+  String get celautObjectiveLess;
 
-  /// No description provided for @celautSkillServicesLoading.
+  /// No description provided for @celautObjectiveServicesLoading.
   ///
   /// In en, this message translates to:
   /// **'Loading the services…'**
-  String get celautSkillServicesLoading;
+  String get celautObjectiveServicesLoading;
 }
 
 class _AppLocalizationsDelegate

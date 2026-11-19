@@ -104,7 +104,7 @@ the conversation follows in place.
   others) read the database in memory. They do no I/O.
 - The tabs are built the first time they show, then kept. A rebuild of the home screen
   costs about 1 ms.
-- The catalog of skills is cached in the core. The list of nodes checks the nodes after it
+- The catalog of objectives is cached in the core. The list of nodes checks the nodes after it
   shows; the move does not wait for the check.
 
 ## 4. The improvements of 2026-10-23

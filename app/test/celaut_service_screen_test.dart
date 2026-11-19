@@ -148,8 +148,8 @@ void main() {
     bool fullWallet = true,
     bool open = true,
     bool consent = true,
-    Future<List<SkillView>> Function()? loadSkills,
-    Future<List<SkillServiceView>> Function(String)? loadSkillServices,
+    Future<List<ObjectiveView>> Function()? loadObjectives,
+    Future<List<ObjectiveServiceView>> Function(String)? loadObjectiveServices,
   }) async {
     tester.view.physicalSize = const Size(390, 4000);
     tester.view.devicePixelRatio = 1;
@@ -160,8 +160,8 @@ void main() {
         home: ServiceScreen(
           http: http,
           wallets: wallets,
-          loadSkills: loadSkills,
-          loadSkillServices: loadSkillServices,
+          loadObjectives: loadObjectives,
+          loadObjectiveServices: loadObjectiveServices,
         ),
       ),
     );
@@ -373,16 +373,16 @@ void main() {
     expect(tester.widget<FilledButton>(find.byKey(const Key('service-launch'))).onPressed, isNull);
   });
 
-  testWidgets('a picked skill fills the service id, and launch uses it', (tester) async {
+  testWidgets('a picked objective fills the service id, and launch uses it', (tester) async {
     final picked = 'ab' * 32;
     await pump(
       tester,
-      loadSkills: () async => [
-        const SkillView(boxId: 'skill-1', name: 'A skill', prose: 'Does a thing.', tags: [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0),
+      loadObjectives: () async => [
+        const ObjectiveView(boxId: 'objective-1', name: 'An objective', prose: 'Does a thing.', tags: [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0),
       ],
-      loadSkillServices: (id) async => [
-        SkillServiceView(serviceId: picked, score: 0.9, direct: true),
-        SkillServiceView(serviceId: 'cd' * 32, score: 0.4, direct: false),
+      loadObjectiveServices: (id) async => [
+        ObjectiveServiceView(serviceId: picked, score: 0.9, direct: true),
+        ObjectiveServiceView(serviceId: 'cd' * 32, score: 0.4, direct: false),
       ],
     );
     // A wrong id in the field gets an error at first.
@@ -392,9 +392,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(ServiceStrings.serviceInvalid), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('service-pick-skill')));
+    await tester.tap(find.byKey(const Key('service-pick-objective')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('picker-skill-skill-1')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-1')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('picker-use')));
     await tester.pumpAndSettle();
@@ -409,11 +409,11 @@ void main() {
   testWidgets('going back from the picker leaves the service id as it was', (tester) async {
     await pump(
       tester,
-      loadSkills: () async => const [],
-      loadSkillServices: (_) async => const [],
+      loadObjectives: () async => const [],
+      loadObjectiveServices: (_) async => const [],
     );
     await tester.enterText(find.byKey(const Key('service-id')), 'ab' * 32);
-    await tester.tap(find.byKey(const Key('service-pick-skill')));
+    await tester.tap(find.byKey(const Key('service-pick-objective')));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();

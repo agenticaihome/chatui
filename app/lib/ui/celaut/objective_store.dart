@@ -6,42 +6,42 @@ import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 
-/// The skills of the catalog as an app store shows its apps (issue #122, then the
-/// "app store" look of 2026-11-19). The data is the catalog's and nothing more: a skill has a
+/// The objectives of the catalog as an app store shows its apps (issue #122, then the
+/// "app store" look of 2026-11-19). The data is the catalog's and nothing more: an objective has a
 /// name, a text, tags, a field, its declared services, the reputation of its publisher and
 /// the block of its box. It has no price and no score: the price comes from the nodes and
-/// the score is per service, so both show on the page of the skill, next to its services.
+/// the score is per service, so both show on the page of the objective, next to its services.
 ///
-/// The store home ([RunServiceSection]): the most backed skill as a featured card, then
-/// the skills in shelves by field ([storeShelves]), then "Top skills", the whole catalog
-/// ranked, most backed first ([rankSkills]), with its first [storeShortList] rows and "Show
-/// more". A search shows the rows that match, in groups by field ([skillGroups]). A tap on a
-/// skill opens its page (`skill_detail_screen.dart`); the Run pill of a row runs its
+/// The store home ([RunServiceSection]): the most backed objective as a featured card, then
+/// the objectives in shelves by field ([storeShelves]), then "Top objectives", the whole catalog
+/// ranked, most backed first ([rankObjectives]), with its first [storeShortList] rows and "Show
+/// more". A search shows the rows that match, in groups by field ([objectiveGroups]). A tap on a
+/// objective opens its page (`objective_detail_screen.dart`); the Run pill of a row runs its
 /// recommended service, after the usual confirmation (`docs/celaut/ui.md`, section 2.1).
 
-/// The field of a skill, for grouping: [SkillView.domain] with no case and no spaces at
+/// The field of an objective, for grouping: [ObjectiveView.domain] with no case and no spaces at
 /// the ends. Empty if the publisher gave none.
-String skillCategory(SkillView skill) => skill.domain.trim().toLowerCase();
+String objectiveCategory(ObjectiveView objective) => objective.domain.trim().toLowerCase();
 
 /// True if [query] (already in lower case) is in the name, the text, a tag or the field
-/// of [skill].
-bool skillMatches(SkillView skill, String query) {
+/// of [objective].
+bool objectiveMatches(ObjectiveView objective, String query) {
   if (query.isEmpty) return true;
   bool has(String text) => text.toLowerCase().contains(query);
-  return has(skill.name) || has(skill.prose) || has(skill.domain) || skill.tags.any(has);
+  return has(objective.name) || has(objective.prose) || has(objective.domain) || objective.tags.any(has);
 }
 
-/// The rows of "Top skills" before "Show more".
+/// The rows of "Top objectives" before "Show more".
 const storeShortList = 6;
 
 /// The same order on every phone: the name, then the box id.
-int _byName(SkillView a, SkillView b) {
+int _byName(ObjectiveView a, ObjectiveView b) {
   final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
   return byName != 0 ? byName : a.boxId.compareTo(b.boxId);
 }
 
 /// The reputation of the publisher, then the number of declared services, then the newest.
-int _byBacking(SkillView a, SkillView b) {
+int _byBacking(ObjectiveView a, ObjectiveView b) {
   final byReputation = b.publisherReputation.compareTo(a.publisherReputation);
   if (byReputation != 0) return byReputation;
   final byServices = b.serviceIds.length.compareTo(a.serviceIds.length);
@@ -50,67 +50,67 @@ int _byBacking(SkillView a, SkillView b) {
   return byHeight != 0 ? byHeight : _byName(a, b);
 }
 
-/// [skills] with the most backed first: the reputation of the publisher, then the number
-/// of declared services, then the newest, then the name. The featured skill is the first;
-/// "Top skills" is this order.
-List<SkillView> rankSkills(List<SkillView> skills) => [...skills]..sort(_byBacking);
+/// [objectives] with the most backed first: the reputation of the publisher, then the number
+/// of declared services, then the newest, then the name. The featured objective is the first;
+/// "Top objectives" is this order.
+List<ObjectiveView> rankObjectives(List<ObjectiveView> objectives) => [...objectives]..sort(_byBacking);
 
-/// A group of the list of skills: the skills of one field. [key] is [skillCategory] (empty
-/// for the skills with no field) and [title] the field as its first skill writes it.
-typedef SkillGroup = ({String key, String title, List<SkillView> skills});
+/// A group of the list of objectives: the objectives of one field. [key] is [objectiveCategory] (empty
+/// for the objectives with no field) and [title] the field as its first objective writes it.
+typedef ObjectiveGroup = ({String key, String title, List<ObjectiveView> objectives});
 
-/// [skills] in groups by field, in their order: a group comes where its first skill is,
-/// and keeps the order of its skills. The skills with no field are one group, with an
+/// [objectives] in groups by field, in their order: a group comes where its first objective is,
+/// and keeps the order of its objectives. The objectives with no field are one group, with an
 /// empty title.
-List<SkillGroup> skillGroups(List<SkillView> skills) {
-  final groups = <String, SkillGroup>{};
-  for (final s in skills) {
-    groups.putIfAbsent(skillCategory(s), () => (key: skillCategory(s), title: s.domain.trim(), skills: <SkillView>[]))
-        .skills
+List<ObjectiveGroup> objectiveGroups(List<ObjectiveView> objectives) {
+  final groups = <String, ObjectiveGroup>{};
+  for (final s in objectives) {
+    groups.putIfAbsent(objectiveCategory(s), () => (key: objectiveCategory(s), title: s.domain.trim(), objectives: <ObjectiveView>[]))
+        .objectives
         .add(s);
   }
   return groups.values.toList();
 }
 
-/// A shelf of the store home: a row of skill tiles that scrolls sideways. [key] is the
-/// field ([skillCategory]) of a shelf of one field, or [mixedShelfKey] for the shelf of the
-/// fields with one skill each; [title] is the field as its first skill writes it, empty for
+/// A shelf of the store home: a row of objective tiles that scrolls sideways. [key] is the
+/// field ([objectiveCategory]) of a shelf of one field, or [mixedShelfKey] for the shelf of the
+/// fields with one objective each; [title] is the field as its first objective writes it, empty for
 /// the mixed shelf.
-typedef SkillShelf = ({String key, String title, List<SkillView> skills});
+typedef ObjectiveShelf = ({String key, String title, List<ObjectiveView> objectives});
 
-/// The key of the shelf that holds the fields with a single skill.
+/// The key of the shelf that holds the fields with a single objective.
 const mixedShelfKey = 'mixed';
 
-/// The shelves of the store home, from [ranked] (the order of [rankSkills]): one shelf for
-/// each field with two skills or more, in the order of [skillGroups]; the skills of the
+/// The shelves of the store home, from [ranked] (the order of [rankObjectives]): one shelf for
+/// each field with two objectives or more, in the order of [objectiveGroups]; the objectives of the
 /// other fields (and those with no field) all go to one last shelf, in their order, where
 /// each tile names its field. A shelf of one tile would be most of the store in a catalog
-/// with many fields of one skill each (the live catalog of 2026-11 has 7 skills in 6 fields).
-List<SkillShelf> storeShelves(List<SkillView> ranked) {
-  final groups = skillGroups(ranked);
-  final shelves = <SkillShelf>[
+/// with many fields of one objective each (the live catalog of 2026-11 has 7 objectives in 6 fields).
+List<ObjectiveShelf> storeShelves(List<ObjectiveView> ranked) {
+  final groups = objectiveGroups(ranked);
+  final shelves = <ObjectiveShelf>[
     for (final g in groups)
-      if (g.key.isNotEmpty && g.skills.length >= 2) (key: g.key, title: g.title, skills: g.skills),
+      if (g.key.isNotEmpty && g.objectives.length >= 2) (key: g.key, title: g.title, objectives: g.objectives),
   ];
   final own = {for (final s in shelves) s.key};
-  final rest = [for (final s in ranked) if (!own.contains(skillCategory(s))) s];
-  if (rest.isNotEmpty) shelves.add((key: mixedShelfKey, title: '', skills: rest));
+  final rest = [for (final s in ranked) if (!own.contains(objectiveCategory(s))) s];
+  if (rest.isNotEmpty) shelves.add((key: mixedShelfKey, title: '', objectives: rest));
   return shelves;
 }
 
 /// The reputation of a publisher (nanoERG, as the catalog gives it) as ERG with its unit,
 /// with at most three decimals; null if unknown (0).
-String? skillBackingText(SkillView skill) {
-  final nano = skill.publisherReputation;
+String? objectiveBackingText(ObjectiveView objective) {
+  final nano = objective.publisherReputation;
   if (!nano.isFinite || nano <= 0) return null;
   return formatErg(nano.round(), maxFrac: 3);
 }
 
-/// The colours of the mark of a skill: a tile and its letter. The hue comes from the
-/// field (or the name, with no field), so the skills of one field share it. The letter
-/// meets 4.5:1 on the tile in each brightness (skill_store_test.dart).
-({Color tile, Color letter}) skillMarkColors(SkillView skill, Brightness brightness) {
-  final hue = skillHue(skill);
+/// The colours of the mark of an objective: a tile and its letter. The hue comes from the
+/// field (or the name, with no field), so the objectives of one field share it. The letter
+/// meets 4.5:1 on the tile in each brightness (objective_store_test.dart).
+({Color tile, Color letter}) objectiveMarkColors(ObjectiveView objective, Brightness brightness) {
+  final hue = objectiveHue(objective);
   return brightness == Brightness.dark
       ? (
           tile: HSLColor.fromAHSL(1, hue, 0.32, 0.25).toColor(),
@@ -122,39 +122,39 @@ String? skillBackingText(SkillView skill) {
         );
 }
 
-/// The hue of a skill, in degrees, one of [skillMarkHues]: from its field, or its name if
+/// The hue of an objective, in degrees, one of [objectiveMarkHues]: from its field, or its name if
 /// it has none. FNV-1a, 32 bits, as the robots of the instances: the same on every phone.
-double skillHue(SkillView skill) {
-  final seed = skillCategory(skill).isEmpty ? skill.name.toLowerCase() : skillCategory(skill);
+double objectiveHue(ObjectiveView objective) {
+  final seed = objectiveCategory(objective).isEmpty ? objective.name.toLowerCase() : objectiveCategory(objective);
   var h = 0x811c9dc5;
   for (final unit in seed.codeUnits) {
     h = ((h ^ unit) * 0x01000193) & 0xffffffff;
   }
-  return skillMarkHues[h % skillMarkHues.length];
+  return objectiveMarkHues[h % objectiveMarkHues.length];
 }
 
-/// The glow of a skill: its hue, soft, for the featured card and the top of its page.
-Color skillGlow(SkillView skill, Brightness brightness) => brightness == Brightness.dark
-    ? HSLColor.fromAHSL(0.42, skillHue(skill), 0.45, 0.32).toColor()
-    : HSLColor.fromAHSL(0.55, skillHue(skill), 0.7, 0.86).toColor();
+/// The glow of an objective: its hue, soft, for the featured card and the top of its page.
+Color objectiveGlow(ObjectiveView objective, Brightness brightness) => brightness == Brightness.dark
+    ? HSLColor.fromAHSL(0.42, objectiveHue(objective), 0.45, 0.32).toColor()
+    : HSLColor.fromAHSL(0.55, objectiveHue(objective), 0.7, 0.86).toColor();
 
 /// The hues of the marks, in degrees: eight, 45 degrees apart.
-const skillMarkHues = [15.0, 60.0, 105.0, 150.0, 195.0, 240.0, 285.0, 330.0];
+const objectiveMarkHues = [15.0, 60.0, 105.0, 150.0, 195.0, 240.0, 285.0, 330.0];
 
-/// The tag of the [Hero] of the mark of [skill] in one [place] of the store. A skill can be
-/// in several places of one screen (featured, a shelf, Top skills), and two heroes of one
+/// The tag of the [Hero] of the mark of [objective] in one [place] of the store. An objective can be
+/// in several places of one screen (featured, a shelf, Top objectives), and two heroes of one
 /// screen cannot share a tag.
-Object skillHeroTag(String place, SkillView skill) => ('skill-mark', place, skill.boxId);
+Object objectiveHeroTag(String place, ObjectiveView objective) => ('objective-mark', place, objective.boxId);
 
-/// The mark of a skill: the first letter of its name on a rounded tile. With [heroTag] it
-/// flies to the page of the skill.
-class SkillMark extends StatelessWidget {
-  const SkillMark({super.key, required this.skill, this.size = 52, this.letter, this.heroTag});
+/// The mark of an objective: the first letter of its name on a rounded tile. With [heroTag] it
+/// flies to the page of the objective.
+class ObjectiveMark extends StatelessWidget {
+  const ObjectiveMark({super.key, required this.objective, this.size = 52, this.letter, this.heroTag});
 
-  final SkillView skill;
+  final ObjectiveView objective;
   final double size;
 
-  /// The text whose first letter the tile shows; null for the name of the skill.
+  /// The text whose first letter the tile shows; null for the name of the objective.
   final String? letter;
 
   /// The tag of its [Hero]; null for none.
@@ -162,8 +162,8 @@ class SkillMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = skillMarkColors(skill, Theme.of(context).brightness);
-    final name = (letter ?? skill.name).trim();
+    final colors = objectiveMarkColors(objective, Theme.of(context).brightness);
+    final name = (letter ?? objective.name).trim();
     final initial = name.isEmpty ? '?' : String.fromCharCode(name.runes.first).toUpperCase();
     final tile = ExcludeSemantics(
       child: Container(
@@ -189,10 +189,10 @@ class SkillMark extends StatelessWidget {
   }
 }
 
-/// The one action of a skill or of a service, as the pill of a store ("Get"): Run, or
+/// The one action of an objective or of a service, as the pill of a store ("Get"): Run, or
 /// [label]. With [busy] it shows a small progress in place of its text and does nothing.
-class SkillRunButton extends StatelessWidget {
-  const SkillRunButton({
+class ObjectiveRunButton extends StatelessWidget {
+  const ObjectiveRunButton({
     super.key,
     required this.onPressed,
     this.label,
@@ -244,7 +244,7 @@ class SkillRunButton extends StatelessWidget {
   }
 }
 
-/// The field of a skill as a small coloured eyebrow, in capitals.
+/// The field of an objective as a small coloured eyebrow, in capitals.
 class _Eyebrow extends StatelessWidget {
   const _Eyebrow(this.text, {this.color});
 
@@ -294,13 +294,13 @@ class _StoreSurface extends StatelessWidget {
   }
 }
 
-/// The most backed skill, at the top of the store: a tall card in the glow of its hue,
+/// The most backed objective, at the top of the store: a tall card in the glow of its hue,
 /// with a ring, "Most backed", its mark, its name, two lines of its text, its field and its
 /// number of services, and the Run pill.
-class SkillFeatureCard extends StatelessWidget {
-  const SkillFeatureCard({
+class ObjectiveFeatureCard extends StatelessWidget {
+  const ObjectiveFeatureCard({
     super.key,
-    required this.skill,
+    required this.objective,
     this.onTap,
     this.onRun,
     this.runKey,
@@ -308,7 +308,7 @@ class SkillFeatureCard extends StatelessWidget {
     this.heroTag,
   });
 
-  final SkillView skill;
+  final ObjectiveView objective;
   final VoidCallback? onTap;
   final VoidCallback? onRun;
   final Key? runKey;
@@ -319,14 +319,14 @@ class SkillFeatureCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final glow = skillGlow(skill, Theme.of(context).brightness);
-    final prose = skill.prose.trim();
-    final field = skill.domain.trim();
-    final services = skill.serviceIds.length;
+    final glow = objectiveGlow(objective, Theme.of(context).brightness);
+    final prose = objective.prose.trim();
+    final field = objective.domain.trim();
+    final services = objective.serviceIds.length;
     return _StoreSurface(
       radius: 24,
       onTap: onTap,
-      // The ring of the top skill.
+      // The ring of the top objective.
       border: BorderSide(color: accentOf(context), width: 2),
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -344,7 +344,7 @@ class SkillFeatureCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Expanded(child: _Eyebrow(l.celautStoreFeatured)),
+                  Expanded(child: _Eyebrow(l.celautStoreMostBacked)),
                   Semantics(label: l.celautStoreRank(1), excludeSemantics: true, child: const _TopBadge(text: '#1')),
                 ],
               ),
@@ -352,14 +352,14 @@ class SkillFeatureCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SkillMark(skill: skill, size: 64, heroTag: heroTag),
+                  ObjectiveMark(objective: objective, size: 64, heroTag: heroTag),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          skill.name,
+                          objective.name,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: t.primary.copyWith(fontSize: 20, fontWeight: FontWeight.w700, height: 1.2),
@@ -395,11 +395,11 @@ class SkillFeatureCard extends StatelessWidget {
                             style: t.secondary,
                           ),
                   ),
-                  SkillRunButton(
+                  ObjectiveRunButton(
                     key: runKey,
                     onPressed: onRun,
                     busy: busy,
-                    semanticsLabel: l.celautStoreRunSkill(skill.name),
+                    semanticsLabel: l.celautStoreRunObjective(objective.name),
                   ),
                 ],
               ),
@@ -436,17 +436,17 @@ class _TopBadge extends StatelessWidget {
 
 /// A tile of a shelf: a tall rounded card with the mark, the field (on the mixed shelf),
 /// the name in two lines at most, one line of the text and the number of services.
-class SkillTile extends StatelessWidget {
-  const SkillTile({
+class ObjectiveTile extends StatelessWidget {
+  const ObjectiveTile({
     super.key,
-    required this.skill,
+    required this.objective,
     this.onTap,
     this.showField = false,
     this.heroTag,
     this.width = 156,
   });
 
-  final SkillView skill;
+  final ObjectiveView objective;
   final VoidCallback? onTap;
   final bool showField;
   final Object? heroTag;
@@ -456,9 +456,9 @@ class SkillTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final field = skill.domain.trim();
-    final prose = skill.prose.trim();
-    final services = skill.serviceIds.length;
+    final field = objective.domain.trim();
+    final prose = objective.prose.trim();
+    final services = objective.serviceIds.length;
     return SizedBox(
       width: width,
       child: _StoreSurface(
@@ -468,11 +468,11 @@ class SkillTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SkillMark(skill: skill, size: 56, heroTag: heroTag),
+              ObjectiveMark(objective: objective, size: 56, heroTag: heroTag),
               const SizedBox(height: 12),
               if (showField) _Eyebrow(field.isEmpty ? l.celautStoreOtherField : field),
               Text(
-                skill.name,
+                objective.name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: t.primary.copyWith(fontWeight: FontWeight.w600, height: 1.25),
@@ -504,10 +504,10 @@ class SkillTile extends StatelessWidget {
 /// the name, one line of the text, the field (with [showField]; not under the title of a
 /// group of one field), and the Run pill on the right. Without [onRun], an arrow in place
 /// of the pill.
-class SkillRow extends StatelessWidget {
-  const SkillRow({
+class ObjectiveRow extends StatelessWidget {
+  const ObjectiveRow({
     super.key,
-    required this.skill,
+    required this.objective,
     this.rank,
     this.onTap,
     this.onRun,
@@ -518,7 +518,7 @@ class SkillRow extends StatelessWidget {
     this.showField = false,
   });
 
-  final SkillView skill;
+  final ObjectiveView objective;
   final int? rank;
   final bool showField;
   final VoidCallback? onTap;
@@ -534,8 +534,8 @@ class SkillRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final prose = skill.prose.trim();
-    final field = skill.domain.trim();
+    final prose = objective.prose.trim();
+    final field = objective.domain.trim();
     final r = rank;
     final row = Row(
       children: [
@@ -551,7 +551,7 @@ class SkillRow extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
                   children: [
-                    SkillMark(skill: skill, size: 56, heroTag: heroTag),
+                    ObjectiveMark(objective: objective, size: 56, heroTag: heroTag),
                     if (r != null)
                       SizedBox(
                         width: 34,
@@ -570,7 +570,7 @@ class SkillRow extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            skill.name,
+                            objective.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: t.primary.copyWith(fontWeight: FontWeight.w600),
@@ -578,7 +578,7 @@ class SkillRow extends StatelessWidget {
                           if (prose.isNotEmpty)
                             Text(
                               prose,
-                              key: Key('skill-card-line-${skill.boxId}'),
+                              key: Key('objective-card-line-${objective.boxId}'),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: t.secondary,
@@ -599,11 +599,11 @@ class SkillRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         if (onRun != null || busy)
-          SkillRunButton(
+          ObjectiveRunButton(
             key: runKey,
             onPressed: onRun,
             busy: busy,
-            semanticsLabel: l.celautStoreRunSkill(skill.name),
+            semanticsLabel: l.celautStoreRunObjective(objective.name),
           )
         else
           Icon(Icons.chevron_right, size: 20, color: t.muted),
@@ -618,7 +618,7 @@ class SkillRow extends StatelessWidget {
   }
 }
 
-/// A title of a part of the store, as "Top skills", with an optional action on the right.
+/// A title of a part of the store, as "Top objectives", with an optional action on the right.
 class StoreSectionTitle extends StatelessWidget {
   const StoreSectionTitle(this.text, {super.key, this.trailing});
 
@@ -711,7 +711,7 @@ class StoreSkeleton extends StatelessWidget {
   }
 }
 
-/// A state of the store with no skill to show: an icon in a soft circle, a line, and an
+/// A state of the store with no objective to show: an icon in a soft circle, a line, and an
 /// optional action (Try again).
 class StoreMessage extends StatelessWidget {
   const StoreMessage({super.key, required this.icon, required this.text, this.action, this.textKey});
@@ -746,9 +746,9 @@ class StoreMessage extends StatelessWidget {
   }
 }
 
-/// A tag of a skill, as a chip.
-class SkillTag extends StatelessWidget {
-  const SkillTag(this.text, {super.key});
+/// A tag of an objective, as a chip.
+class ObjectiveTag extends StatelessWidget {
+  const ObjectiveTag(this.text, {super.key});
 
   final String text;
 

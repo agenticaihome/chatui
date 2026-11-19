@@ -7,7 +7,7 @@ import 'chat_client.dart';
 
 /// The name of an instance for the user: the name that the user gave it in the app, or
 /// the title that its service gave the conversation (`docs/celaut/chat.md`, section 6.10),
-/// or the name of its skill or service file, or a short service id when the app does not
+/// or the name of its objective or service file, or a short service id when the app does not
 /// know a name. The name of the user is the strongest: the service cannot replace it.
 String instanceTitle(InstanceListView i) {
   if (i.alias.trim().isNotEmpty) return i.alias.trim();

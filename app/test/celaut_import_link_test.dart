@@ -119,7 +119,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: RunServiceSection(
-            loadSkills: () async => const [],
+            loadObjectives: () async => const [],
             packages: packages,
             library: lib.library,
             importFile: importFile,

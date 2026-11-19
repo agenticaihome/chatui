@@ -25,7 +25,7 @@ import 'run_service_section.dart' show StartedCall;
 ///
 /// - the list of conversations: each row is an instance whose interface has a chat slot
 ///   (`docs/celaut/chat.md`, section 3);
-/// - the pencil button opens "New conversation": the skills of the catalog and the
+/// - the pencil button opens "New conversation": the objectives of the catalog and the
 ///   service files, then the confirmation, the wallet, the launch, and the conversation.
 ///
 /// The other tabs of the bottom bar ([HomeTabs]) hold the rest of the app.

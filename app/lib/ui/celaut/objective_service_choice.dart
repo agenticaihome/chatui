@@ -5,9 +5,9 @@ import '../../bridge/api/celaut_catalog.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
-import 'skill_store.dart';
+import 'objective_store.dart';
 
-/// The step of a skill's services, with little to read (issue #122): one recommended
+/// The step of an objective's services, with little to read (issue #122): one recommended
 /// service and one main action; the other services, the id, the exact score and where the
 /// data comes from are one tap away. The ranking does not change: the recommended service
 /// is the first of the ranking (`docs/celaut/catalog.md`).
@@ -25,24 +25,24 @@ ServiceRating serviceRatingOf(double score) => score >= 0.7
         : ServiceRating.low;
 
 String serviceRatingText(AppLocalizations l, ServiceRating r) => switch (r) {
-      ServiceRating.high => l.celautSkillRatingHigh,
-      ServiceRating.medium => l.celautSkillRatingMedium,
-      ServiceRating.low => l.celautSkillRatingLow,
+      ServiceRating.high => l.celautObjectiveRatingHigh,
+      ServiceRating.medium => l.celautObjectiveRatingMedium,
+      ServiceRating.low => l.celautObjectiveRatingLow,
     };
 
 /// A service id in short form: the first 6 and the last 4 characters.
 String shortServiceId(String id) => id.length <= 12 ? id : '${id.substring(0, 6)}…${id.substring(id.length - 4)}';
 
 /// The one warning about test data, at the top of the step: not on each card.
-class SkillTestDataBanner extends StatelessWidget {
-  const SkillTestDataBanner({super.key});
+class ObjectiveTestDataBanner extends StatelessWidget {
+  const ObjectiveTestDataBanner({super.key});
 
   @override
   Widget build(BuildContext context) {
     final t = HomeText.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      key: const Key('skill-test-banner'),
+      key: const Key('objective-test-banner'),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
@@ -52,22 +52,22 @@ class SkillTestDataBanner extends StatelessWidget {
         children: [
           Icon(Icons.info_outline, size: 18, color: t.muted),
           const SizedBox(width: 8),
-          Expanded(child: Text(context.l10n.celautSkillTestBanner, style: t.secondary)),
+          Expanded(child: Text(context.l10n.celautObjectiveTestBanner, style: t.secondary)),
         ],
       ),
     );
   }
 }
 
-/// The services of a skill as a choice: the first (the best of the ranking) is the main
+/// The services of an objective as a choice: the first (the best of the ranking) is the main
 /// card, "Recommended"; the others are under "Other options (N)", closed at first. A tap on
 /// a card chooses it; [chosen] has a check. The keys start with [keyPrefix]: the card of a
 /// service is `<prefix>-<id>`, the check `<prefix>-chosen`, the label of the first
 /// `<prefix>-recommended`, the closed part `<prefix>-others`. With [onRun], each card has its
 /// own Run pill, `<prefix>-run-<id>` ([runLabel] for another word); null [onRun] with
 /// [runLabel] shows the pills off (no wallet to run with).
-class SkillServiceChoice extends StatelessWidget {
-  const SkillServiceChoice({
+class ObjectiveServiceChoice extends StatelessWidget {
+  const ObjectiveServiceChoice({
     super.key,
     required this.services,
     required this.chosen,
@@ -78,7 +78,7 @@ class SkillServiceChoice extends StatelessWidget {
     this.showRun = false,
   });
 
-  final List<SkillServiceView> services;
+  final List<ObjectiveServiceView> services;
   final String? chosen;
   final ValueChanged<String> onChoose;
   final String keyPrefix;
@@ -97,7 +97,7 @@ class SkillServiceChoice extends StatelessWidget {
     if (services.isEmpty) return const SizedBox.shrink();
     final t = HomeText.of(context);
     final others = services.skip(1).toList();
-    Widget card(SkillServiceView s, {required bool recommended}) => SkillServiceCard(
+    Widget card(ObjectiveServiceView s, {required bool recommended}) => ObjectiveServiceCard(
           key: Key('$keyPrefix-${s.serviceId}'),
           service: s,
           recommended: recommended,
@@ -121,7 +121,7 @@ class SkillServiceChoice extends StatelessWidget {
               dense: true,
               // A chosen other option stays in view.
               initiallyExpanded: others.any((s) => s.serviceId == chosen),
-              title: Text(context.l10n.celautSkillOtherOptions('${others.length}'), style: t.label),
+              title: Text(context.l10n.celautObjectiveOtherOptions('${others.length}'), style: t.label),
               children: [
                 for (final s in others) ...[
                   card(s, recommended: false),
@@ -135,12 +135,12 @@ class SkillServiceChoice extends StatelessWidget {
   }
 }
 
-/// One service of a skill: its rating as a level with a short bar, where its data comes
+/// One service of an objective: its rating as a level with a short bar, where its data comes
 /// from as an icon with a tooltip, an "Unverified" chip if no publisher declared it, and a
 /// closed "Details" part with the short id, a Copy action for the full id, the exact score
 /// and where the data comes from in words.
-class SkillServiceCard extends StatefulWidget {
-  const SkillServiceCard({
+class ObjectiveServiceCard extends StatefulWidget {
+  const ObjectiveServiceCard({
     super.key,
     required this.service,
     required this.recommended,
@@ -152,7 +152,7 @@ class SkillServiceCard extends StatefulWidget {
     this.runLabel,
   });
 
-  final SkillServiceView service;
+  final ObjectiveServiceView service;
   final bool recommended;
   final bool chosen;
   final VoidCallback onTap;
@@ -164,17 +164,17 @@ class SkillServiceCard extends StatefulWidget {
   final String? runLabel;
 
   @override
-  State<SkillServiceCard> createState() => _SkillServiceCardState();
+  State<ObjectiveServiceCard> createState() => _ObjectiveServiceCardState();
 }
 
-class _SkillServiceCardState extends State<SkillServiceCard> {
+class _ObjectiveServiceCardState extends State<ObjectiveServiceCard> {
   bool _details = false;
 
   Future<void> _copy() async {
     final l = context.l10n;
     await Clipboard.setData(ClipboardData(text: widget.service.serviceId));
     if (!mounted) return;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(l.celautSkillIdCopied)));
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(l.celautObjectiveIdCopied)));
   }
 
   @override
@@ -186,7 +186,7 @@ class _SkillServiceCardState extends State<SkillServiceCard> {
     final p = widget.keyPrefix;
     final id = s.serviceId;
     final rating = serviceRatingOf(s.score);
-    final source = s.direct ? l.celautSkillDeclared : l.celautSkillFromResults;
+    final source = s.direct ? l.celautObjectiveDeclared : l.celautObjectiveFromResults;
     return Material(
       color: scheme.surface,
       shape: RoundedRectangleBorder(
@@ -207,7 +207,7 @@ class _SkillServiceCardState extends State<SkillServiceCard> {
                 children: [
                   Expanded(
                     child: widget.recommended
-                        ? Text(l.celautSkillRecommended.toUpperCase(), key: Key('$p-recommended'), style: t.label)
+                        ? Text(l.celautObjectiveRecommended.toUpperCase(), key: Key('$p-recommended'), style: t.label)
                         : const SizedBox.shrink(),
                   ),
                   if (widget.chosen)
@@ -226,7 +226,7 @@ class _SkillServiceCardState extends State<SkillServiceCard> {
                 runSpacing: 4,
                 children: [
                   Text(
-                    l.celautSkillRating(serviceRatingText(l, rating)),
+                    l.celautObjectiveRating(serviceRatingText(l, rating)),
                     key: Key('$p-rating-$id'),
                     style: t.primary.copyWith(fontWeight: FontWeight.w600),
                   ),
@@ -250,11 +250,11 @@ class _SkillServiceCardState extends State<SkillServiceCard> {
                   if (widget.showRun)
                     Padding(
                       padding: const EdgeInsets.only(left: 8, right: 6),
-                      child: SkillRunButton(
+                      child: ObjectiveRunButton(
                         key: Key('$p-run-$id'),
                         onPressed: widget.onRun,
                         label: widget.runLabel,
-                        semanticsLabel: l.celautSkillRunService(
+                        semanticsLabel: l.celautObjectiveRunService(
                           widget.runLabel ?? l.celautRunButton,
                           serviceRatingText(l, rating),
                         ),
@@ -289,7 +289,7 @@ class _SkillServiceCardState extends State<SkillServiceCard> {
                         children: [
                           Expanded(
                             child: Text(
-                              l.celautSkillServiceId(shortServiceId(id)),
+                              l.celautObjectiveServiceId(shortServiceId(id)),
                               key: Key('$p-short-id-$id'),
                               style: t.secondary.copyWith(fontFamily: 'monospace'),
                             ),
@@ -302,7 +302,7 @@ class _SkillServiceCardState extends State<SkillServiceCard> {
                           ),
                         ],
                       ),
-                      Text(l.celautSkillRatingExact(s.score.toStringAsFixed(2)), style: t.secondary),
+                      Text(l.celautObjectiveRatingExact(s.score.toStringAsFixed(2)), style: t.secondary),
                       Text(source, style: t.secondary),
                     ],
                   ),
@@ -361,7 +361,7 @@ class _UnverifiedChip extends StatelessWidget {
         border: Border.all(color: ArgusColors.of(context).cardBorder),
       ),
       child: Text(
-        context.l10n.celautSkillUnverified,
+        context.l10n.celautObjectiveUnverified,
         style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface),
       ),
     );

@@ -46,6 +46,11 @@ of the tag with `celaut_balancer::ledger_chain`: the part before the first `-`. 
 - New and not used by chatui: `Policy`, `FaultEvidence`, `ReputationOpinion`, `ReputationProof`,
   `ReputationProofAck`, and the Gateway calls `GetReputationProofs` and `PushReputationProof`.
 
+`celaut.proto` was then re-pinned to nodo dev `5798cea4` (file last changed in `69ca79c9`):
+
+- Breaking: `Configuration.spec_slot` (field 2) is removed. `Configuration.initial_mu` moved from field 3 to
+  field 2. chatui never set `spec_slot`. It sets `initial_mu` through the generated type, so the code did not change.
+
 ## 1. Transport
 
 - **Port:** no fixed default. `network.GATEWAY_PORT: auto` picks a free port on the first
