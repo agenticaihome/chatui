@@ -9,6 +9,7 @@ import '../../celaut/chat_groups.dart';
 import '../../celaut/chat_prefs.dart';
 import '../../celaut/conversations.dart';
 import '../../celaut/payers.dart';
+import '../../celaut/service_presets.dart';
 import '../../format.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
@@ -19,6 +20,7 @@ import 'descendants_section.dart';
 import 'instance_actions.dart';
 import 'instance_receipts.dart';
 import 'instance_time_section.dart';
+import 'preset_pin.dart';
 import 'robot_avatar.dart';
 import 'service_info_screen.dart';
 
@@ -45,7 +47,11 @@ class InstanceInfoScreen extends StatefulWidget {
     this.loadReceipts = readReceipts,
     this.exportReceipts = shareReceipts,
     this.descendants = const DescendantsApi(),
+    this.presets,
   });
+
+  /// The presets of the wheel of the pencil button: "Pin as preset". Tests give their own.
+  final ServicePresets? presets;
 
   /// The calls of the Descendants section. Tests give their own.
   final DescendantsApi descendants;
@@ -259,7 +265,10 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
       forget: widget.forget,
       notes: widget.notes,
     );
-    if (deleted) await chatGroups.forget(_instance.instanceId);
+    if (deleted) {
+      await chatGroups.forget(_instance.instanceId);
+      await (widget.presets ?? servicePresets).forget(_instance.instanceId);
+    }
     // The caller reads the list again: the instance left it.
     if (deleted && mounted) Navigator.of(context).pop(true);
   }
@@ -408,6 +417,8 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
                   style: t.secondary.copyWith(color: rustFor(context)),
                 ),
               ),
+            const SizedBox(height: 16),
+            PresetPinSection(instance: i, title: title, presets: widget.presets ?? servicePresets),
               if (widget.state != InstanceState.stopped && !hibernated) ...[
               const SizedBox(height: 16),
               InstanceTimeSection(

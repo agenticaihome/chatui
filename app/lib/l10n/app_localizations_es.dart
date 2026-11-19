@@ -8988,4 +8988,81 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get registryOpenSettings => 'Abrir los ajustes del registro';
+
+  @override
+  String get presetPin => 'Anclar como preconfigurado';
+
+  @override
+  String get presetPinNote =>
+      'Inicia una nueva instancia de este servicio con los mismos ajustes desde el botón ✏ de Chats.';
+
+  @override
+  String get presetPinBody =>
+      'El botón ✏ de Chats lo mostrará en una rueda. Un toque inicia una nueva instancia de este servicio con las mismas variables. Antes de que empiece, sigues viendo el coste y lo confirmas.';
+
+  @override
+  String get presetPinUnknown =>
+      'Este teléfono no sabe con qué variables se inició esta instancia (se inició con una versión anterior de la app o en otro teléfono): el inicio las pregunta.';
+
+  @override
+  String presetPinAsks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count valores secretos se escribieron y no se guardaron, así que el preconfigurado no los guarda: el inicio los pregunta cada vez.',
+      one:
+          'Un valor secreto se escribió y no se guardó, así que el preconfigurado no lo guarda: el inicio lo pregunta cada vez.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get presetPinAction => 'Anclar';
+
+  @override
+  String get presetPinnedDone =>
+      'Anclado. Mantén pulsado o toca el botón ✏ de Chats para iniciarlo.';
+
+  @override
+  String presetPinned(String name) {
+    return 'Anclado al botón ✏ como «$name»';
+  }
+
+  @override
+  String get presetUnpin => 'Desanclar';
+
+  @override
+  String presetFull(int max) {
+    return 'La rueda tiene $max preconfigurados como máximo. Quita uno antes: mantenlo pulsado en la rueda.';
+  }
+
+  @override
+  String get presetNameLabel => 'Nombre en la rueda';
+
+  @override
+  String get presetRemove => 'Quitar de la rueda';
+
+  @override
+  String presetRemoved(String name) {
+    return '«$name» quitado de la rueda';
+  }
+
+  @override
+  String get presetWheelHint =>
+      'Abre tus preconfigurados. Desliza hasta uno y suelta para iniciarlo.';
+
+  @override
+  String get presetWheelObjectives => 'Objetivos';
+
+  @override
+  String get presetWheelObjectivesLabel => 'Objetivos: elige un servicio nuevo';
+
+  @override
+  String presetWheelStart(String name) {
+    return 'Iniciar $name';
+  }
+
+  @override
+  String get presetWheelEditHint => 'Cambiar nombre o quitar';
 }
