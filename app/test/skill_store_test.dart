@@ -97,8 +97,55 @@ void main() {
     });
   }
 
+  group('the shelves of the store home', () {
+    List<String> names(List<SkillView> skills) => [for (final s in skills) s.name];
+
+    test('one shelf per field of two skills or more; the fields of one skill share the last', () {
+      final ranked = rankSkills([
+        _skill('Market', domain: 'finance', reputation: 9),
+        _skill('SAT', domain: 'algorithms', reputation: 8),
+        _skill('Reserves', domain: 'Finance', reputation: 7),
+        _skill('Summary', domain: 'nlp', reputation: 6),
+        _skill('Loose', reputation: 5),
+      ]);
+      final shelves = storeShelves(ranked);
+      expect([for (final s in shelves) s.key], ['finance', mixedShelfKey]);
+      expect(shelves.first.title, 'finance');
+      expect(names(shelves.first.skills), ['Market', 'Reserves']);
+      // The mixed shelf keeps the ranking.
+      expect(names(shelves.last.skills), ['SAT', 'Summary', 'Loose']);
+      // Every skill is on one shelf, once.
+      expect(shelves.expand((s) => s.skills).length, ranked.length);
+    });
+
+    test('with no field of two skills, one shelf holds them all; with none at all, nothing', () {
+      final ranked = rankSkills([_skill('A', domain: 'x'), _skill('B', domain: 'y'), _skill('C')]);
+      final shelves = storeShelves(ranked);
+      expect([for (final s in shelves) s.key], [mixedShelfKey]);
+      expect(names(shelves.single.skills), names(ranked));
+      expect(storeShelves(const []), isEmpty);
+    });
+
+    test('two skills with no field are not a field shelf', () {
+      final shelves = storeShelves([_skill('A'), _skill('B')]);
+      expect([for (final s in shelves) s.key], [mixedShelfKey]);
+    });
+  });
+
+  test('the backing of a publisher is in ERG, and left out when unknown', () {
+    expect(skillBackingText(_skill('A', reputation: 96000000)), contains('0.096'));
+    expect(skillBackingText(_skill('A', reputation: 96000000)), contains('ERG'));
+    expect(skillBackingText(_skill('A')), isNull);
+  });
+
+  test('the heroes of one skill in two places of the store have two tags', () {
+    final s = _skill('A');
+    expect(skillHeroTag('top', s), isNot(skillHeroTag('featured', s)));
+    expect(skillHeroTag('top', s), skillHeroTag('top', _skill('A')));
+  });
+
   for (final watchful in [true, false]) {
-    testWidgets('a card fits a phone of 360 dp with large fonts (watchful: $watchful)', (tester) async {
+    testWidgets('the cards of the store fit a phone of 360 dp with large fonts (watchful: $watchful)', (tester) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -107,6 +154,8 @@ void main() {
         domain: 'blockchain-security',
         tags: ['ergoscript', 'smart-contract', 'static-analysis', 'audit'],
         prose: 'Compile ErgoScript to ErgoTree and statically audit it for risky patterns.',
+        services: ['s1', 's2'],
+        reputation: 96000000,
       );
       await tester.pumpWidget(
         MaterialApp(
@@ -114,25 +163,57 @@ void main() {
           home: MediaQuery(
             data: const MediaQueryData(size: Size(360, 800), textScaler: TextScaler.linear(1.3)),
             child: Scaffold(
-              body: Padding(
+              body: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
-                child: Column(children: [SkillCard(skill: skill, onTap: () {})]),
+                child: Column(
+                  children: [
+                    SkillFeatureCard(skill: skill, onTap: () {}, onRun: () {}),
+                    SizedBox(height: 260, child: Row(children: [SkillTile(skill: skill, showField: true, onTap: () {})])),
+                    SkillRow(skill: skill, rank: 12, showField: true, onTap: () {}, onRun: () {}),
+                    SkillRow(skill: skill, onTap: () {}),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       );
       expect(tester.takeException(), isNull);
-      expect(find.byType(SkillMark), findsOneWidget);
-      expect(find.text('E'), findsOneWidget);
-      // The name and one line of text: no field and no tag on the card (they are in the
-      // search and in the details of the skill).
-      expect(find.text('blockchain-security'), findsNothing);
+      expect(find.byType(SkillMark), findsNWidgets(4));
+      // The rows: the name and one line, the field only when asked; no tag anywhere.
       expect(find.text('ergoscript'), findsNothing);
-      final texts = tester.widgetList<Text>(find.descendant(of: find.byType(SkillCard), matching: find.byType(Text)));
-      final lines = [for (final t in texts) if (t.data != 'E') t];
-      expect(lines, hasLength(2));
-      expect(lines.every((t) => t.maxLines == 1), isTrue);
+      expect(find.descendant(of: find.byType(SkillRow).first, matching: find.text('BLOCKCHAIN-SECURITY')), findsOneWidget);
+      expect(find.descendant(of: find.byType(SkillRow).last, matching: find.text('BLOCKCHAIN-SECURITY')), findsNothing);
+      expect(find.descendant(of: find.byType(SkillRow).first, matching: find.text('12')), findsOneWidget);
+      final rowTexts = tester.widgetList<Text>(find.descendant(of: find.byType(SkillRow).last, matching: find.byType(Text)));
+      expect([for (final t in rowTexts) if (t.data != 'E') t].every((t) => t.maxLines == 1), isTrue);
+      // The featured card has the ring and the badge of the top skill.
+      expect(find.descendant(of: find.byType(SkillFeatureCard), matching: find.text('#1')), findsOneWidget);
     });
   }
+
+  testWidgets('a Run pill says which skill it runs, and is off while busy', (tester) async {
+    var runs = 0;
+    final skill = _skill('Proof of reserves');
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: argusTheme(watchful: false),
+        home: Scaffold(body: SkillRow(skill: skill, onTap: () {}, onRun: () => runs++, runKey: const Key('pill'))),
+      ),
+    );
+    final handle = tester.ensureSemantics();
+    expect(find.bySemanticsLabel('Run Proof of reserves'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('pill')));
+    expect(runs, 1);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: argusTheme(watchful: false),
+        home: Scaffold(body: SkillRow(skill: skill, onTap: () {}, onRun: () => runs++, busy: true, runKey: const Key('pill'))),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('pill')), warnIfMissed: false);
+    expect(runs, 1);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    handle.dispose();
+  });
 }

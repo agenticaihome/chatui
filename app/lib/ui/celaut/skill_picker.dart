@@ -9,6 +9,7 @@ import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
+import 'skill_detail_screen.dart';
 import 'skill_service_choice.dart';
 import 'skill_store.dart';
 
@@ -149,29 +150,28 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
   List<Widget> _skillList(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final muted = ArgusColors.of(context).muted;
     final ranked = rankSkills(_skills ?? const <SkillView>[]);
     final cut = !_showAll && ranked.length > storeShortList;
     return [
       SettingsNote(l.celautSkillsIntro),
       if (_loadingSkills)
-        const SoftCard(child: Text(ServiceStrings.skillsLoading, key: Key('picker-loading')))
+        const StoreSkeleton(key: Key('picker-loading'), featured: false)
       else if (_skills != null && ranked.isEmpty)
-        SoftCard(child: Text(ServiceStrings.skillsEmpty, style: TextStyle(color: muted))),
+        StoreMessage(icon: Icons.storefront_outlined, text: ServiceStrings.skillsEmpty, textKey: const Key('picker-empty')),
       for (final g in skillGroups(cut ? ranked.take(storeShortList).toList() : ranked)) ...[
         Padding(
           key: Key('picker-group-${g.key}'),
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(top: 6, bottom: 2),
           child: Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
         ),
-        for (final skill in g.skills) ...[
-          SkillCard(
+        for (final (i, skill) in g.skills.indexed)
+          SkillRow(
             key: Key('picker-skill-${skill.boxId}'),
             skill: skill,
+            divider: i < g.skills.length - 1,
             onTap: () => _readServices(skill),
           ),
-          const SizedBox(height: 10),
-        ],
+        const SizedBox(height: 10),
       ],
       if (ranked.length > storeShortList)
         Align(
@@ -189,15 +189,27 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
     final muted = ArgusColors.of(context).muted;
     final services = _services;
     return [
-      Text(
-        skill.name,
-        key: const Key('picker-skill-name'),
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-      ),
-      SkillAbout(skill: skill),
-      const SizedBox(height: 6),
+      SkillDetailHeader(skill: skill, nameKey: const Key('picker-skill-name')),
+      const SizedBox(height: 16),
+      SkillStats(skill: skill),
+      if (skill.prose.trim().isNotEmpty) ...[
+        const SizedBox(height: 14),
+        SkillProse(skill.prose.trim()),
+      ],
+      if (skill.tags.any((tag) => tag.trim().isNotEmpty)) ...[
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [for (final tag in skill.tags) if (tag.trim().isNotEmpty) SkillTag(tag.trim())],
+        ),
+      ],
+      const SizedBox(height: 16),
       if (_loadingServices)
-        const SoftCard(child: Text(ServiceStrings.servicesLoading, key: Key('picker-loading')))
+        Semantics(
+          label: ServiceStrings.servicesLoading,
+          child: const StoreSkeleton(key: Key('picker-loading'), featured: false, rows: 2),
+        )
       else if (services != null && services.isEmpty)
         SoftCard(
           child: Text(

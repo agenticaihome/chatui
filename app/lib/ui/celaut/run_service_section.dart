@@ -37,7 +37,7 @@ import 'launch_rocket.dart';
 import 'run_confirm_dialog.dart';
 import 'service_info_screen.dart';
 import 'service_transfer_dialog.dart';
-import 'skill_services_sheet.dart';
+import 'skill_detail_screen.dart';
 import 'skill_store.dart';
 
 /// Start a service: the ids and the settings go to the launcher.
@@ -58,11 +58,11 @@ typedef StartedCall = Future<void> Function(
 );
 
 /// "Run a service" (`docs/celaut/ui.md`, section 2): the skills of the catalog as a store.
-/// At the top, at all times: the search, two small actions for the service files on this
-/// phone (import one, run the saved ones), and the fields of the skills as chips. Under
-/// them the sections of the store (featured, suggested, new, popular, the fields, all the
-/// skills; see `skill_store.dart`), or the skills that match the search or the chip.
-/// Run on a skill opens a sheet with its ranked services. Run starts
+/// At the top, at all times: the search and two small actions for the service files on this
+/// phone (import one, run the saved ones). Under them the store home (the featured skill,
+/// the shelves by field and "Top skills"; see `skill_store.dart`), or the skills that match
+/// the search. A skill opens its page with its ranked services ([SkillDetailScreen]); the
+/// Run pill of a row runs its recommended service. Run starts
 /// the best node by the balancer (`launchService`) after the user confirms it, with the
 /// best node and its start cost. If the service has a chat slot, the
 /// conversation opens; if not, the instance shows in the list of the home screen.
@@ -179,8 +179,11 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   final _scroll = ScrollController();
   List<SkillView>? _skills;
 
-  /// The whole list is shown, not only the first [storeShortList] skills.
+  /// The whole of "Top skills" is shown, not only its first [storeShortList] rows.
   bool _showAll = false;
+
+  /// The box id of the skill whose Run pill reads its services now.
+  String? _quick;
   bool _loading = true;
   bool _failed = false;
   bool _running = false;
@@ -256,19 +259,42 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     return quotes.quotes.isEmpty ? null : quotes.quotes.first;
   }
 
-  Future<void> _open(SkillView skill) async {
-    final serviceId = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => SkillServicesSheet(
-        skill: skill,
-        loadServices: _services,
-        previewQuote: _preview,
-        wallets: widget.wallets,
+  /// The page of [skill]; Run there runs the service that it returns. [heroTag] is the tag
+  /// of the mark of the card that the user tapped, which flies to the page.
+  Future<void> _open(SkillView skill, {Object? heroTag, int? rank}) async {
+    final serviceId = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => SkillDetailScreen(
+          skill: skill,
+          loadServices: _services,
+          previewQuote: _preview,
+          wallets: widget.wallets,
+          heroTag: heroTag,
+          rank: rank,
+        ),
       ),
     );
     if (serviceId != null && mounted) await _run(serviceId, name: skill.name);
+  }
+
+  /// The Run pill of a skill, as "Get" in a store: its recommended service (the first of
+  /// the ranking) goes to the usual confirmation. If the services cannot be read, or the
+  /// skill has none, its page opens and says why.
+  Future<void> _quickRun(SkillView skill, {Object? heroTag, int? rank}) async {
+    setState(() => _quick = skill.boxId);
+    List<SkillServiceView>? services;
+    try {
+      services = await _services(skill.boxId);
+    } catch (_) {
+      services = null;
+    }
+    if (!mounted) return;
+    setState(() => _quick = null);
+    if (services == null || services.isEmpty) {
+      await _open(skill, heroTag: heroTag, rank: rank);
+      return;
+    }
+    await _run(services.first.serviceId, name: skill.name);
   }
 
   /// Ask before a launch: an instance uses credit until it stops. The dialog shows the
@@ -1010,28 +1036,34 @@ class _RunServiceSectionState extends State<RunServiceSection> {
               padding: EdgeInsets.fromLTRB(0, 4, 0, 32 + MediaQuery.paddingOf(context).bottom),
               children: [
                 if (_loading)
-                  gutter(Text(l.celautRunLoading, key: const Key('run-loading'), style: t.secondary))
+                  gutter(StoreSkeleton(key: const Key('run-loading'), featured: browsing))
                 else if (_failed)
                   gutter(
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l.celautRunCatalogError, key: const Key('run-error'), style: t.secondary),
-                        const SizedBox(height: 6),
-                        OutlinedButton(
-                          key: const Key('run-retry'),
-                          // The theme asks for the full width, which a column of text does not need.
-                          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
-                          onPressed: _read,
-                          child: Text(l.celautRunRetry),
-                        ),
-                      ],
+                    StoreMessage(
+                      icon: Icons.cloud_off_outlined,
+                      text: l.celautRunCatalogError,
+                      textKey: const Key('run-error'),
+                      action: OutlinedButton(
+                        key: const Key('run-retry'),
+                        // The theme asks for the full width, which a column of text does not need.
+                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40), shape: const StadiumBorder()),
+                        onPressed: _read,
+                        child: Text(l.celautRunRetry),
+                      ),
                     ),
                   )
                 else if (skills.isEmpty)
-                  gutter(Text(l.celautRunEmpty, key: const Key('run-empty'), style: t.secondary))
+                  gutter(
+                    StoreMessage(
+                      icon: browsing ? Icons.storefront_outlined : Icons.search_off,
+                      text: browsing ? l.celautStoreCatalogEmpty : l.celautRunEmpty,
+                      textKey: const Key('run-empty'),
+                    ),
+                  )
+                else if (browsing)
+                  ..._home(context, skills, box.maxWidth)
                 else
-                  ..._store(context, skills, box.maxWidth, short: browsing && !_showAll),
+                  ..._results(context, skills),
                 // While a launch runs, its rocket is over the screen ([LaunchRocket]).
               ],
             ),
@@ -1114,74 +1146,166 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     );
   }
 
-  /// The store: one list of [skills] in groups by field, the field as the title of its
-  /// group (issue #122). With [short], only the first [storeShortList] skills and a "Show
-  /// more" action; a search shows all the skills that match.
-  List<Widget> _store(BuildContext context, List<SkillView> skills, double width, {required bool short}) {
+  /// The store home, from [ranked] (all the skills, most backed first): the featured
+  /// skill, the shelves by field, and "Top skills" with its first [storeShortList] rows
+  /// and "Show more".
+  List<Widget> _home(BuildContext context, List<SkillView> ranked, double width) {
     final l = context.l10n;
-    final t = HomeText.of(context);
-    final cut = short && skills.length > storeShortList;
-    final shown = cut ? skills.take(storeShortList).toList() : skills;
+    final top = ranked.first;
+    final rankOf = {for (var i = 0; i < ranked.length; i++) ranked[i].boxId: i + 1};
+    final cut = !_showAll && ranked.length > storeShortList;
+    final rows = cut ? ranked.take(storeShortList).toList() : ranked;
+    Widget gutter(Widget child, {Key? key}) =>
+        Padding(key: key, padding: const EdgeInsets.symmetric(horizontal: homeGutter), child: child);
+    final featuredTag = skillHeroTag('featured', top);
+    final shelves = storeShelves(ranked);
     return [
-      for (final g in skillGroups(shown))
-        Padding(
-          key: Key('store-group-${g.key}'),
-          padding: const EdgeInsets.fromLTRB(homeGutter, 0, homeGutter, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
-              const SizedBox(height: 8),
-              _cards(g.skills, width),
-            ],
-          ),
+      const SizedBox(height: 4),
+      gutter(
+        SkillFeatureCard(
+          key: const Key('store-featured'),
+          runKey: const Key('store-featured-run'),
+          skill: top,
+          heroTag: featuredTag,
+          busy: _quick == top.boxId,
+          onTap: _running ? null : () => _open(top, heroTag: featuredTag, rank: 1),
+          onRun: _running || _quick != null ? null : () => _quickRun(top, heroTag: featuredTag, rank: 1),
         ),
-      if (_search.text.trim().isEmpty && skills.length > storeShortList)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: homeGutter),
-          child: Align(
+      ),
+      for (final shelf in shelves) ...[
+        const SizedBox(height: 26),
+        gutter(
+          StoreSectionTitle(
+            shelf.key == mixedShelfKey
+                ? (shelves.length == 1 ? l.celautStoreByField : l.celautStoreMoreFields)
+                : shelf.title,
+          ),
+          key: Key('store-shelf-${shelf.key}'),
+        ),
+        const SizedBox(height: 12),
+        _shelf(shelf, rankOf),
+      ],
+      const SizedBox(height: 26),
+      gutter(StoreSectionTitle(l.celautStoreTopSkills), key: const Key('store-top')),
+      const SizedBox(height: 4),
+      gutter(_rows(rows, width, rankOf: rankOf, place: 'top', showField: true)),
+      if (ranked.length > storeShortList)
+        gutter(
+          Align(
             alignment: AlignmentDirectional.centerStart,
             child: TextButton(
               key: const Key('store-more'),
               onPressed: () => setState(() => _showAll = !_showAll),
-              child: Text(_showAll ? l.celautStoreShowFewer : l.celautStoreShowMore(skills.length - storeShortList)),
+              child: Text(_showAll ? l.celautStoreShowFewer : l.celautStoreShowMore(ranked.length - storeShortList)),
             ),
           ),
         ),
     ];
   }
 
-  /// [skills] as cards: one column on a phone, two on a wide screen.
-  Widget _cards(List<SkillView> skills, double width) {
-    Widget card(SkillView s) => SkillCard(
-          key: Key('run-skill-${s.boxId}'),
-          runKey: Key('run-skill-run-${s.boxId}'),
-          skill: s,
-          onTap: _running ? null : () => _open(s),
-          onRun: _running ? null : () => _open(s),
-        );
+  /// A shelf: its tiles in a row that scrolls sideways, all of one height.
+  Widget _shelf(SkillShelf shelf, Map<String, int> rankOf) {
+    final mixed = shelf.key == mixedShelfKey;
+    return SingleChildScrollView(
+      key: Key('store-shelf-list-${shelf.key}'),
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: homeGutter),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (i, s) in shelf.skills.indexed) ...[
+              if (i > 0) const SizedBox(width: 12),
+              Builder(
+                builder: (context) {
+                  final tag = skillHeroTag('shelf-${shelf.key}', s);
+                  return SkillTile(
+                    key: Key('store-tile-${s.boxId}'),
+                    skill: s,
+                    showField: mixed,
+                    heroTag: tag,
+                    onTap: _running ? null : () => _open(s, heroTag: tag, rank: rankOf[s.boxId]),
+                  );
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// [skills] as ranked rows, with their rank when [rankOf] is given: one column on a phone,
+  /// two on a wide screen.
+  Widget _rows(
+    List<SkillView> skills,
+    double width, {
+    Map<String, int>? rankOf,
+    required String place,
+    bool showField = false,
+  }) {
+    Widget row(SkillView s, {required bool divider}) {
+      final tag = skillHeroTag(place, s);
+      final rank = rankOf?[s.boxId];
+      return SkillRow(
+        key: Key('run-skill-${s.boxId}'),
+        runKey: Key('run-skill-run-${s.boxId}'),
+        skill: s,
+        rank: rank,
+        heroTag: tag,
+        divider: divider,
+        showField: showField,
+        busy: _quick == s.boxId,
+        onTap: _running ? null : () => _open(s, heroTag: tag, rank: rank),
+        onRun: _running || _quick != null ? null : () => _quickRun(s, heroTag: tag, rank: rank),
+      );
+    }
+
     final columns = width >= 600 ? 2 : 1;
+    final lines = (skills.length + columns - 1) ~/ columns;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < skills.length; i += columns)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: columns == 1
-                ? card(skills[i])
-                : IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: card(skills[i])),
-                        const SizedBox(width: 10),
-                        Expanded(child: i + 1 < skills.length ? card(skills[i + 1]) : const SizedBox.shrink()),
-                      ],
-                    ),
-                  ),
-          ),
+        for (var line = 0; line < lines; line++)
+          columns == 1
+              ? row(skills[line], divider: line < lines - 1)
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var c = 0; c < columns; c++) ...[
+                      if (c > 0) const SizedBox(width: 20),
+                      Expanded(
+                        child: line * columns + c < skills.length
+                            ? row(skills[line * columns + c], divider: line < lines - 1)
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
+                ),
       ],
     );
+  }
+
+  /// The skills that match a search, as rows in groups by field (issue #122): all of
+  /// them, most backed first in each group, with no rank.
+  List<Widget> _results(BuildContext context, List<SkillView> skills) {
+    final l = context.l10n;
+    final t = HomeText.of(context);
+    return [
+      for (final g in skillGroups(skills))
+        Padding(
+          key: Key('store-group-${g.key}'),
+          padding: const EdgeInsets.fromLTRB(homeGutter, 8, homeGutter, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
+              const SizedBox(height: 4),
+              _rows(g.skills, 0, place: 'search'),
+            ],
+          ),
+        ),
+    ];
   }
 }
 

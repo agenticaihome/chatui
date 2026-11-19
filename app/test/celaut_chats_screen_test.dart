@@ -1124,7 +1124,7 @@ void main() {
       expect(find.text(appL10n.chatsNewTitle), findsOneWidget);
       await tester.tap(find.byKey(const Key('run-skill-skill-echo')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('skill-sheet-run')));
+      await tester.tap(find.byKey(const Key('skill-detail-run')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('run-confirm')), findsOneWidget);
       await tester.tap(find.byKey(Key(confirm ? 'run-confirm-ok' : 'run-confirm-cancel')));

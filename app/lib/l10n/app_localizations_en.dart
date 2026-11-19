@@ -7977,11 +7977,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautSkillAbout => 'About this skill';
 
   @override
-  String celautSkillField(String field) {
-    return 'Field: $field';
-  }
-
-  @override
   String get celautSkillTestBanner =>
       'Most results are tests. Check before you trust them.';
 
@@ -8066,7 +8061,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunCategoryAll => 'All';
 
   @override
-  String get celautStoreFeatured => 'Featured';
+  String get celautStoreFeatured => 'Most backed';
 
   @override
   String get celautStoreFeaturedHint =>
@@ -8853,4 +8848,67 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get celautHomeBalancesNote =>
       'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.';
+
+  @override
+  String celautStoreRank(int rank) {
+    return 'Number $rank';
+  }
+
+  @override
+  String celautStoreRunSkill(String name) {
+    return 'Run $name';
+  }
+
+  @override
+  String get celautStoreOpenHint => 'Opens the page of the skill';
+
+  @override
+  String get celautStoreTopSkills => 'Top skills';
+
+  @override
+  String get celautStoreMoreFields => 'More fields';
+
+  @override
+  String get celautStoreByField => 'By field';
+
+  @override
+  String get celautStoreCatalogEmpty => 'The catalog has no skills yet.';
+
+  @override
+  String celautSkillRunService(String action, String rating) {
+    return '$action this service (rating: $rating)';
+  }
+
+  @override
+  String get celautSkillStatRank => 'Rank';
+
+  @override
+  String get celautSkillStatRankNote => 'most backed';
+
+  @override
+  String get celautSkillStatServices => 'Services';
+
+  @override
+  String get celautSkillStatServicesNote => 'declared';
+
+  @override
+  String get celautSkillStatBacking => 'Backing';
+
+  @override
+  String get celautSkillStatBackingNote => 'of the publisher';
+
+  @override
+  String get celautSkillStatBlock => 'Block';
+
+  @override
+  String get celautSkillStatBlockNote => 'published';
+
+  @override
+  String get celautSkillMore => 'more';
+
+  @override
+  String get celautSkillLess => 'less';
+
+  @override
+  String get celautSkillServicesLoading => 'Loading the services…';
 }

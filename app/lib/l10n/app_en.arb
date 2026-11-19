@@ -5787,14 +5787,6 @@
   },
   "celautStoreShowFewer": "Show fewer",
   "celautSkillAbout": "About this skill",
-  "celautSkillField": "Field: {field}",
-  "@celautSkillField": {
-    "placeholders": {
-      "field": {
-        "type": "String"
-      }
-    }
-  },
   "celautSkillTestBanner": "Most results are tests. Check before you trust them.",
   "celautSkillRecommended": "Recommended",
   "celautSkillOtherOptions": "Other options ({count})",
@@ -6375,5 +6367,49 @@
     }
   },
   "celautHomeBalancesTitle": "Balance and spending by node",
-  "celautHomeBalancesNote": "The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week."
+  "celautHomeBalancesNote": "The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.",
+  "celautStoreFeatured": "Most backed",
+  "celautStoreRank": "Number {rank}",
+  "@celautStoreRank": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "celautStoreRunSkill": "Run {name}",
+  "@celautStoreRunSkill": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "celautStoreOpenHint": "Opens the page of the skill",
+  "celautStoreTopSkills": "Top skills",
+  "celautStoreMoreFields": "More fields",
+  "celautStoreByField": "By field",
+  "celautStoreCatalogEmpty": "The catalog has no skills yet.",
+  "celautSkillRunService": "{action} this service (rating: {rating})",
+  "@celautSkillRunService": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillStatRank": "Rank",
+  "celautSkillStatRankNote": "most backed",
+  "celautSkillStatServices": "Services",
+  "celautSkillStatServicesNote": "declared",
+  "celautSkillStatBacking": "Backing",
+  "celautSkillStatBackingNote": "of the publisher",
+  "celautSkillStatBlock": "Block",
+  "celautSkillStatBlockNote": "published",
+  "celautSkillMore": "more",
+  "celautSkillLess": "less",
+  "celautSkillServicesLoading": "Loading the services…"
 }

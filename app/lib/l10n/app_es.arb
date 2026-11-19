@@ -2644,7 +2644,6 @@
   "celautStoreShowMore": "Mostrar más ({count})",
   "celautStoreShowFewer": "Mostrar menos",
   "celautSkillAbout": "Sobre esta habilidad",
-  "celautSkillField": "Campo: {field}",
   "celautSkillTestBanner": "La mayoría de los resultados son pruebas. Compruébalos antes de confiar en ellos.",
   "celautSkillRecommended": "Recomendado",
   "celautSkillOtherOptions": "Otras opciones ({count})",
@@ -2895,5 +2894,49 @@
   "celautMoveFeeOf": "El nodo cobra {fee} por este movimiento.",
   "celautHomeSpent": "gastado {value}",
   "celautHomeBalancesTitle": "Saldo y gasto por nodo",
-  "celautHomeBalancesNote": "El saldo es lo que dice el nodo ahora. El gasto sale del último extracto que la app leyó en cada nodo, y aquí incluye lo que aún tienen tus instancias en marcha. Abre un nodo para leerlo, por día o por semana."
+  "celautHomeBalancesNote": "El saldo es lo que dice el nodo ahora. El gasto sale del último extracto que la app leyó en cada nodo, y aquí incluye lo que aún tienen tus instancias en marcha. Abre un nodo para leerlo, por día o por semana.",
+  "celautStoreFeatured": "La más respaldada",
+  "celautStoreRank": "Número {rank}",
+  "@celautStoreRank": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "celautStoreRunSkill": "Ejecutar {name}",
+  "@celautStoreRunSkill": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "celautStoreOpenHint": "Abre la página de la habilidad",
+  "celautStoreTopSkills": "Las más respaldadas",
+  "celautStoreMoreFields": "Más campos",
+  "celautStoreByField": "Por campo",
+  "celautStoreCatalogEmpty": "El catálogo aún no tiene habilidades.",
+  "celautSkillRunService": "{action} este servicio (valoración: {rating})",
+  "@celautSkillRunService": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "celautSkillStatRank": "Puesto",
+  "celautSkillStatRankNote": "por respaldo",
+  "celautSkillStatServices": "Servicios",
+  "celautSkillStatServicesNote": "declarados",
+  "celautSkillStatBacking": "Respaldo",
+  "celautSkillStatBackingNote": "del publicador",
+  "celautSkillStatBlock": "Bloque",
+  "celautSkillStatBlockNote": "publicada",
+  "celautSkillMore": "más",
+  "celautSkillLess": "menos",
+  "celautSkillServicesLoading": "Cargando los servicios…"
 }

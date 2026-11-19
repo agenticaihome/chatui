@@ -5,6 +5,7 @@ import '../../bridge/api/celaut_catalog.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
+import 'skill_store.dart';
 
 /// The step of a skill's services, with little to read (issue #122): one recommended
 /// service and one main action; the other services, the id, the exact score and where the
@@ -62,7 +63,9 @@ class SkillTestDataBanner extends StatelessWidget {
 /// card, "Recommended"; the others are under "Other options (N)", closed at first. A tap on
 /// a card chooses it; [chosen] has a check. The keys start with [keyPrefix]: the card of a
 /// service is `<prefix>-<id>`, the check `<prefix>-chosen`, the label of the first
-/// `<prefix>-recommended`, the closed part `<prefix>-others`.
+/// `<prefix>-recommended`, the closed part `<prefix>-others`. With [onRun], each card has its
+/// own Run pill, `<prefix>-run-<id>` ([runLabel] for another word); null [onRun] with
+/// [runLabel] shows the pills off (no wallet to run with).
 class SkillServiceChoice extends StatelessWidget {
   const SkillServiceChoice({
     super.key,
@@ -70,12 +73,24 @@ class SkillServiceChoice extends StatelessWidget {
     required this.chosen,
     required this.onChoose,
     required this.keyPrefix,
+    this.onRun,
+    this.runLabel,
+    this.showRun = false,
   });
 
   final List<SkillServiceView> services;
   final String? chosen;
   final ValueChanged<String> onChoose;
   final String keyPrefix;
+
+  /// Run one service at once, without choosing it first.
+  final ValueChanged<String>? onRun;
+
+  /// The word of the pills; null for Run.
+  final String? runLabel;
+
+  /// Each card shows its pill, on or off as [onRun].
+  final bool showRun;
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +104,9 @@ class SkillServiceChoice extends StatelessWidget {
           chosen: chosen == s.serviceId,
           onTap: () => onChoose(s.serviceId),
           keyPrefix: keyPrefix,
+          showRun: showRun,
+          runLabel: runLabel,
+          onRun: onRun == null ? null : () => onRun!(s.serviceId),
         );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -129,6 +147,9 @@ class SkillServiceCard extends StatefulWidget {
     required this.chosen,
     required this.onTap,
     required this.keyPrefix,
+    this.showRun = false,
+    this.onRun,
+    this.runLabel,
   });
 
   final SkillServiceView service;
@@ -136,6 +157,11 @@ class SkillServiceCard extends StatefulWidget {
   final bool chosen;
   final VoidCallback onTap;
   final String keyPrefix;
+
+  /// A Run pill on the right, `<prefix>-run-<id>`: on with [onRun], off without.
+  final bool showRun;
+  final VoidCallback? onRun;
+  final String? runLabel;
 
   @override
   State<SkillServiceCard> createState() => _SkillServiceCardState();
@@ -192,7 +218,9 @@ class _SkillServiceCardState extends State<SkillServiceCard> {
                 ],
               ),
               const SizedBox(height: 4),
-              Wrap(
+              Row(
+                children: [
+                  Expanded(child: Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 10,
                 runSpacing: 4,
@@ -217,6 +245,21 @@ class _SkillServiceCardState extends State<SkillServiceCard> {
                     ),
                   ),
                   if (!s.direct) _UnverifiedChip(key: Key('$p-unverified-$id')),
+                ],
+              )),
+                  if (widget.showRun)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8, right: 6),
+                      child: SkillRunButton(
+                        key: Key('$p-run-$id'),
+                        onPressed: widget.onRun,
+                        label: widget.runLabel,
+                        semanticsLabel: l.celautSkillRunService(
+                          widget.runLabel ?? l.celautRunButton,
+                          serviceRatingText(l, rating),
+                        ),
+                      ),
+                    ),
                 ],
               ),
               TextButton(

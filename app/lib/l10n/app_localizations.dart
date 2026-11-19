@@ -12785,12 +12785,6 @@ abstract class AppLocalizations {
   /// **'About this skill'**
   String get celautSkillAbout;
 
-  /// No description provided for @celautSkillField.
-  ///
-  /// In en, this message translates to:
-  /// **'Field: {field}'**
-  String celautSkillField(String field);
-
   /// No description provided for @celautSkillTestBanner.
   ///
   /// In en, this message translates to:
@@ -12926,7 +12920,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautStoreFeatured.
   ///
   /// In en, this message translates to:
-  /// **'Featured'**
+  /// **'Most backed'**
   String get celautStoreFeatured;
 
   /// No description provided for @celautStoreFeaturedHint.
@@ -14212,6 +14206,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.'**
   String get celautHomeBalancesNote;
+
+  /// No description provided for @celautStoreRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Number {rank}'**
+  String celautStoreRank(int rank);
+
+  /// No description provided for @celautStoreRunSkill.
+  ///
+  /// In en, this message translates to:
+  /// **'Run {name}'**
+  String celautStoreRunSkill(String name);
+
+  /// No description provided for @celautStoreOpenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the page of the skill'**
+  String get celautStoreOpenHint;
+
+  /// No description provided for @celautStoreTopSkills.
+  ///
+  /// In en, this message translates to:
+  /// **'Top skills'**
+  String get celautStoreTopSkills;
+
+  /// No description provided for @celautStoreMoreFields.
+  ///
+  /// In en, this message translates to:
+  /// **'More fields'**
+  String get celautStoreMoreFields;
+
+  /// No description provided for @celautStoreByField.
+  ///
+  /// In en, this message translates to:
+  /// **'By field'**
+  String get celautStoreByField;
+
+  /// No description provided for @celautStoreCatalogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The catalog has no skills yet.'**
+  String get celautStoreCatalogEmpty;
+
+  /// No description provided for @celautSkillRunService.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} this service (rating: {rating})'**
+  String celautSkillRunService(String action, String rating);
+
+  /// No description provided for @celautSkillStatRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank'**
+  String get celautSkillStatRank;
+
+  /// No description provided for @celautSkillStatRankNote.
+  ///
+  /// In en, this message translates to:
+  /// **'most backed'**
+  String get celautSkillStatRankNote;
+
+  /// No description provided for @celautSkillStatServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Services'**
+  String get celautSkillStatServices;
+
+  /// No description provided for @celautSkillStatServicesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'declared'**
+  String get celautSkillStatServicesNote;
+
+  /// No description provided for @celautSkillStatBacking.
+  ///
+  /// In en, this message translates to:
+  /// **'Backing'**
+  String get celautSkillStatBacking;
+
+  /// No description provided for @celautSkillStatBackingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'of the publisher'**
+  String get celautSkillStatBackingNote;
+
+  /// No description provided for @celautSkillStatBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Block'**
+  String get celautSkillStatBlock;
+
+  /// No description provided for @celautSkillStatBlockNote.
+  ///
+  /// In en, this message translates to:
+  /// **'published'**
+  String get celautSkillStatBlockNote;
+
+  /// No description provided for @celautSkillMore.
+  ///
+  /// In en, this message translates to:
+  /// **'more'**
+  String get celautSkillMore;
+
+  /// No description provided for @celautSkillLess.
+  ///
+  /// In en, this message translates to:
+  /// **'less'**
+  String get celautSkillLess;
+
+  /// No description provided for @celautSkillServicesLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the services…'**
+  String get celautSkillServicesLoading;
 }
 
 class _AppLocalizationsDelegate
