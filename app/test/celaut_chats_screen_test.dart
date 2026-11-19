@@ -254,11 +254,11 @@ void main() {
           wallets: _Wallets(),
           onStarted: onStarted,
           nameInstance: (id, name) => named.add('$id $name'),
-          loadSkills: () async => const [
-            SkillView(boxId: 'skill-echo', name: 'Echo chat', prose: 'Says it back.', tags: [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0),
+          loadObjectives: () async => const [
+            ObjectiveView(boxId: 'objective-echo', name: 'Echo chat', prose: 'Says it back.', tags: [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0),
           ],
           loadServices: (_) async =>
-              [SkillServiceView(serviceId: _echoId, score: 0.9, direct: true)],
+              [ObjectiveServiceView(serviceId: _echoId, score: 0.9, direct: true)],
           previewQuote: (_) async => null,
           library: PackageLibrary(
             importPackage: (path, name, dir) async => throw UnimplementedError(),
@@ -376,7 +376,7 @@ void main() {
       await tester.tap(find.byKey(const Key('chats-empty-new')));
       await tester.pumpAndSettle();
       expect(find.text(appL10n.chatsNewTitle), findsOneWidget);
-      expect(find.byKey(const Key('run-skill-skill-echo')), findsOneWidget);
+      expect(find.byKey(const Key('run-objective-objective-echo')), findsOneWidget);
     });
 
     testWidgets('a row has the robot, the name, the cost, the preview, the state and the node', (
@@ -721,7 +721,7 @@ void main() {
       await tester.tap(find.byKey(const Key('rename-cancel')));
       await tester.pumpAndSettle();
       expect(node.renamed, ['i1 My echo']);
-      // Empty: the name of the skill again.
+      // Empty: the name of the objective again.
       await tester.longPress(find.byKey(const Key('chats-row-i1')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('chats-action-rename')));
@@ -1122,16 +1122,16 @@ void main() {
       await tester.tap(find.byKey(const Key('chats-new')));
       await tester.pumpAndSettle();
       expect(find.text(appL10n.chatsNewTitle), findsOneWidget);
-      await tester.tap(find.byKey(const Key('run-skill-skill-echo')));
+      await tester.tap(find.byKey(const Key('run-objective-objective-echo')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('skill-sheet-run')));
+      await tester.tap(find.byKey(const Key('objective-sheet-run')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('run-confirm')), findsOneWidget);
       await tester.tap(find.byKey(Key(confirm ? 'run-confirm-ok' : 'run-confirm-cancel')));
       await tester.pumpAndSettle();
     }
 
-    testWidgets('the pencil, a skill, the confirmation, then the conversation that starts', (
+    testWidgets('the pencil, an objective, the confirmation, then the conversation that starts', (
       tester,
     ) async {
       await open(tester);

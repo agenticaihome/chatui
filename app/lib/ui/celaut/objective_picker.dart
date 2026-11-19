@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../bridge/api/celaut.dart';
 import '../../bridge/api/celaut_catalog.dart';
+import '../../celaut/catalog_types.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/service_strings.dart';
 import '../../l10n/l10n.dart';
@@ -9,66 +10,84 @@ import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
-import 'skill_service_choice.dart';
-import 'skill_store.dart';
+import 'objective_service_choice.dart';
+import 'objective_store.dart';
+import 'objective_type_missing.dart';
 
-/// Pick a skill of the catalog (`docs/celaut/catalog.md`), then one of the services that
-/// cover it. The skills are in groups by field, the most backed first, with a short list
+/// Pick an objective of the catalog (`docs/celaut/catalog.md`), then one of the services that
+/// cover it. The objectives are in groups by field, the most backed first, with a short list
 /// and "Show more". The services come ranked: the best is recommended and chosen at first,
-/// the others are one tap away ([SkillServiceChoice], issue #122). The screen returns the
+/// the others are one tap away ([ObjectiveServiceChoice], issue #122). The screen returns the
 /// id of the chosen service (64 hexadecimal characters), or nothing if the user goes back.
-class SkillPickerScreen extends StatefulWidget {
-  const SkillPickerScreen({super.key, this.loadSkills, this.loadServices});
+class ObjectivePickerScreen extends StatefulWidget {
+  const ObjectivePickerScreen({super.key, this.loadObjectives, this.loadServices, this.types});
 
-  /// Read the skills. Tests give their own.
-  final Future<List<SkillView>> Function()? loadSkills;
+  /// Read the objectives. Tests give their own.
+  final Future<List<ObjectiveView>> Function()? loadObjectives;
 
-  /// Read the ranked services of a skill (its box id). Tests give their own.
-  final Future<List<SkillServiceView>> Function(String skillBoxId)? loadServices;
+  /// The type ids of the registry. Tests give their own. With no [loadObjectives] and no
+  /// objective type id, the screen shows [ObjectiveTypeMissing] and reads nothing.
+  final CatalogTypes? types;
+
+  /// Read the ranked services of an objective (its box id). Tests give their own.
+  final Future<List<ObjectiveServiceView>> Function(String objectiveBoxId)? loadServices;
 
   @override
-  State<SkillPickerScreen> createState() => _SkillPickerScreenState();
+  State<ObjectivePickerScreen> createState() => _ObjectivePickerScreenState();
 }
 
-class _SkillPickerScreenState extends State<SkillPickerScreen> {
-  List<SkillView>? _skills;
-  bool _loadingSkills = true;
+class _ObjectivePickerScreenState extends State<ObjectivePickerScreen> {
+  List<ObjectiveView>? _objectives;
+  bool _loadingObjectives = true;
 
-  SkillView? _skill;
-  List<SkillServiceView>? _services;
+  ObjectiveView? _objective;
+  List<ObjectiveServiceView>? _services;
   bool _loadingServices = false;
   String? _chosen;
 
-  /// The whole list of skills is shown, not only the first [storeShortList].
+  /// The whole list of objectives is shown, not only the first [storeShortList].
   bool _showAll = false;
 
   CelautError? _error;
 
+  late final CatalogTypes _types = widget.types ?? catalogTypes;
+
+  /// The objective type id is not set, and so the catalog is empty.
+  bool get _typeMissing => widget.loadObjectives == null && !_types.hasObjective;
+
   @override
   void initState() {
     super.initState();
-    _readSkills();
+    _readObjectives();
   }
 
-  Future<void> _readSkills() async {
+  Future<void> _readObjectives() async {
+    if (_typeMissing) {
+      setState(() {
+        _objectives = null;
+        _loadingObjectives = false;
+        _error = null;
+      });
+      return;
+    }
     setState(() {
-      _loadingSkills = true;
+      _loadingObjectives = true;
       _error = null;
     });
     try {
-      final load = widget.loadSkills ?? celautSkills;
-      final skills = await load();
-      if (mounted) setState(() => _skills = skills);
+      final load = widget.loadObjectives ?? () => celautObjectives(types: _types.ids);
+      final objectives = await load();
+      if (mounted) setState(() => _objectives = objectives);
     } on CelautError catch (e) {
       if (mounted) setState(() => _error = e);
     } finally {
-      if (mounted) setState(() => _loadingSkills = false);
+      if (mounted) setState(() => _loadingObjectives = false);
     }
   }
 
-  Future<void> _readServices(SkillView skill) async {
+  Future<void> _readServices(ObjectiveView objective) async {
     setState(() {
-      _skill = skill;
+      _objective = objective;
       _services = null;
       _chosen = null;
       _loadingServices = true;
@@ -76,25 +95,25 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
     });
     try {
       final load = widget.loadServices ??
-          (String id) => celautSkillServices(skillBoxId: id);
-      final services = await load(skill.boxId);
-      // The user may have gone to another skill while this one loaded.
-      if (!mounted || _skill?.boxId != skill.boxId) return;
+          (String id) => celautObjectiveServices(types: _types.ids, objectiveBoxId: id);
+      final services = await load(objective.boxId);
+      // The user may have gone to another objective while this one loaded.
+      if (!mounted || _objective?.boxId != objective.boxId) return;
       setState(() {
         _services = services;
         _chosen = services.isEmpty ? null : services.first.serviceId;
       });
     } on CelautError catch (e) {
-      if (mounted && _skill?.boxId == skill.boxId) setState(() => _error = e);
+      if (mounted && _objective?.boxId == objective.boxId) setState(() => _error = e);
     } finally {
-      if (mounted && _skill?.boxId == skill.boxId) {
+      if (mounted && _objective?.boxId == objective.boxId) {
         setState(() => _loadingServices = false);
       }
     }
   }
 
-  void _backToSkills() => setState(() {
-        _skill = null;
+  void _backToObjectives() => setState(() {
+        _objective = null;
         _services = null;
         _chosen = null;
         _error = null;
@@ -102,23 +121,23 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final skill = _skill;
+    final objective = _objective;
     return PopScope(
-      canPop: skill == null,
+      canPop: objective == null,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _backToSkills();
+        if (!didPop) _backToObjectives();
       },
       child: SettingsPage(
-        title: ServiceStrings.skillsTitle,
+        title: ServiceStrings.objectivesTitle,
         children: [
-          if (_error != null) _errorCard(context, _error!, skill),
-          if (skill == null) ..._skillList(context) else ..._serviceList(context, skill),
+          if (_error != null) _errorCard(context, _error!, objective),
+          if (objective == null) ..._objectiveList(context) else ..._serviceList(context, objective),
         ],
       ),
     );
   }
 
-  Widget _errorCard(BuildContext context, CelautError e, SkillView? skill) {
+  Widget _errorCard(BuildContext context, CelautError e, ObjectiveView? objective) {
     return SoftCard(
       child: Column(
         key: const Key('picker-error'),
@@ -138,7 +157,7 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
           const SizedBox(height: 8),
           OutlinedButton(
             key: const Key('picker-retry'),
-            onPressed: () => skill == null ? _readSkills() : _readServices(skill),
+            onPressed: () => objective == null ? _readObjectives() : _readServices(objective),
             child: const Text(ServiceStrings.retry),
           ),
         ],
@@ -146,29 +165,30 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
     );
   }
 
-  List<Widget> _skillList(BuildContext context) {
+  List<Widget> _objectiveList(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
     final muted = ArgusColors.of(context).muted;
-    final ranked = rankSkills(_skills ?? const <SkillView>[]);
+    final ranked = rankObjectives(_objectives ?? const <ObjectiveView>[]);
     final cut = !_showAll && ranked.length > storeShortList;
+    if (_typeMissing) return [ObjectiveTypeMissing(onBack: _readObjectives)];
     return [
-      SettingsNote(l.celautSkillsIntro),
-      if (_loadingSkills)
-        const SoftCard(child: Text(ServiceStrings.skillsLoading, key: Key('picker-loading')))
-      else if (_skills != null && ranked.isEmpty)
-        SoftCard(child: Text(ServiceStrings.skillsEmpty, style: TextStyle(color: muted))),
-      for (final g in skillGroups(cut ? ranked.take(storeShortList).toList() : ranked)) ...[
+      SettingsNote(l.celautObjectivesIntro),
+      if (_loadingObjectives)
+        const SoftCard(child: Text(ServiceStrings.objectivesLoading, key: Key('picker-loading')))
+      else if (_objectives != null && ranked.isEmpty)
+        SoftCard(child: Text(ServiceStrings.objectivesEmpty, style: TextStyle(color: muted))),
+      for (final g in objectiveGroups(cut ? ranked.take(storeShortList).toList() : ranked)) ...[
         Padding(
           key: Key('picker-group-${g.key}'),
           padding: const EdgeInsets.only(bottom: 8),
           child: Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
         ),
-        for (final skill in g.skills) ...[
-          SkillCard(
-            key: Key('picker-skill-${skill.boxId}'),
-            skill: skill,
-            onTap: () => _readServices(skill),
+        for (final objective in g.objectives) ...[
+          ObjectiveCard(
+            key: Key('picker-objective-${objective.boxId}'),
+            objective: objective,
+            onTap: () => _readServices(objective),
           ),
           const SizedBox(height: 10),
         ],
@@ -185,16 +205,16 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
     ];
   }
 
-  List<Widget> _serviceList(BuildContext context, SkillView skill) {
+  List<Widget> _serviceList(BuildContext context, ObjectiveView objective) {
     final muted = ArgusColors.of(context).muted;
     final services = _services;
     return [
       Text(
-        skill.name,
-        key: const Key('picker-skill-name'),
+        objective.name,
+        key: const Key('picker-objective-name'),
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
       ),
-      SkillAbout(skill: skill),
+      ObjectiveAbout(objective: objective),
       const SizedBox(height: 6),
       if (_loadingServices)
         const SoftCard(child: Text(ServiceStrings.servicesLoading, key: Key('picker-loading')))
@@ -207,9 +227,9 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
           ),
         ),
       if (services != null && services.isNotEmpty) ...[
-        const SkillTestDataBanner(),
+        const ObjectiveTestDataBanner(),
         const SizedBox(height: 10),
-        SkillServiceChoice(
+        ObjectiveServiceChoice(
           services: services,
           chosen: _chosen,
           onChoose: (id) => setState(() => _chosen = id),
@@ -219,14 +239,14 @@ class _SkillPickerScreenState extends State<SkillPickerScreen> {
         FilledButton(
           key: const Key('picker-use'),
           onPressed: _chosen == null ? null : () => Navigator.of(context).pop(_chosen),
-          child: Text(context.l10n.celautSkillUse),
+          child: Text(context.l10n.celautObjectiveUse),
         ),
       ],
       const SizedBox(height: 8),
       OutlinedButton(
-        key: const Key('picker-other-skill'),
-        onPressed: _backToSkills,
-        child: const Text(ServiceStrings.otherSkill),
+        key: const Key('picker-other-objective'),
+        onPressed: _backToObjectives,
+        child: const Text(ServiceStrings.otherObjective),
       ),
     ];
   }

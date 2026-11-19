@@ -6020,22 +6020,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunTitle => 'Run a service';
 
   @override
-  String get celautRunSearchHint => 'Search skills and tags';
+  String get celautRunSearchHint => 'Search objectives and tags';
 
   @override
-  String get celautRunLoading => 'Loading skills…';
+  String get celautRunLoading => 'Loading objectives…';
 
   @override
-  String get celautRunEmpty => 'No skill matches.';
+  String get celautRunEmpty => 'No objective matches.';
 
   @override
-  String get celautRunCatalogError => 'The skill catalog is not available now.';
+  String get celautRunCatalogError =>
+      'The objective catalog is not available now.';
 
   @override
   String get celautRunRetry => 'Try again';
 
   @override
-  String get celautRunNoServices => 'No service has this skill yet.';
+  String get celautRunNoServices => 'No service has this objective yet.';
 
   @override
   String get celautRunButton => 'Run';
@@ -7959,8 +7960,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serviceInfoWorkloadOr => 'or';
 
   @override
-  String get celautSkillsIntro =>
-      'Pick a skill to see the services that do it.';
+  String get celautObjectivesIntro =>
+      'Pick an objective to see the services that do it.';
 
   @override
   String get celautStoreOtherField => 'Other';
@@ -7974,67 +7975,67 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautStoreShowFewer => 'Show fewer';
 
   @override
-  String get celautSkillAbout => 'About this skill';
+  String get celautObjectiveAbout => 'About this objective';
 
   @override
-  String celautSkillField(String field) {
+  String celautObjectiveField(String field) {
     return 'Field: $field';
   }
 
   @override
-  String get celautSkillTestBanner =>
+  String get celautObjectiveTestBanner =>
       'Most results are tests. Check before you trust them.';
 
   @override
-  String get celautSkillRecommended => 'Recommended';
+  String get celautObjectiveRecommended => 'Recommended';
 
   @override
-  String celautSkillOtherOptions(String count) {
+  String celautObjectiveOtherOptions(String count) {
     return 'Other options ($count)';
   }
 
   @override
-  String celautSkillRating(String level) {
+  String celautObjectiveRating(String level) {
     return 'Rating: $level';
   }
 
   @override
-  String get celautSkillRatingHigh => 'High';
+  String get celautObjectiveRatingHigh => 'High';
 
   @override
-  String get celautSkillRatingMedium => 'Medium';
+  String get celautObjectiveRatingMedium => 'Medium';
 
   @override
-  String get celautSkillRatingLow => 'Low';
+  String get celautObjectiveRatingLow => 'Low';
 
   @override
-  String celautSkillRatingExact(String score) {
+  String celautObjectiveRatingExact(String score) {
     return 'Exact rating: $score of 1';
   }
 
   @override
-  String get celautSkillDeclared => 'Declared by the publisher';
+  String get celautObjectiveDeclared => 'Declared by the publisher';
 
   @override
-  String get celautSkillFromResults =>
+  String get celautObjectiveFromResults =>
       'Seen only in test results, not declared by a publisher';
 
   @override
-  String get celautSkillUnverified => 'Unverified';
+  String get celautObjectiveUnverified => 'Unverified';
 
   @override
-  String celautSkillServiceId(String id) {
+  String celautObjectiveServiceId(String id) {
     return 'Service id $id';
   }
 
   @override
-  String get celautSkillIdCopied => 'Service id copied';
+  String get celautObjectiveIdCopied => 'Service id copied';
 
   @override
-  String get celautSkillUse => 'Use this service';
+  String get celautObjectiveUse => 'Use this service';
 
   @override
-  String get celautRunServicesTitle => 'Services with this skill';
+  String get celautRunServicesTitle => 'Services with this objective';
 
   @override
   String get celautRunBest => 'Best';
@@ -8070,40 +8071,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautStoreFeaturedHint =>
-      'One skill of each field, from the publisher with the most reputation';
+      'One objective of each field, from the publisher with the most reputation';
 
   @override
   String get celautStoreSuggested => 'Suggested for you';
 
   @override
   String get celautStoreSuggestedHint =>
-      'In the fields of the skills that you ran';
+      'In the fields of the objectives that you ran';
 
   @override
   String get celautStoreNew => 'New';
 
   @override
-  String get celautStoreNewHint => 'The last skills published on Ergo';
+  String get celautStoreNewHint => 'The last objectives published on Ergo';
 
   @override
   String get celautStorePopular => 'Popular';
 
   @override
-  String get celautStorePopularHint => 'The skills with the most services';
+  String get celautStorePopularHint => 'The objectives with the most services';
 
   @override
   String get celautStoreCategories => 'Categories';
 
   @override
-  String get celautStoreAll => 'All skills';
+  String get celautStoreAll => 'All objectives';
 
   @override
-  String celautStoreSkills(int count) {
+  String celautStoreObjectives(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count skills',
-      one: '1 skill',
+      other: '$count objectives',
+      one: '1 objective',
     );
     return '$_temp0';
   }
@@ -8853,4 +8854,56 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get celautHomeBalancesNote =>
       'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.';
+
+  @override
+  String get registrySettingsTitle => 'Celaut Registry';
+
+  @override
+  String get registrySettingsRowSubtitle => 'Type ids of the registry';
+
+  @override
+  String get registrySettingsIntro =>
+      'The Celaut Registry keeps its boxes on Ergo. Each kind of box has a type id. The app reads the catalog of objectives with these ids. Registry: https://github.com/celaut-project/registry';
+
+  @override
+  String get registryTypesGroup => 'Type ids';
+
+  @override
+  String get registryTypeObjective => 'Objective type id';
+
+  @override
+  String get registryTypeBenchmark => 'Benchmark type id';
+
+  @override
+  String get registryTypeCoverage => 'Coverage type id';
+
+  @override
+  String get registryTypeResult => 'Result type id';
+
+  @override
+  String get registryTypeObjectiveHelper =>
+      'Empty by default. With no id, the catalog is empty.';
+
+  @override
+  String get registryTypeInvalid => 'Enter 64 hexadecimal characters.';
+
+  @override
+  String get registryTypeInvalidOrEmpty =>
+      'Enter 64 hexadecimal characters, or leave it empty.';
+
+  @override
+  String get registryRestoreDefault => 'Restore default';
+
+  @override
+  String get registryTypesSaved => 'Type ids saved.';
+
+  @override
+  String get registryNoObjectiveTitle => 'No objective type id';
+
+  @override
+  String get registryNoObjectiveBody =>
+      'The catalog has no objectives, because the objective type id is empty. Enter the id in the settings of the Celaut Registry.';
+
+  @override
+  String get registryOpenSettings => 'Open the registry settings';
 }

@@ -8,6 +8,7 @@ import '../../bridge/api/celaut_env.dart';
 import '../../bridge/api/celaut_service_info.dart';
 import '../../bridge/api/celaut_home.dart';
 import '../../bridge/api/celaut_service.dart';
+import '../../celaut/catalog_types.dart';
 import '../../celaut/celaut_format.dart';
 import '../../celaut/background_work.dart';
 import '../../celaut/celaut_strings.dart';
@@ -37,8 +38,9 @@ import 'launch_rocket.dart';
 import 'run_confirm_dialog.dart';
 import 'service_info_screen.dart';
 import 'service_transfer_dialog.dart';
-import 'skill_services_sheet.dart';
-import 'skill_store.dart';
+import 'objective_services_sheet.dart';
+import 'objective_store.dart';
+import 'objective_type_missing.dart';
 
 /// Start a service: the ids and the settings go to the launcher.
 typedef LaunchCall = Future<LaunchOutcome> Function({
@@ -57,12 +59,12 @@ typedef StartedCall = Future<void> Function(
   String? name,
 );
 
-/// "Run a service" (`docs/celaut/ui.md`, section 2): the skills of the catalog as a store.
+/// "Run a service" (`docs/celaut/ui.md`, section 2): the objectives of the catalog as a store.
 /// At the top, at all times: the search, two small actions for the service files on this
-/// phone (import one, run the saved ones), and the fields of the skills as chips. Under
+/// phone (import one, run the saved ones), and the fields of the objectives as chips. Under
 /// them the sections of the store (featured, suggested, new, popular, the fields, all the
-/// skills; see `skill_store.dart`), or the skills that match the search or the chip.
-/// Run on a skill opens a sheet with its ranked services. Run starts
+/// objectives; see `objective_store.dart`), or the objectives that match the search or the chip.
+/// Run on an objective opens a sheet with its ranked services. Run starts
 /// the best node by the balancer (`launchService`) after the user confirms it, with the
 /// best node and its start cost. If the service has a chat slot, the
 /// conversation opens; if not, the instance shows in the list of the home screen.
@@ -73,7 +75,8 @@ class RunServiceSection extends StatefulWidget {
     this.wallets = const AppFullWallets(),
     this.onChanged,
     this.newClient,
-    this.loadSkills,
+    this.loadObjectives,
+    this.types,
     this.loadServices,
     this.previewQuote,
     this.launch,
@@ -133,11 +136,15 @@ class RunServiceSection extends StatefulWidget {
   /// Make a new client on a node that forgot the client id. Tests give their own.
   final Future<NewClientView> Function(NodeAddress node)? newClient;
 
-  /// The skills of the catalog. Tests give their own.
-  final Future<List<SkillView>> Function()? loadSkills;
+  /// The objectives of the catalog. Tests give their own.
+  final Future<List<ObjectiveView>> Function()? loadObjectives;
 
-  /// The ranked services of a skill. Tests give their own.
-  final Future<List<SkillServiceView>> Function(String skillBoxId)? loadServices;
+  /// The type ids of the registry. Tests give their own. With no [loadObjectives] and no
+  /// objective type id, the section shows [ObjectiveTypeMissing] and reads nothing.
+  final CatalogTypes? types;
+
+  /// The ranked services of an objective. Tests give their own.
+  final Future<List<ObjectiveServiceView>> Function(String objectiveBoxId)? loadServices;
 
   /// The best quote of a service on the nodes of the list. Tests give their own.
   final Future<QuoteView?> Function(String serviceId)? previewQuote;
@@ -177,13 +184,17 @@ class RunServiceSection extends StatefulWidget {
 class _RunServiceSectionState extends State<RunServiceSection> {
   final _search = TextEditingController();
   final _scroll = ScrollController();
-  List<SkillView>? _skills;
+  List<ObjectiveView>? _objectives;
 
-  /// The whole list is shown, not only the first [storeShortList] skills.
+  /// The whole list is shown, not only the first [storeShortList] objectives.
   bool _showAll = false;
   bool _loading = true;
   bool _failed = false;
   bool _running = false;
+  late final CatalogTypes _types = widget.types ?? catalogTypes;
+
+  /// The objective type id is not set, and so the catalog is empty.
+  bool get _typeMissing => widget.loadObjectives == null && !_types.hasObjective;
 
   /// The name of the last service that the user confirmed: the launch again after a
   /// transfer has no confirmation, and keeps it.
@@ -227,13 +238,21 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   }
 
   Future<void> _read() async {
+    if (_typeMissing) {
+      setState(() {
+        _objectives = null;
+        _loading = false;
+        _failed = false;
+      });
+      return;
+    }
     setState(() {
       _loading = true;
       _failed = false;
     });
     try {
-      final skills = await (widget.loadSkills ?? celautSkills)();
-      if (mounted) setState(() => _skills = skills);
+      final objectives = await (widget.loadObjectives ?? () => celautObjectives(types: _types.ids))();
+      if (mounted) setState(() => _objectives = objectives);
     } catch (_) {
       // Any failure, also one that is not a Celaut error: the section shows the retry.
       if (mounted) setState(() => _failed = true);
@@ -242,8 +261,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     }
   }
 
-  Future<List<SkillServiceView>> _services(String skillBoxId) =>
-      (widget.loadServices ?? (id) => celautSkillServices(skillBoxId: id))(skillBoxId);
+  Future<List<ObjectiveServiceView>> _services(String objectiveBoxId) =>
+      (widget.loadServices ?? (id) => celautObjectiveServices(types: _types.ids, objectiveBoxId: id))(objectiveBoxId);
 
   Future<QuoteView?> _preview(String serviceId) async {
     final custom = widget.previewQuote;
@@ -256,19 +275,19 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     return quotes.quotes.isEmpty ? null : quotes.quotes.first;
   }
 
-  Future<void> _open(SkillView skill) async {
+  Future<void> _open(ObjectiveView objective) async {
     final serviceId = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => SkillServicesSheet(
-        skill: skill,
+      builder: (_) => ObjectiveServicesSheet(
+        objective: objective,
         loadServices: _services,
         previewQuote: _preview,
         wallets: widget.wallets,
       ),
     );
-    if (serviceId != null && mounted) await _run(serviceId, name: skill.name);
+    if (serviceId != null && mounted) await _run(serviceId, name: objective.name);
   }
 
   /// Ask before a launch: an instance uses credit until it stops. The dialog shows the
@@ -942,13 +961,13 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     await _run(serviceId);
   }
 
-  /// The skills that match the search, the most backed first ([rankSkills]).
-  List<SkillView> _filtered() {
+  /// The objectives that match the search, the most backed first ([rankObjectives]).
+  List<ObjectiveView> _filtered() {
     final query = _search.text.trim().toLowerCase();
-    return [for (final s in rankSkills(_skills ?? const <SkillView>[])) if (skillMatches(s, query)) s];
+    return [for (final s in rankObjectives(_objectives ?? const <ObjectiveView>[])) if (objectiveMatches(s, query)) s];
   }
 
-  /// A new search shows its skills from the start.
+  /// A new search shows its objectives from the start.
   void _filter(VoidCallback change) {
     setState(change);
     if (_scroll.hasClients) _scroll.jumpTo(0);
@@ -980,7 +999,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     final l = context.l10n;
     final t = HomeText.of(context);
     final browsing = _search.text.trim().isEmpty;
-    final skills = _filtered();
+    final objectives = _filtered();
     Widget gutter(Widget child) =>
         Padding(padding: const EdgeInsets.symmetric(horizontal: homeGutter), child: child);
     return Column(
@@ -1009,7 +1028,9 @@ class _RunServiceSectionState extends State<RunServiceSection> {
               controller: _scroll,
               padding: EdgeInsets.fromLTRB(0, 4, 0, 32 + MediaQuery.paddingOf(context).bottom),
               children: [
-                if (_loading)
+                if (_typeMissing)
+                  gutter(ObjectiveTypeMissing(onBack: _read))
+                else if (_loading)
                   gutter(Text(l.celautRunLoading, key: const Key('run-loading'), style: t.secondary))
                 else if (_failed)
                   gutter(
@@ -1028,10 +1049,10 @@ class _RunServiceSectionState extends State<RunServiceSection> {
                       ],
                     ),
                   )
-                else if (skills.isEmpty)
+                else if (objectives.isEmpty)
                   gutter(Text(l.celautRunEmpty, key: const Key('run-empty'), style: t.secondary))
                 else
-                  ..._store(context, skills, box.maxWidth, short: browsing && !_showAll),
+                  ..._store(context, objectives, box.maxWidth, short: browsing && !_showAll),
                 // While a launch runs, its rocket is over the screen ([LaunchRocket]).
               ],
             ),
@@ -1114,16 +1135,16 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     );
   }
 
-  /// The store: one list of [skills] in groups by field, the field as the title of its
-  /// group (issue #122). With [short], only the first [storeShortList] skills and a "Show
-  /// more" action; a search shows all the skills that match.
-  List<Widget> _store(BuildContext context, List<SkillView> skills, double width, {required bool short}) {
+  /// The store: one list of [objectives] in groups by field, the field as the title of its
+  /// group (issue #122). With [short], only the first [storeShortList] objectives and a "Show
+  /// more" action; a search shows all the objectives that match.
+  List<Widget> _store(BuildContext context, List<ObjectiveView> objectives, double width, {required bool short}) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final cut = short && skills.length > storeShortList;
-    final shown = cut ? skills.take(storeShortList).toList() : skills;
+    final cut = short && objectives.length > storeShortList;
+    final shown = cut ? objectives.take(storeShortList).toList() : objectives;
     return [
-      for (final g in skillGroups(shown))
+      for (final g in objectiveGroups(shown))
         Padding(
           key: Key('store-group-${g.key}'),
           padding: const EdgeInsets.fromLTRB(homeGutter, 0, homeGutter, 10),
@@ -1132,11 +1153,11 @@ class _RunServiceSectionState extends State<RunServiceSection> {
             children: [
               Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
               const SizedBox(height: 8),
-              _cards(g.skills, width),
+              _cards(g.objectives, width),
             ],
           ),
         ),
-      if (_search.text.trim().isEmpty && skills.length > storeShortList)
+      if (_search.text.trim().isEmpty && objectives.length > storeShortList)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: homeGutter),
           child: Align(
@@ -1144,19 +1165,19 @@ class _RunServiceSectionState extends State<RunServiceSection> {
             child: TextButton(
               key: const Key('store-more'),
               onPressed: () => setState(() => _showAll = !_showAll),
-              child: Text(_showAll ? l.celautStoreShowFewer : l.celautStoreShowMore(skills.length - storeShortList)),
+              child: Text(_showAll ? l.celautStoreShowFewer : l.celautStoreShowMore(objectives.length - storeShortList)),
             ),
           ),
         ),
     ];
   }
 
-  /// [skills] as cards: one column on a phone, two on a wide screen.
-  Widget _cards(List<SkillView> skills, double width) {
-    Widget card(SkillView s) => SkillCard(
-          key: Key('run-skill-${s.boxId}'),
-          runKey: Key('run-skill-run-${s.boxId}'),
-          skill: s,
+  /// [objectives] as cards: one column on a phone, two on a wide screen.
+  Widget _cards(List<ObjectiveView> objectives, double width) {
+    Widget card(ObjectiveView s) => ObjectiveCard(
+          key: Key('run-objective-${s.boxId}'),
+          runKey: Key('run-objective-run-${s.boxId}'),
+          objective: s,
           onTap: _running ? null : () => _open(s),
           onRun: _running ? null : () => _open(s),
         );
@@ -1164,18 +1185,18 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < skills.length; i += columns)
+        for (var i = 0; i < objectives.length; i += columns)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: columns == 1
-                ? card(skills[i])
+                ? card(objectives[i])
                 : IntrinsicHeight(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(child: card(skills[i])),
+                        Expanded(child: card(objectives[i])),
                         const SizedBox(width: 10),
-                        Expanded(child: i + 1 < skills.length ? card(skills[i + 1]) : const SizedBox.shrink()),
+                        Expanded(child: i + 1 < objectives.length ? card(objectives[i + 1]) : const SizedBox.shrink()),
                       ],
                     ),
                   ),

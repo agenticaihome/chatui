@@ -8,27 +8,27 @@ import '../../celaut/celaut_strings.dart';
 import '../../celaut/payers.dart';
 import '../../l10n/l10n.dart';
 import '../home/home_style.dart';
-import 'skill_service_choice.dart';
-import 'skill_store.dart';
+import 'objective_service_choice.dart';
+import 'objective_store.dart';
 
-/// The services of one skill as a bottom sheet: one recommended service (the best of the
-/// ranking, chosen at first), the others under "Other options", and Run ([SkillServiceChoice],
+/// The services of one objective as a bottom sheet: one recommended service (the best of the
+/// ranking, chosen at first), the others under "Other options", and Run ([ObjectiveServiceChoice],
 /// issue #122). For the chosen service it shows the node that the balancer would use and the
 /// start cost, if a node gives a quote. It returns the id of the service when the user taps
 /// Run, or nothing if the sheet is closed. Running is done by the caller.
-class SkillServicesSheet extends StatefulWidget {
-  const SkillServicesSheet({
+class ObjectiveServicesSheet extends StatefulWidget {
+  const ObjectiveServicesSheet({
     super.key,
-    required this.skill,
+    required this.objective,
     required this.loadServices,
     required this.previewQuote,
     required this.wallets,
   });
 
-  final SkillView skill;
+  final ObjectiveView objective;
 
-  /// The ranked services of the skill.
-  final Future<List<SkillServiceView>> Function(String skillBoxId) loadServices;
+  /// The ranked services of the objective.
+  final Future<List<ObjectiveServiceView>> Function(String objectiveBoxId) loadServices;
 
   /// The best quote for a service on the nodes of the list, or null if there is none.
   final Future<QuoteView?> Function(String serviceId) previewQuote;
@@ -37,11 +37,11 @@ class SkillServicesSheet extends StatefulWidget {
   final FullWallets wallets;
 
   @override
-  State<SkillServicesSheet> createState() => _SkillServicesSheetState();
+  State<ObjectiveServicesSheet> createState() => _ObjectiveServicesSheetState();
 }
 
-class _SkillServicesSheetState extends State<SkillServicesSheet> {
-  List<SkillServiceView>? _services;
+class _ObjectiveServicesSheetState extends State<ObjectiveServicesSheet> {
+  List<ObjectiveServiceView>? _services;
   bool _loading = true;
   CelautError? _error;
   String? _chosen;
@@ -66,7 +66,7 @@ class _SkillServicesSheetState extends State<SkillServicesSheet> {
       _error = null;
     });
     try {
-      final services = await widget.loadServices(widget.skill.boxId);
+      final services = await widget.loadServices(widget.objective.boxId);
       if (!mounted) return;
       setState(() {
         _services = services;
@@ -95,38 +95,38 @@ class _SkillServicesSheetState extends State<SkillServicesSheet> {
     final services = _services;
     return SafeArea(
       child: SingleChildScrollView(
-        key: const Key('skill-sheet'),
+        key: const Key('objective-sheet'),
         padding: const EdgeInsets.fromLTRB(homeGutter, 0, homeGutter, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(widget.skill.name, key: const Key('skill-sheet-name'), style: t.title),
-            SkillAbout(skill: widget.skill),
+            Text(widget.objective.name, key: const Key('objective-sheet-name'), style: t.title),
+            ObjectiveAbout(objective: widget.objective),
             const SizedBox(height: 6),
             if (_loading)
-              Text(l.celautRunLoading, key: const Key('skill-sheet-loading'), style: t.secondary)
+              Text(l.celautRunLoading, key: const Key('objective-sheet-loading'), style: t.secondary)
             else if (_error != null) ...[
               Text(
                 CelautStrings.errorText(_error!.kind),
-                key: const Key('skill-sheet-error'),
+                key: const Key('objective-sheet-error'),
                 style: t.secondary,
               ),
               const SizedBox(height: 8),
               OutlinedButton(
-                key: const Key('skill-sheet-retry'),
+                key: const Key('objective-sheet-retry'),
                 onPressed: _read,
                 child: Text(l.celautRunRetry),
               ),
             ] else if (services != null && services.isEmpty)
-              Text(l.celautRunNoServices, key: const Key('skill-sheet-empty'), style: t.secondary),
+              Text(l.celautRunNoServices, key: const Key('objective-sheet-empty'), style: t.secondary),
             if (services != null && services.isNotEmpty) ...[
-              const SkillTestDataBanner(),
+              const ObjectiveTestDataBanner(),
               const SizedBox(height: 10),
-              SkillServiceChoice(
+              ObjectiveServiceChoice(
                 services: services,
                 chosen: _chosen,
                 onChoose: (id) => setState(() => _chosen = id),
-                keyPrefix: 'skill-service',
+                keyPrefix: 'objective-service',
               ),
             ],
             if (_chosen != null) ...[
@@ -138,12 +138,12 @@ class _SkillServicesSheetState extends State<SkillServicesSheet> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     l.celautNoFullWallet,
-                    key: const Key('skill-sheet-no-wallet'),
+                    key: const Key('objective-sheet-no-wallet'),
                     style: t.secondary,
                   ),
                 ),
               FilledButton(
-                key: const Key('skill-sheet-run'),
+                key: const Key('objective-sheet-run'),
                 onPressed: _gate == FullWalletGate.none
                     ? null
                     : () => Navigator.of(context).pop(_chosen),
@@ -166,7 +166,7 @@ class _SkillServicesSheetState extends State<SkillServicesSheet> {
         if (snapshot.connectionState != ConnectionState.done) {
           return Text(
             l.celautRunPreviewLoading,
-            key: const Key('skill-sheet-preview-loading'),
+            key: const Key('objective-sheet-preview-loading'),
             style: t.secondary,
           );
         }
@@ -177,7 +177,7 @@ class _SkillServicesSheetState extends State<SkillServicesSheet> {
             '${quote.address.host}:${quote.address.port}',
             muOrUnknown(quote.costMu),
           ),
-          key: const Key('skill-sheet-preview'),
+          key: const Key('objective-sheet-preview'),
           style: t.secondary,
         );
       },

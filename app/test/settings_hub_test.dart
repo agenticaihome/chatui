@@ -66,7 +66,7 @@ void main() {
       expect(ergo, contains(text), reason: text);
     }
     final compute = rowsOf(tester, 'compute');
-    for (final text in ['Nodes', 'Celaut deposit', 'Tor', 'Environment variables', 'Celaut node', 'Celaut service']) {
+    for (final text in ['Nodes', 'Celaut deposit', 'Tor', 'Environment variables', 'Celaut Registry', 'Celaut node', 'Celaut service']) {
       expect(compute, contains(text), reason: text);
     }
     final general = rowsOf(tester, 'general');

@@ -4,8 +4,8 @@ import 'package:argus_wallet/bridge/api/celaut.dart';
 import 'package:argus_wallet/bridge/api/celaut_catalog.dart';
 import 'package:argus_wallet/celaut/service_strings.dart';
 import 'package:argus_wallet/l10n/app_localizations.dart';
-import 'package:argus_wallet/ui/celaut/skill_picker.dart';
-import 'package:argus_wallet/ui/celaut/skill_service_choice.dart';
+import 'package:argus_wallet/ui/celaut/objective_picker.dart';
+import 'package:argus_wallet/ui/celaut/objective_service_choice.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,8 +14,8 @@ final _best = 'aa' * 32;
 final _other = 'bb' * 32;
 final _found = 'cc' * 32;
 
-const _sat = SkillView(
-  boxId: 'skill-sat',
+const _sat = ObjectiveView(
+  boxId: 'objective-sat',
   name: 'Boolean SAT Solver',
   prose: 'Decides if a formula can be satisfied.',
   tags: ['logic', 'np-complete'],
@@ -24,12 +24,12 @@ const _sat = SkillView(
   serviceIds: [],
   publisherReputation: 0,
 );
-const _summary = SkillView(boxId: 'skill-md', name: 'Markdown Summarization', prose: '', tags: [], domain: 'nlp', height: 0, serviceIds: [], publisherReputation: 0);
+const _summary = ObjectiveView(boxId: 'objective-md', name: 'Markdown Summarization', prose: '', tags: [], domain: 'nlp', height: 0, serviceIds: [], publisherReputation: 0);
 
-List<SkillServiceView> _ranked() => [
-  SkillServiceView(serviceId: _best, score: 0.8455, direct: true),
-  SkillServiceView(serviceId: _other, score: 0.7, direct: true),
-  SkillServiceView(serviceId: _found, score: 0.52, direct: false),
+List<ObjectiveServiceView> _ranked() => [
+  ObjectiveServiceView(serviceId: _best, score: 0.8455, direct: true),
+  ObjectiveServiceView(serviceId: _other, score: 0.7, direct: true),
+  ObjectiveServiceView(serviceId: _found, score: 0.52, direct: false),
 ];
 
 void main() {
@@ -39,8 +39,8 @@ void main() {
 
   Future<void> open(
     WidgetTester tester, {
-    Future<List<SkillView>> Function()? skills,
-    Future<List<SkillServiceView>> Function(String id)? services,
+    Future<List<ObjectiveView>> Function()? objectives,
+    Future<List<ObjectiveServiceView>> Function(String id)? services,
   }) async {
     // A phone: the default test view is 800 x 600, and the list is longer than 600.
     tester.view.physicalSize = const Size(390, 2400);
@@ -59,8 +59,8 @@ void main() {
               onPressed: () async {
                 result = await Navigator.of(context).push<String>(
                   MaterialPageRoute(
-                    builder: (_) => SkillPickerScreen(
-                      loadSkills: skills ?? () async => [_sat, _summary],
+                    builder: (_) => ObjectivePickerScreen(
+                      loadObjectives: objectives ?? () async => [_sat, _summary],
                       loadServices: (id) {
                         asked.add(id);
                         return (services ?? (_) async => _ranked())(id);
@@ -80,9 +80,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('lists the skills in groups by field, each with its name and one line (#122)', (tester) async {
+  testWidgets('lists the objectives in groups by field, each with its name and one line (#122)', (tester) async {
     await open(tester);
-    expect(find.text('Pick a skill to see the services that do it.'), findsOneWidget);
+    expect(find.text('Pick an objective to see the services that do it.'), findsOneWidget);
     expect(find.text('ALGORITHMS'), findsOneWidget);
     expect(find.text('NLP'), findsOneWidget);
     expect(find.text('Boolean SAT Solver'), findsOneWidget);
@@ -95,12 +95,12 @@ void main() {
     expect(find.byKey(const Key('picker-more')), findsNothing);
   });
 
-  testWidgets('more than six skills: a short list first, and "Show more"', (tester) async {
+  testWidgets('more than six objectives: a short list first, and "Show more"', (tester) async {
     final many = [
       for (var i = 0; i < 9; i++)
-        SkillView(
+        ObjectiveView(
           boxId: 'k$i',
-          name: 'Skill $i',
+          name: 'Objective $i',
           prose: '',
           tags: const [],
           domain: 'd',
@@ -109,27 +109,27 @@ void main() {
           publisherReputation: 9.0 - i,
         ),
     ];
-    await open(tester, skills: () async => many);
-    expect(find.byKey(const Key('picker-skill-k5')), findsOneWidget);
-    expect(find.byKey(const Key('picker-skill-k6')), findsNothing);
+    await open(tester, objectives: () async => many);
+    expect(find.byKey(const Key('picker-objective-k5')), findsOneWidget);
+    expect(find.byKey(const Key('picker-objective-k6')), findsNothing);
     expect(find.text('Show more (3)'), findsOneWidget);
     await tester.tap(find.byKey(const Key('picker-more')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('picker-skill-k8')), findsOneWidget);
+    expect(find.byKey(const Key('picker-objective-k8')), findsOneWidget);
     expect(find.text('Show fewer'), findsOneWidget);
   });
 
-  testWidgets('a skill shows one recommended service and one main action; the rest is one tap away (#122)', (
+  testWidgets('an objective shows one recommended service and one main action; the rest is one tap away (#122)', (
     tester,
   ) async {
     await open(tester);
-    await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-sat')));
     await tester.pumpAndSettle();
 
-    expect(asked, ['skill-sat']);
-    expect(find.byKey(const Key('picker-skill-name')), findsOneWidget);
+    expect(asked, ['objective-sat']);
+    expect(find.byKey(const Key('picker-objective-name')), findsOneWidget);
     // One warning about test data, at the top.
-    expect(find.byKey(const Key('skill-test-banner')), findsOneWidget);
+    expect(find.byKey(const Key('objective-test-banner')), findsOneWidget);
     expect(find.text('Most results are tests. Check before you trust them.'), findsOneWidget);
     // The best of the ranking is the one card, recommended and chosen.
     expect(find.byKey(Key('picker-service-$_best')), findsOneWidget);
@@ -174,7 +174,7 @@ void main() {
     tester,
   ) async {
     await open(tester);
-    await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-sat')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('picker-service-others')));
     await tester.pumpAndSettle();
@@ -187,7 +187,7 @@ void main() {
     expect(find.byKey(Key('picker-service-unverified-$_found')), findsOneWidget);
     expect(find.byKey(Key('picker-service-unverified-$_best')), findsNothing);
     expect(find.byKey(const Key('picker-service-recommended')), findsOneWidget);
-    expect(find.byKey(const Key('skill-test-banner')), findsOneWidget);
+    expect(find.byKey(const Key('objective-test-banner')), findsOneWidget);
   });
 
   test('the levels of a rating', () {
@@ -200,7 +200,7 @@ void main() {
 
   testWidgets('"Use this service" returns the best one', (tester) async {
     await open(tester);
-    await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-sat')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('picker-use')));
     await tester.pumpAndSettle();
@@ -210,7 +210,7 @@ void main() {
 
   testWidgets('the user can choose another service', (tester) async {
     await open(tester);
-    await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-sat')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('picker-service-others')));
     await tester.pumpAndSettle();
@@ -228,24 +228,24 @@ void main() {
     expect(result, _found);
   });
 
-  testWidgets('a skill with no service says so and offers no service to use', (tester) async {
+  testWidgets('an objective with no service says so and offers no service to use', (tester) async {
     await open(tester, services: (_) async => []);
-    await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-sat')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('picker-no-services')), findsOneWidget);
     expect(find.byKey(const Key('picker-use')), findsNothing);
   });
 
   testWidgets('an empty catalog says so', (tester) async {
-    await open(tester, skills: () async => []);
-    expect(find.text(ServiceStrings.skillsEmpty), findsOneWidget);
+    await open(tester, objectives: () async => []);
+    expect(find.text(ServiceStrings.objectivesEmpty), findsOneWidget);
   });
 
   testWidgets('a catalog that fails shows the error, and "Try again" reads it again', (tester) async {
     var calls = 0;
     await open(
       tester,
-      skills: () async {
+      objectives: () async {
         if (calls++ == 0) {
           throw const CelautError(kind: CelautErrorKind.unreachable, message: 'HTTP 500');
         }
@@ -260,7 +260,7 @@ void main() {
     expect(find.text('Boolean SAT Solver'), findsOneWidget);
   });
 
-  testWidgets('services that fail show the error, and "Try again" reads that skill again', (tester) async {
+  testWidgets('services that fail show the error, and "Try again" reads that objective again', (tester) async {
     var calls = 0;
     await open(
       tester,
@@ -271,19 +271,19 @@ void main() {
         return _ranked();
       },
     );
-    await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-sat')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('picker-error')), findsOneWidget);
     expect(find.byKey(const Key('picker-use')), findsNothing);
     await tester.tap(find.byKey(const Key('picker-retry')));
     await tester.pumpAndSettle();
-    expect(asked, ['skill-sat', 'skill-sat']);
+    expect(asked, ['objective-sat', 'objective-sat']);
     expect(find.byKey(const Key('picker-use')), findsOneWidget);
   });
 
-  testWidgets('back from the services goes to the skills, and back again closes with nothing', (tester) async {
+  testWidgets('back from the services goes to the objectives, and back again closes with nothing', (tester) async {
     await open(tester);
-    await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-sat')));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -297,28 +297,28 @@ void main() {
     expect(result, isNull);
   });
 
-  testWidgets('"Other skills" goes back to the list', (tester) async {
+  testWidgets('"Other objectives" goes back to the list', (tester) async {
     await open(tester);
-    await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-sat')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('picker-other-skill')));
+    await tester.tap(find.byKey(const Key('picker-other-objective')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('picker-skill-skill-md')), findsOneWidget);
+    expect(find.byKey(const Key('picker-objective-objective-md')), findsOneWidget);
   });
 
-  testWidgets('the services of a skill that the user left are not shown for the next one', (tester) async {
-    final slow = Completer<List<SkillServiceView>>();
+  testWidgets('the services of an objective that the user left are not shown for the next one', (tester) async {
+    final slow = Completer<List<ObjectiveServiceView>>();
     await open(
       tester,
-      services: (id) => id == 'skill-sat'
+      services: (id) => id == 'objective-sat'
           ? slow.future
-          : Future.value([SkillServiceView(serviceId: _other, score: 0.6, direct: true)]),
+          : Future.value([ObjectiveServiceView(serviceId: _other, score: 0.6, direct: true)]),
     );
-    await tester.tap(find.byKey(const Key('picker-skill-skill-sat')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-sat')));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('picker-other-skill')));
+    await tester.tap(find.byKey(const Key('picker-other-objective')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('picker-skill-skill-md')));
+    await tester.tap(find.byKey(const Key('picker-objective-objective-md')));
     await tester.pumpAndSettle();
     slow.complete(_ranked());
     await tester.pumpAndSettle();

@@ -11,7 +11,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: RunServiceScreen(
-          section: RunServiceSection(loadSkills: () async => const [], showTitle: false),
+          section: RunServiceSection(loadObjectives: () async => const [], showTitle: false),
         ),
       ),
     );
@@ -24,7 +24,7 @@ void main() {
   testWidgets('on the home screen the section shows its title', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: RunServiceSection(loadSkills: () async => const [])),
+        home: Scaffold(body: RunServiceSection(loadObjectives: () async => const [])),
       ),
     );
     await tester.pumpAndSettle();

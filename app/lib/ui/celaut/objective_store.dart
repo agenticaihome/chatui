@@ -5,40 +5,40 @@ import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 
-/// The skills of the catalog as a store shows its apps, with little to read at each step
-/// (issue #122): a card for each skill with its mark, its name, one line of its text, its
-/// number of services and one Run button. The field of the skills is the title of their
-/// group, not a line of each card. The tags are in the search and in [SkillAbout]. The
-/// catalog has no price and no score for a skill: the price comes from the nodes and the
-/// score is per service, so both show in the step of a skill's services.
+/// The objectives of the catalog as a store shows its apps, with little to read at each step
+/// (issue #122): a card for each objective with its mark, its name, one line of its text, its
+/// number of services and one Run button. The field of the objectives is the title of their
+/// group, not a line of each card. The tags are in the search and in [ObjectiveAbout]. The
+/// catalog has no price and no score for an objective: the price comes from the nodes and the
+/// score is per service, so both show in the step of an objective's services.
 ///
-/// There is one way to browse: one list, in groups by field ([skillGroups]), the most backed
-/// skills first ([rankSkills]). The store shows the first [storeShortList] skills and a
+/// There is one way to browse: one list, in groups by field ([objectiveGroups]), the most backed
+/// objectives first ([rankObjectives]). The store shows the first [storeShortList] objectives and a
 /// "Show more" action (`docs/celaut/ui.md`, section 2.1).
 
-/// The field of a skill, for grouping: [SkillView.domain] with no case and no spaces at
+/// The field of an objective, for grouping: [ObjectiveView.domain] with no case and no spaces at
 /// the ends. Empty if the publisher gave none.
-String skillCategory(SkillView skill) => skill.domain.trim().toLowerCase();
+String objectiveCategory(ObjectiveView objective) => objective.domain.trim().toLowerCase();
 
 /// True if [query] (already in lower case) is in the name, the text, a tag or the field
-/// of [skill].
-bool skillMatches(SkillView skill, String query) {
+/// of [objective].
+bool objectiveMatches(ObjectiveView objective, String query) {
   if (query.isEmpty) return true;
   bool has(String text) => text.toLowerCase().contains(query);
-  return has(skill.name) || has(skill.prose) || has(skill.domain) || skill.tags.any(has);
+  return has(objective.name) || has(objective.prose) || has(objective.domain) || objective.tags.any(has);
 }
 
-/// The skills that the store shows before "Show more".
+/// The objectives that the store shows before "Show more".
 const storeShortList = 6;
 
 /// The same order on every phone: the name, then the box id.
-int _byName(SkillView a, SkillView b) {
+int _byName(ObjectiveView a, ObjectiveView b) {
   final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
   return byName != 0 ? byName : a.boxId.compareTo(b.boxId);
 }
 
 /// The reputation of the publisher, then the number of declared services, then the newest.
-int _byBacking(SkillView a, SkillView b) {
+int _byBacking(ObjectiveView a, ObjectiveView b) {
   final byReputation = b.publisherReputation.compareTo(a.publisherReputation);
   if (byReputation != 0) return byReputation;
   final byServices = b.serviceIds.length.compareTo(a.serviceIds.length);
@@ -47,39 +47,39 @@ int _byBacking(SkillView a, SkillView b) {
   return byHeight != 0 ? byHeight : _byName(a, b);
 }
 
-/// [skills] with the most backed first: the reputation of the publisher, then the number
+/// [objectives] with the most backed first: the reputation of the publisher, then the number
 /// of declared services, then the newest, then the name. This was the order of the
-/// featured skills; the store keeps it for its short list.
-List<SkillView> rankSkills(List<SkillView> skills) => [...skills]..sort(_byBacking);
+/// featured objectives; the store keeps it for its short list.
+List<ObjectiveView> rankObjectives(List<ObjectiveView> objectives) => [...objectives]..sort(_byBacking);
 
-/// A group of the list of skills: the skills of one field. [key] is [skillCategory] (empty
-/// for the skills with no field) and [title] the field as its first skill writes it.
-typedef SkillGroup = ({String key, String title, List<SkillView> skills});
+/// A group of the list of objectives: the objectives of one field. [key] is [objectiveCategory] (empty
+/// for the objectives with no field) and [title] the field as its first objective writes it.
+typedef ObjectiveGroup = ({String key, String title, List<ObjectiveView> objectives});
 
-/// [skills] in groups by field, in their order: a group comes where its first skill is,
-/// and keeps the order of its skills. The skills with no field are one group, with an
+/// [objectives] in groups by field, in their order: a group comes where its first objective is,
+/// and keeps the order of its objectives. The objectives with no field are one group, with an
 /// empty title.
-List<SkillGroup> skillGroups(List<SkillView> skills) {
-  final groups = <String, SkillGroup>{};
-  for (final s in skills) {
-    groups.putIfAbsent(skillCategory(s), () => (key: skillCategory(s), title: s.domain.trim(), skills: <SkillView>[]))
-        .skills
+List<ObjectiveGroup> objectiveGroups(List<ObjectiveView> objectives) {
+  final groups = <String, ObjectiveGroup>{};
+  for (final s in objectives) {
+    groups.putIfAbsent(objectiveCategory(s), () => (key: objectiveCategory(s), title: s.domain.trim(), objectives: <ObjectiveView>[]))
+        .objectives
         .add(s);
   }
   return groups.values.toList();
 }
 
-/// The colours of the mark of a skill: a tile and its letter. The hue comes from the
-/// field (or the name, with no field), so the skills of one field share it. The letter
-/// meets 4.5:1 on the tile in each brightness (skill_store_test.dart).
-({Color tile, Color letter}) skillMarkColors(SkillView skill, Brightness brightness) {
-  final seed = skillCategory(skill).isEmpty ? skill.name.toLowerCase() : skillCategory(skill);
+/// The colours of the mark of an objective: a tile and its letter. The hue comes from the
+/// field (or the name, with no field), so the objectives of one field share it. The letter
+/// meets 4.5:1 on the tile in each brightness (objective_store_test.dart).
+({Color tile, Color letter}) objectiveMarkColors(ObjectiveView objective, Brightness brightness) {
+  final seed = objectiveCategory(objective).isEmpty ? objective.name.toLowerCase() : objectiveCategory(objective);
   // FNV-1a, 32 bits, as the robots of the instances: the same hue on every phone.
   var h = 0x811c9dc5;
   for (final unit in seed.codeUnits) {
     h = ((h ^ unit) * 0x01000193) & 0xffffffff;
   }
-  final hue = skillMarkHues[h % skillMarkHues.length];
+  final hue = objectiveMarkHues[h % objectiveMarkHues.length];
   return brightness == Brightness.dark
       ? (
           tile: HSLColor.fromAHSL(1, hue, 0.32, 0.25).toColor(),
@@ -92,22 +92,22 @@ List<SkillGroup> skillGroups(List<SkillView> skills) {
 }
 
 /// The hues of the marks, in degrees: eight, 45 degrees apart.
-const skillMarkHues = [15.0, 60.0, 105.0, 150.0, 195.0, 240.0, 285.0, 330.0];
+const objectiveMarkHues = [15.0, 60.0, 105.0, 150.0, 195.0, 240.0, 285.0, 330.0];
 
-/// The mark of a skill: the first letter of its name on a rounded tile.
-class SkillMark extends StatelessWidget {
-  const SkillMark({super.key, required this.skill, this.size = 52, this.letter});
+/// The mark of an objective: the first letter of its name on a rounded tile.
+class ObjectiveMark extends StatelessWidget {
+  const ObjectiveMark({super.key, required this.objective, this.size = 52, this.letter});
 
-  final SkillView skill;
+  final ObjectiveView objective;
   final double size;
 
-  /// The text whose first letter the tile shows; null for the name of the skill.
+  /// The text whose first letter the tile shows; null for the name of the objective.
   final String? letter;
 
   @override
   Widget build(BuildContext context) {
-    final colors = skillMarkColors(skill, Theme.of(context).brightness);
-    final name = (letter ?? skill.name).trim();
+    final colors = objectiveMarkColors(objective, Theme.of(context).brightness);
+    final name = (letter ?? objective.name).trim();
     final initial = name.isEmpty ? '?' : String.fromCharCode(name.runes.first).toUpperCase();
     return ExcludeSemantics(
       child: Container(
@@ -130,13 +130,13 @@ class SkillMark extends StatelessWidget {
   }
 }
 
-/// A skill of the catalog as a card of the store: at most three lines of text, its name,
+/// An objective of the catalog as a card of the store: at most three lines of text, its name,
 /// one line of its text and its number of services. [onTap] opens its services. With
 /// [onRun], the card has a Run button (key [runKey]) in place of the arrow.
-class SkillCard extends StatelessWidget {
-  const SkillCard({super.key, required this.skill, this.onTap, this.onRun, this.runKey});
+class ObjectiveCard extends StatelessWidget {
+  const ObjectiveCard({super.key, required this.objective, this.onTap, this.onRun, this.runKey});
 
-  final SkillView skill;
+  final ObjectiveView objective;
   final VoidCallback? onTap;
   final VoidCallback? onRun;
   final Key? runKey;
@@ -144,7 +144,7 @@ class SkillCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = HomeText.of(context);
-    final services = skill.serviceIds.length;
+    final services = objective.serviceIds.length;
     final count = services == 0
         ? const SizedBox.shrink()
         : Text(
@@ -160,22 +160,22 @@ class SkillCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SkillMark(skill: skill, size: 44),
+            ObjectiveMark(objective: objective, size: 44),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    skill.name,
+                    objective.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: t.primary.copyWith(fontWeight: FontWeight.w600),
                   ),
-                  if (skill.prose.trim().isNotEmpty)
+                  if (objective.prose.trim().isNotEmpty)
                     Text(
-                      skill.prose.trim(),
-                      key: Key('skill-card-line-${skill.boxId}'),
+                      objective.prose.trim(),
+                      key: Key('objective-card-line-${objective.boxId}'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: t.secondary,
@@ -185,7 +185,7 @@ class SkillCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(child: count),
-                        SkillRunButton(key: runKey, onPressed: onRun),
+                        ObjectiveRunButton(key: runKey, onPressed: onRun),
                       ],
                     ),
                   ] else
@@ -226,10 +226,10 @@ class _StoreSurface extends StatelessWidget {
   }
 }
 
-/// The one action of a skill: Run. It opens the services of the skill, with the best one
+/// The one action of an objective: Run. It opens the services of the objective, with the best one
 /// chosen; the run starts after the confirmation, as from the card.
-class SkillRunButton extends StatelessWidget {
-  const SkillRunButton({super.key, required this.onPressed});
+class ObjectiveRunButton extends StatelessWidget {
+  const ObjectiveRunButton({super.key, required this.onPressed});
 
   final VoidCallback? onPressed;
 
@@ -273,34 +273,34 @@ class _Tag extends StatelessWidget {
   }
 }
 
-/// The details of a skill, closed at first: all its text, its field and its tags. The
+/// The details of an objective, closed at first: all its text, its field and its tags. The
 /// cards show one line only (issue #122).
-class SkillAbout extends StatelessWidget {
-  const SkillAbout({super.key, required this.skill});
+class ObjectiveAbout extends StatelessWidget {
+  const ObjectiveAbout({super.key, required this.objective});
 
-  final SkillView skill;
+  final ObjectiveView objective;
 
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final domain = skill.domain.trim();
-    final tags = [for (final tag in skill.tags) if (tag.trim().isNotEmpty) tag.trim()];
-    if (skill.prose.trim().isEmpty && domain.isEmpty && tags.isEmpty) return const SizedBox.shrink();
+    final domain = objective.domain.trim();
+    final tags = [for (final tag in objective.tags) if (tag.trim().isNotEmpty) tag.trim()];
+    if (objective.prose.trim().isEmpty && domain.isEmpty && tags.isEmpty) return const SizedBox.shrink();
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
-        key: const Key('skill-about'),
+        key: const Key('objective-about'),
         tilePadding: EdgeInsets.zero,
         childrenPadding: const EdgeInsets.only(bottom: 8),
         dense: true,
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        title: Text(l.celautSkillAbout, style: t.label),
+        title: Text(l.celautObjectiveAbout, style: t.label),
         children: [
-          if (skill.prose.trim().isNotEmpty) Text(skill.prose.trim(), style: t.secondary),
+          if (objective.prose.trim().isNotEmpty) Text(objective.prose.trim(), style: t.secondary),
           if (domain.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(l.celautSkillField(domain), style: t.secondary),
+            Text(l.celautObjectiveField(domain), style: t.secondary),
           ],
           if (tags.isNotEmpty) ...[
             const SizedBox(height: 8),

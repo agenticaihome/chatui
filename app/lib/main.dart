@@ -9,6 +9,7 @@ import 'celaut/background_work.dart';
 import 'celaut/cards_effects.dart';
 import 'celaut/chat_groups.dart';
 import 'celaut/chat_prefs.dart';
+import 'celaut/catalog_types.dart';
 import 'celaut/incoming_package.dart';
 import 'l10n/l10n.dart';
 import 'services/address_label_service.dart';
@@ -74,6 +75,7 @@ Future<void> main() async {
     spendPolicy.load().catchError((_) {}),
     previewSettings.load().catchError((_) {}),
     chatPrefs.load().catchError((_) {}),
+    catalogTypes.load().catchError((_) {}),
     cardsSettings.load().catchError((_) {}),
     chatGroups.load().catchError((_) {}),
   ]);

@@ -58,7 +58,7 @@ each node are one tap away. In this order:
 
 1. **Running instances**, only when there are some: they cost money now. Each has its cost
    so far and a stop action. With no instance, nothing is shown.
-2. **Run a service**: one button. It opens a screen of its own with the catalog of skills,
+2. **Run a service**: one button. It opens a screen of its own with the catalog of objectives,
    the service files of the user and the import of a file
    (`app/lib/ui/celaut/run_service_screen.dart`). The catalog is read only there.
 3. **One card of state**, three lines, each opens its detail:
@@ -106,8 +106,8 @@ Rules for the numbers:
 The pencil button of the Chats tab ("New conversation"), "Services" in the Compute tab and
 the button "Run a service" of the Compute tab open this screen
 (`app/lib/ui/celaut/run_service_screen.dart`, with the section
-`app/lib/ui/celaut/run_service_section.dart`). It lists the skills of the catalog with a
-search field. A skill opens a sheet with its services, best first, and the node that the
+`app/lib/ui/celaut/run_service_section.dart`). It lists the objectives of the catalog with a
+search field. An objective opens a sheet with its services, best first, and the node that the
 balancer would use with its start cost. Run needs the wallet open.
 
 Settings has a switch, **Do not keep the filesystem of a service**
@@ -118,7 +118,11 @@ still runs on the nodes that have it (`docs/celaut/package.md`, "Without the fil
 disk never holds the filesystem, also during the load: a service of 200 GB needs the space of
 its small file, not 200 GB.
 
-- The screen lists every skill of the catalog; the search narrows the list.
+- The screen lists every objective of the catalog; the search narrows the list. With no
+  Objective type id (the default) it shows "No objective type id" and a button that opens
+  Settings, Compute, "Celaut Registry", where the user sets the type ids of the registry
+  (`docs/celaut/catalog.md`, "Type ids in the settings"). The objective picker of the service
+  screen shows the same state.
 - Run asks first: "Run <name>?", with what a running instance costs and the node that the
   balancer would use now with its start cost (or that no node gave a price yet). Run in
   the list of the service files of the user asks in the same way. The launch again after
@@ -149,24 +153,24 @@ scrolls:
   files, each with Run and Remove, the import of a file and the import from a link). On a narrow screen they are icons with a tooltip; from 560 dp they also
   show their text. The phone icon shows the number of saved files.
 
-Under them there is one way to browse (#122): one list of the skills, in groups by field.
-The field is the title of its group, not a line of each card; the skills with no field are
-one group, "Other". The skills come with the most backed first: the reputation of the
-publisher (nanoERG of the boxes that hold the profile token of the skill box), then the
+Under them there is one way to browse (#122): one list of the objectives, in groups by field.
+The field is the title of its group, not a line of each card; the objectives with no field are
+one group, "Other". The objectives come with the most backed first: the reputation of the
+publisher (nanoERG of the boxes that hold the profile token of the objective box), then the
 number of declared services, then the newest, then the name. The list shows the first 6
-skills and "Show more (N)"; a search shows all the skills that match, in their groups. The
+objectives and "Show more (N)"; a search shows all the objectives that match, in their groups. The
 search looks in the name, the text, the tags and the field.
 
 A card has at most three lines of text: the name, one line of the text and the number of
-services, with one action, Run. The tags and the whole text are in "About this skill", a
-closed part at the top of the services of the skill. The rows Featured, Suggested, New and
+services, with one action, Run. The tags and the whole text are in "About this objective", a
+closed part at the top of the services of the objective. The rows Featured, Suggested, New and
 Popular, the tiles of the fields and the chips of #102 are gone: they repeated the same
 grouping.
 
-#### 2.2 The services of a skill (#122)
+#### 2.2 The services of an objective (#122)
 
-Run on a card opens a sheet (in the Run screen) or a page (the skill picker of the service
-screen) with the services of the skill. The ranking does not change (`catalog.md`); the
+Run on a card opens a sheet (in the Run screen) or a page (the objective picker of the service
+screen) with the services of the objective. The ranking does not change (`catalog.md`); the
 screen shows less at each step:
 
 - One banner at the top: "Most results are tests. Check before you trust them." It is not

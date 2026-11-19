@@ -261,7 +261,7 @@ also shows its own size.
 2. **A `.celaut.bee` file** that `nodo export` wrote. It has the Metadata at index 1 and
    the Service at index 2; the app gives them the indices 5 and 6.
 
-The skill catalog does not give a source for a package today (`docs/celaut/catalog.md`).
+The objective catalog does not give a source for a package today (`docs/celaut/catalog.md`).
 
 ## How it moves
 

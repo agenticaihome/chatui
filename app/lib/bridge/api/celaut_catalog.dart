@@ -7,39 +7,82 @@ import '../frb_generated.dart';
 import 'celaut.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `client`, `describe`, `error_of`, `fresh`, `items`, `lock`, `new`, `new`, `request`, `settle`, `short`, `skill_views`
+// These functions are ignored because they are not marked as `pub`: `client`, `describe`, `error_of`, `fresh`, `items`, `lock`, `new`, `new`, `objective_views`, `request`, `settle`, `short`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `CatalogCache`, `HttpExplorer`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `boxes`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `token_value`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `boxes`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `from`, `from`, `hash`, `token_value`
 
-/// The skills of the catalog, in the order of the explorer, with what the store sorts
+/// The default type NFTs: the objective is empty, the other three have the ids of the
+/// registry.
+CatalogTypeIds celautDefaultCatalogTypeIds() =>
+    RustLib.instance.api.crateApiCelautCatalogCelautDefaultCatalogTypeIds();
+
+/// The objectives of the catalog, in the order of the explorer, with what the store sorts
 /// them by: the height of the box, the services that publishers declared, and the
 /// reputation of the publisher. These cost one more query and one request for each
-/// publisher, not one for each skill.
-Future<List<SkillView>> celautSkills() =>
-    RustLib.instance.api.crateApiCelautCatalogCelautSkills();
+/// publisher, not one for each objective.
+///
+/// With an empty objective type in `types`, the list is empty and the app asks nothing.
+Future<List<ObjectiveView>> celautObjectives({required CatalogTypeIds types}) =>
+    RustLib.instance.api.crateApiCelautCatalogCelautObjectives(types: types);
 
-/// The services of a skill, best first. The score follows `docs/celaut/catalog.md`: the
-/// measured performance of the service in the benchmarks of the skill, and the
+/// The services of an objective, best first. The score follows `docs/celaut/catalog.md`: the
+/// measured performance of the service in the benchmarks of the objective, and the
 /// reputation of its publisher, weighted by the reputation of who published each result.
-Future<List<SkillServiceView>> celautSkillServices({
-  required String skillBoxId,
-}) => RustLib.instance.api.crateApiCelautCatalogCelautSkillServices(
-  skillBoxId: skillBoxId,
+Future<List<ObjectiveServiceView>> celautObjectiveServices({
+  required CatalogTypeIds types,
+  required String objectiveBoxId,
+}) => RustLib.instance.api.crateApiCelautCatalogCelautObjectiveServices(
+  types: types,
+  objectiveBoxId: objectiveBoxId,
 );
 
-/// A service that covers a skill.
-class SkillServiceView {
+/// The type NFTs of the boxes of the registry. The user sets them in the settings of the app.
+/// The objective type has no default value: it is empty, and then the catalog is empty.
+class CatalogTypeIds {
+  /// The type NFT of an objective box: 64 hexadecimal characters, or empty.
+  final String objective;
+  final String coverage;
+  final String benchmark;
+  final String result;
+
+  const CatalogTypeIds({
+    required this.objective,
+    required this.coverage,
+    required this.benchmark,
+    required this.result,
+  });
+
+  @override
+  int get hashCode =>
+      objective.hashCode ^
+      coverage.hashCode ^
+      benchmark.hashCode ^
+      result.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CatalogTypeIds &&
+          runtimeType == other.runtimeType &&
+          objective == other.objective &&
+          coverage == other.coverage &&
+          benchmark == other.benchmark &&
+          result == other.result;
+}
+
+/// A service that covers an objective.
+class ObjectiveServiceView {
   /// The id of the service: 64 hexadecimal characters.
   final String serviceId;
 
-  /// The score of the service in the skill, from 0 to 1. The best has the highest.
+  /// The score of the service in the objective, from 0 to 1. The best has the highest.
   final double score;
 
-  /// True if a publisher declared that the service covers the skill. False if the
-  /// service is only in the results of a benchmark of the skill.
+  /// True if a publisher declared that the service covers the objective. False if the
+  /// service is only in the results of a benchmark of the objective.
   final bool direct;
 
-  const SkillServiceView({
+  const ObjectiveServiceView({
     required this.serviceId,
     required this.score,
     required this.direct,
@@ -51,41 +94,41 @@ class SkillServiceView {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SkillServiceView &&
+      other is ObjectiveServiceView &&
           runtimeType == other.runtimeType &&
           serviceId == other.serviceId &&
           score == other.score &&
           direct == other.direct;
 }
 
-/// A skill that the user can pick.
-class SkillView {
-  /// The id of the skill: its box id on Ergo.
+/// An objective that the user can pick.
+class ObjectiveView {
+  /// The id of the objective: its box id on Ergo.
   final String boxId;
   final String name;
 
-  /// The start of the text that explains the skill.
+  /// The start of the text that explains the objective.
   final String prose;
   final List<String> tags;
 
-  /// The field of the skill, as its publisher wrote it ("finance", "nlp"...); empty if
-  /// none. The app groups the skills by it.
+  /// The field of the objective, as its publisher wrote it ("finance", "nlp"...); empty if
+  /// none. The app groups the objectives by it.
   final String domain;
 
-  /// The height of the block that has the skill box; 0 if unknown. The store shows the
-  /// newest skills by it.
+  /// The height of the block that has the objective box; 0 if unknown. The store shows the
+  /// newest objectives by it.
   final int height;
 
-  /// The services that publishers declared for the skill (its coverage boxes), each once,
+  /// The services that publishers declared for the objective (its coverage boxes), each once,
   /// in lower case. Empty if there is none, or if the explorer did not answer. A service
   /// that is only in the results of a benchmark is not here.
   final List<String> serviceIds;
 
-  /// The reputation of the publisher of the skill: the value in nanoERG of the boxes that
+  /// The reputation of the publisher of the objective: the value in nanoERG of the boxes that
   /// hold its profile token. 0 if unknown.
   final double publisherReputation;
 
-  const SkillView({
+  const ObjectiveView({
     required this.boxId,
     required this.name,
     required this.prose,
@@ -110,7 +153,7 @@ class SkillView {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SkillView &&
+      other is ObjectiveView &&
           runtimeType == other.runtimeType &&
           boxId == other.boxId &&
           name == other.name &&

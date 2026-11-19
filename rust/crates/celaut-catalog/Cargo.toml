@@ -1,6 +1,6 @@
 [package]
 name = "celaut-catalog"
-description = "Celaut skill catalog: boxes of the Ergo explorer, and the ranking of the services of a skill"
+description = "Celaut objective catalog: boxes of the Ergo explorer, and the ranking of the services of an objective"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
