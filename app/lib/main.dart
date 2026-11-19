@@ -8,6 +8,7 @@ import 'celaut/auto_top_up.dart';
 import 'celaut/background_work.dart';
 import 'celaut/cards_effects.dart';
 import 'celaut/chat_groups.dart';
+import 'celaut/service_presets.dart';
 import 'celaut/chat_prefs.dart';
 import 'celaut/catalog_types.dart';
 import 'celaut/incoming_package.dart';
@@ -78,6 +79,7 @@ Future<void> main() async {
     catalogTypes.load().catchError((_) {}),
     cardsSettings.load().catchError((_) {}),
     chatGroups.load().catchError((_) {}),
+    servicePresets.load().catchError((_) {}),
   ]);
   networkController.priceRefresher = tokenPricer.refresh;
   runApp(const ArgusApp());

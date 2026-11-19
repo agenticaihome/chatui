@@ -21,6 +21,7 @@ import '../../bridge/api/celaut_package.dart';
 import '../../celaut/package_channel.dart';
 import '../../celaut/package_library.dart';
 import '../../celaut/payers.dart';
+import '../../celaut/service_presets.dart';
 import '../../celaut/service_transfer.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
@@ -96,7 +97,23 @@ class RunServiceSection extends StatefulWidget {
     this.trustedNodes,
     this.work,
     this.scan,
+    this.preset,
+    this.presets,
+    this.onPresetDone,
   });
+
+  /// A preset of the wheel of the pencil button (`docs/celaut/presets.md`): the section
+  /// shows nothing and starts it at once, by the same steps as Run on an objective (the
+  /// confirmation with the cost, the wallet, the questions about the variables, filled from
+  /// the preset). [onPresetDone] is called when the launch ends without a start (cancelled
+  /// or failed); after a start, [onStarted] is.
+  final ServicePreset? preset;
+
+  /// The presets, where a start keeps the variables that it used. Tests give their own.
+  final ServicePresets? presets;
+
+  /// The launch of [preset] ended without a start.
+  final VoidCallback? onPresetDone;
 
   /// Read a QR code for the import from a link. Tests give their own.
   final Future<String?> Function(BuildContext context)? scan;
@@ -210,10 +227,23 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   List<LibraryPackageView> _packages = const [];
   late final PackageLibrary _library = widget.library ?? PackageLibrary();
 
+  /// The variables of the last launch, as a preset keeps them; null until the questions
+  /// (or their absence) are known.
+  List<PresetVariable>? _lastEnv;
+
   @override
   void initState() {
     super.initState();
     _readPackages();
+    final preset = widget.preset;
+    if (preset != null) {
+      // Only the launch: the catalog is not read.
+      _loading = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_runPreset(preset));
+      });
+      return;
+    }
     _read();
     final file = widget.importFile;
     if (file != null) {
@@ -327,10 +357,18 @@ class _RunServiceSectionState extends State<RunServiceSection> {
         },
       );
 
+  /// Start a preset by the steps of Run: the confirmation with the cost is never skipped.
+  Future<void> _runPreset(ServicePreset preset) async {
+    await _run(preset.serviceId, name: preset.name);
+    // After a start, the list has closed this page already.
+    if (mounted) widget.onPresetDone?.call();
+  }
+
   /// Launch [serviceId]. [name] is what the confirmation calls it; with no name the user
   /// has already confirmed (the launch again after a transfer).
   Future<void> _run(String serviceId, {String? name}) async {
     if (name != null) {
+      _lastEnv = null;
       final choice = await _confirm(serviceId, name);
       if (choice == null || !mounted) return;
       _lastName = name;
@@ -438,6 +476,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   Future<List<EnvChoice>?> _askBeforeRun(String serviceId, QuotesView quotes) async {
     if (!mounted) return null;
     final ServiceInfoView info;
+    _lastEnv = const [];
     try {
       info = await (widget.inspect ?? readServiceInfo)(serviceId, quotes.quotes.first.address);
     } on CelautError {
@@ -460,16 +499,34 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     if (info.environment.isEmpty) return const [];
     if (!mounted) return null;
     _hideRocket();
+    final declared = info.environment;
     return Navigator.of(context).push<List<EnvChoice>>(
       MaterialPageRoute(
         builder: (_) => EnvQuestionsScreen(
-          declared: info.environment,
+          declared: declared,
           networks: info.networks,
           nodes: envTargetNodes(quotes.quotes, (widget.trustedNodes ?? _trustedNodes)()),
           store: widget.envStore,
+          initial: _presetAnswers(serviceId, declared),
+          onConfirmed: (answers) => _lastEnv = presetVariablesOf(declared, answers),
         ),
       ),
     );
+  }
+
+  /// The answers of the preset that this section starts, if it knows the variables of its
+  /// instance; null asks for each variable, as for a new service.
+  List<EnvAnswer?>? _presetAnswers(String serviceId, List<DeclaredVariableView> declared) {
+    final preset = widget.preset;
+    if (preset == null || !preset.known || preset.serviceId != serviceId.toLowerCase()) return null;
+    Set<String> names;
+    try {
+      names = {for (final n in (widget.envStore ?? EnvStore()).names()) n.name};
+    } catch (_) {
+      // No container: its variables are asked for.
+      names = const {};
+    }
+    return envAnswersOfPreset(declared, preset.variables, names);
   }
 
   static Set<String> _trustedNodes() {
@@ -570,6 +627,12 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     final instance = outcome.instance;
     final name = _lastName;
     _name(instance.instanceId, name);
+    final env = _lastEnv;
+    if (env != null) {
+      // What the instance was started with, so that it can be pinned as a preset. No
+      // secret: a typed sensitive value is only "ask".
+      unawaited((widget.presets ?? servicePresets).recordLaunch(instance.instanceId, env));
+    }
     widget.onChanged?.call();
     final onStarted = widget.onStarted;
     if (onStarted != null) {
@@ -1021,6 +1084,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
 
   @override
   Widget build(BuildContext context) {
+    // A preset: only the dialogs and the rocket of the launch show, over the list.
+    if (widget.preset != null) return const SizedBox.shrink(key: Key('run-preset'));
     final l = context.l10n;
     final t = HomeText.of(context);
     final browsing = _search.text.trim().isEmpty;

@@ -14422,6 +14422,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Loading the services…'**
   String get celautObjectiveServicesLoading;
+
+  /// No description provided for @presetPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin as preset'**
+  String get presetPin;
+
+  /// No description provided for @presetPinNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a new instance of this service with the same settings from the ✏ button of Chats.'**
+  String get presetPinNote;
+
+  /// No description provided for @presetPinBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The ✏ button of Chats will show it on a wheel. One tap starts a new instance of this service with the same variables. You still see the cost and confirm it before it starts.'**
+  String get presetPinBody;
+
+  /// No description provided for @presetPinUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone does not know the variables that this instance was started with (it started on an earlier version of the app, or on another phone): the launch asks for them.'**
+  String get presetPinUnknown;
+
+  /// No description provided for @presetPinAsks.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{One secret value was typed and not saved, so the preset does not keep it: the launch asks for it each time.} other{{count} secret values were typed and not saved, so the preset does not keep them: the launch asks for them each time.}}'**
+  String presetPinAsks(int count);
+
+  /// No description provided for @presetPinAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get presetPinAction;
+
+  /// No description provided for @presetPinnedDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned. Hold or tap the ✏ button of Chats to start it.'**
+  String get presetPinnedDone;
+
+  /// No description provided for @presetPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned to the ✏ button as \"{name}\"'**
+  String presetPinned(String name);
+
+  /// No description provided for @presetUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get presetUnpin;
+
+  /// No description provided for @presetFull.
+  ///
+  /// In en, this message translates to:
+  /// **'The wheel holds {max} presets. Remove one first: long-press it on the wheel.'**
+  String presetFull(int max);
+
+  /// No description provided for @presetNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name on the wheel'**
+  String get presetNameLabel;
+
+  /// No description provided for @presetRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from the wheel'**
+  String get presetRemove;
+
+  /// No description provided for @presetRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" removed from the wheel'**
+  String presetRemoved(String name);
+
+  /// No description provided for @presetWheelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens your presets. Slide to one and let go to start it.'**
+  String get presetWheelHint;
+
+  /// No description provided for @presetWheelObjectives.
+  ///
+  /// In en, this message translates to:
+  /// **'Objectives'**
+  String get presetWheelObjectives;
+
+  /// No description provided for @presetWheelObjectivesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Objectives: choose a new service'**
+  String get presetWheelObjectivesLabel;
+
+  /// No description provided for @presetWheelStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start {name}'**
+  String presetWheelStart(String name);
+
+  /// No description provided for @presetWheelEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename or remove'**
+  String get presetWheelEditHint;
 }
 
 class _AppLocalizationsDelegate

@@ -47,16 +47,17 @@ of the wallet and the pages under a tab open over the bar.
 
 | Tab | What it holds | Code |
 |---|---|---|
-| Chats | The instances with a chat slot: the running ones, newest first, then the stopped ones (hidden by default, see below). The pencil button opens "New conversation"; only this tab has it | `ChatsScreen`, `InstanceList` (`chats_screen.dart`, `instance_list.dart`) |
+| Chats | The instances with a chat slot: the running ones, newest first, then the stopped ones (hidden by default, see below). The pencil button opens "New conversation"; with presets, it opens their wheel first ([presets.md](presets.md)); only this tab has it | `ChatsScreen`, `InstanceList` (`chats_screen.dart`, `instance_list.dart`) |
 | Wallet | Only the ERG that the wallet holds and its latest transactions (2026-10-24, Josemi). "Wallet details" opens the page of the wallet, which has Send, Receive, the tokens, the addresses, "Deposit to a node" (under More) and the rest. A locked wallet shows its public snapshot, with the transactions of the same refresh. With no wallet: create or restore | `WalletSummaryScreen` (`home/wallet_summary.dart`), `WalletsOverviewScreen` (the welcome), `DepositScreen` |
 | Compute | The compute view of [ui.md](ui.md), section 2: only the card of state (nodes, credit on the nodes, ERG of the wallet). Under it: Nodes, Services. It has no list of instances and no "Run a service" button: the instances are in the conversations (Stop is on their info page), and a service is run from Services | `ComputeHomeScreen` |
 | Settings | The settings of the app in three sections (2026-10-23): Ergo (the wallet, the Ergo network, the address book, the remote previews), Compute (nodes, deposit, automatic top-up, Tor, environment variables, node check, Celaut service) and General (security, display, the switch of the home screen, About) | `SettingsScreen` |
 
 | Place | Where | What it holds | Code |
 |---|---|---|---|
-| New conversation | Chats, pencil button | The objectives of the catalog (an objective opens its ranked services), the service files of the user, the import of a file | `RunServiceScreen` with the title "New conversation" |
+| New conversation | Chats, pencil button (Objectives on its wheel when there are presets) | The objectives of the catalog (an objective opens its ranked services), the service files of the user, the import of a file | `RunServiceScreen` with the title "New conversation" |
+| Wheel of presets | Chats, pencil button, when there are presets | Objectives and the presets pinned from instances; a tap or a slide starts one, a long press renames or removes it ([presets.md](presets.md)) | `PresetWheelButton` |
 | Conversation | Chats, a row | Bubbles, with images and files (section 7); the bar has the name of the service and "state · node · cost so far"; ⋮ has Info and Stop | `ChatScreen` |
-| Instance info | The bar of a conversation, ⋮, a long press, a tap on a stopped row | State, node address, peer id of the node, service id, chat slot, start time, cost so far (or the refund at the stop). Stop, or Delete for a stopped instance | `InstanceInfoScreen` |
+| Instance info | The bar of a conversation, ⋮, a long press, a tap on a stopped row | State, node address, peer id of the node, service id, chat slot, start time, cost so far (or the refund at the stop). Pin as preset ([presets.md](presets.md)). Stop, or Delete for a stopped instance | `InstanceInfoScreen` |
 | Page of the wallet (the details) | Wallet, "Wallet details" | Balance, Send, Receive, activity, the tools (tokens, UTXOs, addresses, Deposit to a node, lock) and the settings of the wallet. It is the Ergo part of the app, and always has the Ergo look: black and orange (`ergoPalette`), whatever theme the user chose. The look covers the pages that open from it (`ergoThemeActive`) | `DashboardScreen` (wallet page) |
 | Deposit to a node | Wallet details, More | The deposit screen | `DepositScreen` |
 | Nodes | Compute | The node list with its availability; add a node by address or QR code ("connect to a new peer") | `KnownNodesScreen` |
@@ -126,6 +127,11 @@ so the conversation keeps room above it.
   "Services" and "Run a service" in the Compute tab end the same way, on the Chats tab. A
   service without a chat slot starts, and a message says that it is in Compute, under
   Services, in the page of the service.
+- **Start a preset.** With presets ("Pin as preset" on the info page of an instance), the
+  pencil opens their wheel: a tap on a preset, or a slide to it from the pencil, starts a new
+  instance of the same service with the same variables, by the same confirmation of the cost
+  and the same review of the variables, over the list; then into the conversation.
+  Objectives on the wheel is "New conversation" ([presets.md](presets.md)).
 - **Open a conversation again.** A tap on a row opens the local port of the chat slot and
   reads the history from `after_sequence` 0 and opens `Connect` ([chat.md](chat.md), sections 6.2 and 6.5). This works after the lock of the
   app closed the screen, and after a restart of the app. The screen shows at once, with the

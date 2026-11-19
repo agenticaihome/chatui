@@ -4,6 +4,7 @@ import '../../bridge/api/celaut_env.dart';
 import '../../bridge/api/celaut_service_info.dart' show NetworkView;
 import '../../celaut/egress.dart';
 import '../../celaut/env_store.dart';
+import '../../celaut/service_presets.dart';
 import '../../l10n/l10n.dart';
 import '../../services/privacy_service.dart';
 import '../../theme/argus_theme.dart';
@@ -68,6 +69,44 @@ List<EnvChoice> envChoices(List<DeclaredVariableView> declared, List<EnvAnswer?>
   return out;
 }
 
+/// What a launch keeps of the answers, for a preset (`docs/celaut/presets.md`, section 3):
+/// a variable of the container by its name; a typed value that the user saved in the
+/// container by the name it was saved under; a typed value that is not sensitive as it is;
+/// a typed sensitive value that was not saved is not kept, and is asked for again.
+List<PresetVariable> presetVariablesOf(List<DeclaredVariableView> declared, List<EnvAnswer?> answers) => [
+      for (var i = 0; i < declared.length; i++)
+        switch (answers[i]) {
+          EnvFromContainer(:final name) => PresetVariable.container(declared[i].name, name),
+          EnvTyped(save: true, :final saveAs) => PresetVariable.container(declared[i].name, saveAs ?? declared[i].name),
+          EnvTyped(sensitive: true) => PresetVariable.ask(declared[i].name),
+          EnvTyped(:final text) => PresetVariable.text(declared[i].name, text),
+          EnvSkipped() => PresetVariable.skip(declared[i].name),
+          null => PresetVariable.ask(declared[i].name),
+        },
+    ];
+
+/// The answers of a preset for the variables that the service [declared], to fill the
+/// questions before a launch. A variable that the preset does not have, one that it asks
+/// for, and a variable of the container that is not there any more stay unanswered
+/// (null): the questions ask for them.
+List<EnvAnswer?> envAnswersOfPreset(
+  List<DeclaredVariableView> declared,
+  List<PresetVariable> variables,
+  Set<String> containerNames,
+) {
+  final byName = {for (final v in variables) v.name: v};
+  return [
+    for (final d in declared)
+      switch (byName[d.name]) {
+        PresetVariable(kind: PresetValueKind.container, :final value?) when containerNames.contains(value) =>
+          EnvFromContainer(value),
+        PresetVariable(kind: PresetValueKind.text, :final value?) => EnvTyped(value),
+        PresetVariable(kind: PresetValueKind.skip) => const EnvSkipped(),
+        _ => null,
+      },
+  ];
+}
+
 /// The question about the environment variables of a service, one variable at a time,
 /// then a review (`docs/celaut/env-variables.md`, section 3). For each variable the user
 /// chooses one of the container, types a value, or skips it. Closing the screen cancels
@@ -86,7 +125,18 @@ class EnvQuestionsScreen extends StatefulWidget {
     this.purpose = EnvQuestionsPurpose.launch,
     EnvStore? store,
     this.scanner,
+    this.initial,
+    this.onConfirmed,
   }) : _store = store;
+
+  /// Answers given before the questions, one per declared variable, from a preset
+  /// ([envAnswersOfPreset]). The screen opens on the first variable without an answer, or
+  /// on the review if all have one; an answer goes on to the next variable without one.
+  final List<EnvAnswer?>? initial;
+
+  /// Called with the answers when the user confirms, before the screen closes: the launch
+  /// keeps them for a preset ([presetVariablesOf]).
+  final void Function(List<EnvAnswer?> answers)? onConfirmed;
 
   final List<DeclaredVariableView> declared;
 
@@ -107,22 +157,40 @@ class EnvQuestionsScreen extends StatefulWidget {
 
 class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
   late final EnvStore _store = widget._store ?? EnvStore();
-  late final List<EnvAnswer?> _answers = List.filled(widget.declared.length, null);
+  late final List<EnvAnswer?> _answers = _initialAnswers();
   late final EgressReport _egress = egressOf(widget.networks);
-  int _index = 0;
+  late int _index = _firstUnanswered(0);
   bool _typing = false;
   bool _hidden = true;
   bool _typedSensitive = false;
   bool _typedSave = false;
   String? _typedError;
   final _typedCtrl = TextEditingController();
-  late final _saveNameCtrl = TextEditingController(text: widget.declared.isEmpty ? '' : widget.declared.first.name);
+  late final _saveNameCtrl = TextEditingController(
+    text: _index < widget.declared.length ? widget.declared[_index].name : '',
+  );
   String? _saveNameError;
 
   /// FLAG_SECURE while a sensitive typed or scanned value is shown in clear (#141).
   final _secure = SecureHold();
 
   bool get _review => _index >= widget.declared.length;
+
+  List<EnvAnswer?> _initialAnswers() {
+    final initial = widget.initial;
+    final n = widget.declared.length;
+    return [for (var i = 0; i < n; i++) initial != null && i < initial.length ? initial[i] : null];
+  }
+
+  /// The first variable from [from] without an answer, or the review. Without [initial]
+  /// answers it is [from]: the questions go one by one, as before.
+  int _firstUnanswered(int from) {
+    if (widget.initial == null) return from;
+    for (var i = from; i < _answers.length; i++) {
+      if (_answers[i] == null) return i;
+    }
+    return _answers.length;
+  }
 
   @override
   void dispose() {
@@ -190,7 +258,7 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
 
   void _answer(EnvAnswer answer) {
     _answers[_index] = answer;
-    _go(_index + 1);
+    _go(_firstUnanswered(_index + 1));
   }
 
   List<EnvNameView> _containerNames(String declared) {
@@ -309,6 +377,7 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
     if (failed) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(context.l10n.celautEnvSaveFailed)));
     }
+    widget.onConfirmed?.call(List.unmodifiable(_answers));
     Navigator.pop(context, choices);
   }
 
@@ -585,6 +654,10 @@ class _EnvQuestionsScreenState extends State<EnvQuestionsScreen> {
         ListTile(
           key: Key('env-review-${widget.declared[i].name}'),
           contentPadding: EdgeInsets.zero,
+          // With answers from a preset the user may never see a variable: a tap on it
+          // changes its answer.
+          onTap: widget.initial == null ? null : () => _go(i),
+          trailing: widget.initial == null ? null : const Icon(Icons.edit_outlined, size: 18),
           title: Text(widget.declared[i].name, style: const TextStyle(fontFamily: 'IBMPlexMono', fontSize: 14)),
           subtitle: Text(
             _isSensitive(_answers[i], marks)

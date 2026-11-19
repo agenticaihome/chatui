@@ -6427,5 +6427,58 @@
   "celautObjectiveStatBlockNote": "published",
   "celautObjectiveMore": "more",
   "celautObjectiveLess": "less",
-  "celautObjectiveServicesLoading": "Loading the services…"
+  "celautObjectiveServicesLoading": "Loading the services…",
+  "presetPin": "Pin as preset",
+  "presetPinNote": "Start a new instance of this service with the same settings from the ✏ button of Chats.",
+  "presetPinBody": "The ✏ button of Chats will show it on a wheel. One tap starts a new instance of this service with the same variables. You still see the cost and confirm it before it starts.",
+  "presetPinUnknown": "This phone does not know the variables that this instance was started with (it started on an earlier version of the app, or on another phone): the launch asks for them.",
+  "presetPinAsks": "{count, plural, =1{One secret value was typed and not saved, so the preset does not keep it: the launch asks for it each time.} other{{count} secret values were typed and not saved, so the preset does not keep them: the launch asks for them each time.}}",
+  "@presetPinAsks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presetPinAction": "Pin",
+  "presetPinnedDone": "Pinned. Hold or tap the ✏ button of Chats to start it.",
+  "presetPinned": "Pinned to the ✏ button as \"{name}\"",
+  "@presetPinned": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetUnpin": "Unpin",
+  "presetFull": "The wheel holds {max} presets. Remove one first: long-press it on the wheel.",
+  "@presetFull": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "presetNameLabel": "Name on the wheel",
+  "presetRemove": "Remove from the wheel",
+  "presetRemoved": "\"{name}\" removed from the wheel",
+  "@presetRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetWheelHint": "Opens your presets. Slide to one and let go to start it.",
+  "presetWheelObjectives": "Objectives",
+  "presetWheelObjectivesLabel": "Objectives: choose a new service",
+  "presetWheelStart": "Start {name}",
+  "@presetWheelStart": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetWheelEditHint": "Rename or remove"
 }
