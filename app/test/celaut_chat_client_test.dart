@@ -34,6 +34,7 @@ void main() {
   late FakeChatService svc;
   late TcpProxy proxy;
   late ChatClient chat;
+  late int svcPort;
   var booted = false;
 
   Future<void> boot({
@@ -42,7 +43,7 @@ void main() {
     Duration callTimeout = const Duration(seconds: 5),
     List<Duration> waits = const [Duration(milliseconds: 60)],
   }) async {
-    final port = await svc.start();
+    final port = svcPort = await svc.start();
     proxy = TcpProxy(port);
     await proxy.start();
     booted = true;
@@ -1354,6 +1355,87 @@ void main() {
       await until(() => ended != null, what: 'busy');
       expect((ended! as GrpcError).trailers?['chat-reason'], 'busy');
       expect((ended! as GrpcError).code, StatusCode.unavailable);
+    });
+  });
+
+  group('suspension (iOS, docs/ios.md)', () {
+    test('suspend ends the stream and its connection, and no stream opens until resume', () async {
+      final u = svc.user('q');
+      svc.assistant('a', replyTo: u.messageId);
+      await boot();
+      await chat.sync();
+      await until(() => chat.streaming);
+      await chat.suspend();
+      await until(() => svc.openStreams == 0, what: 'stream closed');
+      expect(chat.streaming, isFalse);
+      // Waits of 60 ms: a loop that tried again would subscribe many times meanwhile.
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(svc.subscribes, [2]);
+      expect(proxy.connections, 1);
+    });
+
+    test('resume subscribes at once on a new connection and gets what came meanwhile', () async {
+      final u = svc.user('q');
+      svc.assistant('a', replyTo: u.messageId);
+      // Long waits between tries: resume must not wait for them.
+      await boot(waits: const [Duration(seconds: 5)]);
+      await chat.sync();
+      await until(() => chat.streaming);
+      await chat.suspend();
+      await until(() => svc.openStreams == 0, what: 'stream closed');
+      // The service goes on while the app is suspended.
+      final u2 = svc.user('q2');
+      svc.assistant('b', replyTo: u2.messageId);
+      final asked = DateTime.now();
+      await chat.resume();
+      await until(() => chat.streaming, what: 'stream again');
+      expect(DateTime.now().difference(asked), lessThan(const Duration(seconds: 2)));
+      await until(() => chat.count == 4, what: 'the missed messages');
+      expect(chat.messages.last.text, 'b');
+      expect(svc.subscribes, [2, 2], reason: 'from its last message');
+      expect(proxy.connections, 2, reason: 'a new connection');
+    });
+
+    test('resume on the new port of the tunnel', () async {
+      svc.user('q');
+      await boot();
+      await chat.sync();
+      await until(() => chat.streaming);
+      await chat.suspend();
+      final other = TcpProxy(svcPort);
+      await other.start();
+      try {
+        await chat.resume(port: other.port);
+        await until(() => chat.streaming, what: 'stream on the new port');
+        expect(chat.port, other.port);
+        expect(other.connections, 1);
+        expect(proxy.connections, 1);
+      } finally {
+        await chat.close();
+        await other.stop();
+      }
+    });
+
+    test('resume while the stream runs opens a new one at once', () async {
+      svc.user('q');
+      await boot(waits: const [Duration(seconds: 5)]);
+      await chat.sync();
+      await until(() => chat.streaming);
+      final asked = DateTime.now();
+      await chat.resume();
+      await until(() => svc.subscribes.length == 2 && chat.streaming, what: 'a second stream');
+      expect(DateTime.now().difference(asked), lessThan(const Duration(seconds: 2)));
+      expect(proxy.connections, 2);
+    });
+
+    test('resume with no stream reads the conversation', () async {
+      svc.user('q');
+      await boot();
+      await chat.suspend();
+      svc.user('q2');
+      await chat.resume();
+      expect(chat.count, 2);
+      await until(() => chat.streaming);
     });
   });
 

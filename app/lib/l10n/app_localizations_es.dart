@@ -9126,4 +9126,23 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get presetWheelEditHint => 'Cambiar nombre o quitar';
+
+  @override
+  String get iosLimitsTitle =>
+      'En iPhone, la app solo funciona mientras está abierta';
+
+  @override
+  String get iosLimitsConversations =>
+      'Las conversaciones no siguen conectadas cuando la app está en segundo plano o cerrada. Tus mensajes esperan en el nodo, y la app los sincroniza cuando la abres.';
+
+  @override
+  String get iosLimitsNotifications =>
+      'No llega ninguna notificación de un mensaje nuevo mientras la app está suspendida.';
+
+  @override
+  String get iosLimitsTopUp =>
+      'La recarga automática (Mantener en marcha) no siempre funciona. Solo funciona mientras la app está en marcha, e iOS la detiene cuando la app se suspende o se cierra. Cuando el saldo de una instancia se acaba, el nodo detiene la instancia.';
+
+  @override
+  String get iosLimitsOk => 'Entendido';
 }

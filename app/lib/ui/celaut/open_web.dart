@@ -75,8 +75,10 @@ Future<void> openWebInBrowser(
     if (holds != null || Platform.isAndroid) {
       _holdForBrowser(holds ?? foregroundHolds, browserHoldDuration);
     }
-    final open =
-        launch ?? (uri) => launchUrl(uri, mode: LaunchMode.externalApplication);
+    // iOS suspends the app, and its local port with it, as soon as another app is in
+    // front: the page opens in a browser inside the app (SFSafariViewController).
+    final open = launch ??
+        (uri) => launchUrl(uri, mode: Platform.isIOS ? LaunchMode.inAppBrowserView : LaunchMode.externalApplication);
     if (!await open(Uri.parse('http://127.0.0.1:$port/'))) {
       messenger.showSnackBar(SnackBar(content: Text(l.chatsBrowserFailed)));
     }

@@ -386,17 +386,20 @@ class _PendingSend {
 /// read the history, every [pollWaiting] or [pollIdle].
 class ChatClient extends ChangeNotifier {
   ChatClient({
-    required this.port,
+    required int port,
     this.reconnectWaits = startWaits,
     this.stableAfter = const Duration(seconds: 10),
     this.ackEvery = const Duration(seconds: 1),
     this.callTimeout = const Duration(seconds: 30),
     this.fileTimeout = const Duration(seconds: 120),
     Duration Function(Duration? last)? channelBackoff,
-  }) : _backoff = channelBackoff ?? _defaultBackoff;
+  })  : _port = port,
+        _backoff = channelBackoff ?? _defaultBackoff;
 
-  /// The local port of the chat slot of the instance (`celautOpenTunnel`).
-  final int port;
+  /// The local port of the chat slot of the instance (`celautOpenTunnel`). [resume] can
+  /// change it: the tunnel can get a new port after iOS suspended the app.
+  int get port => _port;
+  int _port;
 
   /// The waits before each new try to open the stream (section 6.5). Tests make them short.
   final List<Duration> reconnectWaits;
@@ -467,7 +470,7 @@ class ChatClient extends ChangeNotifier {
 
   ClientChannel get _ch => _channel ??= ClientChannel(
         '127.0.0.1',
-        port: port,
+        port: _port,
         options: ChannelOptions(
           credentials: const ChannelCredentials.insecure(),
           // One connection for the whole session: each one costs a tunnel stream.
@@ -624,6 +627,7 @@ class ChatClient extends ChangeNotifier {
     if (_closed) return;
     _closed = true;
     if (!_closing.isCompleted) _closing.complete();
+    _poke();
     _ackTimer?.cancel();
     for (final pending in _pendingSends.values) {
       if (!pending.done.isCompleted) {
@@ -1009,7 +1013,76 @@ class ChatClient extends ChangeNotifier {
     if (wait == Duration.zero) return Future.value();
     final timer = Completer<void>();
     final t = Timer(wait, timer.complete);
-    return Future.any([timer.future, _closing.future]).whenComplete(t.cancel);
+    return Future.any([timer.future, _closing.future, _wakeUp]).whenComplete(t.cancel);
+  }
+
+  // --- Suspension (iOS, `app_suspension.dart`) ---------------------------------------
+
+  /// Completes at the next [_poke]: [suspend], [resume] and [close] end the stream that
+  /// runs and the wait between two tries.
+  Completer<void>? _wake;
+  Future<void> get _wakeUp => (_wake ??= Completer<void>()).future;
+
+  void _poke() {
+    final wake = _wake;
+    _wake = null;
+    if (wake != null && !wake.isCompleted) wake.complete();
+  }
+
+  /// The app is about to be suspended: no stream opens until [resume].
+  bool _suspended = false;
+
+  /// [resume] came while a stream ran: the next try starts at once.
+  bool _resumeNow = false;
+
+  /// Completes when the stream loop waits for [resume] (after [suspend]).
+  Completer<void>? _parked;
+
+  /// iOS is about to suspend the app (`docs/ios.md`, "Background"): end the stream cleanly
+  /// (our side first, so the service ends its side with `OK`, section 6.5) and close the
+  /// connection to the tunnel. No stream opens until [resume]. A send in flight follows
+  /// section 6.3 when it fails.
+  Future<void> suspend() async {
+    if (_closed || _suspended) return;
+    _suspended = true;
+    _resumeNow = false;
+    if (_streamTask != null) {
+      final parked = _parked = Completer<void>();
+      _poke();
+      await parked.future.timeout(const Duration(seconds: 2), onTimeout: () {});
+    }
+    final channel = _channel;
+    _channel = null;
+    _chatStub = null;
+    _fileStub = null;
+    await channel?.shutdown().timeout(const Duration(seconds: 2), onTimeout: () {}).catchError((_) {});
+  }
+
+  /// The app is in front again after a suspension. The connection of the tunnel can be
+  /// gone, so the client opens a new one (on [port], if the tunnel has a new port), then
+  /// subscribes again at once from its last message: the replay brings what came while
+  /// the app was away (section 6.5). A stream that had stopped after 3 failures gets a new
+  /// series of tries. With no stream (a service without `Connect`), it reads with
+  /// `GetMessages`.
+  Future<void> resume({int? port}) async {
+    if (_closed) return;
+    _suspended = false;
+    _streamStopped = false;
+    _streamError = null;
+    final old = _channel;
+    if (old != null || (port != null && port != _port)) {
+      _channel = null;
+      _chatStub = null;
+      _fileStub = null;
+    }
+    if (port != null) _port = port;
+    if (_streamTask != null) {
+      // A stream that still runs can be on a dead connection: start a new one now.
+      _resumeNow = true;
+      _poke();
+    }
+    unawaited(old?.terminate().catchError((_) {}));
+    if (_streamTask == null) await sync();
   }
 
   /// The error that stopped the stream for good (3 failures of the first event in a row,
@@ -1028,6 +1101,17 @@ class ChatClient extends ChangeNotifier {
     var failures = 0;
     var resynced = false;
     while (!_closed) {
+      if (_suspended) {
+        // Wait for [resume] (or [close]); then a new series of tries.
+        _parked?.complete();
+        _parked = null;
+        await Future.any([_wakeUp, _closing.future]);
+        _resumeNow = false;
+        attempt = 0;
+        failures = 0;
+        resynced = false;
+        continue;
+      }
       final started = DateTime.now();
       final afterUsed = _subscribeAfter;
       Object? failure;
@@ -1040,6 +1124,14 @@ class ChatClient extends ChangeNotifier {
       _streamReady = false;
       _notify();
       if (_closed) return;
+      // The end of this stream was ours ([suspend] or [resume]): no wait, no failure.
+      if (_suspended) continue;
+      if (_resumeNow) {
+        _resumeNow = false;
+        attempt = 0;
+        failures = 0;
+        continue;
+      }
       if (failure is GrpcError && failure.code == StatusCode.unimplemented) {
         _streamUnsupported = true;
         return;
@@ -1140,6 +1232,9 @@ class ChatClient extends ChangeNotifier {
       ),
     );
     unawaited(_closing.future.then((_) {
+      if (!done.isCompleted) done.complete();
+    }));
+    unawaited(_wakeUp.then((_) {
       if (!done.isCompleted) done.complete();
     }));
     try {

@@ -13,6 +13,7 @@ import '../../celaut/payers.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
+import '../ios_limits.dart';
 import 'closing_text.dart';
 import 'deposit_screen.dart';
 import 'move_mu_sheet.dart';
@@ -374,6 +375,7 @@ class _KeepDialogState extends State<_KeepDialog> {
                 ],
               ),
             ),
+            const IosTopUpWarning(padding: EdgeInsets.only(top: 8)),
             const SizedBox(height: 12),
             TextField(
               key: const Key('keep-dialog-limit'),
