@@ -106,7 +106,7 @@ void main() {
     expect(start.style?.color, red);
     final fault = tester.widget<Text>(find.byKey(const Key('info-receipts-fault-1')));
     expect(fault.data, l.chatsReceiptsFaultReceived);
-    expect(fault.data, 'The node signed data that does not match what this phone received');
+    expect(fault.data, 'The node signed data that does not match what this device received');
     expect(fault.style?.color, red);
     expect(_text(tester, 'info-receipts-fault-0'), l.chatsReceiptsFaultEnvs);
   });

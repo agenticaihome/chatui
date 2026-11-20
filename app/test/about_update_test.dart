@@ -289,7 +289,7 @@ void main() {
       await openAbout(tester, stub);
       expect(find.byKey(const Key('update-download')), findsNothing);
       expect(find.byKey(const Key('update-open-releases')), findsOneWidget);
-      expect(find.text('This release has no APK for your phone.'), findsOneWidget);
+      expect(find.text('This release has no APK for this device.'), findsOneWidget);
     });
 
     testWidgets('on a host that cannot install, only points at the releases page', (tester) async {

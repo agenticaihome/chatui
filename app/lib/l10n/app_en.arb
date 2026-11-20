@@ -333,12 +333,13 @@
   "settingsAboutRowSubtitle": "Version, release notes, licenses",
   "settingsWalletRowTitle": "Addresses and backup",
   "settingsWalletRowSubtitle": "Primary address, change policy, remove",
-  "settingsSecurityWalletSubtitle": "Phone unlock, auto-lock",
+  "settingsSecurityWalletSubtitle": "Device unlock, auto-lock",
   "settingsErgoGroup": "Ergo",
   "settingsComputeGroup": "Compute",
   "settingsGeneralGroup": "General",
   "settingsScopeAppWide": "App-wide",
   "settingsSecurityAppSubtitle": "Auto-lock, screenshots, unconfirmed funds",
+  "settingsSecurityAppSubtitleLinux": "Auto-lock, unconfirmed funds",
   "settingsRemotePreviewsTitle": "Remote previews",
   "settingsRemotePreviewsSubtitle": "IPFS gateway and Never load remote previews",
   "settingsContactsCount": "{count, plural, other{{count} contacts}}",
@@ -389,11 +390,13 @@
   "aboutCheckForUpdatesSubtitle": "Asks GitHub once a day. GitHub sees your IP address, or a Tor exit when Tor is on.",
   "aboutCheckNow": "Check now",
   "aboutUpdatesNote": "Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app's signing key before Android is asked to install it.",
+  "aboutUpdatesNoteLinux": "Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. On Linux, Chatui does not download or install an update: it shows the link to the .deb for this computer, and your browser downloads it from github.com.",
   "aboutThisBuild": "This build",
   "aboutUnauditedTitle": "Unaudited prototype",
   "aboutUnauditedSubtitle": "Transactions on Ergo are irreversible. Use only funds you can afford to lose.",
   "aboutReleasesTitle": "Releases and notes",
   "aboutReleasesSubtitle": "What changed in each alpha, and the latest APK.",
+  "aboutReleasesSubtitleLinux": "What changed in each alpha, and the latest .deb files.",
   "aboutLicenses": "Open-source licenses",
   "aboutLightClientNote": "Chatui is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.",
   "aboutSigningCertificate": "Signing certificate",
@@ -439,7 +442,7 @@
   "displayVehicleMotionCuesNote": "Dots at the sides of the screen move with the car, bus or train, so reading on the road makes you less sick.",
   "displayMotionCuesOff": "Off",
   "displayMotionCuesAutomatic": "Automatic",
-  "displayMotionCuesAutomaticSubtitle": "When the phone feels that you ride a vehicle",
+  "displayMotionCuesAutomaticSubtitle": "When the device feels that you ride a vehicle",
   "displayMotionCuesAlways": "Always",
   "displayMotionCuesAlwaysSubtitle": "All the time",
   "displayMotionCuesGps": "Use the speed of the GPS",
@@ -620,11 +623,13 @@
   "securityUnlockFirstSubtitle": "Biometric and PIN settings need an unlocked wallet.",
   "securityRetryUnlockSettings": "Retry unlock settings",
   "securityReadSetupFailed": "Could not read the current setup.",
-  "securityBiometricUnlock": "Unlock with your phone",
+  "securityBiometricUnlock": "Unlock with your device",
   "securityBiometricOn": "Fingerprint or screen lock",
+  "securityUnlockKeyring": "Login keyring of the desktop",
   "securityOff": "Off",
   "securitySetPinHint": "Set a PIN when you create or restore a wallet.",
-  "securityDeviceLockNote": "The wallet opens with your fingerprint or the screen lock of your phone. The app has no PIN of its own.",
+  "securityDeviceLockNote": "The wallet opens with your fingerprint or the screen lock of your device. The app has no PIN of its own.",
+  "securityKeyringNote": "The wallet opens with your desktop session: its keys are in the login keyring, which the desktop unlocks when you log in. The app has no PIN of its own.",
   "securityScreen": "Screen",
   "securityBlockScreenshots": "Block screenshots",
   "securityScreenshotsBlocked": "Screens cannot be captured or recorded",
@@ -697,7 +702,26 @@
     }
   },
   "updateOpenReleasesPage": "Open the releases page",
-  "updateNoApkForPhone": "This release has no APK for your phone.",
+  "updateDownloadDeb": "Download the .deb ({arch})",
+  "@updateDownloadDeb": {
+    "placeholders": {
+      "arch": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDebNote": "{name} · {size}. Your browser downloads it from GitHub. Then install it over this version with the command below, and start Chatui again.",
+  "@updateDebNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "updateNoApkForPhone": "This release has no APK for this device.",
   "updateNoticeAvailable": "Chatui {version} is available.",
   "@updateNoticeAvailable": {
     "placeholders": {
@@ -728,7 +752,7 @@
   "updateErrorTooLarge": "GitHub's answer was larger than expected.",
   "updateErrorNotOnGithub": "The download address is not on GitHub.",
   "updateErrorDownloadTooLarge": "The download is larger than Chatui will accept.",
-  "updateErrorStorage": "Chatui could not save the download. Is the phone out of storage?",
+  "updateErrorStorage": "Chatui could not save the download. Is the device out of storage?",
   "updateErrorLargerThanListed": "The download is larger than GitHub lists it, so it was stopped.",
   "updateErrorEndedEarly": "The download ended early.",
   "updateRejectedWrongSigner": "This download is not signed by the same key as this app, so it must not be installed. It has been deleted.",
@@ -736,7 +760,7 @@
   "updateRejectedUnreadable": "The signing key of this download could not be read, so it was not offered for install. It has been deleted.",
   "updateRejectedAppKeyUnknown": "Chatui could not read its own signing key, so it cannot check this download. It has been deleted.",
   "updateCheckFailed": "The update check failed.",
-  "updateNoApkSeeReleases": "This release has no APK for your phone. The releases page has the files.",
+  "updateNoApkSeeReleases": "This release has no APK for this device. The releases page has the files.",
   "updateCannotKeepDownload": "This device cannot keep a download.",
   "updateDownloadCancelled": "Download cancelled.",
   "updateDownloadFailed": "The download failed.",
@@ -2363,6 +2387,9 @@
   "scanTitle": "Scan",
   "scanCameraUnavailable": "Camera is unavailable. Allow camera access and try again.",
   "scanBack": "Back",
+  "scanNoCamera": "This computer does not scan with the camera. Read the code from an image: a screenshot or a photo of the code.",
+  "scanFromImage": "Read the code from an image",
+  "scanImageNoCode": "There is no QR code in this image.",
   "txArgusFee": "Argus fee",
   "txLeftWallet": "Left your wallet",
   "txBurned": "Burned",
@@ -4285,8 +4312,8 @@
   "chatsDelete": "Delete",
   "chatsRename": "Rename",
   "chatsRenameTitle": "Rename",
-  "chatsRenameNote": "Only this phone sees this name. The node does not get it. Leave it empty to remove it.",
-  "chatsRenameNoteOriginal": "Only this phone sees this name. The node does not get it. Leave it empty to show \"{name}\" again.",
+  "chatsRenameNote": "Only this device sees this name. The node does not get it. Leave it empty to remove it.",
+  "chatsRenameNoteOriginal": "Only this device sees this name. The node does not get it. Leave it empty to show \"{name}\" again.",
   "chatsShowStopped": "{count, plural, =1{Show 1 stopped instance} other{Show {count} stopped instances}}",
   "chatsHideStopped": "Hide stopped instances",
   "@chatsShowStopped": {
@@ -4351,11 +4378,11 @@
   "chatsReceiptsNoTunnel": "no tunnel yet",
   "chatsReceiptsCancelled": "none (cancelled)",
   "chatsReceiptsOpen": "open",
-  "chatsReceiptsFaultSent": "The node signed data that does not match what this phone sent",
-  "chatsReceiptsFaultReceived": "The node signed data that does not match what this phone received",
-  "chatsReceiptsFaultEnvs": "The node signed environment variables that this phone did not send",
-  "chatsReceiptsFaultService": "The node signed a different service from the one that this phone started",
-  "chatsReceiptsFaultAmount": "The node signed a different start balance from the one that this phone asked for",
+  "chatsReceiptsFaultSent": "The node signed data that does not match what this device sent",
+  "chatsReceiptsFaultReceived": "The node signed data that does not match what this device received",
+  "chatsReceiptsFaultEnvs": "The node signed environment variables that this device did not send",
+  "chatsReceiptsFaultService": "The node signed a different service from the one that this device started",
+  "chatsReceiptsFaultAmount": "The node signed a different start balance from the one that this device asked for",
   "chatsReceiptsFaultInvalid": "A receipt does not verify",
   "chatsReceiptsFaultOmitted": "The node gave no start receipt, but it gave one before",
   "chatsReceiptsDropped": "Tunnels dropped",
@@ -4369,7 +4396,7 @@
       }
     }
   },
-  "chatsReceiptsNote": "The node signs these receipts. They are evidence against the node. You can give them to other people. A tunnel with no close is not always a fault. For example, this phone or the node can stop the tunnel.",
+  "chatsReceiptsNote": "The node signs these receipts. They are evidence against the node. You can give them to other people. A tunnel with no close is not always a fault. For example, this device or the node can stop the tunnel.",
   "celautErrorNodeClosed": "The node is closed now: its operator accepts new work only at certain hours. Try later or choose another node.",
   "celautErrorNoRoom": "The node has not enough free resources for this service now. Try later or choose another node.",
   "celautErrorServiceMissing": "The node does not have this service. Choose a node that has it.",
@@ -4579,7 +4606,7 @@
   },
   "celautSendNoHolder": "No node of your list has this service. You can give it to a node from a .celaut.bee file.",
   "celautSendConfirmTitle": "Send the service?",
-  "celautSendConfirmBody": "The whole service goes through this phone to the node, and a service can be large. The node keeps it, so later launches on that node do not send it again.",
+  "celautSendConfirmBody": "The whole service goes through this device to the node, and a service can be large. The node keeps it, so later launches on that node do not send it again.",
   "celautSendMetered": "You are on mobile data: this can use a lot of it.",
   "celautSendConfirm": "Send",
   "celautSendCancel": "Cancel",
@@ -4704,7 +4731,7 @@
   },
   "celautEnvTitle": "Environment variables",
   "celautEnvRowSubtitle": "Values that a service can get when it starts",
-  "celautEnvIntro": "Named values that you can give to a service when you run it, for example a key. They stay encrypted on this phone. A service only gets the ones that you choose.",
+  "celautEnvIntro": "Named values that you can give to a service when you run it, for example a key. They stay encrypted on this device. A service only gets the ones that you choose.",
   "celautEnvEmpty": "No variables yet.",
   "celautEnvAdd": "Add variable",
   "celautEnvEditTitle": "Edit {name}",
@@ -4876,9 +4903,9 @@
   "walletSummaryLatest": "Latest transactions",
   "walletSummaryNoTransactions": "No transactions yet",
   "chatSelectText": "Select text",
-  "celautRunOnPhone": "On this phone",
+  "celautRunOnPhone": "On this device",
   "celautRunImport": "Import",
-  "celautRunPhoneServices": "Run the services on this phone",
+  "celautRunPhoneServices": "Run the services on this device",
   "celautStoreServices": "{count, plural, =1{1 service} other{{count} services}}",
   "@celautStoreServices": {
     "placeholders": {
@@ -5464,8 +5491,8 @@
   },
   "celautEnvShareWarn": "Whoever scans this code gets the value in plain text. Show it only to people you trust.",
   "celautEnvShareWarnSensitive": "This variable is sensitive. Whoever scans this code gets the value in plain text. Show it only to people you trust, and make sure nobody else sees or records your screen.",
-  "celautEnvShareNotSecure": "This phone could not block screenshots of this screen. A screenshot of this code holds the value.",
-  "celautEnvValueNotSecure": "This phone could not block screenshots of this screen. A screenshot shows the value.",
+  "celautEnvShareNotSecure": "This device could not block screenshots of this screen. A screenshot of this code holds the value.",
+  "celautEnvValueNotSecure": "This device could not block screenshots of this screen. A screenshot shows the value.",
   "celautEnvShareTooBig": "This value is too large for a QR code.",
   "celautEnvScan": "Receive by QR",
   "celautEnvAskScan": "Scan a QR code",
@@ -6005,7 +6032,7 @@
   "cardsSettingsRowSubtitle": "Reflections, vibration, sounds, transitions, frames, motion gestures",
   "cardsSettingsGroup": "Effects of the cards",
   "cardsSettingsReflections": "Reflections",
-  "cardsSettingsReflectionsSubtitle": "A light on the image that follows the tilt of the phone and your finger",
+  "cardsSettingsReflectionsSubtitle": "A light on the image that follows the tilt of the device and your finger",
   "cardsSettingsReflectionsPointer": "A light on the image that follows your finger",
   "cardsSettingsStrength": "Strength",
   "cardsStrengthLow": "Low",
@@ -6046,7 +6073,7 @@
   "cardsSettingsTestDown": "Detected: a swipe down",
   "cardsSettingsReduceMotion": "\"Remove animations\" is on in the system, so the reflections and the transitions are lower until you choose.",
   "cardsSettingsFollowSystem": "Follow the system",
-  "cardsSettingsNote": "The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the phone.",
+  "cardsSettingsNote": "The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the device.",
   "cardsSettingsTestValue": "Turn: {value} rad/s (a gesture needs {needed})",
   "@cardsSettingsTestValue": {
     "placeholders": {
@@ -6084,7 +6111,7 @@
   "celautNodeShareCopied": "Link copied",
   "celautNodeShareNone": "This app has no address of the node that another device could use, so it cannot make a link.",
   "celautLinkSheetTitle": "Import a service",
-  "celautLinkChooseFile": "Choose a file on this phone",
+  "celautLinkChooseFile": "Choose a file on this device",
   "celautLinkFromLink": "Import from a link",
   "celautLinkFromLinkNote": "A link to a .celaut.bee file, or to a list of the links of its parts. The app checks the file while it downloads it.",
   "celautLinkHint": "https://…/service.celaut.bee",
@@ -6094,7 +6121,7 @@
   "celautLinkClipboardEmpty": "The clipboard has no text.",
   "celautLinkNotALink": "This is not an https:// or http:// link.",
   "celautLinkPendingTitle": "A download stopped",
-  "celautLinkPendingBody": "{bytes} are on this phone. Continue goes on from there.",
+  "celautLinkPendingBody": "{bytes} are on this device. Continue goes on from there.",
   "@celautLinkPendingBody": {
     "placeholders": {
       "bytes": {
@@ -6126,7 +6153,7 @@
     }
   },
   "celautLinkCancelled": "Download cancelled. Its bytes were deleted.",
-  "celautLinkStopped": "The download stopped: {reason}. The bytes that arrived stay on the phone: Continue goes on from there.",
+  "celautLinkStopped": "The download stopped: {reason}. The bytes that arrived stay on this device: Continue goes on from there.",
   "@celautLinkStopped": {
     "placeholders": {
       "reason": {

@@ -6,11 +6,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart' show SharePlus, ShareParams, XFile;
+import 'package:share_plus/share_plus.dart' show ShareParams, XFile;
 
 import '../format.dart';
 import '../services/contacts_service.dart';
 import '../services/ergopay_service.dart';
+import '../services/linux_app.dart';
 import '../services/coin_control.dart';
 import '../services/network_controller.dart';
 import '../services/storage_rent.dart';
@@ -828,7 +829,7 @@ class _SendScreenState extends State<SendScreen> with TxReceiptOwner {
           TextButton.icon(
                 onPressed: () async {
                   final bytes = Uint8List.fromList(utf8.encode(rawTxJson));
-                  await SharePlus.instance.share(ShareParams(
+                  await shareFiles(ShareParams(
                     files: [XFile.fromData(bytes, name: 'signed_tx.json', mimeType: 'application/json')],
                   ));
                 },

@@ -1,3 +1,4 @@
+import 'package:argus_wallet/services/linux_app.dart';
 import 'package:argus_wallet/services/wallet_service.dart';
 import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/ui/settings_screen.dart';
@@ -87,6 +88,15 @@ void main() {
     }
   });
 
+  testWidgets('on Linux, the Security row does not promise screenshot blocking', (tester) async {
+    debugLinuxAppOverride = true;
+    addTearDown(() => debugLinuxAppOverride = null);
+    listWallets(tester, const []);
+    await pump(tester, const SettingsScreen());
+    expect(find.text('Auto-lock, unconfirmed funds'), findsOneWidget);
+    expect(find.textContaining('screenshots'), findsNothing);
+  });
+
   testWidgets('the page of the wallet shows the same sections', (tester) async {
     listWallets(tester, const ['hub-wallet']);
     await tester.runAsync(
@@ -95,7 +105,7 @@ void main() {
     await pump(tester, const SettingsScreen(walletId: 'hub-wallet', embedded: true));
     expect(find.byKey(const Key('settings-wallet')), findsOneWidget);
     expect(find.byKey(const Key('settings-section-compute')), findsOneWidget);
-    expect(find.text('Phone unlock, auto-lock'), findsOneWidget);
+    expect(find.text('Device unlock, auto-lock'), findsOneWidget);
     expect(find.textContaining('on this device'), findsNothing);
   });
 }

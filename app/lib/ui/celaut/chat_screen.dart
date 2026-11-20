@@ -31,6 +31,7 @@ import '../../celaut/pinned_position.dart';
 import '../../celaut/secret_answers.dart';
 import '../../celaut/typewriter.dart';
 import '../../l10n/l10n.dart';
+import '../../services/linux_app.dart';
 import '../../theme/argus_theme.dart';
 import '../layout.dart';
 import 'chat_floating.dart';
@@ -2650,7 +2651,7 @@ class _AttachmentViewState extends State<_AttachmentView> {
 
   Future<void> _share(Uint8List bytes) async {
     final a = widget.attachment;
-    await SharePlus.instance.share(
+    await shareFiles(
       ShareParams(
         files: [XFile.fromData(bytes, mimeType: a.mime, name: a.safeName)],
       ),

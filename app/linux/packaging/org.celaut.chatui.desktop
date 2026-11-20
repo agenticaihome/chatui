@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Chatui
+GenericName=Celaut client
+Comment=Use Celaut services without intermediaries
+Exec=chatui %U
+Icon=org.celaut.chatui
+Terminal=false
+StartupNotify=true
+StartupWMClass=org.celaut.chatui
+Categories=Network;
+Keywords=Celaut;Ergo;Bitcoin;wallet;chat;
+MimeType=x-scheme-handler/celaut;x-scheme-handler/ergopay;application/x-celaut-bee;

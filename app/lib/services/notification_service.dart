@@ -22,9 +22,11 @@ class NotificationService {
     if (_ready) return;
     try {
       await _plugin.initialize(
-        settings: const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-          iOS: DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
+        settings: InitializationSettings(
+          android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
+          iOS: const DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
+          // The notification server of the desktop, over D-Bus; the icon is the one of the .deb.
+          linux: LinuxInitializationSettings(defaultActionName: 'Open', defaultIcon: ThemeLinuxIcon('org.celaut.chatui')),
         ),
         // A tap while the app runs: the payload names the screen.
         onDidReceiveNotificationResponse: (response) => _openTap(response.payload),
