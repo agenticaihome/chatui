@@ -216,14 +216,30 @@ impl Drop for LocalPort {
 
 async fn accept(listener: TcpListener, target: Arc<Target>, shared: Arc<Shared>) {
     let mut connections = JoinSet::new();
+    // iOS can take back the listening socket of a suspended app (Apple TN2277): after
+    // that, each accept fails. The task ends, so the port is not alive, and the next
+    // `celaut_open_tunnel` binds it again (docs/ios.md, "Background").
+    #[cfg(target_os = "ios")]
+    let mut failures_in_a_row = 0u32;
     loop {
         tokio::select! {
             accepted = listener.accept() => {
                 let Ok((socket, _)) = accepted else {
+                    #[cfg(target_os = "ios")]
+                    {
+                        failures_in_a_row += 1;
+                        if failures_in_a_row >= 20 {
+                            return;
+                        }
+                    }
                     // For example no file descriptors left: wait a little, do not spin.
                     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                     continue;
                 };
+                #[cfg(target_os = "ios")]
+                {
+                    failures_in_a_row = 0;
+                }
                 let _ = socket.set_nodelay(true);
                 connections.spawn(relay(socket, target.clone(), shared.clone()));
             }
