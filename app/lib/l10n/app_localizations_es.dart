@@ -576,6 +576,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Bloqueo automático, capturas de pantalla, fondos sin confirmar';
 
   @override
+  String get settingsSecurityAppSubtitleLinux =>
+      'Bloqueo automático, fondos sin confirmar';
+
+  @override
   String get settingsRemotePreviewsTitle => 'Vistas previas remotas';
 
   @override

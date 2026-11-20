@@ -573,6 +573,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Auto-lock, screenshots, unconfirmed funds';
 
   @override
+  String get settingsSecurityAppSubtitleLinux => 'Auto-lock, unconfirmed funds';
+
+  @override
   String get settingsRemotePreviewsTitle => 'Remote previews';
 
   @override

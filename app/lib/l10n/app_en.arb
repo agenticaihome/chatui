@@ -339,6 +339,7 @@
   "settingsGeneralGroup": "General",
   "settingsScopeAppWide": "App-wide",
   "settingsSecurityAppSubtitle": "Auto-lock, screenshots, unconfirmed funds",
+  "settingsSecurityAppSubtitleLinux": "Auto-lock, unconfirmed funds",
   "settingsRemotePreviewsTitle": "Remote previews",
   "settingsRemotePreviewsSubtitle": "IPFS gateway and Never load remote previews",
   "settingsContactsCount": "{count, plural, other{{count} contacts}}",

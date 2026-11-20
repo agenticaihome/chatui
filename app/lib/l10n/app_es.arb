@@ -162,6 +162,7 @@
   "settingsComputeGroup": "Cómputo",
   "settingsGeneralGroup": "General",
   "settingsSecurityAppSubtitle": "Bloqueo automático, capturas de pantalla, fondos sin confirmar",
+  "settingsSecurityAppSubtitleLinux": "Bloqueo automático, fondos sin confirmar",
   "settingsRemotePreviewsTitle": "Vistas previas remotas",
   "settingsRemotePreviewsSubtitle": "Pasarela IPFS y No cargar nunca vistas previas remotas",
   "settingsContactsCount": "{count, plural, =1{{count} contacto} other{{count} contactos}}",

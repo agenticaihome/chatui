@@ -1,3 +1,4 @@
+import 'package:argus_wallet/services/linux_app.dart';
 import 'package:argus_wallet/services/wallet_service.dart';
 import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/ui/settings_screen.dart';
@@ -85,6 +86,15 @@ void main() {
     for (final text in ['Manage', 'Watch-only', 'No wallet selected', 'Offline signing', 'All wallets']) {
       expect(find.text(text), findsNothing, reason: text);
     }
+  });
+
+  testWidgets('on Linux, the Security row does not promise screenshot blocking', (tester) async {
+    debugLinuxAppOverride = true;
+    addTearDown(() => debugLinuxAppOverride = null);
+    listWallets(tester, const []);
+    await pump(tester, const SettingsScreen());
+    expect(find.text('Auto-lock, unconfirmed funds'), findsOneWidget);
+    expect(find.textContaining('screenshots'), findsNothing);
   });
 
   testWidgets('the page of the wallet shows the same sections', (tester) async {

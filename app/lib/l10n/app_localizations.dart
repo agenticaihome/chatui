@@ -1076,6 +1076,12 @@ abstract class AppLocalizations {
   /// **'Auto-lock, screenshots, unconfirmed funds'**
   String get settingsSecurityAppSubtitle;
 
+  /// No description provided for @settingsSecurityAppSubtitleLinux.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-lock, unconfirmed funds'**
+  String get settingsSecurityAppSubtitleLinux;
+
   /// No description provided for @settingsRemotePreviewsTitle.
   ///
   /// In en, this message translates to:
