@@ -1130,6 +1130,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityBiometricOn => 'Fingerprint or screen lock';
 
   @override
+  String get securityUnlockKeyring => 'Login keyring of the desktop';
+
+  @override
   String get securityOff => 'Off';
 
   @override
@@ -1139,6 +1142,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get securityDeviceLockNote =>
       'The wallet opens with your fingerprint or the screen lock of your phone. The app has no PIN of its own.';
+
+  @override
+  String get securityKeyringNote =>
+      'The wallet opens with your desktop session: its keys are in the login keyring, which the desktop unlocks when you log in. The app has no PIN of its own.';
 
   @override
   String get securityScreen => 'Screen';

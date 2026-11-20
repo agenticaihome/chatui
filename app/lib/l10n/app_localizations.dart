@@ -2022,6 +2022,12 @@ abstract class AppLocalizations {
   /// **'Fingerprint or screen lock'**
   String get securityBiometricOn;
 
+  /// No description provided for @securityUnlockKeyring.
+  ///
+  /// In en, this message translates to:
+  /// **'Login keyring of the desktop'**
+  String get securityUnlockKeyring;
+
   /// No description provided for @securityOff.
   ///
   /// In en, this message translates to:
@@ -2039,6 +2045,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The wallet opens with your fingerprint or the screen lock of your phone. The app has no PIN of its own.'**
   String get securityDeviceLockNote;
+
+  /// No description provided for @securityKeyringNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The wallet opens with your desktop session: its keys are in the login keyring, which the desktop unlocks when you log in. The app has no PIN of its own.'**
+  String get securityKeyringNote;
 
   /// No description provided for @securityScreen.
   ///

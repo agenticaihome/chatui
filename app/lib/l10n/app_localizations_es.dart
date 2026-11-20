@@ -1143,6 +1143,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get securityBiometricOn => 'Huella o bloqueo de pantalla';
 
   @override
+  String get securityUnlockKeyring =>
+      'Llavero de inicio de sesión del escritorio';
+
+  @override
   String get securityOff => 'Desactivado';
 
   @override
@@ -1152,6 +1156,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get securityDeviceLockNote =>
       'La cartera se abre con tu huella o con el bloqueo de pantalla del móvil. La app no tiene un PIN propio.';
+
+  @override
+  String get securityKeyringNote =>
+      'La billetera se abre con tu sesión del escritorio: sus claves están en el llavero de inicio de sesión, que el escritorio desbloquea cuando inicias sesión. La app no tiene un PIN propio.';
 
   @override
   String get securityScreen => 'Pantalla';

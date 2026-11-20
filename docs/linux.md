@@ -55,7 +55,7 @@ same names, methods and answers, so the Dart side is the same:
 
 | Android | Linux |
 |---|---|
-| `com.argus.wallet/secure_storage` (Keystore) | `secure_storage.cc`: libsecret. No fingerprint or screen lock to ask: the wallet opens as on a phone that has neither; the keyring is unlocked by the session. `setSecureFlag` answers false: X11 and Wayland cannot block a screenshot. |
+| `com.argus.wallet/secure_storage` (Keystore) | `secure_storage.cc`: libsecret. No fingerprint or screen lock to ask: the wallet opens as on a phone that has neither; the keyring is unlocked by the session. `setSecureFlag` answers false: X11 and Wayland cannot block a screenshot, so Settings › Security has no "Block screenshots" on Linux, and a screen with a secret says that it cannot block one. Settings › Security names the login keyring as the way the wallet unlocks. |
 | `argus/deeplink` (`celaut:`, `ergopay:`) | `links.cc`: the arguments of `chatui`. The app is unique (GApplication): a link that the desktop opens while it runs goes to it and brings its window to the front. |
 | `org.celaut.chatui/incoming` (`.celaut.bee` opened in a file manager) | `links.cc`: a path or a `file://` uri on the command line; an http(s) link to a service too |
 | `org.celaut.chatui/package` (picker, copy, fd, metered) | `package_channel.cc`: the GTK file chooser, a copy with its progress, a file descriptor, `GNetworkMonitor` |
