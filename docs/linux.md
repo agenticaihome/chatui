@@ -12,7 +12,13 @@ sudo apt install ./chatui_<version>_<arch>.deb    # also to update
 sudo apt remove chatui                            # the data of the user stays
 ```
 
-The app does not update itself on Linux (`UpdateChannel.supported` is Android only).
+The app does not download or install an update on Linux. It has the same opt-in check as
+on Android (Settings › About › Check for updates: GitHub's latest release, once a day, or
+"Check now"). When a newer release is out, Settings shows the notice, and About shows the
+release with a link to its `.deb` for the architecture of the machine
+(`chatui_<version>_<arch>.deb`) and the `apt install` command. The browser downloads the
+file; check it with `SHA256SUMS` and install it as above. A release with no `.deb` for the
+machine gets the link to the releases page instead.
 
 ## What the package installs
 
@@ -60,7 +66,7 @@ same names, methods and answers, so the Dart side is the same:
 | `org.celaut.chatui/incoming` (`.celaut.bee` opened in a file manager) | `links.cc`: a path or a `file://` uri on the command line; an http(s) link to a service too |
 | `org.celaut.chatui/package` (picker, copy, fd, metered) | `package_channel.cc`: the GTK file chooser, a copy with its progress, a file descriptor, `GNetworkMonitor` |
 | Cards sensors and sounds, motion cues | off: no gyroscope (the settings show only what the device has) |
-| In-app update | off |
+| In-app update (download, signature check, installer) | a notice with the link to the `.deb` of the architecture (`pickDeb` in `update_service.dart`) |
 | Foreground service of a conversation | not needed |
 
 Plugins: `flutter_zxing` reads a QR code from an image file (`zx.readBarcodeImagePathString`);

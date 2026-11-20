@@ -1172,6 +1172,12 @@ abstract class AppLocalizations {
   /// **'Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app\'s signing key before Android is asked to install it.'**
   String get aboutUpdatesNote;
 
+  /// No description provided for @aboutUpdatesNoteLinux.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. On Linux, Chatui does not download or install an update: it shows the link to the .deb for this computer, and your browser downloads it from github.com.'**
+  String get aboutUpdatesNoteLinux;
+
   /// No description provided for @aboutThisBuild.
   ///
   /// In en, this message translates to:
@@ -1201,6 +1207,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'What changed in each alpha, and the latest APK.'**
   String get aboutReleasesSubtitle;
+
+  /// No description provided for @aboutReleasesSubtitleLinux.
+  ///
+  /// In en, this message translates to:
+  /// **'What changed in each alpha, and the latest .deb files.'**
+  String get aboutReleasesSubtitleLinux;
 
   /// No description provided for @aboutLicenses.
   ///
@@ -2219,6 +2231,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the releases page'**
   String get updateOpenReleasesPage;
+
+  /// No description provided for @updateDownloadDeb.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the .deb ({arch})'**
+  String updateDownloadDeb(String arch);
+
+  /// No description provided for @updateDebNote.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {size}. Your browser downloads it from GitHub. Then install it over this version with the command below, and start Chatui again.'**
+  String updateDebNote(String name, String size);
 
   /// No description provided for @updateNoApkForPhone.
   ///

@@ -641,6 +641,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Desactivado por defecto. Si está activado, Chatui pide a api.github.com la última versión una vez al día al iniciarse. \"Comprobar ahora\" hace lo mismo cuando lo pides, aunque esto esté desactivado. No se envía nada más: ni cuenta, ni token, ni versión de la app, ni identificador del dispositivo. Una descarga viene de github.com y se comprueba con la clave de firma de esta app antes de pedir a Android que la instale.';
 
   @override
+  String get aboutUpdatesNoteLinux =>
+      'Desactivado por defecto. Si está activado, Chatui pide a api.github.com la última versión una vez al día al iniciarse. \"Comprobar ahora\" hace lo mismo cuando lo pides, aunque esto esté desactivado. No se envía nada más: ni cuenta, ni token, ni versión de la app, ni identificador del dispositivo. En Linux, Chatui no descarga ni instala la actualización: muestra el enlace al .deb para este equipo, y tu navegador lo descarga de github.com.';
+
+  @override
   String get aboutThisBuild => 'Esta compilación';
 
   @override
@@ -656,6 +660,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get aboutReleasesSubtitle =>
       'Qué cambió en cada alfa, y el APK más reciente.';
+
+  @override
+  String get aboutReleasesSubtitleLinux =>
+      'Qué cambió en cada alfa, y los .deb más recientes.';
 
   @override
   String get aboutLicenses => 'Licencias de código abierto';
@@ -1263,6 +1271,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateOpenReleasesPage => 'Abrir la página de versiones';
+
+  @override
+  String updateDownloadDeb(String arch) {
+    return 'Descargar el .deb ($arch)';
+  }
+
+  @override
+  String updateDebNote(String name, String size) {
+    return '$name · $size. Tu navegador lo descarga de GitHub. Después instálalo sobre esta versión con el comando de abajo y vuelve a abrir Chatui.';
+  }
 
   @override
   String get updateNoApkForPhone =>

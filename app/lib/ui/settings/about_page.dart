@@ -6,6 +6,7 @@ import '../../build_info.dart';
 import '../../format.dart';
 import '../../l10n/l10n.dart';
 import '../../services/apk_signature.dart';
+import '../../services/linux_app.dart';
 import '../../services/update_service.dart';
 import '../../theme/argus_theme.dart';
 import 'settings_shared.dart';
@@ -102,7 +103,7 @@ class _AboutPageState extends State<AboutPage> {
               ),
             ],
           ),
-          SettingsNote(context.l10n.aboutUpdatesNote),
+          SettingsNote(isLinuxApp ? context.l10n.aboutUpdatesNoteLinux : context.l10n.aboutUpdatesNote),
           SettingsGroup(
             title: context.l10n.aboutThisBuild,
             children: [
@@ -111,11 +112,12 @@ class _AboutPageState extends State<AboutPage> {
                 title: context.l10n.aboutUnauditedTitle,
                 subtitle: context.l10n.aboutUnauditedSubtitle,
               ),
-              _SigningKeyRow(fingerprints: _signingKey),
+              // The .deb has no signing key to compare: its sums are in SHA256SUMS.
+              if (!isLinuxApp) _SigningKeyRow(fingerprints: _signingKey),
               SettingsRow(
                 icon: Icons.new_releases_outlined,
                 title: context.l10n.aboutReleasesTitle,
-                subtitle: context.l10n.aboutReleasesSubtitle,
+                subtitle: isLinuxApp ? context.l10n.aboutReleasesSubtitleLinux : context.l10n.aboutReleasesSubtitle,
                 onTap: () => launchUrl(Uri.parse(releasesUrl), mode: LaunchMode.externalApplication),
               ),
               SettingsRow(

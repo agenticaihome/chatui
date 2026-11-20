@@ -194,6 +194,7 @@ class _UpdateCardState extends State<UpdateCard> {
     final rejected = _u.stage == UpdateStage.rejected;
     final message = _u.stageMessage;
     final canDownload = _u.installSupported && asset != null;
+    final deb = _u.debForDevice;
     final t = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,6 +230,22 @@ class _UpdateCardState extends State<UpdateCard> {
           Text(
             t.updateAssetNote(asset.name, formatDownloadSize(asset.size)),
             style: small,
+          ),
+        ] else if (deb != null) ...[
+          // Linux: the browser downloads the .deb, and apt installs it over this version.
+          FilledButton.icon(
+            key: const Key('update-download-deb'),
+            onPressed: () => launchUrl(deb.url, mode: LaunchMode.externalApplication),
+            icon: const Icon(Icons.open_in_new, size: 18),
+            label: Text(t.updateDownloadDeb(_u.debArch ?? '')),
+          ),
+          const SizedBox(height: 8),
+          Text(t.updateDebNote(deb.name, formatDownloadSize(deb.size)), style: small),
+          const SizedBox(height: 6),
+          SelectableText(
+            'sudo apt install ./${deb.name}',
+            key: const Key('update-deb-command'),
+            style: monoStyle(context, size: 12),
           ),
         ] else ...[
           OutlinedButton(

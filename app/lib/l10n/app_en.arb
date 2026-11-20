@@ -389,11 +389,13 @@
   "aboutCheckForUpdatesSubtitle": "Asks GitHub once a day. GitHub sees your IP address, or a Tor exit when Tor is on.",
   "aboutCheckNow": "Check now",
   "aboutUpdatesNote": "Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app's signing key before Android is asked to install it.",
+  "aboutUpdatesNoteLinux": "Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. On Linux, Chatui does not download or install an update: it shows the link to the .deb for this computer, and your browser downloads it from github.com.",
   "aboutThisBuild": "This build",
   "aboutUnauditedTitle": "Unaudited prototype",
   "aboutUnauditedSubtitle": "Transactions on Ergo are irreversible. Use only funds you can afford to lose.",
   "aboutReleasesTitle": "Releases and notes",
   "aboutReleasesSubtitle": "What changed in each alpha, and the latest APK.",
+  "aboutReleasesSubtitleLinux": "What changed in each alpha, and the latest .deb files.",
   "aboutLicenses": "Open-source licenses",
   "aboutLightClientNote": "Chatui is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.",
   "aboutSigningCertificate": "Signing certificate",
@@ -699,6 +701,25 @@
     }
   },
   "updateOpenReleasesPage": "Open the releases page",
+  "updateDownloadDeb": "Download the .deb ({arch})",
+  "@updateDownloadDeb": {
+    "placeholders": {
+      "arch": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDebNote": "{name} · {size}. Your browser downloads it from GitHub. Then install it over this version with the command below, and start Chatui again.",
+  "@updateDebNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "updateNoApkForPhone": "This release has no APK for your phone.",
   "updateNoticeAvailable": "Chatui {version} is available.",
   "@updateNoticeAvailable": {

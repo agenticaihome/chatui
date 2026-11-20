@@ -1,3 +1,4 @@
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -35,4 +36,15 @@ Future<void> shareFiles(ShareParams params) async {
       bytes: await files[i].readAsBytes(),
     );
   }
+}
+
+/// The Debian architecture of this Linux app (`amd64` or `arm64`), the one in the name of
+/// its `.deb`. Null off Linux.
+String? get linuxDebArch {
+  if (!isLinuxApp) return null;
+  return switch (Abi.current()) {
+    Abi.linuxX64 => 'amd64',
+    Abi.linuxArm64 => 'arm64',
+    _ => null,
+  };
 }
