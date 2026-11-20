@@ -95,7 +95,7 @@ void main() {
     await pump(tester, const SettingsScreen(walletId: 'hub-wallet', embedded: true));
     expect(find.byKey(const Key('settings-wallet')), findsOneWidget);
     expect(find.byKey(const Key('settings-section-compute')), findsOneWidget);
-    expect(find.text('Phone unlock, auto-lock'), findsOneWidget);
+    expect(find.text('Device unlock, auto-lock'), findsOneWidget);
     expect(find.textContaining('on this device'), findsNothing);
   });
 }

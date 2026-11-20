@@ -59,7 +59,7 @@ void main() {
         const MaterialApp(home: SecuritySettingsPage(walletId: dialogWallet)),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Unlock with your phone'), findsOneWidget);
+      expect(find.text('Unlock with your device'), findsOneWidget);
       expect(find.textContaining('no PIN of its own'), findsOneWidget);
       expect(find.text('Change PIN'), findsNothing);
     });

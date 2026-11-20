@@ -1043,7 +1043,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSecurityWalletSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Phone unlock, auto-lock'**
+  /// **'Device unlock, auto-lock'**
   String get settingsSecurityWalletSubtitle;
 
   /// No description provided for @settingsErgoGroup.
@@ -1385,7 +1385,7 @@ abstract class AppLocalizations {
   /// No description provided for @displayMotionCuesAutomaticSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'When the phone feels that you ride a vehicle'**
+  /// **'When the device feels that you ride a vehicle'**
   String get displayMotionCuesAutomaticSubtitle;
 
   /// No description provided for @displayMotionCuesAlways.
@@ -2025,7 +2025,7 @@ abstract class AppLocalizations {
   /// No description provided for @securityBiometricUnlock.
   ///
   /// In en, this message translates to:
-  /// **'Unlock with your phone'**
+  /// **'Unlock with your device'**
   String get securityBiometricUnlock;
 
   /// No description provided for @securityBiometricOn.
@@ -2055,7 +2055,7 @@ abstract class AppLocalizations {
   /// No description provided for @securityDeviceLockNote.
   ///
   /// In en, this message translates to:
-  /// **'The wallet opens with your fingerprint or the screen lock of your phone. The app has no PIN of its own.'**
+  /// **'The wallet opens with your fingerprint or the screen lock of your device. The app has no PIN of its own.'**
   String get securityDeviceLockNote;
 
   /// No description provided for @securityKeyringNote.
@@ -2247,7 +2247,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateNoApkForPhone.
   ///
   /// In en, this message translates to:
-  /// **'This release has no APK for your phone.'**
+  /// **'This release has no APK for this device.'**
   String get updateNoApkForPhone;
 
   /// No description provided for @updateNoticeAvailable.
@@ -2349,7 +2349,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateErrorStorage.
   ///
   /// In en, this message translates to:
-  /// **'Chatui could not save the download. Is the phone out of storage?'**
+  /// **'Chatui could not save the download. Is the device out of storage?'**
   String get updateErrorStorage;
 
   /// No description provided for @updateErrorLargerThanListed.
@@ -2397,7 +2397,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateNoApkSeeReleases.
   ///
   /// In en, this message translates to:
-  /// **'This release has no APK for your phone. The releases page has the files.'**
+  /// **'This release has no APK for this device. The releases page has the files.'**
   String get updateNoApkSeeReleases;
 
   /// No description provided for @updateCannotKeepDownload.
@@ -9320,13 +9320,13 @@ abstract class AppLocalizations {
   /// No description provided for @chatsRenameNote.
   ///
   /// In en, this message translates to:
-  /// **'Only this phone sees this name. The node does not get it. Leave it empty to remove it.'**
+  /// **'Only this device sees this name. The node does not get it. Leave it empty to remove it.'**
   String get chatsRenameNote;
 
   /// No description provided for @chatsRenameNoteOriginal.
   ///
   /// In en, this message translates to:
-  /// **'Only this phone sees this name. The node does not get it. Leave it empty to show \"{name}\" again.'**
+  /// **'Only this device sees this name. The node does not get it. Leave it empty to show \"{name}\" again.'**
   String chatsRenameNoteOriginal(String name);
 
   /// No description provided for @chatsShowStopped.
@@ -9506,31 +9506,31 @@ abstract class AppLocalizations {
   /// No description provided for @chatsReceiptsFaultSent.
   ///
   /// In en, this message translates to:
-  /// **'The node signed data that does not match what this phone sent'**
+  /// **'The node signed data that does not match what this device sent'**
   String get chatsReceiptsFaultSent;
 
   /// No description provided for @chatsReceiptsFaultReceived.
   ///
   /// In en, this message translates to:
-  /// **'The node signed data that does not match what this phone received'**
+  /// **'The node signed data that does not match what this device received'**
   String get chatsReceiptsFaultReceived;
 
   /// No description provided for @chatsReceiptsFaultEnvs.
   ///
   /// In en, this message translates to:
-  /// **'The node signed environment variables that this phone did not send'**
+  /// **'The node signed environment variables that this device did not send'**
   String get chatsReceiptsFaultEnvs;
 
   /// No description provided for @chatsReceiptsFaultService.
   ///
   /// In en, this message translates to:
-  /// **'The node signed a different service from the one that this phone started'**
+  /// **'The node signed a different service from the one that this device started'**
   String get chatsReceiptsFaultService;
 
   /// No description provided for @chatsReceiptsFaultAmount.
   ///
   /// In en, this message translates to:
-  /// **'The node signed a different start balance from the one that this phone asked for'**
+  /// **'The node signed a different start balance from the one that this device asked for'**
   String get chatsReceiptsFaultAmount;
 
   /// No description provided for @chatsReceiptsFaultInvalid.
@@ -9572,7 +9572,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatsReceiptsNote.
   ///
   /// In en, this message translates to:
-  /// **'The node signs these receipts. They are evidence against the node. You can give them to other people. A tunnel with no close is not always a fault. For example, this phone or the node can stop the tunnel.'**
+  /// **'The node signs these receipts. They are evidence against the node. You can give them to other people. A tunnel with no close is not always a fault. For example, this device or the node can stop the tunnel.'**
   String get chatsReceiptsNote;
 
   /// No description provided for @celautErrorNodeClosed.
@@ -9992,7 +9992,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautSendConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'The whole service goes through this phone to the node, and a service can be large. The node keeps it, so later launches on that node do not send it again.'**
+  /// **'The whole service goes through this device to the node, and a service can be large. The node keeps it, so later launches on that node do not send it again.'**
   String get celautSendConfirmBody;
 
   /// No description provided for @celautSendMetered.
@@ -10226,7 +10226,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautEnvIntro.
   ///
   /// In en, this message translates to:
-  /// **'Named values that you can give to a service when you run it, for example a key. They stay encrypted on this phone. A service only gets the ones that you choose.'**
+  /// **'Named values that you can give to a service when you run it, for example a key. They stay encrypted on this device. A service only gets the ones that you choose.'**
   String get celautEnvIntro;
 
   /// No description provided for @celautEnvEmpty.
@@ -10778,7 +10778,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunOnPhone.
   ///
   /// In en, this message translates to:
-  /// **'On this phone'**
+  /// **'On this device'**
   String get celautRunOnPhone;
 
   /// No description provided for @celautRunImport.
@@ -10790,7 +10790,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunPhoneServices.
   ///
   /// In en, this message translates to:
-  /// **'Run the services on this phone'**
+  /// **'Run the services on this device'**
   String get celautRunPhoneServices;
 
   /// No description provided for @celautStoreServices.
@@ -12104,13 +12104,13 @@ abstract class AppLocalizations {
   /// No description provided for @celautEnvShareNotSecure.
   ///
   /// In en, this message translates to:
-  /// **'This phone could not block screenshots of this screen. A screenshot of this code holds the value.'**
+  /// **'This device could not block screenshots of this screen. A screenshot of this code holds the value.'**
   String get celautEnvShareNotSecure;
 
   /// No description provided for @celautEnvValueNotSecure.
   ///
   /// In en, this message translates to:
-  /// **'This phone could not block screenshots of this screen. A screenshot shows the value.'**
+  /// **'This device could not block screenshots of this screen. A screenshot shows the value.'**
   String get celautEnvValueNotSecure;
 
   /// No description provided for @celautEnvShareTooBig.
@@ -13280,7 +13280,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardsSettingsReflectionsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'A light on the image that follows the tilt of the phone and your finger'**
+  /// **'A light on the image that follows the tilt of the device and your finger'**
   String get cardsSettingsReflectionsSubtitle;
 
   /// No description provided for @cardsSettingsReflectionsPointer.
@@ -13526,7 +13526,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardsSettingsNote.
   ///
   /// In en, this message translates to:
-  /// **'The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the phone.'**
+  /// **'The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the device.'**
   String get cardsSettingsNote;
 
   /// No description provided for @cardsSettingsTestValue.
@@ -13652,7 +13652,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautLinkChooseFile.
   ///
   /// In en, this message translates to:
-  /// **'Choose a file on this phone'**
+  /// **'Choose a file on this device'**
   String get celautLinkChooseFile;
 
   /// No description provided for @celautLinkFromLink.
@@ -13712,7 +13712,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautLinkPendingBody.
   ///
   /// In en, this message translates to:
-  /// **'{bytes} are on this phone. Continue goes on from there.'**
+  /// **'{bytes} are on this device. Continue goes on from there.'**
   String celautLinkPendingBody(String bytes);
 
   /// No description provided for @celautLinkPendingContinue.
@@ -13760,7 +13760,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautLinkStopped.
   ///
   /// In en, this message translates to:
-  /// **'The download stopped: {reason}. The bytes that arrived stay on the phone: Continue goes on from there.'**
+  /// **'The download stopped: {reason}. The bytes that arrived stay on this device: Continue goes on from there.'**
   String celautLinkStopped(String reason);
 
   /// No description provided for @celautLinkTooLarge.

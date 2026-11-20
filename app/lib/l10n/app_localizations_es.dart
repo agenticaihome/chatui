@@ -557,7 +557,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsSecurityWalletSubtitle =>
-      'Desbloqueo del móvil, bloqueo automático';
+      'Desbloqueo del dispositivo, bloqueo automático';
 
   @override
   String get settingsErgoGroup => 'Ergo';
@@ -767,7 +767,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get displayMotionCuesAutomaticSubtitle =>
-      'Cuando el teléfono nota que vas en un vehículo';
+      'Cuando el dispositivo nota que vas en un vehículo';
 
   @override
   String get displayMotionCuesAlways => 'Siempre';
@@ -1145,7 +1145,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudo leer la configuración actual.';
 
   @override
-  String get securityBiometricUnlock => 'Desbloqueo con el móvil';
+  String get securityBiometricUnlock => 'Desbloqueo con el dispositivo';
 
   @override
   String get securityBiometricOn => 'Huella o bloqueo de pantalla';
@@ -1163,7 +1163,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get securityDeviceLockNote =>
-      'La cartera se abre con tu huella o con el bloqueo de pantalla del móvil. La app no tiene un PIN propio.';
+      'La billetera se abre con tu huella o con el bloqueo de pantalla del dispositivo. La app no tiene un PIN propio.';
 
   @override
   String get securityKeyringNote =>
@@ -1284,7 +1284,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateNoApkForPhone =>
-      'Esta versión no tiene APK para tu teléfono.';
+      'Esta versión no tiene APK para este dispositivo.';
 
   @override
   String updateNoticeAvailable(String version) {
@@ -1351,7 +1351,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateErrorStorage =>
-      'Chatui no pudo guardar la descarga. ¿El teléfono se quedó sin espacio?';
+      'Chatui no pudo guardar la descarga. ¿El dispositivo se quedó sin espacio?';
 
   @override
   String get updateErrorLargerThanListed =>
@@ -1381,7 +1381,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateNoApkSeeReleases =>
-      'Esta versión no tiene APK para tu teléfono. La página de versiones tiene los archivos.';
+      'Esta versión no tiene APK para este dispositivo. La página de versiones tiene los archivos.';
 
   @override
   String get updateCannotKeepDownload =>
@@ -5930,11 +5930,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatsRenameNote =>
-      'Solo este teléfono ve este nombre. El nodo no lo recibe. Déjalo vacío para quitarlo.';
+      'Solo este dispositivo ve este nombre. El nodo no lo recibe. Déjalo vacío para quitarlo.';
 
   @override
   String chatsRenameNoteOriginal(String name) {
-    return 'Solo este teléfono ve este nombre. El nodo no lo recibe. Déjalo vacío para volver a mostrar «$name».';
+    return 'Solo este dispositivo ve este nombre. El nodo no lo recibe. Déjalo vacío para volver a mostrar «$name».';
   }
 
   @override
@@ -6044,23 +6044,23 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatsReceiptsFaultSent =>
-      'El nodo firmó datos que no coinciden con lo que este teléfono envió';
+      'El nodo firmó datos que no coinciden con lo que este dispositivo envió';
 
   @override
   String get chatsReceiptsFaultReceived =>
-      'El nodo firmó datos que no coinciden con lo que este teléfono recibió';
+      'El nodo firmó datos que no coinciden con lo que este dispositivo recibió';
 
   @override
   String get chatsReceiptsFaultEnvs =>
-      'El nodo firmó variables de entorno que este teléfono no envió';
+      'El nodo firmó variables de entorno que este dispositivo no envió';
 
   @override
   String get chatsReceiptsFaultService =>
-      'El nodo firmó un servicio distinto del que inició este teléfono';
+      'El nodo firmó un servicio distinto del que inició este dispositivo';
 
   @override
   String get chatsReceiptsFaultAmount =>
-      'El nodo firmó un saldo inicial distinto del que pidió este teléfono';
+      'El nodo firmó un saldo inicial distinto del que pidió este dispositivo';
 
   @override
   String get chatsReceiptsFaultInvalid => 'Un recibo no se verifica';
@@ -6085,7 +6085,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatsReceiptsNote =>
-      'El nodo firma estos recibos. Son pruebas contra el nodo, y puede darlas a otras personas. Un túnel sin cierre no es por sí solo una falta: por ejemplo, este teléfono o el nodo lo detuvo.';
+      'El nodo firma estos recibos. Son pruebas contra el nodo, y puede darlas a otras personas. Un túnel sin cierre no es por sí solo una falta: por ejemplo, este dispositivo o el nodo lo detuvo.';
 
   @override
   String get celautErrorNodeClosed =>
@@ -6353,7 +6353,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get celautSendConfirmBody =>
-      'Todo el servicio pasa por este teléfono hasta el nodo, y un servicio puede ser grande. El nodo lo guarda, así que los siguientes lanzamientos en ese nodo no lo envían otra vez.';
+      'Todo el servicio pasa por este dispositivo hasta el nodo, y un servicio puede ser grande. El nodo lo guarda, así que los siguientes lanzamientos en ese nodo no lo envían otra vez.';
 
   @override
   String get celautSendMetered =>
@@ -6501,7 +6501,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get celautEnvIntro =>
-      'Valores con nombre que puedes dar a un servicio al ejecutarlo, por ejemplo una clave. Se guardan cifrados en este teléfono. Un servicio solo recibe los que tú elijas.';
+      'Valores con nombre que puedes dar a un servicio al ejecutarlo, por ejemplo una clave. Se guardan cifrados en este dispositivo. Un servicio solo recibe los que tú elijas.';
 
   @override
   String get celautEnvEmpty => 'Todavía no hay variables.';
@@ -6831,13 +6831,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chatSelectText => 'Seleccionar texto';
 
   @override
-  String get celautRunOnPhone => 'En el móvil';
+  String get celautRunOnPhone => 'En este dispositivo';
 
   @override
   String get celautRunImport => 'Importar';
 
   @override
-  String get celautRunPhoneServices => 'Ejecutar los servicios del móvil';
+  String get celautRunPhoneServices =>
+      'Ejecutar los servicios de este dispositivo';
 
   @override
   String celautStoreServices(int count) {
@@ -7638,11 +7639,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get celautEnvShareNotSecure =>
-      'Este teléfono no pudo bloquear las capturas de esta pantalla. Una captura de este código contiene el valor.';
+      'Este dispositivo no pudo bloquear las capturas de esta pantalla. Una captura de este código contiene el valor.';
 
   @override
   String get celautEnvValueNotSecure =>
-      'Este teléfono no pudo bloquear las capturas de esta pantalla. Una captura muestra el valor.';
+      'Este dispositivo no pudo bloquear las capturas de esta pantalla. Una captura muestra el valor.';
 
   @override
   String get celautEnvShareTooBig =>
@@ -8387,7 +8388,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cardsSettingsReflectionsSubtitle =>
-      'Una luz en la imagen que sigue la inclinación del teléfono y el dedo';
+      'Una luz en la imagen que sigue la inclinación del dispositivo y el dedo';
 
   @override
   String get cardsSettingsReflectionsPointer =>
@@ -8520,7 +8521,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cardsSettingsNote =>
-      'Los efectos nunca cambian lo que hace una tarjeta. Los sensores funcionan solo mientras las tarjetas están en pantalla, y sus datos se quedan en el teléfono.';
+      'Los efectos nunca cambian lo que hace una tarjeta. Los sensores funcionan solo mientras las tarjetas están en pantalla, y sus datos se quedan en el dispositivo.';
 
   @override
   String cardsSettingsTestValue(String value, String needed) {
@@ -8578,7 +8579,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get celautNodeShareNote =>
-      'Una cámara de móvil que lee este código, o un toque en el enlace, abre la app y pide añadir el nodo. El enlace tiene la clave del nodo y las direcciones donde esta app lo alcanzó. No da acceso a tu cliente ni a tu crédito.';
+      'La cámara de un teléfono que lee este código, o un toque en el enlace, abre la app y pide añadir el nodo. El enlace tiene la clave del nodo y las direcciones donde esta app lo alcanzó. No da acceso a tu cliente ni a tu crédito.';
 
   @override
   String get celautNodeShareLink => 'Compartir enlace';
@@ -8594,7 +8595,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautLinkSheetTitle => 'Importar un servicio';
 
   @override
-  String get celautLinkChooseFile => 'Elegir un archivo de este teléfono';
+  String get celautLinkChooseFile => 'Elegir un archivo de este dispositivo';
 
   @override
   String get celautLinkFromLink => 'Importar desde un enlace';
@@ -8626,7 +8627,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String celautLinkPendingBody(String bytes) {
-    return 'Hay $bytes en este teléfono. Continuar sigue desde ahí.';
+    return 'Hay $bytes en este dispositivo. Continuar sigue desde ahí.';
   }
 
   @override
@@ -8658,7 +8659,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String celautLinkStopped(String reason) {
-    return 'La descarga se detuvo: $reason. Los bytes que llegaron se quedan en el teléfono: Continuar sigue desde ahí.';
+    return 'La descarga se detuvo: $reason. Los bytes que llegaron se quedan en este dispositivo: Continuar sigue desde ahí.';
   }
 
   @override
