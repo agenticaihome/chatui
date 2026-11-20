@@ -276,7 +276,7 @@ class PeerInfoView {
   final PlatformInt64 ts;
   final List<NodeUriView> uris;
 
-  /// The rates of the node (`mu_per_call`), in MU, sorted by key.
+  /// The rates of the node (`rates`), in MU, sorted by key.
   final List<KeyValueView> rates;
   final List<PaymentContractView> paymentContracts;
   final List<NodeResourcesView> resources;
