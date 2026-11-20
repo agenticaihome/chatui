@@ -45,18 +45,22 @@ fields() {
   done
   local files
   files="$(dpkg-deb --contents "$deb" | awk '{print $6}')"
-  for want in ./opt/chatui/chatui ./opt/chatui/lib/libwallet_ffi.so ./opt/chatui/lib/libapp.so \
-      ./opt/chatui/lib/libflutter_linux_gtk.so ./opt/chatui/data/icudtl.dat ./usr/bin/chatui \
+  for want in ./usr/lib/chatui/chatui ./usr/lib/chatui/lib/libwallet_ffi.so ./usr/lib/chatui/lib/libapp.so \
+      ./usr/lib/chatui/lib/libflutter_linux_gtk.so ./usr/lib/chatui/data/icudtl.dat ./usr/bin/chatui \
       "./usr/share/applications/$APP_ID.desktop" "./usr/share/mime/packages/$APP_ID.xml" \
       "./usr/share/icons/hicolor/256x256/apps/$APP_ID.png" ./usr/share/doc/chatui/copyright; do
     grep -qx "$want" <<<"$files" && pass "has $want" || fail "has no $want"
   done
   if grep -q '/libdartjni.so$' <<<"$files"; then fail "has libdartjni.so (needs a JVM)"; else pass "no libdartjni.so"; fi
+  # Everything under /usr: the bundle in /usr/lib/chatui, nothing in /opt.
+  local outside
+  outside="$(grep -v -e '^\./$' -e '^\./usr/' <<<"$files")"
+  [ -z "$outside" ] && pass "every file is under /usr" || fail "files outside /usr: $outside"
   local machine tmp
   tmp="$(mktemp -d)"
-  dpkg-deb --fsys-tarfile "$deb" | tar -x -C "$tmp" ./opt/chatui/lib/libwallet_ffi.so
+  dpkg-deb --fsys-tarfile "$deb" | tar -x -C "$tmp" ./usr/lib/chatui/lib/libwallet_ffi.so
   # e_machine of the ELF header: 0x3e x86-64, 0xb7 AArch64.
-  machine="$(od -An -tx1 -j18 -N2 "$tmp/opt/chatui/lib/libwallet_ffi.so" | tr -d ' ')"
+  machine="$(od -An -tx1 -j18 -N2 "$tmp/usr/lib/chatui/lib/libwallet_ffi.so" | tr -d ' ')"
   rm -rf "$tmp"
   case "$arch:$machine" in
     amd64:3e00 | arm64:b700) pass "libwallet_ffi.so is for $arch" ;;
@@ -80,9 +84,11 @@ install_check() {
     return
   fi
   [ -x /usr/bin/chatui ] && pass "/usr/bin/chatui" || fail "/usr/bin/chatui"
+  [ "$(readlink -f /usr/bin/chatui)" = /usr/lib/chatui/chatui ] \
+    && pass "/usr/bin/chatui -> /usr/lib/chatui/chatui" || fail "/usr/bin/chatui -> $(readlink -f /usr/bin/chatui)"
   local missing
   # The plugins find libflutter_linux_gtk.so through the executable, which loads it first.
-  missing="$(LD_LIBRARY_PATH=/opt/chatui/lib ldd /opt/chatui/chatui /opt/chatui/lib/*.so 2>&1 | grep 'not found' | sort -u)"
+  missing="$(LD_LIBRARY_PATH=/usr/lib/chatui/lib ldd /usr/lib/chatui/chatui /usr/lib/chatui/lib/*.so 2>&1 | grep 'not found' | sort -u)"
   [ -z "$missing" ] && pass "every library is found (ldd)" || fail "missing libraries: $missing"
   desktop-file-validate "/usr/share/applications/$APP_ID.desktop" \
     && pass "desktop-file-validate" || fail "desktop-file-validate"

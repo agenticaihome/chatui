@@ -18,9 +18,9 @@ The app does not update itself on Linux (`UpdateChannel.supported` is Android on
 
 | Path | What |
 |---|---|
-| `/opt/chatui/` | the bundle of `flutter build linux --release` (`chatui`, `lib/`, `data/`) |
-| `/opt/chatui/lib/libwallet_ffi.so` | the Rust core, built by `scripts/build_linux.sh` |
-| `/usr/bin/chatui` | a link to `/opt/chatui/chatui` |
+| `/usr/lib/chatui/` | the bundle of `flutter build linux --release` (`chatui`, `lib/`, `data/`) |
+| `/usr/lib/chatui/lib/libwallet_ffi.so` | the Rust core, built by `scripts/build_linux.sh` |
+| `/usr/bin/chatui` | a link to `/usr/lib/chatui/chatui` |
 | `/usr/share/applications/org.celaut.chatui.desktop` | `Exec=chatui %U`; `x-scheme-handler/celaut`, `x-scheme-handler/ergopay`, `application/x-celaut-bee` |
 | `/usr/share/mime/packages/org.celaut.chatui.xml` | `application/x-celaut-bee` = `*.celaut.bee` |
 | `/usr/share/icons/hicolor/*/apps/org.celaut.chatui.png` | the icon, 64 to 512 px |

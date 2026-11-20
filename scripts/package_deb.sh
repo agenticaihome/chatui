@@ -5,7 +5,7 @@
 #
 #   cd app && flutter build linux --release && cd .. && scripts/package_deb.sh [OUT_DIR]
 #
-# The package installs the bundle in /opt/chatui, the command /usr/bin/chatui,
+# The package installs the bundle in /usr/lib/chatui, the command /usr/bin/chatui,
 # the .desktop file (links celaut: and ergopay:, files *.celaut.bee), the MIME
 # type of a .celaut.bee file and the icons. dpkg-shlibdeps finds the libraries
 # that the bundle needs; the programs that the app runs are added by hand.
@@ -44,12 +44,12 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 ROOT="$WORK/root"
 
-install -d "$ROOT/opt/chatui" "$ROOT/usr/bin" "$ROOT/DEBIAN"
-cp -R "$BUNDLE/." "$ROOT/opt/chatui/"
-ln -s /opt/chatui/chatui "$ROOT/usr/bin/chatui"
+install -d "$ROOT/usr/lib/chatui" "$ROOT/usr/bin" "$ROOT/DEBIAN"
+cp -R "$BUNDLE/." "$ROOT/usr/lib/chatui/"
+ln -s /usr/lib/chatui/chatui "$ROOT/usr/bin/chatui"
 # The jni plugin (path_provider_android, for Android only) builds libdartjni.so when the
 # build machine has a JDK. Nothing loads it on Linux, and it needs libjvm.so.
-rm -f "$ROOT/opt/chatui/lib/libdartjni.so"
+rm -f "$ROOT/usr/lib/chatui/lib/libdartjni.so"
 install -Dm644 "$PACKAGING/$APP_ID.desktop" "$ROOT/usr/share/applications/$APP_ID.desktop"
 install -Dm644 "$PACKAGING/$APP_ID.xml" "$ROOT/usr/share/mime/packages/$APP_ID.xml"
 for size in 64 128 256 512; do
@@ -62,17 +62,17 @@ install -Dm644 "$REPO_ROOT/NOTICE.md" "$ROOT/usr/share/doc/chatui/NOTICE.md"
 
 # The files of the bundle: no write bit for others, executables stay executable.
 find "$ROOT" -type d -exec chmod 0755 {} +
-find "$ROOT/opt/chatui" -type f -exec chmod u+rw,go+r,go-w {} +
-chmod 0755 "$ROOT/opt/chatui/chatui"
-find "$ROOT/opt/chatui/lib" -name '*.so' -exec chmod 0644 {} +
+find "$ROOT/usr/lib/chatui" -type f -exec chmod u+rw,go+r,go-w {} +
+chmod 0755 "$ROOT/usr/lib/chatui/chatui"
+find "$ROOT/usr/lib/chatui/lib" -name '*.so' -exec chmod 0644 {} +
 
 # The libraries of the system that the executable and the bundled libraries need. The
 # bundled ones (lib/) belong to no package and are left out.
 mkdir -p "$WORK/debian"
 printf 'Source: chatui\n\nPackage: chatui\nArchitecture: any\n' > "$WORK/debian/control"
 SHLIBS="$(cd "$WORK" && dpkg-shlibdeps -O --ignore-missing-info \
-  -l"$ROOT/opt/chatui/lib" \
-  -e"$ROOT/opt/chatui/chatui" $(find "$ROOT/opt/chatui/lib" -name '*.so' -printf ' -e%p') \
+  -l"$ROOT/usr/lib/chatui/lib" \
+  -e"$ROOT/usr/lib/chatui/chatui" $(find "$ROOT/usr/lib/chatui/lib" -name '*.so' -printf ' -e%p') \
   2>"$WORK/shlibdeps.log" | sed -n 's/^shlibs:Depends=//p')"
 if [ -z "$SHLIBS" ]; then
   cat "$WORK/shlibdeps.log"
