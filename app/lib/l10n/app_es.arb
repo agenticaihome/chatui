@@ -2644,7 +2644,6 @@
   "celautStoreShowMore": "Mostrar más ({count})",
   "celautStoreShowFewer": "Mostrar menos",
   "celautObjectiveAbout": "Sobre este objetivo",
-  "celautObjectiveField": "Campo: {field}",
   "celautObjectiveTestBanner": "La mayoría de los resultados son pruebas. Compruébalos antes de confiar en ellos.",
   "celautObjectiveRecommended": "Recomendado",
   "celautObjectiveOtherOptions": "Otras opciones ({count})",
@@ -2912,6 +2911,50 @@
   "registryNoObjectiveTitle": "Falta el id de tipo de objetivo",
   "registryNoObjectiveBody": "El catálogo no tiene objetivos, porque el id de tipo de objetivo está vacío. Escribe el id en los ajustes del Celaut Registry.",
   "registryOpenSettings": "Abrir los ajustes del registro",
+  "celautStoreMostBacked": "El más respaldado",
+  "celautStoreRank": "Número {rank}",
+  "@celautStoreRank": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "celautStoreRunObjective": "Ejecutar {name}",
+  "@celautStoreRunObjective": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "celautStoreOpenHint": "Abre la página del objetivo",
+  "celautStoreTopObjectives": "Los más respaldados",
+  "celautStoreMoreFields": "Más campos",
+  "celautStoreByField": "Por campo",
+  "celautStoreCatalogEmpty": "El catálogo aún no tiene objetivos.",
+  "celautObjectiveRunService": "{action} este servicio (valoración: {rating})",
+  "@celautObjectiveRunService": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "celautObjectiveStatRank": "Puesto",
+  "celautObjectiveStatRankNote": "por respaldo",
+  "celautObjectiveStatServices": "Servicios",
+  "celautObjectiveStatServicesNote": "declarados",
+  "celautObjectiveStatBacking": "Respaldo",
+  "celautObjectiveStatBackingNote": "del publicador",
+  "celautObjectiveStatBlock": "Bloque",
+  "celautObjectiveStatBlockNote": "publicado",
+  "celautObjectiveMore": "más",
+  "celautObjectiveLess": "menos",
+  "celautObjectiveServicesLoading": "Cargando los servicios…",
   "presetPin": "Anclar como preconfigurado",
   "presetPinNote": "Inicia una nueva instancia de este servicio con los mismos ajustes desde el botón ✏ de Chats.",
   "presetPinBody": "El botón ✏ de Chats lo mostrará en una rueda. Un toque inicia una nueva instancia de este servicio con las mismas variables. Antes de que empiece, sigues viendo el coste y lo confirmas.",

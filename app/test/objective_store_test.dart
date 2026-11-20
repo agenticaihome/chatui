@@ -97,8 +97,55 @@ void main() {
     });
   }
 
+  group('the shelves of the store home', () {
+    List<String> names(List<ObjectiveView> objectives) => [for (final s in objectives) s.name];
+
+    test('one shelf per field of two objectives or more; the fields of one objective share the last', () {
+      final ranked = rankObjectives([
+        _objective('Market', domain: 'finance', reputation: 9),
+        _objective('SAT', domain: 'algorithms', reputation: 8),
+        _objective('Reserves', domain: 'Finance', reputation: 7),
+        _objective('Summary', domain: 'nlp', reputation: 6),
+        _objective('Loose', reputation: 5),
+      ]);
+      final shelves = storeShelves(ranked);
+      expect([for (final s in shelves) s.key], ['finance', mixedShelfKey]);
+      expect(shelves.first.title, 'finance');
+      expect(names(shelves.first.objectives), ['Market', 'Reserves']);
+      // The mixed shelf keeps the ranking.
+      expect(names(shelves.last.objectives), ['SAT', 'Summary', 'Loose']);
+      // Every objective is on one shelf, once.
+      expect(shelves.expand((s) => s.objectives).length, ranked.length);
+    });
+
+    test('with no field of two objectives, one shelf holds them all; with none at all, nothing', () {
+      final ranked = rankObjectives([_objective('A', domain: 'x'), _objective('B', domain: 'y'), _objective('C')]);
+      final shelves = storeShelves(ranked);
+      expect([for (final s in shelves) s.key], [mixedShelfKey]);
+      expect(names(shelves.single.objectives), names(ranked));
+      expect(storeShelves(const []), isEmpty);
+    });
+
+    test('two objectives with no field are not a field shelf', () {
+      final shelves = storeShelves([_objective('A'), _objective('B')]);
+      expect([for (final s in shelves) s.key], [mixedShelfKey]);
+    });
+  });
+
+  test('the backing of a publisher is in ERG, and left out when unknown', () {
+    expect(objectiveBackingText(_objective('A', reputation: 96000000)), contains('0.096'));
+    expect(objectiveBackingText(_objective('A', reputation: 96000000)), contains('ERG'));
+    expect(objectiveBackingText(_objective('A')), isNull);
+  });
+
+  test('the heroes of one objective in two places of the store have two tags', () {
+    final s = _objective('A');
+    expect(objectiveHeroTag('top', s), isNot(objectiveHeroTag('featured', s)));
+    expect(objectiveHeroTag('top', s), objectiveHeroTag('top', _objective('A')));
+  });
+
   for (final watchful in [true, false]) {
-    testWidgets('a card fits a phone of 360 dp with large fonts (watchful: $watchful)', (tester) async {
+    testWidgets('the cards of the store fit a phone of 360 dp with large fonts (watchful: $watchful)', (tester) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -107,6 +154,8 @@ void main() {
         domain: 'blockchain-security',
         tags: ['ergoscript', 'smart-contract', 'static-analysis', 'audit'],
         prose: 'Compile ErgoScript to ErgoTree and statically audit it for risky patterns.',
+        services: ['s1', 's2'],
+        reputation: 96000000,
       );
       await tester.pumpWidget(
         MaterialApp(
@@ -114,25 +163,57 @@ void main() {
           home: MediaQuery(
             data: const MediaQueryData(size: Size(360, 800), textScaler: TextScaler.linear(1.3)),
             child: Scaffold(
-              body: Padding(
+              body: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
-                child: Column(children: [ObjectiveCard(objective: objective, onTap: () {})]),
+                child: Column(
+                  children: [
+                    ObjectiveFeatureCard(objective: objective, onTap: () {}, onRun: () {}),
+                    SizedBox(height: 260, child: Row(children: [ObjectiveTile(objective: objective, showField: true, onTap: () {})])),
+                    ObjectiveRow(objective: objective, rank: 12, showField: true, onTap: () {}, onRun: () {}),
+                    ObjectiveRow(objective: objective, onTap: () {}),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       );
       expect(tester.takeException(), isNull);
-      expect(find.byType(ObjectiveMark), findsOneWidget);
-      expect(find.text('E'), findsOneWidget);
-      // The name and one line of text: no field and no tag on the card (they are in the
-      // search and in the details of the objective).
-      expect(find.text('blockchain-security'), findsNothing);
+      expect(find.byType(ObjectiveMark), findsNWidgets(4));
+      // The rows: the name and one line, the field only when asked; no tag anywhere.
       expect(find.text('ergoscript'), findsNothing);
-      final texts = tester.widgetList<Text>(find.descendant(of: find.byType(ObjectiveCard), matching: find.byType(Text)));
-      final lines = [for (final t in texts) if (t.data != 'E') t];
-      expect(lines, hasLength(2));
-      expect(lines.every((t) => t.maxLines == 1), isTrue);
+      expect(find.descendant(of: find.byType(ObjectiveRow).first, matching: find.text('BLOCKCHAIN-SECURITY')), findsOneWidget);
+      expect(find.descendant(of: find.byType(ObjectiveRow).last, matching: find.text('BLOCKCHAIN-SECURITY')), findsNothing);
+      expect(find.descendant(of: find.byType(ObjectiveRow).first, matching: find.text('12')), findsOneWidget);
+      final rowTexts = tester.widgetList<Text>(find.descendant(of: find.byType(ObjectiveRow).last, matching: find.byType(Text)));
+      expect([for (final t in rowTexts) if (t.data != 'E') t].every((t) => t.maxLines == 1), isTrue);
+      // The featured card has the ring and the badge of the top objective.
+      expect(find.descendant(of: find.byType(ObjectiveFeatureCard), matching: find.text('#1')), findsOneWidget);
     });
   }
+
+  testWidgets('a Run pill says which objective it runs, and is off while busy', (tester) async {
+    var runs = 0;
+    final objective = _objective('Proof of reserves');
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: argusTheme(watchful: false),
+        home: Scaffold(body: ObjectiveRow(objective: objective, onTap: () {}, onRun: () => runs++, runKey: const Key('pill'))),
+      ),
+    );
+    final handle = tester.ensureSemantics();
+    expect(find.bySemanticsLabel('Run Proof of reserves'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('pill')));
+    expect(runs, 1);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: argusTheme(watchful: false),
+        home: Scaffold(body: ObjectiveRow(objective: objective, onTap: () {}, onRun: () => runs++, busy: true, runKey: const Key('pill'))),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('pill')), warnIfMissed: false);
+    expect(runs, 1);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    handle.dispose();
+  });
 }

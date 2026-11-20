@@ -7978,11 +7978,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautObjectiveAbout => 'About this objective';
 
   @override
-  String celautObjectiveField(String field) {
-    return 'Field: $field';
-  }
-
-  @override
   String get celautObjectiveTestBanner =>
       'Most results are tests. Check before you trust them.';
 
@@ -8906,6 +8901,72 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get registryOpenSettings => 'Open the registry settings';
+
+  @override
+  String get celautStoreMostBacked => 'Most backed';
+
+  @override
+  String celautStoreRank(int rank) {
+    return 'Number $rank';
+  }
+
+  @override
+  String celautStoreRunObjective(String name) {
+    return 'Run $name';
+  }
+
+  @override
+  String get celautStoreOpenHint => 'Opens the page of the objective';
+
+  @override
+  String get celautStoreTopObjectives => 'Top objectives';
+
+  @override
+  String get celautStoreMoreFields => 'More fields';
+
+  @override
+  String get celautStoreByField => 'By field';
+
+  @override
+  String get celautStoreCatalogEmpty => 'The catalog has no objectives yet.';
+
+  @override
+  String celautObjectiveRunService(String action, String rating) {
+    return '$action this service (rating: $rating)';
+  }
+
+  @override
+  String get celautObjectiveStatRank => 'Rank';
+
+  @override
+  String get celautObjectiveStatRankNote => 'most backed';
+
+  @override
+  String get celautObjectiveStatServices => 'Services';
+
+  @override
+  String get celautObjectiveStatServicesNote => 'declared';
+
+  @override
+  String get celautObjectiveStatBacking => 'Backing';
+
+  @override
+  String get celautObjectiveStatBackingNote => 'of the publisher';
+
+  @override
+  String get celautObjectiveStatBlock => 'Block';
+
+  @override
+  String get celautObjectiveStatBlockNote => 'published';
+
+  @override
+  String get celautObjectiveMore => 'more';
+
+  @override
+  String get celautObjectiveLess => 'less';
+
+  @override
+  String get celautObjectiveServicesLoading => 'Loading the services…';
 
   @override
   String get presetPin => 'Pin as preset';

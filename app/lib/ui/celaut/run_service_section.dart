@@ -8,9 +8,9 @@ import '../../bridge/api/celaut_env.dart';
 import '../../bridge/api/celaut_service_info.dart';
 import '../../bridge/api/celaut_home.dart';
 import '../../bridge/api/celaut_service.dart';
-import '../../celaut/catalog_types.dart';
 import '../../celaut/celaut_format.dart';
 import '../../celaut/background_work.dart';
+import '../../celaut/catalog_types.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/conversation_keep_alive.dart';
 import '../../celaut/egress.dart';
@@ -39,7 +39,7 @@ import 'launch_rocket.dart';
 import 'run_confirm_dialog.dart';
 import 'service_info_screen.dart';
 import 'service_transfer_dialog.dart';
-import 'objective_services_sheet.dart';
+import 'objective_detail_screen.dart';
 import 'objective_store.dart';
 import 'objective_type_missing.dart';
 
@@ -61,11 +61,11 @@ typedef StartedCall = Future<void> Function(
 );
 
 /// "Run a service" (`docs/celaut/ui.md`, section 2): the objectives of the catalog as a store.
-/// At the top, at all times: the search, two small actions for the service files on this
-/// phone (import one, run the saved ones), and the fields of the objectives as chips. Under
-/// them the sections of the store (featured, suggested, new, popular, the fields, all the
-/// objectives; see `objective_store.dart`), or the objectives that match the search or the chip.
-/// Run on an objective opens a sheet with its ranked services. Run starts
+/// At the top, at all times: the search and two small actions for the service files on this
+/// phone (import one, run the saved ones). Under them the store home (the featured objective,
+/// the shelves by field and "Top objectives"; see `objective_store.dart`), or the objectives that match
+/// the search. An objective opens its page with its ranked services ([ObjectiveDetailScreen]); the
+/// Run pill of a row runs its recommended service. Run starts
 /// the best node by the balancer (`launchService`) after the user confirms it, with the
 /// best node and its start cost. If the service has a chat slot, the
 /// conversation opens; if not, the instance shows in the list of the home screen.
@@ -156,8 +156,7 @@ class RunServiceSection extends StatefulWidget {
   /// The objectives of the catalog. Tests give their own.
   final Future<List<ObjectiveView>> Function()? loadObjectives;
 
-  /// The type ids of the registry. Tests give their own. With no [loadObjectives] and no
-  /// objective type id, the section shows [ObjectiveTypeMissing] and reads nothing.
+  /// The type ids of the registry (Settings). Tests give their own.
   final CatalogTypes? types;
 
   /// The ranked services of an objective. Tests give their own.
@@ -202,16 +201,19 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   final _search = TextEditingController();
   final _scroll = ScrollController();
   List<ObjectiveView>? _objectives;
+  late final CatalogTypes _types = widget.types ?? catalogTypes;
 
-  /// The whole list is shown, not only the first [storeShortList] objectives.
+  /// The app has no type id of an objective yet: the store says so (Settings).
+  bool get _typeMissing => widget.loadObjectives == null && !_types.hasObjective;
+
+  /// The whole of "Top objectives" is shown, not only its first [storeShortList] rows.
   bool _showAll = false;
+
+  /// The box id of the objective whose Run pill reads its services now.
+  String? _quick;
   bool _loading = true;
   bool _failed = false;
   bool _running = false;
-  late final CatalogTypes _types = widget.types ?? catalogTypes;
-
-  /// The objective type id is not set, and so the catalog is empty.
-  bool get _typeMissing => widget.loadObjectives == null && !_types.hasObjective;
 
   /// The name of the last service that the user confirmed: the launch again after a
   /// transfer has no confirmation, and keeps it.
@@ -305,19 +307,42 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     return quotes.quotes.isEmpty ? null : quotes.quotes.first;
   }
 
-  Future<void> _open(ObjectiveView objective) async {
-    final serviceId = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => ObjectiveServicesSheet(
-        objective: objective,
-        loadServices: _services,
-        previewQuote: _preview,
-        wallets: widget.wallets,
+  /// The page of [objective]; Run there runs the service that it returns. [heroTag] is the tag
+  /// of the mark of the card that the user tapped, which flies to the page.
+  Future<void> _open(ObjectiveView objective, {Object? heroTag, int? rank}) async {
+    final serviceId = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ObjectiveDetailScreen(
+          objective: objective,
+          loadServices: _services,
+          previewQuote: _preview,
+          wallets: widget.wallets,
+          heroTag: heroTag,
+          rank: rank,
+        ),
       ),
     );
     if (serviceId != null && mounted) await _run(serviceId, name: objective.name);
+  }
+
+  /// The Run pill of an objective, as "Get" in a store: its recommended service (the first of
+  /// the ranking) goes to the usual confirmation. If the services cannot be read, or the
+  /// objective has none, its page opens and says why.
+  Future<void> _quickRun(ObjectiveView objective, {Object? heroTag, int? rank}) async {
+    setState(() => _quick = objective.boxId);
+    List<ObjectiveServiceView>? services;
+    try {
+      services = await _services(objective.boxId);
+    } catch (_) {
+      services = null;
+    }
+    if (!mounted) return;
+    setState(() => _quick = null);
+    if (services == null || services.isEmpty) {
+      await _open(objective, heroTag: heroTag, rank: rank);
+      return;
+    }
+    await _run(services.first.serviceId, name: objective.name);
   }
 
   /// Ask before a launch: an instance uses credit until it stops. The dialog shows the
@@ -1096,28 +1121,34 @@ class _RunServiceSectionState extends State<RunServiceSection> {
                 if (_typeMissing)
                   gutter(ObjectiveTypeMissing(onBack: _read))
                 else if (_loading)
-                  gutter(Text(l.celautRunLoading, key: const Key('run-loading'), style: t.secondary))
+                  gutter(StoreSkeleton(key: const Key('run-loading'), featured: browsing))
                 else if (_failed)
                   gutter(
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l.celautRunCatalogError, key: const Key('run-error'), style: t.secondary),
-                        const SizedBox(height: 6),
-                        OutlinedButton(
-                          key: const Key('run-retry'),
-                          // The theme asks for the full width, which a column of text does not need.
-                          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
-                          onPressed: _read,
-                          child: Text(l.celautRunRetry),
-                        ),
-                      ],
+                    StoreMessage(
+                      icon: Icons.cloud_off_outlined,
+                      text: l.celautRunCatalogError,
+                      textKey: const Key('run-error'),
+                      action: OutlinedButton(
+                        key: const Key('run-retry'),
+                        // The theme asks for the full width, which a column of text does not need.
+                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40), shape: const StadiumBorder()),
+                        onPressed: _read,
+                        child: Text(l.celautRunRetry),
+                      ),
                     ),
                   )
                 else if (objectives.isEmpty)
-                  gutter(Text(l.celautRunEmpty, key: const Key('run-empty'), style: t.secondary))
+                  gutter(
+                    StoreMessage(
+                      icon: browsing ? Icons.storefront_outlined : Icons.search_off,
+                      text: browsing ? l.celautStoreCatalogEmpty : l.celautRunEmpty,
+                      textKey: const Key('run-empty'),
+                    ),
+                  )
+                else if (browsing)
+                  ..._home(context, objectives, box.maxWidth)
                 else
-                  ..._store(context, objectives, box.maxWidth, short: browsing && !_showAll),
+                  ..._results(context, objectives),
                 // While a launch runs, its rocket is over the screen ([LaunchRocket]).
               ],
             ),
@@ -1200,74 +1231,166 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     );
   }
 
-  /// The store: one list of [objectives] in groups by field, the field as the title of its
-  /// group (issue #122). With [short], only the first [storeShortList] objectives and a "Show
-  /// more" action; a search shows all the objectives that match.
-  List<Widget> _store(BuildContext context, List<ObjectiveView> objectives, double width, {required bool short}) {
+  /// The store home, from [ranked] (all the objectives, most backed first): the featured
+  /// objective, the shelves by field, and "Top objectives" with its first [storeShortList] rows
+  /// and "Show more".
+  List<Widget> _home(BuildContext context, List<ObjectiveView> ranked, double width) {
     final l = context.l10n;
-    final t = HomeText.of(context);
-    final cut = short && objectives.length > storeShortList;
-    final shown = cut ? objectives.take(storeShortList).toList() : objectives;
+    final top = ranked.first;
+    final rankOf = {for (var i = 0; i < ranked.length; i++) ranked[i].boxId: i + 1};
+    final cut = !_showAll && ranked.length > storeShortList;
+    final rows = cut ? ranked.take(storeShortList).toList() : ranked;
+    Widget gutter(Widget child, {Key? key}) =>
+        Padding(key: key, padding: const EdgeInsets.symmetric(horizontal: homeGutter), child: child);
+    final featuredTag = objectiveHeroTag('featured', top);
+    final shelves = storeShelves(ranked);
     return [
-      for (final g in objectiveGroups(shown))
-        Padding(
-          key: Key('store-group-${g.key}'),
-          padding: const EdgeInsets.fromLTRB(homeGutter, 0, homeGutter, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
-              const SizedBox(height: 8),
-              _cards(g.objectives, width),
-            ],
-          ),
+      const SizedBox(height: 4),
+      gutter(
+        ObjectiveFeatureCard(
+          key: const Key('store-featured'),
+          runKey: const Key('store-featured-run'),
+          objective: top,
+          heroTag: featuredTag,
+          busy: _quick == top.boxId,
+          onTap: _running ? null : () => _open(top, heroTag: featuredTag, rank: 1),
+          onRun: _running || _quick != null ? null : () => _quickRun(top, heroTag: featuredTag, rank: 1),
         ),
-      if (_search.text.trim().isEmpty && objectives.length > storeShortList)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: homeGutter),
-          child: Align(
+      ),
+      for (final shelf in shelves) ...[
+        const SizedBox(height: 26),
+        gutter(
+          StoreSectionTitle(
+            shelf.key == mixedShelfKey
+                ? (shelves.length == 1 ? l.celautStoreByField : l.celautStoreMoreFields)
+                : shelf.title,
+          ),
+          key: Key('store-shelf-${shelf.key}'),
+        ),
+        const SizedBox(height: 12),
+        _shelf(shelf, rankOf),
+      ],
+      const SizedBox(height: 26),
+      gutter(StoreSectionTitle(l.celautStoreTopObjectives), key: const Key('store-top')),
+      const SizedBox(height: 4),
+      gutter(_rows(rows, width, rankOf: rankOf, place: 'top', showField: true)),
+      if (ranked.length > storeShortList)
+        gutter(
+          Align(
             alignment: AlignmentDirectional.centerStart,
             child: TextButton(
               key: const Key('store-more'),
               onPressed: () => setState(() => _showAll = !_showAll),
-              child: Text(_showAll ? l.celautStoreShowFewer : l.celautStoreShowMore(objectives.length - storeShortList)),
+              child: Text(_showAll ? l.celautStoreShowFewer : l.celautStoreShowMore(ranked.length - storeShortList)),
             ),
           ),
         ),
     ];
   }
 
-  /// [objectives] as cards: one column on a phone, two on a wide screen.
-  Widget _cards(List<ObjectiveView> objectives, double width) {
-    Widget card(ObjectiveView s) => ObjectiveCard(
-          key: Key('run-objective-${s.boxId}'),
-          runKey: Key('run-objective-run-${s.boxId}'),
-          objective: s,
-          onTap: _running ? null : () => _open(s),
-          onRun: _running ? null : () => _open(s),
-        );
+  /// A shelf: its tiles in a row that scrolls sideways, all of one height.
+  Widget _shelf(ObjectiveShelf shelf, Map<String, int> rankOf) {
+    final mixed = shelf.key == mixedShelfKey;
+    return SingleChildScrollView(
+      key: Key('store-shelf-list-${shelf.key}'),
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: homeGutter),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (i, s) in shelf.objectives.indexed) ...[
+              if (i > 0) const SizedBox(width: 12),
+              Builder(
+                builder: (context) {
+                  final tag = objectiveHeroTag('shelf-${shelf.key}', s);
+                  return ObjectiveTile(
+                    key: Key('store-tile-${s.boxId}'),
+                    objective: s,
+                    showField: mixed,
+                    heroTag: tag,
+                    onTap: _running ? null : () => _open(s, heroTag: tag, rank: rankOf[s.boxId]),
+                  );
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// [objectives] as ranked rows, with their rank when [rankOf] is given: one column on a phone,
+  /// two on a wide screen.
+  Widget _rows(
+    List<ObjectiveView> objectives,
+    double width, {
+    Map<String, int>? rankOf,
+    required String place,
+    bool showField = false,
+  }) {
+    Widget row(ObjectiveView s, {required bool divider}) {
+      final tag = objectiveHeroTag(place, s);
+      final rank = rankOf?[s.boxId];
+      return ObjectiveRow(
+        key: Key('run-objective-${s.boxId}'),
+        runKey: Key('run-objective-run-${s.boxId}'),
+        objective: s,
+        rank: rank,
+        heroTag: tag,
+        divider: divider,
+        showField: showField,
+        busy: _quick == s.boxId,
+        onTap: _running ? null : () => _open(s, heroTag: tag, rank: rank),
+        onRun: _running || _quick != null ? null : () => _quickRun(s, heroTag: tag, rank: rank),
+      );
+    }
+
     final columns = width >= 600 ? 2 : 1;
+    final lines = (objectives.length + columns - 1) ~/ columns;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < objectives.length; i += columns)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: columns == 1
-                ? card(objectives[i])
-                : IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: card(objectives[i])),
-                        const SizedBox(width: 10),
-                        Expanded(child: i + 1 < objectives.length ? card(objectives[i + 1]) : const SizedBox.shrink()),
-                      ],
-                    ),
-                  ),
-          ),
+        for (var line = 0; line < lines; line++)
+          columns == 1
+              ? row(objectives[line], divider: line < lines - 1)
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var c = 0; c < columns; c++) ...[
+                      if (c > 0) const SizedBox(width: 20),
+                      Expanded(
+                        child: line * columns + c < objectives.length
+                            ? row(objectives[line * columns + c], divider: line < lines - 1)
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
+                ),
       ],
     );
+  }
+
+  /// The objectives that match a search, as rows in groups by field (issue #122): all of
+  /// them, most backed first in each group, with no rank.
+  List<Widget> _results(BuildContext context, List<ObjectiveView> objectives) {
+    final l = context.l10n;
+    final t = HomeText.of(context);
+    return [
+      for (final g in objectiveGroups(objectives))
+        Padding(
+          key: Key('store-group-${g.key}'),
+          padding: const EdgeInsets.fromLTRB(homeGutter, 8, homeGutter, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
+              const SizedBox(height: 4),
+              _rows(g.objectives, 0, place: 'search'),
+            ],
+          ),
+        ),
+    ];
   }
 }
 

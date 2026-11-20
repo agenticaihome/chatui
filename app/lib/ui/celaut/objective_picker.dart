@@ -10,6 +10,7 @@ import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 import '../settings/settings_shared.dart';
 import '../widgets/soft_card.dart';
+import 'objective_detail_screen.dart';
 import 'objective_service_choice.dart';
 import 'objective_store.dart';
 import 'objective_type_missing.dart';
@@ -168,30 +169,29 @@ class _ObjectivePickerScreenState extends State<ObjectivePickerScreen> {
   List<Widget> _objectiveList(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
-    final muted = ArgusColors.of(context).muted;
     final ranked = rankObjectives(_objectives ?? const <ObjectiveView>[]);
     final cut = !_showAll && ranked.length > storeShortList;
     if (_typeMissing) return [ObjectiveTypeMissing(onBack: _readObjectives)];
     return [
       SettingsNote(l.celautObjectivesIntro),
       if (_loadingObjectives)
-        const SoftCard(child: Text(ServiceStrings.objectivesLoading, key: Key('picker-loading')))
+        const StoreSkeleton(key: Key('picker-loading'), featured: false)
       else if (_objectives != null && ranked.isEmpty)
-        SoftCard(child: Text(ServiceStrings.objectivesEmpty, style: TextStyle(color: muted))),
+        StoreMessage(icon: Icons.storefront_outlined, text: ServiceStrings.objectivesEmpty, textKey: const Key('picker-empty')),
       for (final g in objectiveGroups(cut ? ranked.take(storeShortList).toList() : ranked)) ...[
         Padding(
           key: Key('picker-group-${g.key}'),
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(top: 6, bottom: 2),
           child: Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
         ),
-        for (final objective in g.objectives) ...[
-          ObjectiveCard(
+        for (final (i, objective) in g.objectives.indexed)
+          ObjectiveRow(
             key: Key('picker-objective-${objective.boxId}'),
             objective: objective,
+            divider: i < g.objectives.length - 1,
             onTap: () => _readServices(objective),
           ),
-          const SizedBox(height: 10),
-        ],
+        const SizedBox(height: 10),
       ],
       if (ranked.length > storeShortList)
         Align(
@@ -209,15 +209,27 @@ class _ObjectivePickerScreenState extends State<ObjectivePickerScreen> {
     final muted = ArgusColors.of(context).muted;
     final services = _services;
     return [
-      Text(
-        objective.name,
-        key: const Key('picker-objective-name'),
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-      ),
-      ObjectiveAbout(objective: objective),
-      const SizedBox(height: 6),
+      ObjectiveDetailHeader(objective: objective, nameKey: const Key('picker-objective-name')),
+      const SizedBox(height: 16),
+      ObjectiveStats(objective: objective),
+      if (objective.prose.trim().isNotEmpty) ...[
+        const SizedBox(height: 14),
+        ObjectiveProse(objective.prose.trim()),
+      ],
+      if (objective.tags.any((tag) => tag.trim().isNotEmpty)) ...[
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [for (final tag in objective.tags) if (tag.trim().isNotEmpty) ObjectiveTag(tag.trim())],
+        ),
+      ],
+      const SizedBox(height: 16),
       if (_loadingServices)
-        const SoftCard(child: Text(ServiceStrings.servicesLoading, key: Key('picker-loading')))
+        Semantics(
+          label: ServiceStrings.servicesLoading,
+          child: const StoreSkeleton(key: Key('picker-loading'), featured: false, rows: 2),
+        )
       else if (services != null && services.isEmpty)
         SoftCard(
           child: Text(

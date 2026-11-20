@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/api/celaut_catalog.dart';
+import '../../format.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 
-/// The objectives of the catalog as a store shows its apps, with little to read at each step
-/// (issue #122): a card for each objective with its mark, its name, one line of its text, its
-/// number of services and one Run button. The field of the objectives is the title of their
-/// group, not a line of each card. The tags are in the search and in [ObjectiveAbout]. The
-/// catalog has no price and no score for an objective: the price comes from the nodes and the
-/// score is per service, so both show in the step of an objective's services.
+/// The objectives of the catalog as an app store shows its apps (issue #122, then the
+/// "app store" look of 2026-11-19). The data is the catalog's and nothing more: an objective has a
+/// name, a text, tags, a field, its declared services, the reputation of its publisher and
+/// the block of its box. It has no price and no score: the price comes from the nodes and
+/// the score is per service, so both show on the page of the objective, next to its services.
 ///
-/// There is one way to browse: one list, in groups by field ([objectiveGroups]), the most backed
-/// objectives first ([rankObjectives]). The store shows the first [storeShortList] objectives and a
-/// "Show more" action (`docs/celaut/ui.md`, section 2.1).
+/// The store home ([RunServiceSection]): the most backed objective as a featured card, then
+/// the objectives in shelves by field ([storeShelves]), then "Top objectives", the whole catalog
+/// ranked, most backed first ([rankObjectives]), with its first [storeShortList] rows and "Show
+/// more". A search shows the rows that match, in groups by field ([objectiveGroups]). A tap on a
+/// objective opens its page (`objective_detail_screen.dart`); the Run pill of a row runs its
+/// recommended service, after the usual confirmation (`docs/celaut/ui.md`, section 2.1).
 
 /// The field of an objective, for grouping: [ObjectiveView.domain] with no case and no spaces at
 /// the ends. Empty if the publisher gave none.
@@ -28,7 +31,7 @@ bool objectiveMatches(ObjectiveView objective, String query) {
   return has(objective.name) || has(objective.prose) || has(objective.domain) || objective.tags.any(has);
 }
 
-/// The objectives that the store shows before "Show more".
+/// The rows of "Top objectives" before "Show more".
 const storeShortList = 6;
 
 /// The same order on every phone: the name, then the box id.
@@ -48,8 +51,8 @@ int _byBacking(ObjectiveView a, ObjectiveView b) {
 }
 
 /// [objectives] with the most backed first: the reputation of the publisher, then the number
-/// of declared services, then the newest, then the name. This was the order of the
-/// featured objectives; the store keeps it for its short list.
+/// of declared services, then the newest, then the name. The featured objective is the first;
+/// "Top objectives" is this order.
 List<ObjectiveView> rankObjectives(List<ObjectiveView> objectives) => [...objectives]..sort(_byBacking);
 
 /// A group of the list of objectives: the objectives of one field. [key] is [objectiveCategory] (empty
@@ -69,17 +72,45 @@ List<ObjectiveGroup> objectiveGroups(List<ObjectiveView> objectives) {
   return groups.values.toList();
 }
 
+/// A shelf of the store home: a row of objective tiles that scrolls sideways. [key] is the
+/// field ([objectiveCategory]) of a shelf of one field, or [mixedShelfKey] for the shelf of the
+/// fields with one objective each; [title] is the field as its first objective writes it, empty for
+/// the mixed shelf.
+typedef ObjectiveShelf = ({String key, String title, List<ObjectiveView> objectives});
+
+/// The key of the shelf that holds the fields with a single objective.
+const mixedShelfKey = 'mixed';
+
+/// The shelves of the store home, from [ranked] (the order of [rankObjectives]): one shelf for
+/// each field with two objectives or more, in the order of [objectiveGroups]; the objectives of the
+/// other fields (and those with no field) all go to one last shelf, in their order, where
+/// each tile names its field. A shelf of one tile would be most of the store in a catalog
+/// with many fields of one objective each (the live catalog of 2026-11 has 7 objectives in 6 fields).
+List<ObjectiveShelf> storeShelves(List<ObjectiveView> ranked) {
+  final groups = objectiveGroups(ranked);
+  final shelves = <ObjectiveShelf>[
+    for (final g in groups)
+      if (g.key.isNotEmpty && g.objectives.length >= 2) (key: g.key, title: g.title, objectives: g.objectives),
+  ];
+  final own = {for (final s in shelves) s.key};
+  final rest = [for (final s in ranked) if (!own.contains(objectiveCategory(s))) s];
+  if (rest.isNotEmpty) shelves.add((key: mixedShelfKey, title: '', objectives: rest));
+  return shelves;
+}
+
+/// The reputation of a publisher (nanoERG, as the catalog gives it) as ERG with its unit,
+/// with at most three decimals; null if unknown (0).
+String? objectiveBackingText(ObjectiveView objective) {
+  final nano = objective.publisherReputation;
+  if (!nano.isFinite || nano <= 0) return null;
+  return formatErg(nano.round(), maxFrac: 3);
+}
+
 /// The colours of the mark of an objective: a tile and its letter. The hue comes from the
 /// field (or the name, with no field), so the objectives of one field share it. The letter
 /// meets 4.5:1 on the tile in each brightness (objective_store_test.dart).
 ({Color tile, Color letter}) objectiveMarkColors(ObjectiveView objective, Brightness brightness) {
-  final seed = objectiveCategory(objective).isEmpty ? objective.name.toLowerCase() : objectiveCategory(objective);
-  // FNV-1a, 32 bits, as the robots of the instances: the same hue on every phone.
-  var h = 0x811c9dc5;
-  for (final unit in seed.codeUnits) {
-    h = ((h ^ unit) * 0x01000193) & 0xffffffff;
-  }
-  final hue = objectiveMarkHues[h % objectiveMarkHues.length];
+  final hue = objectiveHue(objective);
   return brightness == Brightness.dark
       ? (
           tile: HSLColor.fromAHSL(1, hue, 0.32, 0.25).toColor(),
@@ -91,12 +122,34 @@ List<ObjectiveGroup> objectiveGroups(List<ObjectiveView> objectives) {
         );
 }
 
+/// The hue of an objective, in degrees, one of [objectiveMarkHues]: from its field, or its name if
+/// it has none. FNV-1a, 32 bits, as the robots of the instances: the same on every phone.
+double objectiveHue(ObjectiveView objective) {
+  final seed = objectiveCategory(objective).isEmpty ? objective.name.toLowerCase() : objectiveCategory(objective);
+  var h = 0x811c9dc5;
+  for (final unit in seed.codeUnits) {
+    h = ((h ^ unit) * 0x01000193) & 0xffffffff;
+  }
+  return objectiveMarkHues[h % objectiveMarkHues.length];
+}
+
+/// The glow of an objective: its hue, soft, for the featured card and the top of its page.
+Color objectiveGlow(ObjectiveView objective, Brightness brightness) => brightness == Brightness.dark
+    ? HSLColor.fromAHSL(0.42, objectiveHue(objective), 0.45, 0.32).toColor()
+    : HSLColor.fromAHSL(0.55, objectiveHue(objective), 0.7, 0.86).toColor();
+
 /// The hues of the marks, in degrees: eight, 45 degrees apart.
 const objectiveMarkHues = [15.0, 60.0, 105.0, 150.0, 195.0, 240.0, 285.0, 330.0];
 
-/// The mark of an objective: the first letter of its name on a rounded tile.
+/// The tag of the [Hero] of the mark of [objective] in one [place] of the store. An objective can be
+/// in several places of one screen (featured, a shelf, Top objectives), and two heroes of one
+/// screen cannot share a tag.
+Object objectiveHeroTag(String place, ObjectiveView objective) => ('objective-mark', place, objective.boxId);
+
+/// The mark of an objective: the first letter of its name on a rounded tile. With [heroTag] it
+/// flies to the page of the objective.
 class ObjectiveMark extends StatelessWidget {
-  const ObjectiveMark({super.key, required this.objective, this.size = 52, this.letter});
+  const ObjectiveMark({super.key, required this.objective, this.size = 52, this.letter, this.heroTag});
 
   final ObjectiveView objective;
   final double size;
@@ -104,12 +157,15 @@ class ObjectiveMark extends StatelessWidget {
   /// The text whose first letter the tile shows; null for the name of the objective.
   final String? letter;
 
+  /// The tag of its [Hero]; null for none.
+  final Object? heroTag;
+
   @override
   Widget build(BuildContext context) {
     final colors = objectiveMarkColors(objective, Theme.of(context).brightness);
     final name = (letter ?? objective.name).trim();
     final initial = name.isEmpty ? '?' : String.fromCharCode(name.runes.first).toUpperCase();
-    return ExcludeSemantics(
+    final tile = ExcludeSemantics(
       child: Container(
         width: size,
         height: size,
@@ -117,6 +173,7 @@ class ObjectiveMark extends StatelessWidget {
         decoration: BoxDecoration(
           color: colors.tile,
           borderRadius: BorderRadius.circular(size * 0.27),
+          border: Border.all(color: colors.letter.withValues(alpha: 0.12)),
         ),
         // The tile has a fixed size: the letter does not grow with the font of the phone.
         child: MediaQuery.withNoTextScaling(
@@ -127,76 +184,525 @@ class ObjectiveMark extends StatelessWidget {
         ),
       ),
     );
+    final tag = heroTag;
+    return tag == null ? tile : Hero(tag: tag, child: tile);
   }
 }
 
-/// An objective of the catalog as a card of the store: at most three lines of text, its name,
-/// one line of its text and its number of services. [onTap] opens its services. With
-/// [onRun], the card has a Run button (key [runKey]) in place of the arrow.
-class ObjectiveCard extends StatelessWidget {
-  const ObjectiveCard({super.key, required this.objective, this.onTap, this.onRun, this.runKey});
+/// The one action of an objective or of a service, as the pill of a store ("Get"): Run, or
+/// [label]. With [busy] it shows a small progress in place of its text and does nothing.
+class ObjectiveRunButton extends StatelessWidget {
+  const ObjectiveRunButton({
+    super.key,
+    required this.onPressed,
+    this.label,
+    this.busy = false,
+    this.semanticsLabel,
+    this.filled = false,
+  });
+
+  final VoidCallback? onPressed;
+  final String? label;
+  final bool busy;
+
+  /// What a screen reader says, as "Run Proof of reserves": the label alone repeats on
+  /// every row.
+  final String? semanticsLabel;
+
+  /// The strong colour, for the main action of a page; else the soft one of a row.
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = label ?? context.l10n.celautRunButton;
+    // The theme asks for the full width, which a row cannot give.
+    final style = FilledButton.styleFrom(
+      minimumSize: Size(filled ? 96 : 72, filled ? 40 : 34),
+      padding: EdgeInsets.symmetric(horizontal: filled ? 26 : 18),
+      shape: const StadiumBorder(),
+      visualDensity: VisualDensity.compact,
+      textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: 0.2),
+    );
+    final child = busy
+        ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+        : Text(text, maxLines: 1, overflow: TextOverflow.ellipsis);
+    final onTap = busy ? null : onPressed;
+    final button = filled
+        ? FilledButton(onPressed: onTap, style: style, child: child)
+        : FilledButton.tonal(onPressed: onTap, style: style, child: child);
+    final said = semanticsLabel;
+    return said == null
+        ? button
+        : Semantics(
+            label: said,
+            button: true,
+            enabled: onTap != null,
+            excludeSemantics: true,
+            onTap: onTap,
+            child: button,
+          );
+  }
+}
+
+/// The field of an objective as a small coloured eyebrow, in capitals.
+class _Eyebrow extends StatelessWidget {
+  const _Eyebrow(this.text, {this.color});
+
+  final String text;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.1,
+        height: 1.3,
+        color: color ?? accentTextOf(context),
+      ),
+    );
+  }
+}
+
+/// The surface of a card of the store: the colour of a card, its border, and the tap.
+class _StoreSurface extends StatelessWidget {
+  const _StoreSurface({required this.child, this.onTap, this.radius = 20, this.border});
+
+  final Widget child;
+  final VoidCallback? onTap;
+  final double radius;
+  final BorderSide? border;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      hint: onTap == null ? null : context.l10n.celautStoreOpenHint,
+      child: Material(
+        color: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radius),
+          side: border ?? BorderSide(color: ArgusColors.of(context).cardBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(onTap: onTap, child: child),
+      ),
+    );
+  }
+}
+
+/// The most backed objective, at the top of the store: a tall card in the glow of its hue,
+/// with a ring, "Most backed", its mark, its name, two lines of its text, its field and its
+/// number of services, and the Run pill.
+class ObjectiveFeatureCard extends StatelessWidget {
+  const ObjectiveFeatureCard({
+    super.key,
+    required this.objective,
+    this.onTap,
+    this.onRun,
+    this.runKey,
+    this.busy = false,
+    this.heroTag,
+  });
 
   final ObjectiveView objective;
   final VoidCallback? onTap;
   final VoidCallback? onRun;
   final Key? runKey;
+  final bool busy;
+  final Object? heroTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final t = HomeText.of(context);
+    final glow = objectiveGlow(objective, Theme.of(context).brightness);
+    final prose = objective.prose.trim();
+    final field = objective.domain.trim();
+    final services = objective.serviceIds.length;
+    return _StoreSurface(
+      radius: 24,
+      onTap: onTap,
+      // The ring of the top objective.
+      border: BorderSide(color: accentOf(context), width: 2),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [glow, glow.withValues(alpha: 0)],
+            stops: const [0, 0.85],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: _Eyebrow(l.celautStoreMostBacked)),
+                  Semantics(label: l.celautStoreRank(1), excludeSemantics: true, child: const _TopBadge(text: '#1')),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ObjectiveMark(objective: objective, size: 64, heroTag: heroTag),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          objective.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: t.primary.copyWith(fontSize: 20, fontWeight: FontWeight.w700, height: 1.2),
+                        ),
+                        if (field.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          _Eyebrow(field, color: t.muted),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (prose.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  prose,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.secondary.copyWith(color: t.ink.withValues(alpha: 0.8), fontSize: 13.5),
+                ),
+              ],
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: services == 0
+                        ? const SizedBox.shrink()
+                        : Text(
+                            l.celautStoreServices(services),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: t.secondary,
+                          ),
+                  ),
+                  ObjectiveRunButton(
+                    key: runKey,
+                    onPressed: onRun,
+                    busy: busy,
+                    semanticsLabel: l.celautStoreRunObjective(objective.name),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopBadge extends StatelessWidget {
+  const _TopBadge({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(color: accentOf(context), borderRadius: BorderRadius.circular(20)),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w800,
+          color: ArgusColors.of(context).onAccent,
+          height: 1.2,
+        ),
+      ),
+    );
+  }
+}
+
+/// A tile of a shelf: a tall rounded card with the mark, the field (on the mixed shelf),
+/// the name in two lines at most, one line of the text and the number of services.
+class ObjectiveTile extends StatelessWidget {
+  const ObjectiveTile({
+    super.key,
+    required this.objective,
+    this.onTap,
+    this.showField = false,
+    this.heroTag,
+    this.width = 156,
+  });
+
+  final ObjectiveView objective;
+  final VoidCallback? onTap;
+  final bool showField;
+  final Object? heroTag;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final t = HomeText.of(context);
+    final field = objective.domain.trim();
+    final prose = objective.prose.trim();
+    final services = objective.serviceIds.length;
+    return SizedBox(
+      width: width,
+      child: _StoreSurface(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ObjectiveMark(objective: objective, size: 56, heroTag: heroTag),
+              const SizedBox(height: 12),
+              if (showField) _Eyebrow(field.isEmpty ? l.celautStoreOtherField : field),
+              Text(
+                objective.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: t.primary.copyWith(fontWeight: FontWeight.w600, height: 1.25),
+              ),
+              if (prose.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(prose, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.secondary),
+              ],
+              const Spacer(),
+              if (services > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    l.celautStoreServices(services),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.secondary,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A row of a ranked list, as in the charts of an app store: the mark, the rank (if any),
+/// the name, one line of the text, the field (with [showField]; not under the title of a
+/// group of one field), and the Run pill on the right. Without [onRun], an arrow in place
+/// of the pill.
+class ObjectiveRow extends StatelessWidget {
+  const ObjectiveRow({
+    super.key,
+    required this.objective,
+    this.rank,
+    this.onTap,
+    this.onRun,
+    this.runKey,
+    this.busy = false,
+    this.heroTag,
+    this.divider = true,
+    this.showField = false,
+  });
+
+  final ObjectiveView objective;
+  final int? rank;
+  final bool showField;
+  final VoidCallback? onTap;
+  final VoidCallback? onRun;
+  final Key? runKey;
+  final bool busy;
+  final Object? heroTag;
+
+  /// A thin line under the text, as between the rows of a list.
+  final bool divider;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final t = HomeText.of(context);
+    final prose = objective.prose.trim();
+    final field = objective.domain.trim();
+    final r = rank;
+    final row = Row(
+      children: [
+        Expanded(
+          child: Semantics(
+            label: r == null ? null : l.celautStoreRank(r),
+            hint: onTap == null ? null : l.celautStoreOpenHint,
+            button: onTap != null,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    ObjectiveMark(objective: objective, size: 56, heroTag: heroTag),
+                    if (r != null)
+                      SizedBox(
+                        width: 34,
+                        child: ExcludeSemantics(
+                          child: Text(
+                            '$r',
+                            textAlign: TextAlign.center,
+                            style: t.primary.copyWith(fontSize: 17, fontWeight: FontWeight.w700, color: t.muted),
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            objective.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: t.primary.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          if (prose.isNotEmpty)
+                            Text(
+                              prose,
+                              key: Key('objective-card-line-${objective.boxId}'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: t.secondary,
+                            ),
+                          if (showField && field.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: _Eyebrow(field, color: t.muted),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        if (onRun != null || busy)
+          ObjectiveRunButton(
+            key: runKey,
+            onPressed: onRun,
+            busy: busy,
+            semanticsLabel: l.celautStoreRunObjective(objective.name),
+          )
+        else
+          Icon(Icons.chevron_right, size: 20, color: t.muted),
+      ],
+    );
+    if (!divider) return row;
+    final line = Theme.of(context).dividerColor.withValues(alpha: 0.5);
+    return DecoratedBox(
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: line))),
+      child: row,
+    );
+  }
+}
+
+/// A title of a part of the store, as "Top objectives", with an optional action on the right.
+class StoreSectionTitle extends StatelessWidget {
+  const StoreSectionTitle(this.text, {super.key, this.trailing});
+
+  final String text;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     final t = HomeText.of(context);
-    final services = objective.serviceIds.length;
-    final count = services == 0
-        ? const SizedBox.shrink()
-        : Text(
-            context.l10n.celautStoreServices(services),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: t.secondary,
-          );
-    return _StoreSurface(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(14, 12, onRun == null ? 8 : 14, onRun == null ? 12 : 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ObjectiveMark(objective: objective, size: 44),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    objective.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: t.primary.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  if (objective.prose.trim().isNotEmpty)
-                    Text(
-                      objective.prose.trim(),
-                      key: Key('objective-card-line-${objective.boxId}'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.secondary,
-                    ),
-                  if (onRun != null) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(child: count),
-                        ObjectiveRunButton(key: runKey, onPressed: onRun),
-                      ],
-                    ),
-                  ] else
-                    count,
-                ],
-              ),
+    return Row(
+      children: [
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text(
+              text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: t.primary.copyWith(fontSize: 19, fontWeight: FontWeight.w700, height: 1.25),
             ),
-            if (onRun == null)
+          ),
+        ),
+        ?trailing,
+      ],
+    );
+  }
+}
+
+/// The store while the catalog is read: grey shapes where the featured card, a shelf and
+/// rows will be. It does not move: a still shape says "loading" as well, and costs no frame.
+class StoreSkeleton extends StatelessWidget {
+  const StoreSkeleton({super.key, this.rows = 4, this.featured = true});
+
+  final int rows;
+  final bool featured;
+
+  @override
+  Widget build(BuildContext context) {
+    final shade = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.07);
+    Widget box(double w, double h, {double r = 8}) => Container(
+          width: w,
+          height: h,
+          decoration: BoxDecoration(color: shade, borderRadius: BorderRadius.circular(r)),
+        );
+    return Semantics(
+      label: context.l10n.celautRunLoading,
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (featured) ...[
+              box(double.infinity, 168, r: 24),
+              const SizedBox(height: 22),
+              Row(children: [box(120, 18)]),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 150,
+                child: Row(
+                  children: [
+                    for (var i = 0; i < 3; i++) ...[
+                      Expanded(child: box(double.infinity, 150, r: 20)),
+                      if (i < 2) const SizedBox(width: 12),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
+            ],
+            for (var i = 0; i < rows; i++)
               Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Icon(Icons.chevron_right, size: 20, color: t.muted),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    box(56, 56, r: 15),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [box(140, 14), const SizedBox(height: 8), box(200, 11)],
+                      ),
+                    ),
+                    box(72, 34, r: 17),
+                  ],
+                ),
               ),
           ],
         ),
@@ -205,108 +711,62 @@ class ObjectiveCard extends StatelessWidget {
   }
 }
 
-/// The surface of a card of the store: the colour of a card, its border, and the tap.
-class _StoreSurface extends StatelessWidget {
-  const _StoreSurface({required this.child, this.onTap});
+/// A state of the store with no objective to show: an icon in a soft circle, a line, and an
+/// optional action (Try again).
+class StoreMessage extends StatelessWidget {
+  const StoreMessage({super.key, required this.icon, required this.text, this.action, this.textKey});
 
-  final Widget child;
-  final VoidCallback? onTap;
+  final IconData icon;
+  final String text;
+  final Widget? action;
+  final Key? textKey;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(cardRadius),
-        side: BorderSide(color: ArgusColors.of(context).cardBorder),
+    final t = HomeText.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 36),
+      child: Column(
+        children: [
+          ExcludeSemantics(
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(color: scheme.onSurface.withValues(alpha: 0.06), shape: BoxShape.circle),
+              child: Icon(icon, size: 30, color: t.muted),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(text, key: textKey, textAlign: TextAlign.center, style: t.primary.copyWith(color: t.muted)),
+          if (action != null) ...[const SizedBox(height: 12), action!],
+        ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(onTap: onTap, child: child),
     );
   }
 }
 
-/// The one action of an objective: Run. It opens the services of the objective, with the best one
-/// chosen; the run starts after the confirmation, as from the card.
-class ObjectiveRunButton extends StatelessWidget {
-  const ObjectiveRunButton({super.key, required this.onPressed});
-
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.tonal(
-      onPressed: onPressed,
-      // The theme asks for the full width, which a row cannot give.
-      style: FilledButton.styleFrom(
-        minimumSize: const Size(64, 36),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        visualDensity: VisualDensity.compact,
-      ),
-      child: Text(context.l10n.celautRunButton),
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  const _Tag(this.text);
+/// A tag of an objective, as a chip.
+class ObjectiveTag extends StatelessWidget {
+  const ObjectiveTag(this.text, {super.key});
 
   final String text;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
       // The chip colour is the card's own on some palettes: the border draws the tag.
       decoration: BoxDecoration(
         color: ArgusColors.of(context).chip,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: ArgusColors.of(context).cardBorder),
       ),
       child: Text(
         text,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface),
-      ),
-    );
-  }
-}
-
-/// The details of an objective, closed at first: all its text, its field and its tags. The
-/// cards show one line only (issue #122).
-class ObjectiveAbout extends StatelessWidget {
-  const ObjectiveAbout({super.key, required this.objective});
-
-  final ObjectiveView objective;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = context.l10n;
-    final t = HomeText.of(context);
-    final domain = objective.domain.trim();
-    final tags = [for (final tag in objective.tags) if (tag.trim().isNotEmpty) tag.trim()];
-    if (objective.prose.trim().isEmpty && domain.isEmpty && tags.isEmpty) return const SizedBox.shrink();
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        key: const Key('objective-about'),
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: const EdgeInsets.only(bottom: 8),
-        dense: true,
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        title: Text(l.celautObjectiveAbout, style: t.label),
-        children: [
-          if (objective.prose.trim().isNotEmpty) Text(objective.prose.trim(), style: t.secondary),
-          if (domain.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(l.celautObjectiveField(domain), style: t.secondary),
-          ],
-          if (tags.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(spacing: 6, runSpacing: 6, children: [for (final tag in tags) _Tag(tag)]),
-          ],
-        ],
+        style: TextStyle(fontSize: 12.5, color: Theme.of(context).colorScheme.onSurface),
       ),
     );
   }

@@ -5787,14 +5787,6 @@
   },
   "celautStoreShowFewer": "Show fewer",
   "celautObjectiveAbout": "About this objective",
-  "celautObjectiveField": "Field: {field}",
-  "@celautObjectiveField": {
-    "placeholders": {
-      "field": {
-        "type": "String"
-      }
-    }
-  },
   "celautObjectiveTestBanner": "Most results are tests. Check before you trust them.",
   "celautObjectiveRecommended": "Recommended",
   "celautObjectiveOtherOptions": "Other options ({count})",
@@ -6392,6 +6384,50 @@
   "registryNoObjectiveTitle": "No objective type id",
   "registryNoObjectiveBody": "The catalog has no objectives, because the objective type id is empty. Enter the id in the settings of the Celaut Registry.",
   "registryOpenSettings": "Open the registry settings",
+  "celautStoreMostBacked": "Most backed",
+  "celautStoreRank": "Number {rank}",
+  "@celautStoreRank": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "celautStoreRunObjective": "Run {name}",
+  "@celautStoreRunObjective": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "celautStoreOpenHint": "Opens the page of the objective",
+  "celautStoreTopObjectives": "Top objectives",
+  "celautStoreMoreFields": "More fields",
+  "celautStoreByField": "By field",
+  "celautStoreCatalogEmpty": "The catalog has no objectives yet.",
+  "celautObjectiveRunService": "{action} this service (rating: {rating})",
+  "@celautObjectiveRunService": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "celautObjectiveStatRank": "Rank",
+  "celautObjectiveStatRankNote": "most backed",
+  "celautObjectiveStatServices": "Services",
+  "celautObjectiveStatServicesNote": "declared",
+  "celautObjectiveStatBacking": "Backing",
+  "celautObjectiveStatBackingNote": "of the publisher",
+  "celautObjectiveStatBlock": "Block",
+  "celautObjectiveStatBlockNote": "published",
+  "celautObjectiveMore": "more",
+  "celautObjectiveLess": "less",
+  "celautObjectiveServicesLoading": "Loading the services…",
   "presetPin": "Pin as preset",
   "presetPinNote": "Start a new instance of this service with the same settings from the ✏ button of Chats.",
   "presetPinBody": "The ✏ button of Chats will show it on a wheel. One tap starts a new instance of this service with the same variables. You still see the cost and confirm it before it starts.",

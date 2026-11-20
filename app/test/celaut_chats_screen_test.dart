@@ -1144,7 +1144,7 @@ void main() {
       expect(find.text(appL10n.chatsNewTitle), findsOneWidget);
       await tester.tap(find.byKey(const Key('run-objective-objective-echo')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('objective-sheet-run')));
+      await tester.tap(find.byKey(const Key('objective-detail-run')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('run-confirm')), findsOneWidget);
       await tester.tap(find.byKey(Key(confirm ? 'run-confirm-ok' : 'run-confirm-cancel')));

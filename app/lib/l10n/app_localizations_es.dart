@@ -8058,11 +8058,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautObjectiveAbout => 'Sobre este objetivo';
 
   @override
-  String celautObjectiveField(String field) {
-    return 'Campo: $field';
-  }
-
-  @override
   String get celautObjectiveTestBanner =>
       'La mayoría de los resultados son pruebas. Compruébalos antes de confiar en ellos.';
 
@@ -8988,6 +8983,72 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get registryOpenSettings => 'Abrir los ajustes del registro';
+
+  @override
+  String get celautStoreMostBacked => 'El más respaldado';
+
+  @override
+  String celautStoreRank(int rank) {
+    return 'Número $rank';
+  }
+
+  @override
+  String celautStoreRunObjective(String name) {
+    return 'Ejecutar $name';
+  }
+
+  @override
+  String get celautStoreOpenHint => 'Abre la página del objetivo';
+
+  @override
+  String get celautStoreTopObjectives => 'Los más respaldados';
+
+  @override
+  String get celautStoreMoreFields => 'Más campos';
+
+  @override
+  String get celautStoreByField => 'Por campo';
+
+  @override
+  String get celautStoreCatalogEmpty => 'El catálogo aún no tiene objetivos.';
+
+  @override
+  String celautObjectiveRunService(String action, String rating) {
+    return '$action este servicio (valoración: $rating)';
+  }
+
+  @override
+  String get celautObjectiveStatRank => 'Puesto';
+
+  @override
+  String get celautObjectiveStatRankNote => 'por respaldo';
+
+  @override
+  String get celautObjectiveStatServices => 'Servicios';
+
+  @override
+  String get celautObjectiveStatServicesNote => 'declarados';
+
+  @override
+  String get celautObjectiveStatBacking => 'Respaldo';
+
+  @override
+  String get celautObjectiveStatBackingNote => 'del publicador';
+
+  @override
+  String get celautObjectiveStatBlock => 'Bloque';
+
+  @override
+  String get celautObjectiveStatBlockNote => 'publicado';
+
+  @override
+  String get celautObjectiveMore => 'más';
+
+  @override
+  String get celautObjectiveLess => 'menos';
+
+  @override
+  String get celautObjectiveServicesLoading => 'Cargando los servicios…';
 
   @override
   String get presetPin => 'Anclar como preconfigurado';

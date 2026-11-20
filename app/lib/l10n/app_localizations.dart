@@ -12785,12 +12785,6 @@ abstract class AppLocalizations {
   /// **'About this objective'**
   String get celautObjectiveAbout;
 
-  /// No description provided for @celautObjectiveField.
-  ///
-  /// In en, this message translates to:
-  /// **'Field: {field}'**
-  String celautObjectiveField(String field);
-
   /// No description provided for @celautObjectiveTestBanner.
   ///
   /// In en, this message translates to:
@@ -14308,6 +14302,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open the registry settings'**
   String get registryOpenSettings;
+
+  /// No description provided for @celautStoreMostBacked.
+  ///
+  /// In en, this message translates to:
+  /// **'Most backed'**
+  String get celautStoreMostBacked;
+
+  /// No description provided for @celautStoreRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Number {rank}'**
+  String celautStoreRank(int rank);
+
+  /// No description provided for @celautStoreRunObjective.
+  ///
+  /// In en, this message translates to:
+  /// **'Run {name}'**
+  String celautStoreRunObjective(String name);
+
+  /// No description provided for @celautStoreOpenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the page of the objective'**
+  String get celautStoreOpenHint;
+
+  /// No description provided for @celautStoreTopObjectives.
+  ///
+  /// In en, this message translates to:
+  /// **'Top objectives'**
+  String get celautStoreTopObjectives;
+
+  /// No description provided for @celautStoreMoreFields.
+  ///
+  /// In en, this message translates to:
+  /// **'More fields'**
+  String get celautStoreMoreFields;
+
+  /// No description provided for @celautStoreByField.
+  ///
+  /// In en, this message translates to:
+  /// **'By field'**
+  String get celautStoreByField;
+
+  /// No description provided for @celautStoreCatalogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The catalog has no objectives yet.'**
+  String get celautStoreCatalogEmpty;
+
+  /// No description provided for @celautObjectiveRunService.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} this service (rating: {rating})'**
+  String celautObjectiveRunService(String action, String rating);
+
+  /// No description provided for @celautObjectiveStatRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank'**
+  String get celautObjectiveStatRank;
+
+  /// No description provided for @celautObjectiveStatRankNote.
+  ///
+  /// In en, this message translates to:
+  /// **'most backed'**
+  String get celautObjectiveStatRankNote;
+
+  /// No description provided for @celautObjectiveStatServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Services'**
+  String get celautObjectiveStatServices;
+
+  /// No description provided for @celautObjectiveStatServicesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'declared'**
+  String get celautObjectiveStatServicesNote;
+
+  /// No description provided for @celautObjectiveStatBacking.
+  ///
+  /// In en, this message translates to:
+  /// **'Backing'**
+  String get celautObjectiveStatBacking;
+
+  /// No description provided for @celautObjectiveStatBackingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'of the publisher'**
+  String get celautObjectiveStatBackingNote;
+
+  /// No description provided for @celautObjectiveStatBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Block'**
+  String get celautObjectiveStatBlock;
+
+  /// No description provided for @celautObjectiveStatBlockNote.
+  ///
+  /// In en, this message translates to:
+  /// **'published'**
+  String get celautObjectiveStatBlockNote;
+
+  /// No description provided for @celautObjectiveMore.
+  ///
+  /// In en, this message translates to:
+  /// **'more'**
+  String get celautObjectiveMore;
+
+  /// No description provided for @celautObjectiveLess.
+  ///
+  /// In en, this message translates to:
+  /// **'less'**
+  String get celautObjectiveLess;
+
+  /// No description provided for @celautObjectiveServicesLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the services…'**
+  String get celautObjectiveServicesLoading;
 
   /// No description provided for @presetPin.
   ///
