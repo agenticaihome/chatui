@@ -42,7 +42,7 @@ fn the_vector_peers_cover_the_edge_cases() {
         .find(|p| p.name == "edge")
         .unwrap()
         .peer();
-    assert_eq!(edge.mu_per_call.len(), 3);
+    assert_eq!(edge.rates.len(), 3);
     let res = edge.resources[0].resources.clone().unwrap();
     assert_eq!(res.blkio_weight, Some(0));
     assert_eq!(res.cpu_period, None);
@@ -127,9 +127,9 @@ fn every_changed_field_breaks_the_signature() {
             }),
         ),
         (
-            "mu_per_call",
+            "rates",
             Box::new(|p| {
-                p.mu_per_call.push(AmountKeyValue {
+                p.rates.push(AmountKeyValue {
                     key: "z".into(),
                     value: None,
                 })

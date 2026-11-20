@@ -581,7 +581,7 @@ impl<T: Transport> NodeSession<T> {
     }
 }
 
-/// The key of `Peer.mu_per_call` for the fee of `ModifyDeposit`, if a node ever charges it.
+/// The key of `Peer.rates` for the fee of `ModifyDeposit`, if a node ever charges it.
 pub const MODIFY_DEPOSIT_FEE_KEY: &str = "modify_deposit_mu";
 
 impl<T: Transport> NodeSession<T> {
@@ -639,7 +639,7 @@ impl<T: Transport> NodeSession<T> {
     }
 
     /// The fee that the node advertises for a move of MU to or from an instance
-    /// (`ModifyDeposit`), in MU: `modify_deposit_mu` in `Peer.mu_per_call` (Josemi, PR
+    /// (`ModifyDeposit`), in MU: `modify_deposit_mu` in `Peer.rates` (Josemi, PR
     /// #148). `None` if the node advertises none: nodo charges nothing for it today.
     pub fn modify_deposit_fee(&self) -> Option<u128> {
         celaut_wire::statement::peer_rate(&self.info.peer, MODIFY_DEPOSIT_FEE_KEY)

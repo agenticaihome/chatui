@@ -248,7 +248,7 @@ on each leg. A node gives one hop less to the next node, so a stream has at most
 
     max_mu_per_stream = remaining_hops * tunnel_open_mu
 
-`tunnel_open_mu` is in the `mu_per_call` of the `Peer` (default 10 000 MU). The app does not
+`tunnel_open_mu` is in the `rates` of the `Peer` (default 10 000 MU). The app does not
 open the port if the node gives no rate. The app always sets `remaining_hops` (2 by
 default, 4 at most). The quote does not cover the traffic (`net_mu_per_gib`).
 
@@ -278,7 +278,7 @@ returns (`statement_price_mu`):
     price(rows) = statement_query_mu + statement_row_mu * rows
 
 The defaults are 100 MU and 1 MU (`docs/PRICING.md`). An operator can change them. The
-node advertises them in the `mu_per_call` of its `Peer`, as the rates `statement_query_mu`
+node advertises them in the `rates` of its `Peer`, as the rates `statement_query_mu`
 and `statement_row_mu`.
 
 - A read of a local descendant writes one `statement_query` movement on the account of the

@@ -127,7 +127,7 @@ pub async fn celaut_node_credit(node: NodeAddress) -> Result<String, CelautError
 }
 
 /// The fee that the node of the instance advertises for a move of MU
-/// (`modify_deposit_mu` in `Peer.mu_per_call`), in MU; empty if it advertises none (nodo
+/// (`modify_deposit_mu` in `Peer.rates`), in MU; empty if it advertises none (nodo
 /// charges nothing today). It reads what the app already knows of the node.
 #[flutter_rust_bridge::frb]
 pub async fn celaut_move_fee(instance_id: String) -> Result<String, CelautError> {

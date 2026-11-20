@@ -77,9 +77,9 @@ def full_peer(pub):
         "script": bytes.fromhex("0008cd" + "02" + "ab" * 32),
         "token_id": b"ERG",
     })
-    keyvalue.from_dict(peer.mu_per_call, {})
+    keyvalue.from_dict(peer.rates, {})
     for key, n in (("tunnel_open_mu", "10000"), ("net_mu_per_gib", "2000000"), ("build_mu", "10000000")):
-        entry = peer.mu_per_call.add(key=key)
+        entry = peer.rates.add(key=key)
         entry.value.n = n
     proof = peer.reputation_proofs.add()
     proof.ledger.tags.append("ergo")
@@ -116,7 +116,7 @@ def edge_peer(pub):
         if value is not None:
             entry.value = value
     for key, n in (("z_mu", "5"), ("a_mu", "7"), ("z_mu", "6")):
-        peer.mu_per_call.add(key=key).value.n = n
+        peer.rates.add(key=key).value.n = n
     ni.declare_signature_scheme(peer, prose=False)
     res = peer.resources.add()
     protocol(res.architecture, ["linux/amd64"])

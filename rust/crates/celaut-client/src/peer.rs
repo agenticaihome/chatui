@@ -266,7 +266,7 @@ pub fn content_digest(peer: &Peer) -> String {
         uris.join("/"),
         contracts.join("/"),
         proofs.join("/"),
-        canonical_rates(&peer.mu_per_call),
+        canonical_rates(&peer.rates),
         scheme,
         resources.join("/"),
         canonical_activity_window(peer.activity_window.as_ref()),

@@ -66,7 +66,7 @@ pub struct PeerInfoView {
     /// The time of the advertisement, in Unix seconds.
     pub ts: i64,
     pub uris: Vec<NodeUriView>,
-    /// The rates of the node (`mu_per_call`), in MU, sorted by key.
+    /// The rates of the node (`rates`), in MU, sorted by key.
     pub rates: Vec<KeyValueView>,
     pub payment_contracts: Vec<PaymentContractView>,
     pub resources: Vec<NodeResourcesView>,
@@ -286,7 +286,7 @@ fn resources_view(entry: &ArchitectureResources) -> NodeResourcesView {
 fn view_of(info: &NodeInfo) -> PeerInfoView {
     let peer = &info.peer;
     let mut rates: Vec<KeyValueView> = peer
-        .mu_per_call
+        .rates
         .iter()
         .map(|e| KeyValueView {
             key: e.key.clone(),
