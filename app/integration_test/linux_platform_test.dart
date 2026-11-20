@@ -16,7 +16,9 @@ import 'package:argus_wallet/bridge/api/celaut_network.dart';
 import 'package:argus_wallet/bridge/frb_generated.dart';
 import 'package:argus_wallet/celaut/audio_recorder.dart';
 import 'package:argus_wallet/celaut/package_channel.dart';
+import 'package:argus_wallet/services/linux_app.dart';
 import 'package:argus_wallet/services/secure_storage.dart';
+import 'package:argus_wallet/ui/settings/security_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_zxing/flutter_zxing.dart';
@@ -125,6 +127,22 @@ void main() {
     } finally {
       await recorder.dispose();
     }
+  });
+
+  testWidgets('the Linux screens: no "Block screenshots", and the .deb of this machine', (tester) async {
+    // The real runner is the Linux app, whatever `flutter test` puts in the environment.
+    expect(isLinuxApp, isTrue);
+    final machine = (await Process.run('uname', ['-m'])).stdout.toString().trim();
+    expect(linuxDebArch, machine == 'aarch64' ? 'arm64' : 'amd64', reason: 'uname -m: $machine');
+
+    tester.view.physicalSize = const Size(480, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const MaterialApp(home: SecuritySettingsPage()));
+    await tester.pumpAndSettle();
+    expect(find.text('Login keyring of the desktop'), findsOneWidget);
+    expect(find.text('Block screenshots'), findsNothing);
+    expect(find.text('Spend unconfirmed funds'), findsOneWidget, reason: 'the page is there');
   });
 
   testWidgets(
