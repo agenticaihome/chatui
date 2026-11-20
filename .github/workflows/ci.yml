@@ -96,3 +96,111 @@ jobs:
           for abi in arm64-v8a x86_64; do
             unzip -l "$apk" "lib/$abi/libwallet_ffi.so" | grep -q libwallet_ffi.so
           done
+
+  # The iOS app, unsigned (docs/ios.md). A macOS runner is free for a public repository.
+  ios:
+    # The repository variable IOS_RUNNER can pick another macOS runner (macos-15-intel when the
+    # arm64 runners are busy: GitHub cancels a job that waits too long for one).
+    runs-on: ${{ vars.IOS_RUNNER || 'macos-15' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.99.0
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - run: xcodebuild -version
+      # The "Build the Rust core" phase of the Xcode project runs it too, and finds it done.
+      - name: Build the Rust core for iOS
+        run: scripts/build_ios.sh device
+      - name: Build the release app, unsigned
+        working-directory: app
+        run: |
+          flutter pub get --enforce-lockfile
+          # Flutter hides the error of xcodebuild behind a generic message: show it.
+          flutter build ios --release --no-codesign -v > "$RUNNER_TEMP/ios-build.log" 2>&1 || {
+            ../scripts/ios_build_failure.sh "$RUNNER_TEMP/ios-build.log"
+            exit 1
+          }
+          grep -E '^=== Building wallet-ffi|^aarch64-apple-ios|native-static-libs' "$RUNNER_TEMP/ios-build.log" || true
+      - name: Pack and check the .ipa
+        run: scripts/pack_ipa.sh
+      - name: The pods
+        run: cat app/ios/Podfile.lock
+      - uses: actions/upload-artifact@v5
+        with:
+          name: unsigned-ipa
+          path: dist/
+          if-no-files-found: error
+
+  # The app on the iOS simulator: it starts, the home screen and the iOS warnings show, the
+  # Rust core loads and opens the Celaut database (integration_test/ios_smoke_test.dart).
+  ios-simulator:
+    # The repository variable IOS_RUNNER can pick another macOS runner (macos-15-intel when the
+    # arm64 runners are busy: GitHub cancels a job that waits too long for one).
+    runs-on: ${{ vars.IOS_RUNNER || 'macos-15' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.99.0
+        with:
+          targets: aarch64-apple-ios-sim
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - name: Boot a simulator
+        run: |
+          udid="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devs = json.load(sys.stdin)["devices"]
+          ver = lambda k: [int(x) for x in k.rsplit("iOS-", 1)[1].split("-")]
+          ios = sorted((ver(k), d["name"], d["udid"]) for k, l in devs.items() if "iOS-" in k
+                       for d in l if d["name"].startswith("iPhone"))
+          print(ios[-1][2])')"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          echo "SIM=$udid" >> "$GITHUB_ENV"
+          xcrun simctl list devices booted
+      - name: Build the Rust core for the simulator
+        run: scripts/build_ios.sh simulator
+      - name: Run the smoke test on the simulator
+        working-directory: app
+        run: |
+          flutter pub get --enforce-lockfile
+          # flutter test gives the Xcode build of the app 12 minutes, and on the Intel runner
+          # the first one takes longer: build the app first (no time limit), then the test
+          # build is incremental. The log says whether the Rust phase of Xcode rebuilt the core.
+          # -d: without a device, Xcode builds for a generic simulator (arm64 and x86_64), and the
+          # Rust phase would build the core again for the other architecture.
+          flutter build ios --simulator --debug -d "$SIM" -v > "$RUNNER_TEMP/ios-sim-build.log" 2>&1 || {
+            ../scripts/ios_build_failure.sh "$RUNNER_TEMP/ios-sim-build.log"
+            exit 1
+          }
+          grep -E '=== Building wallet-ffi|Compiling wallet-ffi|Finished .release' "$RUNNER_TEMP/ios-sim-build.log" || true
+          flutter test integration_test/ios_smoke_test.dart -d "$SIM"
+      # Not a gate: the Tor network can be slow or blocked from a runner. The log says how
+      # long Arti took to bootstrap on iOS (docs/ios.md, "Tor").
+      - name: Tor (Arti) on the simulator
+        continue-on-error: true
+        working-directory: app
+        run: flutter test integration_test/ios_tor_test.dart -d "$SIM"
+      - name: Screenshot of the first start
+        run: |
+          xcrun simctl uninstall "$SIM" org.celaut.chatui || true
+          (cd app && flutter build ios --simulator --debug -d "$SIM")
+          xcrun simctl install "$SIM" app/build/ios/iphonesimulator/Runner.app
+          xcrun simctl launch "$SIM" org.celaut.chatui
+          sleep 25
+          mkdir -p shots
+          xcrun simctl io "$SIM" screenshot shots/first-start.png
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ios-simulator
+          path: shots/
+          if-no-files-found: error
