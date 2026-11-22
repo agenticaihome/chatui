@@ -694,6 +694,16 @@ pub struct Configuration {
     /// periods.
     #[prost(message, optional, tag = "2")]
     pub initial_mu: ::core::option::Option<Amount>,
+    /// The offer that the caller accepts for this start: the EstimatedCost that the same
+    /// node signed, as the node sent it. If the offer is valid for this start, the node
+    /// keeps its price: it prices the instance, and signs the quote of its start, at the
+    /// launch_scarcity of the offer. The offer is valid if the node signed it, its
+    /// valid_until is not past, and the maintenance costs of the offer are what the node
+    /// computes for this service and these resources at its launch_scarcity. In all
+    /// other cases the node ignores the offer and prices the start at its price of now.
+    /// An absent offer has the same effect.
+    #[prost(message, optional, tag = "3")]
+    pub offer: ::core::option::Option<EstimatedCost>,
 }
 /// What the node gives to an instance when it starts it. The node writes it, serialized,
 /// to the file "/__config__" in the root of the instance.
@@ -904,6 +914,29 @@ pub struct EstimatedCost {
     /// does not set this field reads as ON_CLOSE_REFUSE.
     #[prost(enumeration = "OnClose", tag = "9")]
     pub on_close: i32,
+    /// The unix time, in seconds, until which the node keeps the price of this offer for
+    /// a start. A caller that sends the offer in Configuration.offer before this time
+    /// gets an instance at the price of the offer: the quote in the start movement of
+    /// the instance has the same init_maintenance_cost, max_maintenance_cost and price
+    /// bound as the offer. 0 means that the node makes no promise for the start, and
+    /// the node does not sign the offer. A caller then does not hold the node to the
+    /// figures, and uses price_volatility as the room between the offer and the launch.
+    #[prost(int64, tag = "10")]
+    pub valid_until: i64,
+    /// The load of the node that its price comes from, at the time of the offer: for
+    /// each resource, a key ("cpu", "mem" or "disk") and the scarcity in parts per
+    /// million, from 0 (plentiful) to 1000000 (exhausted). The node uses it at the start
+    /// to keep the price of the offer. A caller does not need it. The list follows the
+    /// rules of a list of Uint64KeyValue. It is empty when valid_until is 0.
+    #[prost(message, repeated, tag = "11")]
+    pub launch_scarcity: ::prost::alloc::vec::Vec<Uint64KeyValue>,
+    /// The signature of the node over this offer, with the key and the scheme of its
+    /// Peer, in lowercase hexadecimal. The celaut-gateway layer gives the text that the
+    /// node signs. It covers every other field, so a caller cannot change the offer. It
+    /// is empty when valid_until is 0. A caller that receives a valid_until with no valid
+    /// signature reads valid_until as 0.
+    #[prost(string, tag = "12")]
+    pub signature: ::prost::alloc::string::String,
 }
 /// The hours in which a node takes new work, and what it does with a running instance
 /// when it closes. It describes one repeating day: the same spans every day.
@@ -1501,9 +1534,17 @@ pub struct ReputationProof {
     /// The scheme of the signature, as on the Peer, without the prose.
     #[prost(message, optional, tag = "4")]
     pub signature_scheme: ::core::option::Option<peer::SignatureScheme>,
+    /// The nonce of the proof of work (#677). The work of the proof is the number of
+    /// leading zero bits of the hash of the proof with this nonce (see
+    /// offchain_proof.pow_bits). The publisher tries nonces until the hash has the zero
+    /// bits that it wants. The signature covers it, so a node that passes the proof on
+    /// cannot change it. A proof with nonce 0 has the work of that one hash, which is
+    /// no more than any other single try.
+    #[prost(uint64, tag = "5")]
+    pub pow_nonce: u64,
     /// The signature, in lowercase hexadecimal. The celaut-gateway layer gives the text
     /// that the node signs.
-    #[prost(string, tag = "5")]
+    #[prost(string, tag = "6")]
     pub signature: ::prost::alloc::string::String,
 }
 /// The answer of PushReputationProof.
