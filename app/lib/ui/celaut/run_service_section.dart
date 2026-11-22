@@ -896,6 +896,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
           );
         case CelautErrorKind.limitReached:
           _showLinkProblem(l.celautLinkTooLarge(CelautStrings.bytes(maxLinkBytes)));
+        case CelautErrorKind.noSpace:
+          await _showNoSpace(e, link.url);
         case CelautErrorKind.invalidInput:
           _showLinkProblem(l.celautLinkBadFile(e.message));
         case CelautErrorKind.transferFailed:
@@ -907,6 +909,34 @@ class _RunServiceSectionState extends State<RunServiceSection> {
       if (mounted) await showTransferFailure(context, const PackageRefused(PackageRefusal.noDirectory));
     }
     return null;
+  }
+
+  /// The phone has not enough free space for the download of [url] (issue #151). Continue
+  /// is offered only when the bytes that arrived stay on the phone: a download refused
+  /// before its first byte keeps nothing.
+  Future<void> _showNoSpace(CelautError e, String url) async {
+    final sizes = noSpaceOf(e);
+    final kept = (await _library.pendingLink())?.url == url;
+    if (!mounted) return;
+    final l = context.l10n;
+    if (sizes == null) {
+      _showLinkProblem(CelautStrings.errorText(CelautErrorKind.noSpace));
+      return;
+    }
+    final needed = CelautStrings.bytes(sizes.needed);
+    final available = CelautStrings.bytes(sizes.available);
+    if (!kept) {
+      _showLinkProblem(l.celautLinkNoSpaceRetry(needed, available));
+      return;
+    }
+    _showLinkProblem(
+      l.celautLinkNoSpace(needed, available),
+      action: SnackBarAction(
+        key: const Key('link-retry'),
+        label: l.celautLinkPendingContinue,
+        onPressed: () => unawaited(_importAndTell(() async => ChosenFile.link(url))),
+      ),
+    );
   }
 
   Future<bool> _confirmHttp(String url) async {

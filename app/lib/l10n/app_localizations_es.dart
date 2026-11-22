@@ -7879,6 +7879,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautErrorNoDescendants => 'Este nodo no admite descendientes.';
 
   @override
+  String get celautErrorNoSpace =>
+      'El teléfono no tiene suficiente espacio libre.';
+
+  @override
   String get celautErrorOnionNeedsTor =>
       'Una dirección onion necesita Tor. Activa Tor en los ajustes de red: el cliente Tor de la app o un proxy externo, como Orbot.';
 
@@ -8623,6 +8627,16 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String celautLinkTooLarge(String limit) {
     return 'El archivo es mayor que $limit, el límite de una descarga. Sus bytes se borraron.';
+  }
+
+  @override
+  String celautLinkNoSpace(String needed, String available) {
+    return 'No hay suficiente espacio libre. La descarga necesita $needed y el teléfono tiene $available libres. Libera espacio y toca Continuar.';
+  }
+
+  @override
+  String celautLinkNoSpaceRetry(String needed, String available) {
+    return 'No hay suficiente espacio libre. La descarga necesita $needed y el teléfono tiene $available libres. Libera espacio y vuelve a intentarlo.';
   }
 
   @override

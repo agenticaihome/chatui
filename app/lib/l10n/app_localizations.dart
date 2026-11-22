@@ -12497,6 +12497,12 @@ abstract class AppLocalizations {
   /// **'This node does not support descendants.'**
   String get celautErrorNoDescendants;
 
+  /// No description provided for @celautErrorNoSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone has not enough free space.'**
+  String get celautErrorNoSpace;
+
   /// No description provided for @celautErrorOnionNeedsTor.
   ///
   /// In en, this message translates to:
@@ -13708,6 +13714,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The file is larger than {limit}, the limit of a download. Its bytes were deleted.'**
   String celautLinkTooLarge(String limit);
+
+  /// No description provided for @celautLinkNoSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough free space. The download needs {needed} and the phone has {available} free. Free some space, then tap Continue.'**
+  String celautLinkNoSpace(String needed, String available);
+
+  /// No description provided for @celautLinkNoSpaceRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough free space. The download needs {needed} and the phone has {available} free. Free some space, then try again.'**
+  String celautLinkNoSpaceRetry(String needed, String available);
 
   /// No description provided for @celautLinkBadFile.
   ///

@@ -6725,6 +6725,7 @@ impl SseDecode for crate::api::celaut::CelautErrorKind {
             23 => crate::api::celaut::CelautErrorKind::TransferFailed,
             24 => crate::api::celaut::CelautErrorKind::NoDescendants,
             25 => crate::api::celaut::CelautErrorKind::OnionNeedsTor,
+            26 => crate::api::celaut::CelautErrorKind::NoSpace,
             _ => unreachable!("Invalid variant for CelautErrorKind: {}", inner),
         };
     }
@@ -10404,6 +10405,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut::CelautErrorKind {
             Self::TransferFailed => 23.into_dart(),
             Self::NoDescendants => 24.into_dart(),
             Self::OnionNeedsTor => 25.into_dart(),
+            Self::NoSpace => 26.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -12834,6 +12836,7 @@ impl SseEncode for crate::api::celaut::CelautErrorKind {
                 crate::api::celaut::CelautErrorKind::TransferFailed => 23,
                 crate::api::celaut::CelautErrorKind::NoDescendants => 24,
                 crate::api::celaut::CelautErrorKind::OnionNeedsTor => 25,
+                crate::api::celaut::CelautErrorKind::NoSpace => 26,
                 _ => {
                     unimplemented!("");
                 }

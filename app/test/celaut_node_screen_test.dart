@@ -384,6 +384,7 @@ void main() {
       CelautErrorKind.transferFailed: 'The transfer of the service stopped',
       CelautErrorKind.noDescendants: 'does not support descendants',
       CelautErrorKind.onionNeedsTor: 'An onion address needs Tor',
+      CelautErrorKind.noSpace: 'not enough free space',
     };
     for (final entry in cases.entries) {
       testWidgets('${entry.key.name} shows its text and the detail', (tester) async {

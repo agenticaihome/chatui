@@ -5646,6 +5646,7 @@
   "btcToolBackupBlurb": "The same words as the wallet",
   "btcToolLockBlurb": "Lock the wallet: Ergo and Bitcoin",
   "celautErrorNoDescendants": "This node does not support descendants.",
+  "celautErrorNoSpace": "The phone has not enough free space.",
   "celautErrorOnionNeedsTor": "An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.",
   "descendantsTitle": "Descendants",
   "descendantsNote": "Instances that this instance started, and the ones that they started. The app finds them when you check. A check asks the node and costs MU.",
@@ -6130,6 +6131,28 @@
   "@celautLinkTooLarge": {
     "placeholders": {
       "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkNoSpace": "Not enough free space. The download needs {needed} and the phone has {available} free. Free some space, then tap Continue.",
+  "@celautLinkNoSpace": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      },
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkNoSpaceRetry": "Not enough free space. The download needs {needed} and the phone has {available} free. Free some space, then try again.",
+  "@celautLinkNoSpaceRetry": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      },
+      "available": {
         "type": "String"
       }
     }

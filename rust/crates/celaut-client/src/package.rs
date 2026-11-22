@@ -43,6 +43,29 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
 /// chunk of 1 MiB; this leaves room, and refuses a false length before it allocates.
 pub const MAX_RECORD: u32 = 16 * 1024 * 1024;
 
+/// The space that the app can use on the disk of `path`, in bytes (`statvfs`: the blocks
+/// free for a user that is not root × their size). `None` when the system does not say.
+pub fn free_space(path: &Path) -> Option<u64> {
+    #[cfg(unix)]
+    {
+        let s = rustix::fs::statvfs(path).ok()?;
+        Some(s.f_bavail.saturating_mul(s.f_frsize))
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        None
+    }
+}
+
+/// True for the error of a write to a full disk.
+pub fn is_disk_full(e: &std::io::Error) -> bool {
+    matches!(
+        e.kind(),
+        std::io::ErrorKind::StorageFull | std::io::ErrorKind::QuotaExceeded
+    )
+}
+
 /// Why a package cannot be used.
 #[derive(Debug, thiserror::Error)]
 pub enum PackageError {
@@ -62,6 +85,11 @@ pub enum PackageError {
     /// A download is larger than the limit, in bytes.
     #[error("the file is larger than the limit of {0} bytes")]
     TooLarge(u64),
+    /// The phone has not enough free space for what a download still writes, plus the
+    /// space that must stay free ([`crate::link::LinkOptions::min_free`]). `needed` counts
+    /// both; `available` is the space that the app can use now, in bytes.
+    #[error("not enough free space: {needed} bytes are needed and {available} are free")]
+    NoSpace { needed: u64, available: u64 },
     /// The node gave an error.
     #[error(transparent)]
     Wire(#[from] WireError),
@@ -1140,6 +1168,15 @@ pub async fn into_library_whole(
     match tokio::fs::rename(source, &partial).await {
         Ok(()) => {}
         Err(_) => {
+            // Another disk: the copy needs the size of the file a second time, until the
+            // source is deleted.
+            let len = tokio::fs::metadata(source).await?.len();
+            let needed = len.saturating_add(crate::link::MIN_FREE);
+            if let Some(available) = free_space(&folder) {
+                if needed > available {
+                    return Err(PackageError::NoSpace { needed, available });
+                }
+            }
             tokio::fs::copy(source, &partial).await.inspect_err(|_| {
                 let _ = std::fs::remove_file(&partial);
             })?;
