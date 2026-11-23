@@ -909,6 +909,42 @@ class AppLocalizationsEs extends AppLocalizations {
   String get displayPaletteGroupMarvel => 'Marvel';
 
   @override
+  String get themeIronManNightName => 'Iron Man de noche';
+
+  @override
+  String get themeIronManDayName => 'Iron Man de día';
+
+  @override
+  String get themeIronManHint => 'Marvel · rojo y oro';
+
+  @override
+  String get themeSpiderManNightName => 'Spider-Man de noche';
+
+  @override
+  String get themeSpiderManDayName => 'Spider-Man de día';
+
+  @override
+  String get themeSpiderManHint => 'Marvel · rojo y azul, telarañas';
+
+  @override
+  String get themeHulkNightName => 'Hulk de noche';
+
+  @override
+  String get themeHulkDayName => 'Hulk de día';
+
+  @override
+  String get themeHulkHint => 'Marvel · verde gamma y morado';
+
+  @override
+  String get themeThorNightName => 'Thor de noche';
+
+  @override
+  String get themeThorDayName => 'Thor de día';
+
+  @override
+  String get themeThorHint => 'Marvel · tormenta y relámpago';
+
+  @override
   String get themeCyberpunkName => 'Cyberpunk';
 
   @override

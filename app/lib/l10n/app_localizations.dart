@@ -1658,6 +1658,78 @@ abstract class AppLocalizations {
   /// **'Marvel'**
   String get displayPaletteGroupMarvel;
 
+  /// No description provided for @themeIronManNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Iron Man Night'**
+  String get themeIronManNightName;
+
+  /// No description provided for @themeIronManDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Iron Man Day'**
+  String get themeIronManDayName;
+
+  /// No description provided for @themeIronManHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Marvel · red and gold'**
+  String get themeIronManHint;
+
+  /// No description provided for @themeSpiderManNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Spider-Man Night'**
+  String get themeSpiderManNightName;
+
+  /// No description provided for @themeSpiderManDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Spider-Man Day'**
+  String get themeSpiderManDayName;
+
+  /// No description provided for @themeSpiderManHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Marvel · red and blue, web'**
+  String get themeSpiderManHint;
+
+  /// No description provided for @themeHulkNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hulk Night'**
+  String get themeHulkNightName;
+
+  /// No description provided for @themeHulkDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hulk Day'**
+  String get themeHulkDayName;
+
+  /// No description provided for @themeHulkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Marvel · gamma green and purple'**
+  String get themeHulkHint;
+
+  /// No description provided for @themeThorNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Thor Night'**
+  String get themeThorNightName;
+
+  /// No description provided for @themeThorDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Thor Day'**
+  String get themeThorDayName;
+
+  /// No description provided for @themeThorHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Marvel · storm and lightning'**
+  String get themeThorHint;
+
   /// No description provided for @themeCyberpunkName.
   ///
   /// In en, this message translates to:
