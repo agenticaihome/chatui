@@ -214,5 +214,5 @@ jobs:
           (cd dist && sha256sum *.apk *.ipa > SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
-            --title "chatui ${GITHUB_REF_NAME#v}" \
+            --title "Celaut ${GITHUB_REF_NAME#v}" \
             --notes "Mark this release as latest after the test on GrapheneOS. The updater ignores prereleases. The .ipa is unsigned: install it with AltStore, SideStore or Sideloadly (docs/ios.md)."

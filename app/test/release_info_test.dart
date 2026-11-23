@@ -24,7 +24,7 @@ Map<String, Object?> release({
 Map<String, Object?> asset({
   Object? name = 'chatui-1.0.0-beta.2-universal.apk',
   Object? size = 1000,
-  Object? url = 'https://github.com/celaut-project/chatui/releases/download/v1.0.0-beta.2/chatui-1.0.0-beta.2-universal.apk',
+  Object? url = 'https://github.com/celaut-project/superapp/releases/download/v1.0.0-beta.2/chatui-1.0.0-beta.2-universal.apk',
   Object? digest,
   Object? state = 'uploaded',
 }) =>
@@ -39,7 +39,7 @@ Map<String, Object?> asset({
 const hex = 'e64eb689bd9b4c580a40ee6f1621e6cc174f2114bc9da2acb7a7e1967abf9d10';
 
 ReleaseAsset named(String name) =>
-    ReleaseAsset(name: name, size: 10, url: Uri.parse('https://github.com/celaut-project/chatui/releases/download/v/$name'));
+    ReleaseAsset(name: name, size: 10, url: Uri.parse('https://github.com/celaut-project/superapp/releases/download/v/$name'));
 
 void main() {
   group('GitHub release JSON', () {
@@ -58,7 +58,7 @@ void main() {
       expect(arm.size, 50254123);
       expect(arm.sha256, hex);
       expect(arm.url.toString(),
-          'https://github.com/celaut-project/chatui/releases/download/v1.0.0-beta.1/chatui-1.0.0-beta.1-arm64-v8a.apk');
+          'https://github.com/celaut-project/superapp/releases/download/v1.0.0-beta.1/chatui-1.0.0-beta.1-arm64-v8a.apk');
       expect(info.assets.map((a) => a.sha256), everyElement(isNotNull));
     });
 
@@ -202,7 +202,7 @@ void main() {
 
     test('an address that is not Argus-on-GitHub material is skipped', () {
       for (final bad in [
-        'http://github.com/celaut-project/chatui/releases/download/v1/a.apk',
+        'http://github.com/celaut-project/superapp/releases/download/v1/a.apk',
         'https://evil.example/a.apk',
         'https://github.com.evil.example/a.apk',
         'https://evilgithubusercontent.com/a.apk',
@@ -230,7 +230,7 @@ void main() {
   group('trusted release hosts', () {
     test('github.com and the content hosts it hands downloads to', () {
       for (final ok in [
-        'https://github.com/celaut-project/chatui/releases/download/v1/a.apk',
+        'https://github.com/celaut-project/superapp/releases/download/v1/a.apk',
         'https://objects.githubusercontent.com/github-production-release-asset/1/a',
         'https://release-assets.githubusercontent.com/github-production-release-asset/1/a?sig=x',
         'https://GITHUB.com/a',

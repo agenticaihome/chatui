@@ -1,6 +1,6 @@
 # Celaut client plan
 
-This plan puts the Celaut part of chatui into milestones. The design is in the notes
+This plan puts the Celaut part of the app into milestones. The design is in the notes
 in `docs/celaut/` (decisions, ui, wire, balancer, catalog). This plan follows those
 decisions and does not change them. Each milestone ends with a check that a reviewer
 can run.
@@ -15,7 +15,7 @@ that closes the plan (#43), and the chat-first UI on top of it. **The plan is co
 | M0: build from source, CI, debug APK in CI | Done (PR #1). CI runs rust, flutter and android on each pull request |
 | `celaut-proto` and the design notes (`docs/celaut/`) | Done (merged from `celaut-crates` in `160d24c`) |
 | M0b: trimmed wallet and new identity | Done (PR #3). English and Spanish (PR #12) |
-| `bee-rpc-over-grpc-rs` (M1a) | Done. Tag `v0.1.0` (`a832abc`), a git dependency of `celaut-wire`. GPL-3.0-only, as chatui (section 7, decision 10) |
+| `bee-rpc-over-grpc-rs` (M1a) | Done. Tag `v0.1.0` (`a832abc`), a git dependency of `celaut-wire`. GPL-3.0-only, as Celaut (section 7, decision 10) |
 | M1: connect to a node and show its advertisement | Done (PR #9) |
 | M2: quote, start, tunnel, stop on free credit | Done (PR #11). Checked on our own node from the client crate and from the app in the emulator (M2 in section 5). A phone, a node on the internet and more than one node: section 0.1 |
 | M3: deposit with the wallet | Done (PR #13, #15). The wallet of the app pays; the deposit asks for its PIN or fingerprint. One deposit of 0.01 ERG on mainnet from the app in the emulator to our node on 2026-10-13: the node accepted it and the client got 10 000 000 MU (`docs/celaut/deposit-e2e.md`) |
@@ -136,7 +136,7 @@ source. CI runs on master and builds the debug APK. Check: the CI `android` job.
 **M0b: trimmed wallet and new identity** (decisions.md). Remove the DeFi crates and
 screens, the dApp browser, the CoinGecko prices and the app fee. Label "Celaut",
 applicationId `org.celaut.chatui`, flutter_zxing scanner, updater on the
-celaut-project/chatui releases. Check: the APK runs on GrapheneOS without Play
+celaut-project/superapp releases. Check: the APK runs on GrapheneOS without Play
 Services; `flutter test` and `cargo test` pass.
 
 Start M0b from master. A partial trim exists on the machine of Josemi, but it will
@@ -427,7 +427,7 @@ that covers the protocol only, and its section 10 has the conformance tests that
 service must pass. The app sends image and audio files (`file_picker`, the system document
 picker), shows them in the bubbles and gives the text and the files back to the field when a
 send fails. The flows are in `docs/celaut/ui-chat-first.md`, section 7. The services of the
-sibling repositories that read the files are not described in chatui.
+sibling repositories that read the files are not described in superapp.
 
 Check on 2026-10-21, on our node (x86_64 with KVM, nodo `ec1274d`, default config), from
 the debug APK of the closing PR in the x86_64 emulator (Android 15, AOSP), the node at
@@ -519,7 +519,7 @@ the host got 404 (no latest release) and its GitHub counter did not move. With T
 8. **Node directory:** no bootstrap list in the app. Only on-chain node boxes and
    nodes that the user adds by address or QR code.
 9. **Release key:** changed on 2026-10-12. CI signs the release APKs with a key used
-   only for chatui. The key is in the secrets of the GitHub environment `release`,
+   only for Celaut. The key is in the secrets of the GitHub environment `release`,
    which accepts only tags `v*` and needs Josemi's approval before each signing job.
    Steps: set `appVersion` and `appBuildNumber` in `build_info.dart` and `pubspec.yaml`,
    merge, then push the tag `v<appVersion>`. The `release` workflow builds the APKs,
@@ -528,8 +528,8 @@ the host got 404 (no latest release) and its GitHub counter did not move. With T
    the test on GrapheneOS.
 
 10. **License (decided, 2026-10-12):** `bee-rpc` is GPL-3.0-only and the app links it
-    into `libwallet_ffi.so`. Josemi decided that chatui is GPL-3.0-only. `LICENSE` has
-    the text, and `NOTICE.md` keeps the MIT notice of Argus, from which chatui is
+    into `libwallet_ffi.so`. Josemi decided that Celaut is GPL-3.0-only. `LICENSE` has
+    the text, and `NOTICE.md` keeps the MIT notice of Argus, from which Celaut is
     forked. The workspace `license` is `GPL-3.0-only`.
 
 11. **Wallets, storage and home screen (decided, 2026-10-13):** full wallets (seed,

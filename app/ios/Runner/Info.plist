@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Chatui</string>
+	<string>Celaut</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -51,7 +51,7 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Face ID opens your wallet.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Chatui connects to Celaut nodes on your local network when you add one by its local address.</string>
+	<string>Celaut connects to the nodes on your local network when you add one by its local address.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Only for the automatic vehicle motion cues, if you turn on "Use the speed of the GPS": the speed tells a car from a walk. No position is kept or sent.</string>
 	<key>NSMicrophoneUsageDescription</key>
@@ -89,7 +89,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Chatui</string>
+	<string>Celaut</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

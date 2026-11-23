@@ -85,13 +85,13 @@ the Celaut database, and the rules of the `celaut:`/`ergopay:` links and of a gi
 | `SecureStorageHandler.kt` (Keystore, `EncryptedSharedPreferences`) | `SecureStoragePlugin.swift`: the Keychain, `AfterFirstUnlockThisDeviceOnly` (no backup, no other device). Face ID, Touch ID or the passcode opens the wallet (`LAContext`, `.deviceOwnerAuthentication`). The Celaut database is in Application Support, out of the backups |
 | `FLAG_SECURE` (`setSecureFlag`) | Not possible on iOS: `setSecureFlag` answers `false`, so the app says that it cannot block screenshots. The app switcher shows a blur instead of the screen (`LifecyclePlugin.swift`) |
 | `DeepLinkHandler.kt`, `OpenLinkActivity.kt` (`ergopay:`, `celaut:`) | `LinksPlugin.swift`: the URL schemes `ergopay` and `celaut` of `Info.plist`, from the scene events (cold start and while the app runs). `celaut://import?url=` gives the link to the import, as on Android. Flutter's own deep linking is off (`FlutterDeepLinkingEnabled`), as on Android |
-| `IncomingPackageHandler.kt`, `OpenPackageActivity.kt` (open or share a `.celaut.bee` file) | `LinksPlugin.swift`: the document type `org.celaut.bee` (extension `bee`, MIME `application/vnd.celaut.bee`). "Open in Chatui" from Files or another app gives the file to the import. iOS copies it into the inbox of the app, and the import moves it from there (no second copy) |
+| `IncomingPackageHandler.kt`, `OpenPackageActivity.kt` (open or share a `.celaut.bee` file) | `LinksPlugin.swift`: the document type `org.celaut.bee` (extension `bee`, MIME `application/vnd.celaut.bee`). "Open in Celaut" from Files or another app gives the file to the import. iOS copies it into the inbox of the app, and the import moves it from there (no second copy) |
 | `PackageHandler.kt` (pick, copy with progress, file descriptor, metered) | `PackagePlugin.swift`: the Files picker (opened in place, no copy by the picker), the copy with its `copied` progress and `cancelCopy`, `openPackage` with a file descriptor that Rust reads, and `isMetered` from `NWPathMonitor` (cellular or Low Data Mode) |
 | `MotionHandler.kt` (vehicle motion cues, GPS speed) | `MotionPlugin.swift`: CoreMotion device motion at 50 Hz in m/s² on the axes of the screen (CoreMotion gives g with the opposite sign, so ×−9.80665), and the GPS speed from Core Location while in use (precise location) |
 | `CardsSensorsHandler.kt` (gyroscope, vibration, sound) | `CardsSensorsPlugin` in `MotionPlugin.swift`: the rotation rate of device motion (bias removed, like the calibrated Android gyroscope), haptics on an iPhone, and the short PCM sound on the ambient audio session (silent switch and volume of the phone) |
 | `UpdateHandler.kt` (in-app update) | Off: `UpdateChannel.supported` is Android only. Updates come with a new `.ipa` |
 | `ConversationService.kt` (foreground service) | Off: iOS has no such service. `ForegroundHolds` does nothing on iOS. `LifecyclePlugin.swift` takes a short background task to close the sessions (section 4) |
-| The web interface of a service opens in the browser | It opens in a browser inside the app (`SFSafariViewController`): in another app, iOS would suspend Chatui and its local port |
+| The web interface of a service opens in the browser | It opens in a browser inside the app (`SFSafariViewController`): in another app, iOS would suspend Celaut and its local port |
 
 The plugins: `flutter_zxing` (camera, QR), `record` (microphone), `share_plus`,
 `file_picker`, `flutter_local_notifications` (while the app runs; the permission is asked
@@ -149,7 +149,7 @@ exists.
 `tor-memquota`) calls the macOS-only `proc_pidinfo` in `Process::open_files`, so
 `scripts/build_ios.sh` builds iOS with a copy of the crate of `Cargo.lock` (checksum checked)
 where that function returns `None` on iOS (sysinfo 0.39 has the fix; Arti 0.47 asks for 0.38;
-chatui never calls it). Arti keeps its state in the
+Celaut never calls it). Arti keeps its state in the
 private folder of the app, next to the Celaut database. The CI job `ios-simulator` runs
 `integration_test/ios_tor_test.dart`: Arti bootstraps inside the iOS app, then a connection
 goes through its SOCKS5 proxy to a web server through an exit, and to an onion service. It

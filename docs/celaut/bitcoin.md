@@ -1,6 +1,6 @@
 # Bitcoin wallet and deposits in BTC (issue #92)
 
-Chatui has a Bitcoin wallet next to the Ergo wallet, and it can buy MU from a node with
+Celaut has a Bitcoin wallet next to the Ergo wallet, and it can buy MU from a node with
 BTC. This note gives the design, what nodo does, and what nodo can add.
 
 Sources: celaut-project/nodo `dev` (`nodo:docs/BITCOIN.md`,

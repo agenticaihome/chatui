@@ -70,7 +70,7 @@ void main() {
       expect(compute, contains(text), reason: text);
     }
     final general = rowsOf(tester, 'general');
-    for (final text in ['Security', 'Display', 'Chats home', 'About Chatui']) {
+    for (final text in ['Security', 'Display', 'Chats home', 'About Celaut']) {
       expect(general, contains(text), reason: text);
     }
     // The one wallet has no name.

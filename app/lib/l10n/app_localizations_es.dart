@@ -9,7 +9,7 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get appTitle => 'Chatui';
+  String get appTitle => 'Celaut';
 
   @override
   String get commonCancel => 'Cancelar';
@@ -545,7 +545,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addressBookTitle => 'Libreta de direcciones';
 
   @override
-  String get settingsAboutRowTitle => 'Acerca de Chatui';
+  String get settingsAboutRowTitle => 'Acerca de Celaut';
 
   @override
   String get settingsAboutRowSubtitle =>
@@ -641,7 +641,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get aboutUpdatesNote =>
-      'Desactivado por defecto. Si está activado, Chatui pide a api.github.com la última versión una vez al día al iniciarse. \"Comprobar ahora\" hace lo mismo cuando lo pides, aunque esto esté desactivado. No se envía nada más: ni cuenta, ni token, ni versión de la app, ni identificador del dispositivo. Una descarga viene de github.com y se comprueba con la clave de firma de esta app antes de pedir a Android que la instale.';
+      'Desactivado por defecto. Si está activado, Celaut pide a api.github.com la última versión una vez al día al iniciarse. \"Comprobar ahora\" hace lo mismo cuando lo pides, aunque esto esté desactivado. No se envía nada más: ni cuenta, ni token, ni versión de la app, ni identificador del dispositivo. Una descarga viene de github.com y se comprueba con la clave de firma de esta app antes de pedir a Android que la instale.';
 
   @override
   String get aboutThisBuild => 'Esta compilación';
@@ -665,7 +665,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get aboutLightClientNote =>
-      'Chatui es un cliente ligero: habla con nodos públicos de Ergo por HTTPS y nunca envía tus claves a ningún sitio.';
+      'Celaut es un cliente ligero: habla con nodos públicos de Ergo por HTTPS y nunca envía tus claves a ningún sitio.';
 
   @override
   String get aboutSigningCertificate => 'Certificado de firma';
@@ -1437,12 +1437,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String updateCardVersion(String version) {
-    return 'Chatui $version';
+    return 'Celaut $version';
   }
 
   @override
   String updateCardVersionDate(String version, String date) {
-    return 'Chatui $version · $date';
+    return 'Celaut $version · $date';
   }
 
   @override
@@ -1493,7 +1493,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String updateAssetNote(String name, String size) {
-    return '$name · $size. Antes de instalar nada, Chatui comprueba el archivo con la suma de verificación que indica GitHub y con la clave con la que está firmada esta app.';
+    return '$name · $size. Antes de instalar nada, Celaut comprueba el archivo con la suma de verificación que indica GitHub y con la clave con la que está firmada esta app.';
   }
 
   @override
@@ -1505,7 +1505,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String updateNoticeAvailable(String version) {
-    return 'Chatui $version está disponible.';
+    return 'Celaut $version está disponible.';
   }
 
   @override
@@ -1564,11 +1564,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateErrorDownloadTooLarge =>
-      'La descarga es más grande de lo que Chatui acepta.';
+      'La descarga es más grande de lo que Celaut acepta.';
 
   @override
   String get updateErrorStorage =>
-      'Chatui no pudo guardar la descarga. ¿El teléfono se quedó sin espacio?';
+      'Celaut no pudo guardar la descarga. ¿El teléfono se quedó sin espacio?';
 
   @override
   String get updateErrorLargerThanListed =>
@@ -1591,7 +1591,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateRejectedAppKeyUnknown =>
-      'Chatui no pudo leer su propia clave de firma, así que no puede comprobar esta descarga. Se ha eliminado.';
+      'Celaut no pudo leer su propia clave de firma, así que no puede comprobar esta descarga. Se ha eliminado.';
 
   @override
   String get updateCheckFailed => 'La búsqueda de actualizaciones falló.';
@@ -1612,7 +1612,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get updateInstallPermission =>
-      'Android necesita tu permiso primero. Permite que Chatui instale apps en la siguiente pantalla y vuelve a tocar Instalar.';
+      'Android necesita tu permiso primero. Permite que Celaut instale apps en la siguiente pantalla y vuelve a tocar Instalar.';
 
   @override
   String get updateInstallerFailed =>
@@ -1623,7 +1623,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get walletSettingsRemoveBody =>
-      'Esto quita la billetera de este dispositivo. Chatui no guarda una copia de la frase de recuperación; el papel en el que la escribiste al crear esta billetera es la única forma de volver a entrar. Después puedes crear o restaurar otra billetera.';
+      'Esto quita la billetera de este dispositivo. Celaut no guarda una copia de la frase de recuperación; el papel en el que la escribiste al crear esta billetera es la única forma de volver a entrar. Después puedes crear o restaurar otra billetera.';
 
   @override
   String get walletSettingsRemoveFailed => 'No se pudo quitar la billetera';
@@ -1704,7 +1704,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get walletSettingsBackupNote =>
-      'Chatui no guarda una copia de la frase de recuperación. El papel en el que la escribiste al crear o restaurar es la única forma de volver a entrar.';
+      'Celaut no guarda una copia de la frase de recuperación. El papel en el que la escribiste al crear o restaurar es la única forma de volver a entrar.';
 
   @override
   String get walletSettingsRemoveWallet => 'Quitar billetera';
@@ -1867,7 +1867,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get coinSelectionNone => 'Ninguna caja elegida — Chatui las elegirá.';
+  String get coinSelectionNone => 'Ninguna caja elegida — Celaut las elegirá.';
 
   @override
   String coinRawUnits(int count, String amount) {
@@ -1913,7 +1913,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get spendUnconfirmedNote =>
-      'Desactivado: el dinero que recibes, y el cambio de tus propios envíos, espera una confirmación (el siguiente bloque, normalmente unos minutos) antes de que Chatui lo gaste. Activado: se puede gastar al momento, pero si la transacción que lo trajo se descarta, la que lo gasta también falla. En ambos casos, las monedas que una transacción pendiente ya está gastando nunca se vuelven a usar.';
+      'Desactivado: el dinero que recibes, y el cambio de tus propios envíos, espera una confirmación (el siguiente bloque, normalmente unos minutos) antes de que Celaut lo gaste. Activado: se puede gastar al momento, pero si la transacción que lo trajo se descarta, la que lo gasta también falla. En ambos casos, las monedas que una transacción pendiente ya está gastando nunca se vuelven a usar.';
 
   @override
   String get rentNoChargeZeroRate =>
@@ -2316,7 +2316,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get tokenBurnDetail =>
-      'Estas unidades quedan fuera de todas las salidas de la transacción y dejan de existir. Nadie, ni siquiera Chatui, puede recuperarlas.';
+      'Estas unidades quedan fuera de todas las salidas de la transacción y dejan de existir. Nadie, ni siquiera Celaut, puede recuperarlas.';
 
   @override
   String get tokenBurnBackToYou => 'Vuelve a ti';
@@ -2576,7 +2576,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String tokenLeaveFor(String host) {
-    return '¿Salir de Chatui hacia $host?';
+    return '¿Salir de Celaut hacia $host?';
   }
 
   @override
@@ -2844,7 +2844,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get discoverIntro =>
-      'Lo que Chatui puede hacer además de enviar y recibir. Cada herramienta explica qué es, qué puedes hacer con ella y qué tener en cuenta antes de abrirla.';
+      'Lo que Celaut puede hacer además de enviar y recibir. Cada herramienta explica qué es, qué puedes hacer con ella y qué tener en cuenta antes de abrirla.';
 
   @override
   String get discoverTools => 'Herramientas';
@@ -3109,7 +3109,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get overviewPrototypeBody =>
-      'Chatui es un prototipo sin auditar. Las transacciones en Ergo son irreversibles — usa solo fondos que puedas permitirte perder.';
+      'Celaut es un prototipo sin auditar. Las transacciones en Ergo son irreversibles — usa solo fondos que puedas permitirte perder.';
 
   @override
   String get overviewGotIt => 'Entendido';
@@ -4506,7 +4506,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get sendAutoInputsNote =>
-      'Chatui elegirá las cajas por ti. Elige algunas para controlar exactamente qué gasta esta transacción.';
+      'Celaut elegirá las cajas por ti. Elige algunas para controlar exactamente qué gasta esta transacción.';
 
   @override
   String sendShortBy(String amount) {
@@ -6843,7 +6843,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get celautEnvDeclUnreadableBody =>
-      'La app no ha podido leer la interfaz ni las variables de este servicio, así que no sabe si Chatui lo admite ni si necesita variables. Ejecútalo igualmente o cancela.';
+      'La app no ha podido leer la interfaz ni las variables de este servicio, así que no sabe si Celaut lo admite ni si necesita variables. Ejecútalo igualmente o cancela.';
 
   @override
   String get celautEnvRunWithout => 'Ejecutar igualmente';
@@ -6884,11 +6884,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get serviceInfoChatSupported =>
-      'Sigue la convención de chat de Chatui, así que se abre como una conversación.';
+      'Sigue la convención de chat de Celaut, así que se abre como una conversación.';
 
   @override
   String get serviceInfoChatUnsupported =>
-      'Chatui no admite su interfaz: ningún puerto habla la convención de chat (tcp, luego http2, grpc y chat encima). Se puede ejecutar, pero Chatui no puede abrir una conversación con él.';
+      'Celaut no admite su interfaz: ningún puerto habla la convención de chat (tcp, luego http2, grpc y chat encima). Se puede ejecutar, pero Celaut no puede abrir una conversación con él.';
 
   @override
   String get serviceInfoChatUnknown =>
@@ -6995,11 +6995,11 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get celautChatUnsupportedTitle => 'Chatui no admite esta interfaz';
+  String get celautChatUnsupportedTitle => 'Celaut no admite esta interfaz';
 
   @override
   String get celautChatUnsupportedBody =>
-      'Este servicio no sigue la convención de chat que usa Chatui, así que Chatui no puede abrir una conversación con él. Si lo ejecutas, aparece en Cómputo y no podrás hablar con él desde aquí.';
+      'Este servicio no sigue la convención de chat que usa Celaut, así que Celaut no puede abrir una conversación con él. Si lo ejecutas, aparece en Cómputo y no podrás hablar con él desde aquí.';
 
   @override
   String get celautChatRunAnyway => 'Ejecutar igualmente';
@@ -7688,7 +7688,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get btcMainnetWarnBody =>
-      'En mainnet las monedas tienen valor y un envío no se puede deshacer. La billetera Bitcoin de Chatui es nueva: usa cantidades pequeñas.';
+      'En mainnet las monedas tienen valor y un envío no se puede deshacer. La billetera Bitcoin de Celaut es nueva: usa cantidades pequeñas.';
 
   @override
   String get btcMainnetWarnOk => 'Usar mainnet';

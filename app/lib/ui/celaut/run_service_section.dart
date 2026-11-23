@@ -436,7 +436,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   /// What the app asks before it starts the service, after the quotes (a quote is free) and
   /// before the first start:
   ///
-  /// 1. If the interface of the service is not the chat convention of Chatui
+  /// 1. If the interface of the service is not the chat convention of Celaut
   ///    (`docs/celaut/chat.md`), an alert says so, and the user can run it anyway or cancel.
   /// 2. The environment variables that the service declares, one at a time
   ///    (`docs/celaut/env-variables.md`).
@@ -485,7 +485,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
       return await _confirmUnreadable(serviceId) ? const [] : null;
     }
     // The service was cut, or its interface was too large to decode: the app cannot tell if
-    // Chatui supports it, which is not the same as "unsupported".
+    // Celaut supports it, which is not the same as "unsupported".
     if (info.truncated || info.chat == ChatSupportView.unknown) {
       if (!mounted) return null;
       _hideRocket();
@@ -552,7 +552,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     );
   }
 
-  /// The alert of an interface that Chatui does not support. True to run it anyway.
+  /// The alert of an interface that Celaut does not support. True to run it anyway.
   Future<bool> _confirmUnsupported(String serviceId, ServiceInfoView info) async {
     final l = context.l10n;
     final run = await showDialog<bool>(
@@ -584,7 +584,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     return run == true;
   }
 
-  /// The service could not be read: the user cannot be told if Chatui supports it or if it
+  /// The service could not be read: the user cannot be told if Celaut supports it or if it
   /// needs variables. True to run it anyway.
   Future<bool> _confirmUnreadable(String serviceId, {ServiceInfoView? info}) async {
     final l = context.l10n;

@@ -26,7 +26,7 @@ enum AppPaths {
   }
 }
 
-/// The rules of the links that other apps give to Chatui (`docs/celaut/invite.md` section 6,
+/// The rules of the links that other apps give to Celaut (`docs/celaut/invite.md` section 6,
 /// `docs/celaut/package.md` "From a link"): Foundation only, shared by iOS and macOS.
 enum LinkRules {
   /// A `celaut:` link longer than this is cut after one more character, enough for Flutter

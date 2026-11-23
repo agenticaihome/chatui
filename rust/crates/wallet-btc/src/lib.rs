@@ -1,4 +1,4 @@
-//! The Bitcoin wallet of Chatui (issue #92).
+//! The Bitcoin wallet of Celaut (issue #92).
 //!
 //! - [`keys`]: the keys come from the same BIP-39 seed as the Ergo wallet, on the BIP-84
 //!   path (`m/84'/0'/0'` on mainnet, `m/84'/1'/0'` on the test networks). Any standard

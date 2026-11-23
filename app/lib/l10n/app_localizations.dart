@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Chatui'**
+  /// **'Celaut'**
   String get appTitle;
 
   /// No description provided for @commonCancel.
@@ -1025,7 +1025,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAboutRowTitle.
   ///
   /// In en, this message translates to:
-  /// **'About Chatui'**
+  /// **'About Celaut'**
   String get settingsAboutRowTitle;
 
   /// No description provided for @settingsAboutRowSubtitle.
@@ -1175,7 +1175,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutUpdatesNote.
   ///
   /// In en, this message translates to:
-  /// **'Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app\'s signing key before Android is asked to install it.'**
+  /// **'Off by default. When on, Celaut asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app\'s signing key before Android is asked to install it.'**
   String get aboutUpdatesNote;
 
   /// No description provided for @aboutThisBuild.
@@ -1217,7 +1217,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutLightClientNote.
   ///
   /// In en, this message translates to:
-  /// **'Chatui is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.'**
+  /// **'Celaut is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.'**
   String get aboutLightClientNote;
 
   /// No description provided for @aboutSigningCertificate.
@@ -2583,13 +2583,13 @@ abstract class AppLocalizations {
   /// No description provided for @updateCardVersion.
   ///
   /// In en, this message translates to:
-  /// **'Chatui {version}'**
+  /// **'Celaut {version}'**
   String updateCardVersion(String version);
 
   /// No description provided for @updateCardVersionDate.
   ///
   /// In en, this message translates to:
-  /// **'Chatui {version} · {date}'**
+  /// **'Celaut {version} · {date}'**
   String updateCardVersionDate(String version, String date);
 
   /// No description provided for @updateHideNotes.
@@ -2673,7 +2673,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateAssetNote.
   ///
   /// In en, this message translates to:
-  /// **'{name} · {size}. Before anything is installed, Chatui checks the file against the checksum GitHub lists and against the key this app is signed with.'**
+  /// **'{name} · {size}. Before anything is installed, Celaut checks the file against the checksum GitHub lists and against the key this app is signed with.'**
   String updateAssetNote(String name, String size);
 
   /// No description provided for @updateOpenReleasesPage.
@@ -2691,7 +2691,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateNoticeAvailable.
   ///
   /// In en, this message translates to:
-  /// **'Chatui {version} is available.'**
+  /// **'Celaut {version} is available.'**
   String updateNoticeAvailable(String version);
 
   /// No description provided for @updateNoticeView.
@@ -2781,13 +2781,13 @@ abstract class AppLocalizations {
   /// No description provided for @updateErrorDownloadTooLarge.
   ///
   /// In en, this message translates to:
-  /// **'The download is larger than Chatui will accept.'**
+  /// **'The download is larger than Celaut will accept.'**
   String get updateErrorDownloadTooLarge;
 
   /// No description provided for @updateErrorStorage.
   ///
   /// In en, this message translates to:
-  /// **'Chatui could not save the download. Is the phone out of storage?'**
+  /// **'Celaut could not save the download. Is the phone out of storage?'**
   String get updateErrorStorage;
 
   /// No description provided for @updateErrorLargerThanListed.
@@ -2823,7 +2823,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateRejectedAppKeyUnknown.
   ///
   /// In en, this message translates to:
-  /// **'Chatui could not read its own signing key, so it cannot check this download. It has been deleted.'**
+  /// **'Celaut could not read its own signing key, so it cannot check this download. It has been deleted.'**
   String get updateRejectedAppKeyUnknown;
 
   /// No description provided for @updateCheckFailed.
@@ -2859,7 +2859,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateInstallPermission.
   ///
   /// In en, this message translates to:
-  /// **'Android needs your permission first. Allow Chatui to install apps on the next screen, then tap Install again.'**
+  /// **'Android needs your permission first. Allow Celaut to install apps on the next screen, then tap Install again.'**
   String get updateInstallPermission;
 
   /// No description provided for @updateInstallerFailed.
@@ -2877,7 +2877,7 @@ abstract class AppLocalizations {
   /// No description provided for @walletSettingsRemoveBody.
   ///
   /// In en, this message translates to:
-  /// **'This removes the wallet from this device. Chatui does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.'**
+  /// **'This removes the wallet from this device. Celaut does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.'**
   String get walletSettingsRemoveBody;
 
   /// No description provided for @walletSettingsRemoveFailed.
@@ -3003,7 +3003,7 @@ abstract class AppLocalizations {
   /// No description provided for @walletSettingsBackupNote.
   ///
   /// In en, this message translates to:
-  /// **'Chatui does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.'**
+  /// **'Celaut does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.'**
   String get walletSettingsBackupNote;
 
   /// No description provided for @walletSettingsRemoveWallet.
@@ -3207,7 +3207,7 @@ abstract class AppLocalizations {
   /// No description provided for @coinSelectionNone.
   ///
   /// In en, this message translates to:
-  /// **'No boxes chosen — Chatui will pick them.'**
+  /// **'No boxes chosen — Celaut will pick them.'**
   String get coinSelectionNone;
 
   /// count is 1 for exactly one unit, else 2; amount is the formatted number.
@@ -3261,7 +3261,7 @@ abstract class AppLocalizations {
   /// No description provided for @spendUnconfirmedNote.
   ///
   /// In en, this message translates to:
-  /// **'Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Chatui spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.'**
+  /// **'Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Celaut spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.'**
   String get spendUnconfirmedNote;
 
   /// No description provided for @rentNoChargeZeroRate.
@@ -3891,7 +3891,7 @@ abstract class AppLocalizations {
   /// No description provided for @tokenBurnDetail.
   ///
   /// In en, this message translates to:
-  /// **'These units are left out of every output of the transaction and stop existing. Nobody, including Chatui, can bring them back.'**
+  /// **'These units are left out of every output of the transaction and stop existing. Nobody, including Celaut, can bring them back.'**
   String get tokenBurnDetail;
 
   /// No description provided for @tokenBurnBackToYou.
@@ -4275,7 +4275,7 @@ abstract class AppLocalizations {
   /// No description provided for @tokenLeaveFor.
   ///
   /// In en, this message translates to:
-  /// **'Leave Chatui for {host}?'**
+  /// **'Leave Celaut for {host}?'**
   String tokenLeaveFor(String host);
 
   /// No description provided for @tokenExplorerPrivacy.
@@ -4701,7 +4701,7 @@ abstract class AppLocalizations {
   /// No description provided for @discoverIntro.
   ///
   /// In en, this message translates to:
-  /// **'What Chatui can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.'**
+  /// **'What Celaut can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.'**
   String get discoverIntro;
 
   /// No description provided for @discoverTools.
@@ -5061,7 +5061,7 @@ abstract class AppLocalizations {
   /// No description provided for @overviewPrototypeBody.
   ///
   /// In en, this message translates to:
-  /// **'Chatui is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.'**
+  /// **'Celaut is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.'**
   String get overviewPrototypeBody;
 
   /// No description provided for @overviewGotIt.
@@ -7365,7 +7365,7 @@ abstract class AppLocalizations {
   /// No description provided for @sendAutoInputsNote.
   ///
   /// In en, this message translates to:
-  /// **'Chatui will pick boxes for you. Choose some to control exactly what this transaction spends.'**
+  /// **'Celaut will pick boxes for you. Choose some to control exactly what this transaction spends.'**
   String get sendAutoInputsNote;
 
   /// No description provided for @sendShortBy.
@@ -10880,7 +10880,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautEnvDeclUnreadableBody.
   ///
   /// In en, this message translates to:
-  /// **'The app could not read the interface and the variables of this service, so it cannot tell if Chatui supports it or if it needs variables. Run it anyway, or cancel.'**
+  /// **'The app could not read the interface and the variables of this service, so it cannot tell if Celaut supports it or if it needs variables. Run it anyway, or cancel.'**
   String get celautEnvDeclUnreadableBody;
 
   /// No description provided for @celautEnvRunWithout.
@@ -10946,13 +10946,13 @@ abstract class AppLocalizations {
   /// No description provided for @serviceInfoChatSupported.
   ///
   /// In en, this message translates to:
-  /// **'It follows the chat convention of Chatui, so it opens as a conversation.'**
+  /// **'It follows the chat convention of Celaut, so it opens as a conversation.'**
   String get serviceInfoChatSupported;
 
   /// No description provided for @serviceInfoChatUnsupported.
   ///
   /// In en, this message translates to:
-  /// **'Chatui does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Chatui cannot open a conversation with it.'**
+  /// **'Celaut does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Celaut cannot open a conversation with it.'**
   String get serviceInfoChatUnsupported;
 
   /// No description provided for @serviceInfoChatUnknown.
@@ -11132,13 +11132,13 @@ abstract class AppLocalizations {
   /// No description provided for @celautChatUnsupportedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Chatui does not support this interface'**
+  /// **'Celaut does not support this interface'**
   String get celautChatUnsupportedTitle;
 
   /// No description provided for @celautChatUnsupportedBody.
   ///
   /// In en, this message translates to:
-  /// **'This service does not follow the chat convention that Chatui uses, so Chatui cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.'**
+  /// **'This service does not follow the chat convention that Celaut uses, so Celaut cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.'**
   String get celautChatUnsupportedBody;
 
   /// No description provided for @celautChatRunAnyway.
@@ -12278,7 +12278,7 @@ abstract class AppLocalizations {
   /// No description provided for @btcMainnetWarnBody.
   ///
   /// In en, this message translates to:
-  /// **'On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Chatui is new: use small amounts.'**
+  /// **'On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Celaut is new: use small amounts.'**
   String get btcMainnetWarnBody;
 
   /// No description provided for @btcMainnetWarnOk.

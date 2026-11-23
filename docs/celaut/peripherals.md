@@ -78,7 +78,7 @@ Rules that apply to all peripherals:
 ### 2.1 Path
 
 ```
- phone (Chatui)                              node (nodo)                 instance
+ phone (Celaut)                              node (nodo)                 instance
 ┌──────────────────────────┐   TLS, bee-rpc  ┌──────────────┐  TCP, h2c  ┌──────────────────┐
 │ capture once             │  ServiceTunnel  │ relay, meter │            │ chat slot         │
 │ (AudioRecord / CameraX)  │═══ conn 1 ═════▶│ the bytes,   │──────────▶ │  ChatService      │

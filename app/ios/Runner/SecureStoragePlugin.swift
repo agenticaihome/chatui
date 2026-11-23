@@ -198,7 +198,7 @@ final class SecureStoragePlugin: NSObject, FlutterPlugin {
     // A phone with no passcode has nothing to ask: the wallet opens, as on Android.
     guard Self.canAuthenticateDevice() else { return answer() }
     let context = LAContext()
-    context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Unlock Chatui") { ok, error in
+    context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Unlock Celaut") { ok, error in
       DispatchQueue.main.async {
         if ok { return answer() }
         switch (error as? LAError)?.code {

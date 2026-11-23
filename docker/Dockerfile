@@ -1,4 +1,4 @@
-# Toolchain image for chatui: Flutter + Rust + codegen tools, pinned to the
+# Toolchain image for superapp: Flutter + Rust + codegen tools, pinned to the
 # versions CI uses. Build and run it through scripts/dev.sh.
 FROM ubuntu:24.04
 

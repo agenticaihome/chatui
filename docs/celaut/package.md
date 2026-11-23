@@ -78,7 +78,7 @@ Other ways in, all to the same import:
 - `celaut://import?url=<the link, URL-encoded>`: a web page, a QR code of another app, or
   the camera app opens it (`OpenLinkActivity`, BROWSABLE). It is the `celaut://` scheme of
   the node links (#138, [invite.md](invite.md)), with the host `import`;
-- an `http(s)` link whose path ends with `.celaut.bee`, when an app offers Chatui for it
+- an `http(s)` link whose path ends with `.celaut.bee`, when an app offers Celaut for it
   (`OpenPackageActivity`; no domain is verified, so Android 12+ opens such a link in the
   browser by itself);
 - a QR code that holds the link or the `celaut://import` link (the scan button of the

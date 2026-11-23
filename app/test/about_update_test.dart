@@ -148,7 +148,7 @@ void main() {
 
       expect(find.byKey(const Key('update-card')), findsOneWidget);
       expect(find.text('Update available'), findsOneWidget);
-      expect(find.textContaining('Chatui 1.0.0-beta.2'), findsOneWidget);
+      expect(find.textContaining('Celaut 1.0.0-beta.2'), findsOneWidget);
       expect(find.textContaining('Version 1.0.0-beta.2 is available'), findsOneWidget);
     });
 
@@ -176,7 +176,7 @@ void main() {
       // The day it was published where the reader is, not where GitHub is.
       final local = DateTime.utc(2026, 10, 20, 12).toLocal();
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      expect(find.text('Chatui 1.0.0-beta.2 · ${local.day} ${months[local.month - 1]} ${local.year}'), findsOneWidget);
+      expect(find.text('Celaut 1.0.0-beta.2 · ${local.day} ${months[local.month - 1]} ${local.year}'), findsOneWidget);
       expect(find.byKey(const Key('update-download')), findsOneWidget);
       expect(find.text('Download and verify'), findsOneWidget);
       expect(find.textContaining('chatui-1.0.0-beta.2-arm64-v8a.apk · 47.9 MB'), findsOneWidget);

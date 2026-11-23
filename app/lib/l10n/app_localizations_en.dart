@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Chatui';
+  String get appTitle => 'Celaut';
 
   @override
   String get commonCancel => 'Cancel';
@@ -544,7 +544,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addressBookTitle => 'Address book';
 
   @override
-  String get settingsAboutRowTitle => 'About Chatui';
+  String get settingsAboutRowTitle => 'About Celaut';
 
   @override
   String get settingsAboutRowSubtitle => 'Version, release notes, licenses';
@@ -637,7 +637,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutUpdatesNote =>
-      'Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app\'s signing key before Android is asked to install it.';
+      'Off by default. When on, Celaut asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app\'s signing key before Android is asked to install it.';
 
   @override
   String get aboutThisBuild => 'This build';
@@ -661,7 +661,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutLightClientNote =>
-      'Chatui is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.';
+      'Celaut is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.';
 
   @override
   String get aboutSigningCertificate => 'Signing certificate';
@@ -1422,12 +1422,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String updateCardVersion(String version) {
-    return 'Chatui $version';
+    return 'Celaut $version';
   }
 
   @override
   String updateCardVersionDate(String version, String date) {
-    return 'Chatui $version · $date';
+    return 'Celaut $version · $date';
   }
 
   @override
@@ -1477,7 +1477,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String updateAssetNote(String name, String size) {
-    return '$name · $size. Before anything is installed, Chatui checks the file against the checksum GitHub lists and against the key this app is signed with.';
+    return '$name · $size. Before anything is installed, Celaut checks the file against the checksum GitHub lists and against the key this app is signed with.';
   }
 
   @override
@@ -1488,7 +1488,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String updateNoticeAvailable(String version) {
-    return 'Chatui $version is available.';
+    return 'Celaut $version is available.';
   }
 
   @override
@@ -1544,11 +1544,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateErrorDownloadTooLarge =>
-      'The download is larger than Chatui will accept.';
+      'The download is larger than Celaut will accept.';
 
   @override
   String get updateErrorStorage =>
-      'Chatui could not save the download. Is the phone out of storage?';
+      'Celaut could not save the download. Is the phone out of storage?';
 
   @override
   String get updateErrorLargerThanListed =>
@@ -1571,7 +1571,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateRejectedAppKeyUnknown =>
-      'Chatui could not read its own signing key, so it cannot check this download. It has been deleted.';
+      'Celaut could not read its own signing key, so it cannot check this download. It has been deleted.';
 
   @override
   String get updateCheckFailed => 'The update check failed.';
@@ -1591,7 +1591,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateInstallPermission =>
-      'Android needs your permission first. Allow Chatui to install apps on the next screen, then tap Install again.';
+      'Android needs your permission first. Allow Celaut to install apps on the next screen, then tap Install again.';
 
   @override
   String get updateInstallerFailed =>
@@ -1602,7 +1602,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get walletSettingsRemoveBody =>
-      'This removes the wallet from this device. Chatui does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.';
+      'This removes the wallet from this device. Celaut does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.';
 
   @override
   String get walletSettingsRemoveFailed => 'Could not remove wallet';
@@ -1683,7 +1683,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get walletSettingsBackupNote =>
-      'Chatui does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.';
+      'Celaut does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.';
 
   @override
   String get walletSettingsRemoveWallet => 'Remove wallet';
@@ -1840,7 +1840,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coinSelectionNone => 'No boxes chosen — Chatui will pick them.';
+  String get coinSelectionNone => 'No boxes chosen — Celaut will pick them.';
 
   @override
   String coinRawUnits(int count, String amount) {
@@ -1886,7 +1886,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get spendUnconfirmedNote =>
-      'Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Chatui spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.';
+      'Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Celaut spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.';
 
   @override
   String get rentNoChargeZeroRate =>
@@ -2283,7 +2283,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tokenBurnDetail =>
-      'These units are left out of every output of the transaction and stop existing. Nobody, including Chatui, can bring them back.';
+      'These units are left out of every output of the transaction and stop existing. Nobody, including Celaut, can bring them back.';
 
   @override
   String get tokenBurnBackToYou => 'Back to you';
@@ -2539,7 +2539,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String tokenLeaveFor(String host) {
-    return 'Leave Chatui for $host?';
+    return 'Leave Celaut for $host?';
   }
 
   @override
@@ -2800,7 +2800,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get discoverIntro =>
-      'What Chatui can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.';
+      'What Celaut can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.';
 
   @override
   String get discoverTools => 'Tools';
@@ -3063,7 +3063,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get overviewPrototypeBody =>
-      'Chatui is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.';
+      'Celaut is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.';
 
   @override
   String get overviewGotIt => 'Got it';
@@ -4443,7 +4443,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sendAutoInputsNote =>
-      'Chatui will pick boxes for you. Choose some to control exactly what this transaction spends.';
+      'Celaut will pick boxes for you. Choose some to control exactly what this transaction spends.';
 
   @override
   String sendShortBy(String amount) {
@@ -6766,7 +6766,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautEnvDeclUnreadableBody =>
-      'The app could not read the interface and the variables of this service, so it cannot tell if Chatui supports it or if it needs variables. Run it anyway, or cancel.';
+      'The app could not read the interface and the variables of this service, so it cannot tell if Celaut supports it or if it needs variables. Run it anyway, or cancel.';
 
   @override
   String get celautEnvRunWithout => 'Run anyway';
@@ -6806,11 +6806,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serviceInfoChatSupported =>
-      'It follows the chat convention of Chatui, so it opens as a conversation.';
+      'It follows the chat convention of Celaut, so it opens as a conversation.';
 
   @override
   String get serviceInfoChatUnsupported =>
-      'Chatui does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Chatui cannot open a conversation with it.';
+      'Celaut does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Celaut cannot open a conversation with it.';
 
   @override
   String get serviceInfoChatUnknown =>
@@ -6919,11 +6919,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautChatUnsupportedTitle =>
-      'Chatui does not support this interface';
+      'Celaut does not support this interface';
 
   @override
   String get celautChatUnsupportedBody =>
-      'This service does not follow the chat convention that Chatui uses, so Chatui cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.';
+      'This service does not follow the chat convention that Celaut uses, so Celaut cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.';
 
   @override
   String get celautChatRunAnyway => 'Run anyway';
@@ -7610,7 +7610,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get btcMainnetWarnBody =>
-      'On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Chatui is new: use small amounts.';
+      'On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Celaut is new: use small amounts.';
 
   @override
   String get btcMainnetWarnOk => 'Use mainnet';

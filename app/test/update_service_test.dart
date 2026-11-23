@@ -309,7 +309,7 @@ void main() {
       final request = h.gh.requests.single;
       expect(request.method, 'GET');
       expect(request.url, latestReleaseUri);
-      expect(request.url.toString(), 'https://api.github.com/repos/celaut-project/chatui/releases/latest');
+      expect(request.url.toString(), 'https://api.github.com/repos/celaut-project/superapp/releases/latest');
       expect(request.headers, {'user-agent': 'Celaut'});
       expect((request as http.Request).bodyBytes, isEmpty);
     });
@@ -644,7 +644,7 @@ void main() {
       expect(h.leftovers, isEmpty);
     });
 
-    test('a file larger than Chatui will take is not even requested', () async {
+    test('a file larger than Celaut will take is not even requested', () async {
       h.publish('v1.0.0-beta.2');
       h.gh.releaseBody = releaseJson('v1.0.0-beta.2', assets: [
         {...assetJson(arm64, goodApk), 'size': maxApkBytes + 1},
@@ -653,7 +653,7 @@ void main() {
       await svc.checkNow();
       await svc.downloadAndVerify();
       expect(svc.stage, UpdateStage.failed);
-      expect(svc.stageMessage, contains('larger than Chatui will accept'));
+      expect(svc.stageMessage, contains('larger than Celaut will accept'));
       expect(h.gh.fileRequests, isEmpty);
     });
 
@@ -683,8 +683,8 @@ void main() {
 
       test('a relative Location is resolved against the address that sent it', () async {
         final svc = await h.found();
-        h.gh.files[assetUrl(arm64)] = Served.redirect('/celaut-project/chatui/releases/moved/chatui.apk', status: 301);
-        h.gh.files['https://github.com/celaut-project/chatui/releases/moved/chatui.apk'] = Served.bytes(goodApk);
+        h.gh.files[assetUrl(arm64)] = Served.redirect('/celaut-project/superapp/releases/moved/chatui.apk', status: 301);
+        h.gh.files['https://github.com/celaut-project/superapp/releases/moved/chatui.apk'] = Served.bytes(goodApk);
         await svc.downloadAndVerify();
         expect(svc.stage, UpdateStage.verified, reason: svc.stageMessage);
       });
@@ -811,7 +811,7 @@ void main() {
         expect(svc.checkError, contains('redirected away from GitHub'));
         expect(h.gh.asked, isNot(contains('https://evil.example/latest')));
         // GitHub's download hosts are not where the API lives.
-        h.gh.files[latestReleaseUri.toString()] = Served.redirect('https://github.com/celaut-project/chatui/releases/latest');
+        h.gh.files[latestReleaseUri.toString()] = Served.redirect('https://github.com/celaut-project/superapp/releases/latest');
         await svc.checkNow();
         expect(svc.checkError, contains('redirected away from GitHub'));
       });
@@ -991,7 +991,7 @@ void main() {
       await svc.install();
       expect(h.platform.settingsOpened, 1);
       expect(h.platform.installed, isEmpty);
-      expect(svc.stageMessage, contains('Allow Chatui to install apps'));
+      expect(svc.stageMessage, contains('Allow Celaut to install apps'));
 
       h.platform.allowInstall = true;
       await svc.install();

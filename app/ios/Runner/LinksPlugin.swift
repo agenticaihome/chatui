@@ -1,7 +1,7 @@
 import Flutter
 import UIKit
 
-/// The links and the files that other apps give to Chatui on iOS: the port of
+/// The links and the files that other apps give to Celaut on iOS: the port of
 /// `DeepLinkHandler.kt`, `OpenLinkActivity.kt`, `IncomingPackageHandler.kt` and
 /// `OpenPackageActivity.kt`.
 ///

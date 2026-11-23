@@ -1,6 +1,6 @@
 # Celaut light client: design notes
 
-These notes are the reference for the Celaut part of chatui. The app is an Android
+These notes are the reference for the Celaut part of the app. The app is an Android
 light client of Celaut. It talks to Celaut nodes (celaut-project/nodo) as a client,
 never as a peer, and it pays them from its own Ergo wallet.
 

@@ -18,7 +18,7 @@ Future<ServiceInfoView> readServiceInfo(String serviceIdHex, NodeAddress? node) 
 
 /// The details of a service (`docs/celaut/service-info.md`): the prose, the resources that
 /// it needs, its interface, the networks that it declares, its environment variables, and
-/// whether its interface is the chat convention of Chatui. A banner at the top says so.
+/// whether its interface is the chat convention of Celaut. A banner at the top says so.
 ///
 /// The info comes from [info] if the caller has read it already (the launch does, and does
 /// not read a large service twice), or else it is read with [load] from the library file or
@@ -378,7 +378,7 @@ bool _sameGroup(WorkloadView a, WorkloadView b) => a.initial == b.initial && a.c
 /// A protocol stack, bottom to top, as `tcp → http → chat`.
 String _stack(List<String> layers) => layers.where((s) => s.isNotEmpty).join(' → ');
 
-/// Says if the interface of the service is the chat convention of Chatui.
+/// Says if the interface of the service is the chat convention of Celaut.
 class _ChatBanner extends StatelessWidget {
   const _ChatBanner({required this.info});
 

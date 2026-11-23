@@ -6,10 +6,13 @@
   pool. Removed: AMM, SigmaUSD, Dexy, DuckPools, Rosen, SigmaFi, stake recovery, stealth,
   ZeroJoin, dApp browser, CoinGecko prices, the Argus app fee. Removed on 2026-10-16:
   more than one wallet, watch-only addresses and accounts, offline (cold) signing.
-- **Updater:** reads the releases of celaut-project/chatui.
+- **Updater:** reads the releases of celaut-project/superapp.
 - **QR scanner:** flutter_zxing (no Google ML Kit).
-- **App:** label "Chatui" (2026-10-23, Josemi; it was "Celaut"), applicationId
-  `org.celaut.chatui` (unchanged). Android only (GrapheneOS
+- **App:** label "Celaut" (2026-11-23, Josemi; it was "Chatui" from 2026-10-23, and "Celaut"
+  before). The repository is `superapp` (2026-11-23; it was `chatui`). The applicationId stays
+  `org.celaut.chatui`, as the channels, the keychain services and the names of the release
+  files (`chatui-<version>-<kind>.apk`): they must not change, or the installed apps could not update
+  and would lose their stored data. Android only (GrapheneOS
   without Play Services must work). APK built in GitHub Actions, published in GitHub
   Releases. UI in English and Spanish.
 - **No third-party services:** no Firebase or similar. Ergo data comes from public Ergo
@@ -67,8 +70,8 @@
 - **Service details and the chat check (2026-10-22, Josemi):** the app reads the Service as a
   stream and never keeps its filesystem. It shows what the service declares (prose, resources,
   interface, networks, variables) and, before a launch, warns if the interface is not the chat
-  convention of Chatui. The title of the app is Chatui (2026-10-23, Josemi; it was Celaut Chatui), in lower
-  case except the C, with "ui" in the other colour. See [service-info.md](service-info.md).
+  convention of Celaut. The title of the app is Celaut (2026-11-23, Josemi; it was Chatui, and before it Celaut
+  Chatui), in lower case except the C, with "ut" in the other colour. See [service-info.md](service-info.md).
 - **Chat attachments (2026-10-22, Josemi):** a message can carry image and audio files
   (JPEG, PNG, MP3, WAV; at most 4 files of 4 MiB each). A service that accepts them
   announces `accepts` in the history read, and the app shows the attach button only then.

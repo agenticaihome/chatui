@@ -155,7 +155,7 @@ class _Client extends http.BaseClient {
 
 String sha256Hex(List<int> bytes) => sha256.convert(bytes).toString();
 
-String assetUrl(String name) => 'https://github.com/celaut-project/chatui/releases/download/v1.0.0-beta.2/$name';
+String assetUrl(String name) => 'https://github.com/celaut-project/superapp/releases/download/v1.0.0-beta.2/$name';
 
 Map<String, Object?> assetJson(String name, List<int> bytes, {bool digest = true, String? digestOverride, int? size}) => {
       'name': name,

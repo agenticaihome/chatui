@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Chatui",
+  "appTitle": "Celaut",
   "commonCancel": "Cancel",
   "commonSave": "Save",
   "commonRetry": "Retry",
@@ -330,7 +330,7 @@
   "chatBgDiamonds": "Diamonds",
   "chatBgTheme": "Theme",
   "addressBookTitle": "Address book",
-  "settingsAboutRowTitle": "About Chatui",
+  "settingsAboutRowTitle": "About Celaut",
   "settingsAboutRowSubtitle": "Version, release notes, licenses",
   "settingsWalletRowTitle": "Addresses and backup",
   "settingsWalletRowSubtitle": "Primary address, change policy, remove",
@@ -389,14 +389,14 @@
   "aboutCheckForUpdates": "Check for updates",
   "aboutCheckForUpdatesSubtitle": "Asks GitHub once a day. GitHub sees your IP address, or a Tor exit when Tor is on.",
   "aboutCheckNow": "Check now",
-  "aboutUpdatesNote": "Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app's signing key before Android is asked to install it.",
+  "aboutUpdatesNote": "Off by default. When on, Celaut asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app's signing key before Android is asked to install it.",
   "aboutThisBuild": "This build",
   "aboutUnauditedTitle": "Unaudited prototype",
   "aboutUnauditedSubtitle": "Transactions on Ergo are irreversible. Use only funds you can afford to lose.",
   "aboutReleasesTitle": "Releases and notes",
   "aboutReleasesSubtitle": "What changed in each alpha, and the latest APK.",
   "aboutLicenses": "Open-source licenses",
-  "aboutLightClientNote": "Chatui is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.",
+  "aboutLightClientNote": "Celaut is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.",
   "aboutSigningCertificate": "Signing certificate",
   "aboutSigningCertificateSubtitle": "SHA-256 of the key this build is signed with. An update must be signed with the same one.",
   "aboutReading": "Reading…",
@@ -715,7 +715,7 @@
   "securitySpendUnconfirmedOff": "Off: received funds and change wait for 1 confirmation",
   "securitySpendingSaveFailed": "Could not save the spending setting",
   "updateAvailableTitle": "Update available",
-  "updateCardVersion": "Chatui {version}",
+  "updateCardVersion": "Celaut {version}",
   "@updateCardVersion": {
     "placeholders": {
       "version": {
@@ -723,7 +723,7 @@
       }
     }
   },
-  "updateCardVersionDate": "Chatui {version} · {date}",
+  "updateCardVersionDate": "Celaut {version} · {date}",
   "@updateCardVersionDate": {
     "placeholders": {
       "version": {
@@ -764,7 +764,7 @@
   "updateInstall": "Install",
   "updateTryAgain": "Try again",
   "updateDownloadAndVerify": "Download and verify",
-  "updateAssetNote": "{name} · {size}. Before anything is installed, Chatui checks the file against the checksum GitHub lists and against the key this app is signed with.",
+  "updateAssetNote": "{name} · {size}. Before anything is installed, Celaut checks the file against the checksum GitHub lists and against the key this app is signed with.",
   "@updateAssetNote": {
     "placeholders": {
       "name": {
@@ -777,7 +777,7 @@
   },
   "updateOpenReleasesPage": "Open the releases page",
   "updateNoApkForPhone": "This release has no APK for your phone.",
-  "updateNoticeAvailable": "Chatui {version} is available.",
+  "updateNoticeAvailable": "Celaut {version} is available.",
   "@updateNoticeAvailable": {
     "placeholders": {
       "version": {
@@ -806,23 +806,23 @@
   "updateErrorNotUnderstood": "GitHub's answer was not understood.",
   "updateErrorTooLarge": "GitHub's answer was larger than expected.",
   "updateErrorNotOnGithub": "The download address is not on GitHub.",
-  "updateErrorDownloadTooLarge": "The download is larger than Chatui will accept.",
-  "updateErrorStorage": "Chatui could not save the download. Is the phone out of storage?",
+  "updateErrorDownloadTooLarge": "The download is larger than Celaut will accept.",
+  "updateErrorStorage": "Celaut could not save the download. Is the phone out of storage?",
   "updateErrorLargerThanListed": "The download is larger than GitHub lists it, so it was stopped.",
   "updateErrorEndedEarly": "The download ended early.",
   "updateRejectedWrongSigner": "This download is not signed by the same key as this app, so it must not be installed. It has been deleted.",
   "updateRejectedChecksum": "This download does not match the SHA-256 checksum GitHub lists for it, so it may be damaged or tampered with. It has been deleted.",
   "updateRejectedUnreadable": "The signing key of this download could not be read, so it was not offered for install. It has been deleted.",
-  "updateRejectedAppKeyUnknown": "Chatui could not read its own signing key, so it cannot check this download. It has been deleted.",
+  "updateRejectedAppKeyUnknown": "Celaut could not read its own signing key, so it cannot check this download. It has been deleted.",
   "updateCheckFailed": "The update check failed.",
   "updateNoApkSeeReleases": "This release has no APK for your phone. The releases page has the files.",
   "updateCannotKeepDownload": "This device cannot keep a download.",
   "updateDownloadCancelled": "Download cancelled.",
   "updateDownloadFailed": "The download failed.",
-  "updateInstallPermission": "Android needs your permission first. Allow Chatui to install apps on the next screen, then tap Install again.",
+  "updateInstallPermission": "Android needs your permission first. Allow Celaut to install apps on the next screen, then tap Install again.",
   "updateInstallerFailed": "Android could not open its installer. The releases page has the file.",
   "walletSettingsRemoveTitle": "Remove the wallet?",
-  "walletSettingsRemoveBody": "This removes the wallet from this device. Chatui does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.",
+  "walletSettingsRemoveBody": "This removes the wallet from this device. Celaut does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.",
   "walletSettingsRemoveFailed": "Could not remove wallet",
   "walletSettingsPinIndexTitle": "Pin address index",
   "walletSettingsPinIndexIntro": "Derive the address at this index and use it as the primary address for send and receive. Index 0 resets to the default. The balance still counts every address of the wallet.",
@@ -888,7 +888,7 @@
   "walletSettingsUnlockToChange": "Unlock the wallet to change this setting",
   "walletSettingsPrivacySaveFailed": "Could not update privacy setting",
   "walletSettingsBackup": "Backup",
-  "walletSettingsBackupNote": "Chatui does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.",
+  "walletSettingsBackupNote": "Celaut does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.",
   "walletSettingsRemoveWallet": "Remove wallet",
   "walletSettingsRemoveWalletSubtitle": "From this device only. Keep the recovery phrase.",
   "secureSaveFailed": "Failed to save",
@@ -1020,7 +1020,7 @@
       }
     }
   },
-  "coinSelectionNone": "No boxes chosen — Chatui will pick them.",
+  "coinSelectionNone": "No boxes chosen — Celaut will pick them.",
   "coinRawUnits": "{count, plural, =1{{amount} raw unit} other{{amount} raw units}}",
   "@coinRawUnits": {
     "description": "count is 1 for exactly one unit, else 2; amount is the formatted number.",
@@ -1084,7 +1084,7 @@
       }
     }
   },
-  "spendUnconfirmedNote": "Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Chatui spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.",
+  "spendUnconfirmedNote": "Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Celaut spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.",
   "rentNoChargeZeroRate": "No storage rent is charged at the current rate.",
   "rentNoChargeOverflow": "No storage rent can be charged on a box over {bytes} bytes under current rules.",
   "@rentNoChargeOverflow": {
@@ -1415,7 +1415,7 @@
   },
   "tokenBurnTitle": "Burn tokens",
   "tokenBurnForGood": "Burn for good",
-  "tokenBurnDetail": "These units are left out of every output of the transaction and stop existing. Nobody, including Chatui, can bring them back.",
+  "tokenBurnDetail": "These units are left out of every output of the transaction and stop existing. Nobody, including Celaut, can bring them back.",
   "tokenBurnBackToYou": "Back to you",
   "tokenBurnSubmitted": "Token burn submitted",
   "tokenBurnWarning": "Burning destroys tokens permanently. It is not a send: the units leave the chain rather than move to anyone. Use it for tokens you are sure you never want back, such as spam or a supply you mean to cut.",
@@ -1620,7 +1620,7 @@
   "artworkConsent": "Artwork is loaded only with your consent",
   "tokenYouHold": "YOU HOLD",
   "tokenIdCaps": "TOKEN ID",
-  "tokenLeaveFor": "Leave Chatui for {host}?",
+  "tokenLeaveFor": "Leave Celaut for {host}?",
   "@tokenLeaveFor": {
     "placeholders": {
       "host": {
@@ -1774,7 +1774,7 @@
   "discoverUtxosGo": "Open UTXO management",
   "discoverWhatYouCanDo": "WHAT YOU CAN DO",
   "discoverWatchFor": "WATCH FOR",
-  "discoverIntro": "What Chatui can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.",
+  "discoverIntro": "What Celaut can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.",
   "discoverTools": "Tools",
   "discoverRowHint": "What it is, and the way in",
   "navActivity": "Activity",
@@ -2057,7 +2057,7 @@
   "overviewTotalBalance": "Total balance",
   "overviewWalletRowTitle": "Wallet details",
   "overviewPrototypeTitle": "Prototype software",
-  "overviewPrototypeBody": "Chatui is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.",
+  "overviewPrototypeBody": "Celaut is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.",
   "overviewGotIt": "Got it",
   "overviewPrototypeNote": "Unaudited prototype. Use only funds you can afford to lose.",
   "overviewLearnMore": "Learn more",
@@ -2933,7 +2933,7 @@
   },
   "sendReview": "Review",
   "sendChooseInputs": "Choose inputs",
-  "sendAutoInputsNote": "Chatui will pick boxes for you. Choose some to control exactly what this transaction spends.",
+  "sendAutoInputsNote": "Celaut will pick boxes for you. Choose some to control exactly what this transaction spends.",
   "sendShortBy": "Short by {amount} for this amount plus fees.",
   "@sendShortBy": {
     "placeholders": {
@@ -4860,7 +4860,7 @@
   "celautEnvReviewNote": "The node that starts the service reads these values. A node that refuses the start has read them too.",
   "celautEnvRun": "Run",
   "celautEnvDeclUnreadableTitle": "The service could not be read",
-  "celautEnvDeclUnreadableBody": "The app could not read the interface and the variables of this service, so it cannot tell if Chatui supports it or if it needs variables. Run it anyway, or cancel.",
+  "celautEnvDeclUnreadableBody": "The app could not read the interface and the variables of this service, so it cannot tell if Celaut supports it or if it needs variables. Run it anyway, or cancel.",
   "celautEnvRunWithout": "Run anyway",
   "celautInviteConnected": "Connected by {address}. The node is in your list.",
   "@celautInviteConnected": {
@@ -4878,8 +4878,8 @@
   "serviceInfoLoading": "Reading the service…",
   "serviceInfoReadFailed": "The service could not be read",
   "serviceInfoTruncated": "This service is too large to read from a node, so only what comes first is shown. Load its file to see everything.",
-  "serviceInfoChatSupported": "It follows the chat convention of Chatui, so it opens as a conversation.",
-  "serviceInfoChatUnsupported": "Chatui does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Chatui cannot open a conversation with it.",
+  "serviceInfoChatSupported": "It follows the chat convention of Celaut, so it opens as a conversation.",
+  "serviceInfoChatUnsupported": "Celaut does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Celaut cannot open a conversation with it.",
   "serviceInfoChatUnknown": "The app could not read the interface of this service, so it cannot tell if it works as a conversation.",
   "serviceInfoAbout": "About",
   "serviceInfoNoProse": "The service gives no description.",
@@ -4937,8 +4937,8 @@
       }
     }
   },
-  "celautChatUnsupportedTitle": "Chatui does not support this interface",
-  "celautChatUnsupportedBody": "This service does not follow the chat convention that Chatui uses, so Chatui cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.",
+  "celautChatUnsupportedTitle": "Celaut does not support this interface",
+  "celautChatUnsupportedBody": "This service does not follow the chat convention that Celaut uses, so Celaut cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.",
   "celautChatRunAnyway": "Run anyway",
   "celautChatDetails": "Details",
   "celautRunConfirmDetails": "Service details",
@@ -5401,7 +5401,7 @@
   "btcNetSignet": "Signet (test)",
   "btcNetRegtest": "Regtest (local test)",
   "btcMainnetWarnTitle": "Use real bitcoin?",
-  "btcMainnetWarnBody": "On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Chatui is new: use small amounts.",
+  "btcMainnetWarnBody": "On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Celaut is new: use small amounts.",
   "btcMainnetWarnOk": "Use mainnet",
   "btcServerTitle": "Esplora server",
   "btcServerHint": "Empty: {url}",

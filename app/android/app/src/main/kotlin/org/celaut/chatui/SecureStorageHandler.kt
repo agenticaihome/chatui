@@ -391,7 +391,7 @@ class SecureStorageHandler(private val context: Context) : MethodChannel.MethodC
         )
         // The screen lock is the alternative to the fingerprint, so there is no negative button.
         val info = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Unlock Chatui")
+            .setTitle("Unlock Celaut")
             .setAllowedAuthenticators(DEVICE_AUTHENTICATORS)
             .build()
         activity.runOnUiThread { prompt.authenticate(info) }

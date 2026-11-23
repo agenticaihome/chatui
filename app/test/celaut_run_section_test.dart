@@ -2060,7 +2060,7 @@ void main() {
       expect(changed, 0);
     });
 
-    testWidgets('an interface that Chatui does not support gets an alert before the start', (tester) async {
+    testWidgets('an interface that Celaut does not support gets an alert before the start', (tester) async {
       await open(
         tester,
         askEnvironment: true,

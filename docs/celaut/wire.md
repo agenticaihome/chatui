@@ -13,25 +13,25 @@ checked against nodo dev `ee5af5bc` and names functions, not lines.
 changes, all of them additive on the wire except the first:
 
 - `GetResourceAvailability` takes a `ResourceAvailabilityRequest` at index 1. It has the old
-  `ArchitectureResources` in `main` (field 1) and the `devices` in field 2. chatui does not call this
+  `ArchitectureResources` in `main` (field 1) and the `devices` in field 2. Celaut does not call this
   RPC. A client that calls it must wrap its old request in `main`.
 - Devices with a direct connection (nodo#536): `Device`, `Container.devices`, `Peer.devices`,
   `AttachedDevice`, `DeviceChange`, and `devices` in the instance and in the answer and the input of
-  `ModifyServiceSystemResources`. chatui reads and keeps these fields (prost keeps them), and does not
+  `ModifyServiceSystemResources`. Celaut reads and keeps these fields (prost keeps them), and does not
   show or use them yet.
-- The notice of the node (nodo#645): `Container.notice_declaration`. chatui does not use it.
+- The notice of the node (nodo#645): `Container.notice_declaration`. Celaut does not use it.
 - A local instance of the node can call `Deposit` with an empty `client_id` (nodo#630). Only a comment.
 
 `celaut.proto` was re-pinned to nodo dev `425ba843` (2026-11-14, head `54f3531d`). Since `798e3b81` the
 contract has these changes. All are additive on the wire:
 
 - The start `ExecutionReceipt` has the resources that the node reserved (nodo#419): `cpu_period`,
-  `cpu_quota`, `mem_limit`, `disk_space`, `kernel` and `devices` (fields 25 to 30). chatui does not use them.
+  `cpu_quota`, `mem_limit`, `disk_space`, `kernel` and `devices` (fields 25 to 30). Celaut does not use them.
 - `BalanceMovement.detail` can have `actor` (`operator`, `client` or `instance`). Only a comment.
 
 The tag of a ledger now names the chain and the network (nodo `e1eca3d8`): `ergo-mainnet`,
 `bitcoin-regtest`. It is not on the wire as a new field, but it is a breaking change of the value. The
-`chain` line in the `formal` of the ledger did not change (`ergo`, `bitcoin`). chatui reads the chain
+`chain` line in the `formal` of the ledger did not change (`ergo`, `bitcoin`). Celaut reads the chain
 of the tag with `celaut_balancer::ledger_chain`: the part before the first `-`. It accepts the old tag
 (`ergo`) and the new one.
 
@@ -42,14 +42,14 @@ of the tag with `celaut_balancer::ledger_chain`: the part before the first `-`. 
   (`ergo-p2pk`, `bitcoin-p2wpkh`). The digest of a `Peer` has the formal, the sorted tags and the prose of
   each `protocol`, so the vectors in `celaut-client/tests/vectors` were made again.
 - Breaking: the settings of a service moved from xattrs to `repeated Policy policies` in `Slot` (field 5),
-  `ItemBranch` (6), the root `Filesystem` (2) and `Init` (2). chatui reads none of them.
-- New and not used by chatui: `Policy`, `FaultEvidence`, `ReputationOpinion`, `ReputationProof`,
+  `ItemBranch` (6), the root `Filesystem` (2) and `Init` (2). Celaut reads none of them.
+- New and not used by Celaut: `Policy`, `FaultEvidence`, `ReputationOpinion`, `ReputationProof`,
   `ReputationProofAck`, and the Gateway calls `GetReputationProofs` and `PushReputationProof`.
 
 `celaut.proto` was then re-pinned to nodo dev `5798cea4` (file last changed in `69ca79c9`):
 
 - Breaking: `Configuration.spec_slot` (field 2) is removed. `Configuration.initial_mu` moved from field 3 to
-  field 2. chatui never set `spec_slot`. It sets `initial_mu` through the generated type, so the code did not change.
+  field 2. Celaut never set `spec_slot`. It sets `initial_mu` through the generated type, so the code did not change.
 
 ## 1. Transport
 

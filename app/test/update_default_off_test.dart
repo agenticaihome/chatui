@@ -53,7 +53,7 @@ void main() {
 
     await tester.pumpWidget(const MaterialApp(home: SettingsScreen()));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('About Chatui'));
+    await tester.tap(find.text('About Celaut'));
     await tester.pumpAndSettle();
     expect(find.text('Check for updates'), findsOneWidget);
     expect(deny.clients, 0);
