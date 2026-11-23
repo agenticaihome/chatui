@@ -803,6 +803,42 @@ class AppLocalizationsEs extends AppLocalizations {
   String get displayPaletteGroupChristmas => 'Navidad';
 
   @override
+  String get themeXmasEveNightName => 'Nochebuena';
+
+  @override
+  String get themeXmasEveDayName => 'Mañana de Navidad';
+
+  @override
+  String get themeXmasEveHint => 'Navidad · rojo, pino y oro';
+
+  @override
+  String get themeXmasSnowNightName => 'Noche nevada';
+
+  @override
+  String get themeXmasSnowDayName => 'Día nevado';
+
+  @override
+  String get themeXmasSnowHint => 'Navidad · blanco hielo y azul plata';
+
+  @override
+  String get themeXmasGingerNightName => 'Jengibre de noche';
+
+  @override
+  String get themeXmasGingerDayName => 'Jengibre de día';
+
+  @override
+  String get themeXmasGingerHint => 'Navidad · jengibre, glaseado y rojo';
+
+  @override
+  String get themeXmasTreeNightName => 'Árbol de Navidad de noche';
+
+  @override
+  String get themeXmasTreeDayName => 'Árbol de Navidad de día';
+
+  @override
+  String get themeXmasTreeHint => 'Navidad · verde pino y luces doradas';
+
+  @override
   String get themeHarborName => 'Puerto';
 
   @override

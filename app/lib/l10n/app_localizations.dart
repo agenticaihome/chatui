@@ -1454,6 +1454,78 @@ abstract class AppLocalizations {
   /// **'Christmas'**
   String get displayPaletteGroupChristmas;
 
+  /// No description provided for @themeXmasEveNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas Eve'**
+  String get themeXmasEveNightName;
+
+  /// No description provided for @themeXmasEveDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas Morning'**
+  String get themeXmasEveDayName;
+
+  /// No description provided for @themeXmasEveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas · red, pine and gold'**
+  String get themeXmasEveHint;
+
+  /// No description provided for @themeXmasSnowNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Snowy Night'**
+  String get themeXmasSnowNightName;
+
+  /// No description provided for @themeXmasSnowDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Snowy Day'**
+  String get themeXmasSnowDayName;
+
+  /// No description provided for @themeXmasSnowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas · ice white and silver blue'**
+  String get themeXmasSnowHint;
+
+  /// No description provided for @themeXmasGingerNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Gingerbread Night'**
+  String get themeXmasGingerNightName;
+
+  /// No description provided for @themeXmasGingerDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Gingerbread Day'**
+  String get themeXmasGingerDayName;
+
+  /// No description provided for @themeXmasGingerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas · ginger, icing and red'**
+  String get themeXmasGingerHint;
+
+  /// No description provided for @themeXmasTreeNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas Tree Night'**
+  String get themeXmasTreeNightName;
+
+  /// No description provided for @themeXmasTreeDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas Tree Day'**
+  String get themeXmasTreeDayName;
+
+  /// No description provided for @themeXmasTreeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas · pine green and golden lights'**
+  String get themeXmasTreeHint;
+
   /// No description provided for @themeHarborName.
   ///
   /// In en, this message translates to:
