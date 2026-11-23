@@ -4,23 +4,126 @@ import 'package:flutter/material.dart';
 
 import 'argus_theme.dart';
 
-// The shared look of the four house palettes ([PaletteStyle.arcane]): the ornaments in the
-// corners of a card, the sparks of the rocket and the shape of a panel. Each is drawn with
-// a few paths in the trim of the palette: no image, no blur, no shader.
+/// The look of the Harry Potter palettes (lib/theme/groups/harry_potter.dart): cut corners
+/// like a plaque, an edge of the metal ([PaletteSpec.trim]) round buttons and cards, the
+/// labels of the buttons in the serif, ornaments in the corners of the cards, and a rocket
+/// with fins of the metal that leaves sparks. Drawn with a few paths: no image, no shader.
+class ArcaneLook extends PaletteLook {
+  const ArcaneLook();
 
-/// True when the theme of [context] is one of the house palettes.
-bool isArcaneOf(BuildContext context) => ArgusColors.of(context).isArcane;
+  @override
+  OutlinedBorder shape(double radius, {BorderSide side = BorderSide.none}) =>
+      BeveledRectangleBorder(borderRadius: BorderRadius.circular(radius * 0.5), side: side);
 
-/// The outline of a floating panel (the card of the rocket, of an import) in the theme of
-/// [context]: rounded, or a plaque with cut corners and a hairline of the trim.
-ShapeBorder panelShapeOf(BuildContext context, {double radius = cardRadius}) {
-  final colors = ArgusColors.of(context);
-  if (!colors.isArcane) return RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius));
-  return BeveledRectangleBorder(
-    borderRadius: BorderRadius.circular(radius * 0.5),
-    side: BorderSide(color: colors.trim.withValues(alpha: 0.7), width: 1.2),
-  );
+  @override
+  OutlinedBorder sheetShape(double radius, {BorderSide side = BorderSide.none}) => BeveledRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(radius * 0.5)),
+        side: side,
+      );
+
+  @override
+  TextStyle? get buttonText =>
+      const TextStyle(fontFamily: headingFont, fontWeight: FontWeight.w700, letterSpacing: 1.2);
+
+  /// In each corner: two short rules along the edges that end in a dot, a small diamond at
+  /// the corner and a curl between the rules.
+  @override
+  void paintOrnaments(Canvas canvas, Size size, Color trim) {
+    const inset = 10.0;
+    const length = 22.0;
+    if (size.shortestSide < inset * 2 + length) return;
+    final line = Paint()
+      ..color = trim
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final fill = Paint()..color = trim;
+    for (final (sx, sy) in const [(1.0, 1.0), (-1.0, 1.0), (1.0, -1.0), (-1.0, -1.0)]) {
+      final corner = Offset(sx > 0 ? inset : size.width - inset, sy > 0 ? inset : size.height - inset);
+      // The rules start a little off the corner, so the diamond stands free.
+      canvas.drawLine(corner + Offset(sx * 6, 0), corner + Offset(sx * length, 0), line);
+      canvas.drawLine(corner + Offset(0, sy * 6), corner + Offset(0, sy * length), line);
+      canvas.drawCircle(corner + Offset(sx * (length + 3), 0), 1.6, fill);
+      canvas.drawCircle(corner + Offset(0, sy * (length + 3)), 1.6, fill);
+      const d = 3.2;
+      canvas.drawPath(
+        Path()
+          ..moveTo(corner.dx, corner.dy - d)
+          ..lineTo(corner.dx + d, corner.dy)
+          ..lineTo(corner.dx, corner.dy + d)
+          ..lineTo(corner.dx - d, corner.dy)
+          ..close(),
+        fill,
+      );
+      canvas.drawArc(
+        Rect.fromCircle(center: corner + Offset(sx * 9, sy * 9), radius: 4),
+        sx > 0 ? (sy > 0 ? pi : pi / 2) : (sy > 0 ? -pi / 2 : 0),
+        pi / 2,
+        false,
+        line,
+      );
+    }
+  }
+
+  /// A ring of the metal round the window, a band round the hull above the fins and a spark
+  /// on the nose.
+  @override
+  void paintRocketDetails(Canvas canvas, {required Color trim, required Color accent}) {
+    canvas.drawCircle(
+      const Offset(0, -8),
+      7,
+      Paint()
+        ..color = trim
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(-15.5, 8)
+        ..lineTo(15.5, 8)
+        ..lineTo(15.2, 12)
+        ..lineTo(-15.2, 12)
+        ..close(),
+      Paint()..color = trim,
+    );
+    paintSpark(canvas, const Offset(0, -48), 4.5, Paint()..color = trim);
+  }
+
+  /// Sparks that fall away and twinkle under the hovering rocket.
+  @override
+  void paintRocketTrail(Canvas canvas, Offset tail, double phase, {required Color trim, required Color flame}) {
+    for (var i = 0; i < 4; i++) {
+      final p = (phase + i / 4) % 1;
+      final twinkle = 0.6 + 0.4 * sin((p * 3 + i) * 2 * pi).abs();
+      paintSpark(
+        canvas,
+        Offset(tail.dx + (i - 1.5) * 7 + sin(p * 2 * pi + i) * 3, tail.dy + p * 28),
+        (2 + 2.5 * (1 - p)) * twinkle,
+        Paint()..color = (i.isEven ? trim : flame).withValues(alpha: 0.9 * (1 - p)),
+      );
+    }
+  }
+
+  @override
+  void paintRocketBurst(Canvas canvas, Offset at, double t, {required Color trim, required Color accent}) =>
+      paintSparkBurst(canvas, at, t, a: trim, b: accent);
+
+  /// Sparks that twinkle along the rocket as the pad raises it.
+  @override
+  void paintRocketRise(Canvas canvas, Offset from, Offset to, double t, {required Color trim}) {
+    for (var i = 0; i < 3; i++) {
+      final along = (t * 3 + i / 3) % 1;
+      paintSpark(
+        canvas,
+        Offset.lerp(from, to, along)! + Offset(10 * sin(along * pi * 2 + i), -6),
+        2 + 2 * sin(along * pi),
+        Paint()..color = trim.withValues(alpha: 0.4 + 0.5 * sin(along * pi)),
+      );
+    }
+  }
 }
+
+const arcaneLook = ArcaneLook();
 
 /// A four-pointed spark with its centre at [c], [r] from the centre to a point.
 void paintSpark(Canvas canvas, Offset c, double r, Paint paint) {
@@ -35,78 +138,6 @@ void paintSpark(Canvas canvas, Offset c, double r, Paint paint) {
       ..close(),
     paint,
   );
-}
-
-/// The ornaments of a card in a house palette: in each corner, two short rules along the
-/// edges that end in a dot, and a small diamond at the corner. It only paints; put it over
-/// the card in a [Stack] with [Positioned.fill]. [inset] keeps it off a cut or rounded edge.
-class ArcaneCorners extends StatelessWidget {
-  const ArcaneCorners({super.key, required this.color, this.inset = 10, this.length = 22});
-
-  final Color color;
-  final double inset;
-  final double length;
-
-  @override
-  Widget build(BuildContext context) => IgnorePointer(
-        child: ExcludeSemantics(
-          child: CustomPaint(
-            key: const Key('arcane-corners'),
-            painter: ArcaneCornersPainter(color: color, inset: inset, length: length),
-            size: Size.infinite,
-          ),
-        ),
-      );
-}
-
-class ArcaneCornersPainter extends CustomPainter {
-  const ArcaneCornersPainter({required this.color, required this.inset, required this.length});
-
-  final Color color;
-  final double inset;
-  final double length;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.shortestSide < inset * 2 + length) return;
-    final line = Paint()
-      ..color = color
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    final fill = Paint()..color = color;
-    for (final (sx, sy) in const [(1.0, 1.0), (-1.0, 1.0), (1.0, -1.0), (-1.0, -1.0)]) {
-      final corner = Offset(sx > 0 ? inset : size.width - inset, sy > 0 ? inset : size.height - inset);
-      // The rules start a little off the corner, so the diamond stands free.
-      final a = corner + Offset(sx * 6, 0);
-      final b = corner + Offset(0, sy * 6);
-      canvas.drawLine(a, corner + Offset(sx * length, 0), line);
-      canvas.drawLine(b, corner + Offset(0, sy * length), line);
-      canvas.drawCircle(corner + Offset(sx * (length + 3), 0), 1.6, fill);
-      canvas.drawCircle(corner + Offset(0, sy * (length + 3)), 1.6, fill);
-      final d = 3.2;
-      canvas.drawPath(
-        Path()
-          ..moveTo(corner.dx, corner.dy - d)
-          ..lineTo(corner.dx + d, corner.dy)
-          ..lineTo(corner.dx, corner.dy + d)
-          ..lineTo(corner.dx - d, corner.dy)
-          ..close(),
-        fill,
-      );
-      // An inner curl between the rules.
-      canvas.drawArc(
-        Rect.fromCircle(center: corner + Offset(sx * 9, sy * 9), radius: 4),
-        sx > 0 ? (sy > 0 ? pi : pi / 2) : (sy > 0 ? -pi / 2 : 0),
-        pi / 2,
-        false,
-        line,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(ArcaneCornersPainter old) => old.color != color || old.inset != inset || old.length != length;
 }
 
 /// Sparks that twinkle round a point, for a moment of success (the rocket that stands or

@@ -12,8 +12,7 @@ import '../../celaut/celaut_strings.dart';
 import '../../celaut/chat/gen/cards.pb.dart' as cpb;
 import '../../celaut/chat_client.dart' show ChatSlotLink;
 import '../../l10n/l10n.dart';
-import '../../theme/arcane.dart' show ArcaneCorners;
-import '../../theme/argus_theme.dart' show rustFor;
+import '../../theme/argus_theme.dart' show LookOrnaments, rustFor;
 import '../../theme/argus_tones.dart' show mossFor;
 import 'cards_look.dart';
 import 'open_web.dart';
@@ -1123,7 +1122,8 @@ class _CardFace extends StatelessWidget {
                   ),
                 ),
               ),
-            if (frame.ornament != null && !full) Positioned.fill(child: ArcaneCorners(color: frame.ornament!)),
+            if (frame.look != null && frame.ornament != null && !full)
+              Positioned.fill(child: LookOrnaments(look: frame.look!, color: frame.ornament!)),
               ],
             ),
           ),

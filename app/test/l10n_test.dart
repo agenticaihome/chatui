@@ -69,7 +69,8 @@ void main() {
       'chatSettingsTitle', 'chatFontLato', 'chatFontSerif', 'chatSettingsWidgetsGroup',
       'themeCyberpunkName', 'themeNordName', 'themeSolarizedName',
       'btcTitle', 'btcRowTotal', 'btcErrOther', 'coinErgo', 'coinBitcoin', 'registrySettingsTitle',
-      'displayPaletteGroupHarryPotter',
+      'displayPaletteGroupHarryPotter', 'displayPaletteGroupGta', 'displayPaletteGroupMarvel',
+      'displayPaletteGroupCyberpunk',
     };
     final copied = [
       for (final k in _messageKeys(en))

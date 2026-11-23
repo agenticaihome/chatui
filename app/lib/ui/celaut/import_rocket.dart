@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/package_library.dart';
 import '../../l10n/l10n.dart';
-import '../../theme/arcane.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 import 'raise_rocket.dart';
@@ -140,7 +139,7 @@ class _ImportCardState extends State<_ImportCard> {
       shape: panelShapeOf(context, radius: 20),
       child: Stack(
         children: [
-          if (colors.isArcane) Positioned.fill(child: ArcaneCorners(color: colors.trim)),
+          if (colors.look case final look?) Positioned.fill(child: LookOrnaments(look: look, color: colors.trim)),
           Padding(
             padding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
             child: Column(

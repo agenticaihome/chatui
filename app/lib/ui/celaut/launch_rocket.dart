@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
-import '../../theme/arcane.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 
@@ -86,7 +85,7 @@ class _RocketCard extends StatelessWidget {
       shape: panelShapeOf(context, radius: 20),
       child: Stack(
         children: [
-          if (colors.isArcane) Positioned.fill(child: ArcaneCorners(color: colors.trim)),
+          if (colors.look case final look?) Positioned.fill(child: LookOrnaments(look: look, color: colors.trim)),
           Padding(
             padding: const EdgeInsets.fromLTRB(28, 24, 28, 22),
             child: Column(
@@ -248,10 +247,11 @@ class RocketStageState extends State<RocketStage>
               lift: _lift,
               body: scheme.onSurface,
               window: accentOf(context),
-              // A house palette: the flame in the house colour, the fins and the sparks in
-              // its metal.
-              flame: colors.isArcane ? colors.accent : rustFor(context),
-              trim: colors.isArcane ? colors.trim : null,
+              // A palette with a look: the flame in its accent, the fins in its trim, and
+              // what the rocket leaves is the look's.
+              flame: colors.hasLook ? colors.accent : rustFor(context),
+              trim: colors.hasLook ? colors.trim : null,
+              look: colors.look,
               still: _still,
             ),
           ),
@@ -272,6 +272,7 @@ class RocketPainter extends CustomPainter {
     required this.flame,
     required this.still,
     this.trim,
+    this.look,
   }) : super(repaint: Listenable.merge([hover, lift]));
 
   final Animation<double> hover;
@@ -281,9 +282,12 @@ class RocketPainter extends CustomPainter {
   final Color flame;
   final bool still;
 
-  /// The metal of a house palette, or null. With it the rocket wears the arcane look
-  /// ([paintRocketShape]) and leaves sparks, not smoke.
+  /// The trim of a palette with a look, or null: the fins and the core of the flame.
   final Color? trim;
+
+  /// The look of the palette, or null: its details on the rocket and what the rocket leaves
+  /// in place of the smoke.
+  final PaletteLook? look;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -296,26 +300,16 @@ class RocketPainter extends CustomPainter {
 
     // The flame flickers: longer and shorter.
     final flicker = still ? 1.0 : 0.75 + 0.25 * sin(phase * 3).abs();
-    paintRocketShape(canvas, body: body, window: window, flame: flame, flicker: flicker, trim: trim);
+    paintRocketShape(canvas, body: body, window: window, flame: flame, flicker: flicker, trim: trim, look: look);
     canvas.restore();
 
-    final metal = trim;
-    if (metal != null) {
+    final themed = look;
+    final metal = trim ?? window;
+    if (themed != null) {
       if (!still && lift.value == 0) {
-        // Sparks that fall away and twinkle under the rocket while it hovers.
-        for (var i = 0; i < 4; i++) {
-          final p = (hover.value + i / 4) % 1;
-          final twinkle = 0.6 + 0.4 * sin((p * 3 + i) * 2 * pi).abs();
-          paintSpark(
-            canvas,
-            Offset(w / 2 + (i - 1.5) * 7 + sin(p * 2 * pi + i) * 3, h * 0.42 + 62 + p * 28),
-            (2 + 2.5 * (1 - p)) * twinkle,
-            Paint()..color = (i.isEven ? metal : flame).withValues(alpha: 0.9 * (1 - p)),
-          );
-        }
+        themed.paintRocketTrail(canvas, Offset(w / 2, h * 0.42 + 62), hover.value, trim: metal, flame: flame);
       } else if (lift.value > 0) {
-        // A burst of sparks where it left.
-        paintSparkBurst(canvas, Offset(w / 2, h * 0.86), lift.value, a: metal, b: window);
+        themed.paintRocketBurst(canvas, Offset(w / 2, h * 0.86), lift.value, trim: metal, accent: window);
       }
       return;
     }
@@ -339,6 +333,7 @@ class RocketPainter extends CustomPainter {
       old.window != window ||
       old.flame != flame ||
       old.trim != trim ||
+      old.look != look ||
       old.still != still;
 }
 
@@ -346,9 +341,8 @@ class RocketPainter extends CustomPainter {
 /// The flame is under the tail, [flicker] long (1 is its full length); a null [flicker]
 /// draws no flame. The launch rocket and the raised rocket of an import draw the same shape.
 ///
-/// With a [trim] (a house palette) the rocket wears the arcane look: fins of the metal, a
-/// ring of it round the window and a band round the hull, a spark on the nose, and the
-/// flame's core in the metal.
+/// With a [trim] (a palette with a look) the fins and the flame's core are in it, and the
+/// [look] adds its details over the hull ([PaletteLook.paintRocketDetails]).
 void paintRocketShape(
   Canvas canvas, {
   required Color body,
@@ -356,6 +350,7 @@ void paintRocketShape(
   required Color flame,
   double? flicker,
   Color? trim,
+  PaletteLook? look,
 }) {
   if (flicker != null) {
     final flamePath = Path()
@@ -400,22 +395,5 @@ void paintRocketShape(
     ..close();
   canvas.drawPath(hull, Paint()..color = body);
   canvas.drawCircle(const Offset(0, -8), 7, Paint()..color = window);
-  if (trim != null) {
-    final ring = Paint()
-      ..color = trim
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawCircle(const Offset(0, -8), 7, ring);
-    // A band of the metal round the hull, above the fins.
-    canvas.drawPath(
-      Path()
-        ..moveTo(-15.5, 8)
-        ..lineTo(15.5, 8)
-        ..lineTo(15.2, 12)
-        ..lineTo(-15.2, 12)
-        ..close(),
-      Paint()..color = trim,
-    );
-    paintSpark(canvas, const Offset(0, -48), 4.5, Paint()..color = trim);
-  }
+  if (trim != null) look?.paintRocketDetails(canvas, trim: trim, accent: window);
 }

@@ -5,13 +5,14 @@ import 'package:flutter/material.dart';
 import 'arcane.dart' show paintSpark;
 import 'argus_theme.dart';
 
-// The art of the Harry Potter palettes ([SceneArt]), drawn with paths over the home scene and
-// as the "theme" background of a chat: no image. Everything that text can fall on is thin,
-// small or faint, or is a mass in the colour of a ridge that the contrast tests already
-// check, so the type of the page keeps its contrast.
+// The drawing of a palette over the home scene and as the "theme" background of a chat
+// ([SceneArtwork], lib/theme/palette_look.dart), and the Harry Potter drawings
+// ([HogwartsArt]). Everything that text can fall on is thin, small or faint, or is a mass
+// in the colour of a ridge that the contrast tests already check, so the type of the page
+// keeps its contrast. The helpers ([paintStars], [paintMotes]) are for the other groups too.
 
-/// The part of the art behind the ridges of the home scene: the sky's stars, the candles,
-/// the wisps and the feathers. [light] is where the light of the scene is.
+/// The part of the palette's drawing behind the ridges of the home scene. [light] is where
+/// the light of the scene is.
 void paintSceneArtBack(
   Canvas canvas,
   Size size,
@@ -20,28 +21,12 @@ void paintSceneArtBack(
   required Offset light,
   double strength = 1,
 }) {
-  if (spec.art == SceneArt.none || size.isEmpty) return;
-  switch (spec.art) {
-    case SceneArt.none:
-      return;
-    case SceneArt.greatHall:
-      _stars(canvas, size, spec, dark, strength, seed: 11);
-      _candles(canvas, size, spec, dark, strength);
-    case SceneArt.castle:
-      _stars(canvas, size, spec, dark, strength, seed: 23);
-    case SceneArt.forest:
-      _stars(canvas, size, spec, dark, strength * 0.6, seed: 37);
-    case SceneArt.patronus:
-      _stars(canvas, size, spec, dark, strength, seed: 41);
-      _wisps(canvas, size, spec, dark, light, strength);
-    case SceneArt.phoenix:
-      _feathers(canvas, size, spec, dark, light, strength);
-  }
+  if (size.isEmpty) return;
+  spec.art?.paintBack(canvas, size, spec, dark: dark, light: light, strength: strength);
 }
 
-/// The part of the art over the ridges: the castle and the pines, which stand against the
-/// lit crests with their foot at [horizon] (a share of the height), and the fireflies,
-/// sparks and embers that float in the air.
+/// The part of the palette's drawing over the ridges, silhouettes with their foot at
+/// [horizon] (a share of the height) and what floats in the air.
 void paintSceneArtFront(
   Canvas canvas,
   Size size,
@@ -51,28 +36,77 @@ void paintSceneArtFront(
   double strength = 1,
 }) {
   if (size.isEmpty) return;
-  switch (spec.art) {
-    case SceneArt.castle:
-      _castle(canvas, size, spec, dark, horizon, strength);
-    case SceneArt.forest:
-      _treeline(canvas, size, spec, dark, horizon, strength);
-      _motes(canvas, size, spec.trim, dark, strength, count: 14, seed: 5, glow: true);
-    case SceneArt.patronus:
-      final random = math.Random(9);
-      for (var i = 0; i < 10; i++) {
-        final c = Offset(random.nextDouble() * size.width, size.height * (0.2 + random.nextDouble() * 0.6));
-        paintSpark(
-          canvas,
-          c,
-          2 + random.nextDouble() * 3,
-          Paint()..color = spec.trim.withValues(alpha: (dark ? 0.55 : 0.4) * strength),
-        );
-      }
-    case SceneArt.phoenix:
-      _motes(canvas, size, spec.accent, dark, strength, count: 16, seed: 17, glow: true);
-      _motes(canvas, size, spec.trim, dark, strength, count: 10, seed: 19, glow: false);
-    case SceneArt.none || SceneArt.greatHall:
-      return;
+  spec.art?.paintFront(canvas, size, spec, dark: dark, horizon: horizon, strength: strength);
+}
+
+/// The scenes of the Harry Potter palettes.
+enum HogwartsScene { greatHall, castle, forest, patronus, phoenix }
+
+/// The drawings of the Harry Potter palettes: the houses the Great Hall's floating candles
+/// under the stars, Hogwarts the castle, the Forest its pines and fireflies, the Patronus
+/// silver wisps, the Phoenix a fan of feathers and embers.
+class HogwartsArt extends SceneArtwork {
+  const HogwartsArt(this.scene);
+
+  final HogwartsScene scene;
+
+  @override
+  void paintBack(
+    Canvas canvas,
+    Size size,
+    SceneSpec spec, {
+    required bool dark,
+    required Offset light,
+    required double strength,
+  }) {
+    switch (scene) {
+      case HogwartsScene.greatHall:
+        paintStars(canvas, size, spec, dark, strength, seed: 11);
+        _candles(canvas, size, spec, dark, strength);
+      case HogwartsScene.castle:
+        paintStars(canvas, size, spec, dark, strength, seed: 23);
+      case HogwartsScene.forest:
+        paintStars(canvas, size, spec, dark, strength * 0.6, seed: 37);
+      case HogwartsScene.patronus:
+        paintStars(canvas, size, spec, dark, strength, seed: 41);
+        _wisps(canvas, size, spec, dark, light, strength);
+      case HogwartsScene.phoenix:
+        _feathers(canvas, size, spec, dark, light, strength);
+    }
+  }
+
+  @override
+  void paintFront(
+    Canvas canvas,
+    Size size,
+    SceneSpec spec, {
+    required bool dark,
+    required double horizon,
+    required double strength,
+  }) {
+    switch (scene) {
+      case HogwartsScene.castle:
+        _castle(canvas, size, spec, dark, horizon, strength);
+      case HogwartsScene.forest:
+        _treeline(canvas, size, spec, dark, horizon, strength);
+        paintMotes(canvas, size, spec.trim, dark, strength, count: 14, seed: 5, glow: true);
+      case HogwartsScene.patronus:
+        final random = math.Random(9);
+        for (var i = 0; i < 10; i++) {
+          final c = Offset(random.nextDouble() * size.width, size.height * (0.2 + random.nextDouble() * 0.6));
+          paintSpark(
+            canvas,
+            c,
+            2 + random.nextDouble() * 3,
+            Paint()..color = spec.trim.withValues(alpha: (dark ? 0.55 : 0.4) * strength),
+          );
+        }
+      case HogwartsScene.phoenix:
+        paintMotes(canvas, size, spec.accent, dark, strength, count: 16, seed: 17, glow: true);
+        paintMotes(canvas, size, spec.trim, dark, strength, count: 10, seed: 19, glow: false);
+      case HogwartsScene.greatHall:
+        return;
+    }
   }
 }
 
@@ -107,7 +141,7 @@ void paintChatThemeBackground(Canvas canvas, Size size, SceneSpec spec, {require
 }
 
 /// Stars, or on a light page a few pale sparks of the trim, in the upper part of the sky.
-void _stars(Canvas canvas, Size size, SceneSpec spec, bool dark, double strength, {required int seed}) {
+void paintStars(Canvas canvas, Size size, SceneSpec spec, bool dark, double strength, {required int seed}) {
   final random = math.Random(seed);
   final w = size.width, h = size.height;
   if (dark) {
@@ -158,12 +192,6 @@ void _candles(Canvas canvas, Size size, SceneSpec spec, bool dark, double streng
   }
 }
 
-/// The colour of a silhouette that stands against the ridges: on a dark page the main
-/// range's, darker than the sky; on a light page the far ridge's with a breath of the ink of
-/// the ring, so it shows on the pale sky.
-Color _silhouette(SceneSpec spec, bool dark) =>
-    dark ? spec.ridges[1] : Color.alphaBlend(spec.ring.withValues(alpha: 0.12), spec.ridges.first);
-
 /// A castle on the right of the scene: a hall, towers with pointed roofs, a tall spire and
 /// lit windows in the trim.
 void _castle(Canvas canvas, Size size, SceneSpec spec, bool dark, double horizon, double strength) {
@@ -172,7 +200,7 @@ void _castle(Canvas canvas, Size size, SceneSpec spec, bool dark, double horizon
   final x0 = w * 0.5;
   final span = w * 0.48;
   final unit = (span / 10).clamp(10.0, 30.0);
-  final body = Paint()..color = _silhouette(spec, dark);
+  final body = Paint()..color = silhouetteColor(spec, dark);
   final window = Paint()..color = spec.trim.withValues(alpha: (dark ? 0.85 : 0.55) * strength);
   // The hall, low and wide, down to the foot of the scene, where the page covers it.
   canvas.drawRect(Rect.fromLTRB(x0 + span * 0.08, base - unit * 2.2, x0 + span * 0.92, h), body);
@@ -223,7 +251,7 @@ void _treeline(Canvas canvas, Size size, SceneSpec spec, bool dark, double horiz
   final w = size.width, h = size.height;
   final base = h * horizon;
   final random = math.Random(29);
-  final paint = Paint()..color = _silhouette(spec, dark);
+  final paint = Paint()..color = silhouetteColor(spec, dark);
   var x = -10.0;
   while (x < w + 20) {
     final edge = ((x / w) - 0.5).abs() * 2; // 0 in the middle, 1 at the sides
@@ -320,7 +348,7 @@ void _feathers(Canvas canvas, Size size, SceneSpec spec, bool dark, Offset light
 }
 
 /// Small motes that float in the air: fireflies or embers.
-void _motes(Canvas canvas, Size size, Color colour, bool dark, double strength,
+void paintMotes(Canvas canvas, Size size, Color colour, bool dark, double strength,
     {required int count, required int seed, required bool glow}) {
   final random = math.Random(seed);
   for (var i = 0; i < count; i++) {

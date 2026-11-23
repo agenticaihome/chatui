@@ -5,7 +5,7 @@ import 'dart:ui' as ui;
 import 'package:argus_wallet/celaut/cards_effects.dart';
 import 'package:argus_wallet/celaut/chat_backgrounds.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
-import 'package:argus_wallet/theme/arcane.dart';
+import 'package:argus_wallet/theme/arcane.dart' show ArcaneLook;
 import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/theme/scene_art.dart';
 import 'package:argus_wallet/ui/celaut/cards_look.dart';
@@ -26,7 +26,7 @@ double contrast(Color a, Color b) {
 /// The four house palettes: each house in a dark and a light palette, all in the one
 /// arcane look (buttons, cards, the deck's frame and the rocket).
 void main() {
-  final houses = allPalettes.where((p) => p.isArcane).toList();
+  final houses = allPalettes.where((p) => p.group == PaletteGroup.harryPotter).toList();
 
   test('the four houses and four more of Harry Potter, each in a dark and a light palette', () {
     expect(houses, hasLength(16));
@@ -35,10 +35,13 @@ void main() {
       expect(paletteById('${animal}_night', fallback: Brightness.light).isDark, isTrue);
       expect(paletteById('${animal}_day', fallback: Brightness.dark).isDark, isFalse);
     }
-    // The other palettes keep the standard look and folder.
-    expect(allPalettes.where((p) => !p.isArcane), hasLength(15));
-    for (final p in allPalettes) {
-      expect(p.group, p.isArcane ? PaletteGroup.harryPotter : PaletteGroup.standard, reason: p.id);
+    // The standard palettes keep the app's look; the Harry Potter ones share the arcane one.
+    expect(allPalettes.where((p) => p.group == PaletteGroup.standard), hasLength(15));
+    for (final p in allPalettes.where((p) => p.group == PaletteGroup.standard)) {
+      expect(p.look, isNull, reason: p.id);
+    }
+    for (final p in houses) {
+      expect(p.look, isA<ArcaneLook>(), reason: p.id);
     }
   });
 
@@ -46,7 +49,7 @@ void main() {
     test('${p.id}: the shared look in the theme, and labels that read on the buttons', () {
       final theme = argusThemeFor(p);
       final colors = theme.extension<ArgusColors>()!;
-      expect(colors.isArcane, isTrue);
+      expect(colors.hasLook, isTrue);
       expect(colors.trim, p.trim);
       expect(theme.cardTheme.shape, isA<BeveledRectangleBorder>());
       expect(theme.dialogTheme.shape, isA<BeveledRectangleBorder>());
@@ -122,7 +125,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     final card = tester.widget<Material>(find.byKey(const Key('run-progress')));
     expect(card.shape, isA<BeveledRectangleBorder>());
-    expect(find.byType(ArcaneCorners), findsOneWidget);
+    expect(find.byType(LookOrnaments), findsOneWidget);
     rocket.dismiss();
     await tester.pump();
   });
@@ -155,12 +158,12 @@ void main() {
   });
 
   group('the art of the scene', () {
-    test('every Harry Potter palette has its own drawing, the others none', () {
+    test('every Harry Potter palette has its own drawing, the standard ones none', () {
       for (final p in allPalettes) {
-        expect(p.art == SceneArt.none, p.group == PaletteGroup.standard, reason: p.id);
+        if (p.group == PaletteGroup.standard) expect(p.art, isNull, reason: p.id);
         expect(p.scene.art, p.art);
       }
-      expect({for (final p in houses) p.art}, SceneArt.values.toSet()..remove(SceneArt.none));
+      expect({for (final p in houses) (p.art! as HogwartsArt).scene}, HogwartsScene.values.toSet());
     });
 
     for (final p in allPalettes) {

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../celaut/cards_effects.dart';
-import '../../theme/argus_theme.dart' show ArgusColors, cardRadius;
+import '../../theme/argus_theme.dart' show ArgusColors, PaletteLook, cardRadius;
 
 /// The frame of a card (`docs/celaut/cards.md`, section 13): the border, the corner and
 /// the shadow, all from the active theme. The service never draws it; the tone of the card
@@ -10,14 +10,17 @@ import '../../theme/argus_theme.dart' show ArgusColors, cardRadius;
 /// says.
 @immutable
 class CardFrame {
-  const CardFrame({required this.side, required this.radius, required this.shadows, this.ornament});
+  const CardFrame({required this.side, required this.radius, required this.shadows, this.ornament, this.look});
 
   final BorderSide side;
   final double radius;
   final List<BoxShadow> shadows;
 
-  /// The colour of the ornaments in the corners (a house palette's metal), or null for none.
+  /// The colour of the ornaments of the palette's [look] (its trim), or null for none.
   final Color? ornament;
+
+  /// The look whose ornaments go over the card, or null.
+  final PaletteLook? look;
 
   BoxDecoration decoration(Color fill) => BoxDecoration(
         color: fill,
@@ -40,13 +43,15 @@ CardFrame cardFrameOf(ThemeData theme, Color? toneColor, CardsFrames frames) {
     );
   }
   final colors = theme.extension<ArgusColors>();
-  if (colors != null && colors.isArcane) {
-    // A house palette: a frame of its metal, ornaments in the corners, and a glow of the
-    // metal (on a light page, a soft shadow under it as well).
+  final look = colors?.look;
+  if (colors != null && look != null) {
+    // A palette with a look: a frame of its trim, its ornaments, and a glow of the trim (on
+    // a light page, a soft shadow under it as well).
     return CardFrame(
       side: BorderSide(color: toneColor ?? colors.trim, width: 2),
       radius: cardRadius,
       ornament: colors.trim,
+      look: look,
       shadows: [
         BoxShadow(color: colors.trim.withValues(alpha: dark ? 0.22 : 0.18), blurRadius: 18),
         if (!dark) BoxShadow(color: scheme.shadow.withValues(alpha: 0.10), blurRadius: 12, offset: const Offset(0, 6)),

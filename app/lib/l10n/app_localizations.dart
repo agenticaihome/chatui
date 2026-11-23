@@ -1448,6 +1448,12 @@ abstract class AppLocalizations {
   /// **'True black, steel accent'**
   String get themeObsidianHint;
 
+  /// No description provided for @displayPaletteGroupChristmas.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas'**
+  String get displayPaletteGroupChristmas;
+
   /// No description provided for @themeHarborName.
   ///
   /// In en, this message translates to:
@@ -1472,6 +1478,12 @@ abstract class AppLocalizations {
   /// **'Warm charcoal, copper accent'**
   String get themeEmberHint;
 
+  /// No description provided for @displayPaletteGroupGta.
+  ///
+  /// In en, this message translates to:
+  /// **'Grand Theft Auto'**
+  String get displayPaletteGroupGta;
+
   /// No description provided for @themeParchmentName.
   ///
   /// In en, this message translates to:
@@ -1495,6 +1507,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cool white, slate-blue accent'**
   String get themeFrostHint;
+
+  /// No description provided for @displayPaletteGroupMarvel.
+  ///
+  /// In en, this message translates to:
+  /// **'Marvel'**
+  String get displayPaletteGroupMarvel;
 
   /// No description provided for @themeCyberpunkName.
   ///
@@ -1531,6 +1549,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'True black, system blue'**
   String get themeAppleDarkHint;
+
+  /// No description provided for @displayPaletteGroupCyberpunk.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk'**
+  String get displayPaletteGroupCyberpunk;
 
   /// No description provided for @themeMaterialLightName.
   ///

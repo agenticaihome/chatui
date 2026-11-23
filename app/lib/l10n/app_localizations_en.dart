@@ -794,6 +794,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeObsidianHint => 'True black, steel accent';
 
   @override
+  String get displayPaletteGroupChristmas => 'Christmas';
+
+  @override
   String get themeHarborName => 'Harbor';
 
   @override
@@ -806,6 +809,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeEmberHint => 'Warm charcoal, copper accent';
 
   @override
+  String get displayPaletteGroupGta => 'Grand Theft Auto';
+
+  @override
   String get themeParchmentName => 'Parchment';
 
   @override
@@ -816,6 +822,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeFrostHint => 'Cool white, slate-blue accent';
+
+  @override
+  String get displayPaletteGroupMarvel => 'Marvel';
 
   @override
   String get themeCyberpunkName => 'Cyberpunk';
@@ -834,6 +843,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeAppleDarkHint => 'True black, system blue';
+
+  @override
+  String get displayPaletteGroupCyberpunk => 'Cyberpunk';
 
   @override
   String get themeMaterialLightName => 'Material Light';

@@ -145,7 +145,8 @@ class DisplaySettingsPage extends StatelessWidget {
 }
 
 /// The palettes of one brightness by folder ([PaletteGroup]): the standard ones first, then
-/// the Harry Potter houses, each folder under its name and in a row of its own.
+/// the groups, each folder under its name and in a row of its own. An empty folder is left
+/// out.
 class _PaletteGroups extends StatelessWidget {
   const _PaletteGroups({required this.palettes, required this.selected, required this.onPick});
   final List<PaletteSpec> palettes;
@@ -172,10 +173,7 @@ class _PaletteGroups extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    switch (group) {
-                      PaletteGroup.standard => context.l10n.displayPaletteGroupStandard,
-                      PaletteGroup.harryPotter => context.l10n.displayPaletteGroupHarryPotter,
-                    },
+                    paletteGroupLabel(context.l10n, group),
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: muted),
                   ),
                 ],
@@ -213,9 +211,8 @@ class _PaletteRow extends StatelessWidget {
         itemBuilder: (context, i) {
           final p = palettes[i];
           final on = p.id == selected.id;
-          // A house palette shows its look: the cut corners, and its metal as the second
-          // swatch.
-          final side = BorderSide(color: on ? (p.isArcane ? p.trim : p.accent) : p.cardBorder, width: on ? 2 : 1);
+          // A palette with a look shows it: its outline, and its trim as the second swatch.
+          final side = BorderSide(color: on ? (p.hasLook ? p.trim : p.accent) : p.cardBorder, width: on ? 2 : 1);
           return InkWell(
             onTap: () => onPick(p),
             customBorder: panelShapeFor(p, 16),
@@ -230,7 +227,7 @@ class _PaletteRow extends StatelessWidget {
                     height: 36,
                     decoration: ShapeDecoration(
                       color: p.surface,
-                      shape: panelShapeFor(p, 10, side: BorderSide(color: p.isArcane ? p.trim : p.cardBorder)),
+                      shape: panelShapeFor(p, 10, side: BorderSide(color: p.hasLook ? p.trim : p.cardBorder)),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     alignment: Alignment.centerLeft,
@@ -248,7 +245,7 @@ class _PaletteRow extends StatelessWidget {
                         width: 22,
                         height: 22,
                         decoration: BoxDecoration(
-                          color: p.isArcane ? p.trim : p.muted,
+                          color: p.hasLook ? p.trim : p.muted,
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
