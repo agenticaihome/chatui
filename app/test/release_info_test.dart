@@ -22,9 +22,9 @@ Map<String, Object?> release({
     };
 
 Map<String, Object?> asset({
-  Object? name = 'chatui-1.0.0-beta.2-universal.apk',
+  Object? name = 'superapp-1.0.0-beta.2-universal.apk',
   Object? size = 1000,
-  Object? url = 'https://github.com/celaut-project/superapp/releases/download/v1.0.0-beta.2/chatui-1.0.0-beta.2-universal.apk',
+  Object? url = 'https://github.com/celaut-project/superapp/releases/download/v1.0.0-beta.2/superapp-1.0.0-beta.2-universal.apk',
   Object? digest,
   Object? state = 'uploaded',
 }) =>
@@ -50,15 +50,15 @@ void main() {
       expect(info.version.toString(), '1.0.0-beta.1');
       expect(info.publishedAt, DateTime.utc(2026, 10, 6, 2, 20, 31));
       expect(info.assets.map((a) => a.name), [
-        'chatui-1.0.0-beta.1-arm64-v8a.apk',
-        'chatui-1.0.0-beta.1-universal.apk',
-        'chatui-1.0.0-beta.1-x86_64.apk',
+        'superapp-1.0.0-beta.1-arm64-v8a.apk',
+        'superapp-1.0.0-beta.1-universal.apk',
+        'superapp-1.0.0-beta.1-x86_64.apk',
       ]);
       final arm = info.assets.first;
       expect(arm.size, 50254123);
       expect(arm.sha256, hex);
       expect(arm.url.toString(),
-          'https://github.com/celaut-project/superapp/releases/download/v1.0.0-beta.1/chatui-1.0.0-beta.1-arm64-v8a.apk');
+          'https://github.com/celaut-project/superapp/releases/download/v1.0.0-beta.1/superapp-1.0.0-beta.1-arm64-v8a.apk');
       expect(info.assets.map((a) => a.sha256), everyElement(isNotNull));
     });
 
@@ -168,7 +168,7 @@ void main() {
   group('assets', () {
     test('a good asset keeps its size, address and checksum', () {
       final a = ReleaseAsset.tryParse(asset(digest: 'sha256:$hex'))!;
-      expect(a.name, 'chatui-1.0.0-beta.2-universal.apk');
+      expect(a.name, 'superapp-1.0.0-beta.2-universal.apk');
       expect(a.size, 1000);
       expect(a.sha256, hex);
     });
@@ -221,9 +221,9 @@ void main() {
         asset(),
         asset(url: 'https://evil.example/a.apk', name: 'evil.apk'),
         'junk',
-        asset(name: 'chatui-1.0.0-beta.2-x86_64.apk'),
+        asset(name: 'superapp-1.0.0-beta.2-x86_64.apk'),
       ]));
-      expect(info.assets.map((a) => a.name), ['chatui-1.0.0-beta.2-universal.apk', 'chatui-1.0.0-beta.2-x86_64.apk']);
+      expect(info.assets.map((a) => a.name), ['superapp-1.0.0-beta.2-universal.apk', 'superapp-1.0.0-beta.2-x86_64.apk']);
     });
   });
 
@@ -255,9 +255,9 @@ void main() {
   });
 
   group('which APK a phone gets', () {
-    final arm = named('chatui-1.0.0-beta.2-arm64-v8a.apk');
-    final x86 = named('chatui-1.0.0-beta.2-x86_64.apk');
-    final universal = named('chatui-1.0.0-beta.2-universal.apk');
+    final arm = named('superapp-1.0.0-beta.2-arm64-v8a.apk');
+    final x86 = named('superapp-1.0.0-beta.2-x86_64.apk');
+    final universal = named('superapp-1.0.0-beta.2-universal.apk');
     final all = [universal, arm, x86];
 
     test('a 64-bit ARM phone gets the arm64 build', () {
@@ -287,7 +287,7 @@ void main() {
     test('nothing to offer when the release has no suitable APK', () {
       expect(pickAsset([arm], ['x86_64']), isNull);
       expect(pickAsset(const [], ['arm64-v8a']), isNull);
-      expect(pickAsset([named('notes.txt'), named('chatui-1.0.0-universal.aab')], ['arm64-v8a']), isNull);
+      expect(pickAsset([named('notes.txt'), named('superapp-1.0.0-universal.aab')], ['arm64-v8a']), isNull);
     });
 
     test('a file that only resembles one of ours is not taken', () {

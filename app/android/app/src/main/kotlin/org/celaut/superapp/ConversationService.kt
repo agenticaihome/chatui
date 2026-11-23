@@ -1,4 +1,4 @@
-package org.celaut.chatui
+package org.celaut.superapp
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -129,7 +129,7 @@ class ConversationService : Service() {
         if (on) {
             if (wakeLock?.isHeld == true) return
             val power = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "chatui:work").apply {
+            wakeLock = power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "superapp:work").apply {
                 setReferenceCounted(false)
                 acquire(WAKE_LOCK_MS)
             }

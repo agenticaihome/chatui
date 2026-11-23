@@ -7,10 +7,10 @@ ID when they install it.
 ## 1. Install
 
 You need a computer (macOS or Windows) once, an Apple ID, and the `.ipa` of a release:
-`chatui-<version>-unsigned.ipa`. Check it first:
+`superapp-<version>-unsigned.ipa`. Check it first:
 
 ```
-shasum -a 256 chatui-<version>-unsigned.ipa     # the same line as in SHA256SUMS of the release
+shasum -a 256 superapp-<version>-unsigned.ipa     # the same line as in SHA256SUMS of the release
 ```
 
 On iOS 16 or later, turn on **Settings → Privacy & Security → Developer Mode** (the phone
@@ -106,7 +106,7 @@ build runs the hook with them.
 `app/lib/celaut/app_suspension.dart` (`AppSuspension`) does nothing on Android.
 
 - When the app goes to the background, `LifecyclePlugin.swift` asks iOS for a short
-  background task and calls `suspend` on `org.celaut.chatui/lifecycle`. Each open chat ends
+  background task and calls `suspend` on `org.celaut.superapp/lifecycle`. Each open chat ends
   its `Connect` stream (our side first, so the service ends with `OK`) and shuts its HTTP/2
   connection, so the tunnel stream to the node closes too. The task ends when Dart answers,
   after 8 seconds at most.
@@ -180,7 +180,7 @@ simulator library has the architectures that Xcode asks for (arm64 on Apple sili
 
 CI (`ci.yml`): the `ios` job builds the release app unsigned and packs and checks the `.ipa`
 (`scripts/pack_ipa.sh`: arm64, the exports of the bridge, and `release_check.sh ipa`:
-version, build number, bundle id `org.celaut.chatui`, unsigned). The `ios-simulator` job
+version, build number, bundle id `org.celaut.superapp`, unsigned). The `ios-simulator` job
 boots a simulator and runs `integration_test/ios_smoke_test.dart` (the app starts, the home
 screen and the warnings show, the Rust core loads and opens the Celaut database), the Tor
 test, and a screenshot of the first start. `release.yml` builds the `.ipa` for a tag, and

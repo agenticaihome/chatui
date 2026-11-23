@@ -6,7 +6,7 @@ import UIKit
 /// iOS suspends the app a few seconds after it goes to the background: the Tor circuits,
 /// the tunnels and the gRPC streams stop, and the app uses no background mode in this phase
 /// (`docs/ios.md`). When the scene goes to the background, this plugin asks iOS for a short
-/// background task and calls `suspend` on `org.celaut.chatui/lifecycle`: Dart ends its chat
+/// background task and calls `suspend` on `org.celaut.superapp/lifecycle`: Dart ends its chat
 /// streams cleanly (`AppSuspension`), then answers, and the task ends. iOS gives the task
 /// about 30 seconds; the plugin ends it after [limit] anyway. When the app comes back, Dart
 /// reconnects and reads what it missed (`AppLifecycleState.resumed`).
@@ -14,7 +14,7 @@ import UIKit
 /// The app switcher shows a plain cover instead of the screen: iOS has no FLAG_SECURE, and
 /// the screen can show balances or a recovery phrase.
 final class LifecyclePlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelegate {
-  private static let channelName = "org.celaut.chatui/lifecycle"
+  private static let channelName = "org.celaut.superapp/lifecycle"
   /// The longest time that the app keeps itself awake to close its sessions.
   private static let limit: TimeInterval = 8
 

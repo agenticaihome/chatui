@@ -182,7 +182,7 @@ check_apks() {
 # the build number of build_info.dart, the bundle id of the app, and its executable; and it
 # must be unsigned (the user's AltStore, SideStore or Sideloadly signs it). Python reads
 # the plist, so the check runs on Linux too (the publish job).
-IOS_BUNDLE_ID="org.celaut.chatui"
+IOS_BUNDLE_ID="org.celaut.superapp"
 
 check_ipa() {
   local ipa="${1:-}"

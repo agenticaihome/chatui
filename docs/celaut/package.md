@@ -16,7 +16,7 @@ app then:
 
 1. **reads** it: Android copies the file with a stream into `<private dir>/packages/incoming`
    (not the cache: Android clears the cache when the storage is low, also in the middle of
-   a copy of 1.45 GB), and tells the bytes copied (`copied` on the channel `org.celaut.chatui/package`). The card says
+   a copy of 1.45 GB), and tells the bytes copied (`copied` on the channel `org.celaut.superapp/package`). The card says
    "Reading the service file…" with these bytes; Cancel stops the copy and deletes it. A
    file that the app cannot read is refused with the reason;
 2. checks it: the file must be a package of a service, with a Service part, and it must say
@@ -50,7 +50,7 @@ the permission to read it, to `MainActivity` in the task of the app. A file mana
 the activity of its intent in its own task, so without this step a second `MainActivity`,
 with a second Flutter engine, started there while the app ran. The file goes to Flutter on
 the channel
-`org.celaut.chatui/incoming` (`IncomingPackageHandler`): `takeIncoming` gives the file that
+`org.celaut.superapp/incoming` (`IncomingPackageHandler`): `takeIncoming` gives the file that
 launched the app, and `incoming` the files that come while the app runs, in front or in the
 background. Android forgets the file only when Flutter answered, and an intent that it gives
 again from the recent apps, or after it saved the state of the activity, is not imported a

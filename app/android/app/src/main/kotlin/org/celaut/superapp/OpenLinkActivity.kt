@@ -1,4 +1,4 @@
-package org.celaut.chatui
+package org.celaut.superapp
 
 import android.app.Activity
 import android.content.Intent

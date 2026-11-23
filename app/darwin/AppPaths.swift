@@ -11,7 +11,7 @@ enum AppPaths {
     var base = try FileManager.default.url(
       for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
     #if os(macOS)
-      base = base.appendingPathComponent(Bundle.main.bundleIdentifier ?? "org.celaut.chatui", isDirectory: true)
+      base = base.appendingPathComponent(Bundle.main.bundleIdentifier ?? "org.celaut.superapp", isDirectory: true)
     #endif
     var dir = base.appendingPathComponent("celaut", isDirectory: true)
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

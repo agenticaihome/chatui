@@ -135,7 +135,7 @@ source. CI runs on master and builds the debug APK. Check: the CI `android` job.
 
 **M0b: trimmed wallet and new identity** (decisions.md). Remove the DeFi crates and
 screens, the dApp browser, the CoinGecko prices and the app fee. Label "Celaut",
-applicationId `org.celaut.chatui`, flutter_zxing scanner, updater on the
+applicationId `org.celaut.superapp`, flutter_zxing scanner, updater on the
 celaut-project/superapp releases. Check: the APK runs on GrapheneOS without Play
 Services; `flutter test` and `cargo test` pass.
 
@@ -145,7 +145,7 @@ not be pushed. Do not wait for it.
 The items of M0b, as master had them at `160d24c` (all done in PR #3; Spanish in PR #12):
 
 - `namespace` and `applicationId` are `com.argus.argus_wallet`
-  (`app/android/app/build.gradle.kts`). Change both to `org.celaut.chatui`, and move
+  (`app/android/app/build.gradle.kts`). Change both to `org.celaut.superapp`, and move
   `MainActivity` to the new package.
 - `android:label` is "Argus" (`app/android/app/src/main/AndroidManifest.xml`).
 - The updater reads `arkadianet/Argus` (`app/lib/build_info.dart`,

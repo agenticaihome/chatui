@@ -62,12 +62,12 @@ case "${1:-all}" in
     done
     exec env -i HOME="$HOME" USER="${USER:-}" TMPDIR="${TMPDIR:-/tmp}" ${keep[@]+"${keep[@]}"} \
       PATH="$rust_path:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" \
-      CHATUI_SIM_ARCHS="$archs" "$SCRIPT_DIR/build_ios.sh" "$mode"
+      SUPERAPP_SIM_ARCHS="$archs" "$SCRIPT_DIR/build_ios.sh" "$mode"
     ;;
   *) echo "usage: $0 [all|device|simulator|xcode]" >&2; exit 2 ;;
 esac
 # The architectures that Xcode asked for (xcode mode), instead of this Mac's.
-[ -n "$SIM_ARCHS" ] && [ -n "${CHATUI_SIM_ARCHS:-}" ] && SIM_ARCHS="$CHATUI_SIM_ARCHS"
+[ -n "$SIM_ARCHS" ] && [ -n "${SUPERAPP_SIM_ARCHS:-}" ] && SIM_ARCHS="$SUPERAPP_SIM_ARCHS"
 
 if [ "$(uname -s)" != Darwin ]; then
   echo "The iOS library builds only on macOS with Xcode." >&2

@@ -16,14 +16,14 @@ class EnvShare {
   final bool sensitive;
 
   /// The marker of the format. A code that does not begin so is not a variable.
-  static const _prefix = '{"chatui_env":1,';
+  static const _prefix = '{"superapp_env":1,';
 
   /// The most bytes of text that the QR code carries. The largest QR (version 40) holds
   /// 2331 bytes with the medium error correction that the screen uses; the rest is margin.
   static const maxPayloadBytes = 2000;
 
   /// The text of the QR code.
-  String encode() => jsonEncode({'chatui_env': 1, 'n': name, 'v': value, 's': sensitive});
+  String encode() => jsonEncode({'superapp_env': 1, 'n': name, 'v': value, 's': sensitive});
 
   /// True if the QR code of this variable fits in [maxPayloadBytes].
   bool get fits => utf8.encode(encode()).length <= maxPayloadBytes;

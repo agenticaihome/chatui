@@ -1,4 +1,4 @@
-package org.celaut.chatui
+package org.celaut.superapp
 
 import android.app.Activity
 import android.content.Context
@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 /// starts. While the copy runs, it tells its bytes to Flutter (`copied`), and `cancelCopy`
 /// stops it.
 object PackageHandler {
-    private const val CHANNEL = "org.celaut.chatui/package"
+    private const val CHANNEL = "org.celaut.superapp/package"
     private const val REQUEST_PICK = 7303
 
     /// The time between two counts of the copy that go to Flutter.

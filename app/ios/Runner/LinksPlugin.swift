@@ -9,7 +9,7 @@ import UIKit
 ///   The link of the launch is answered by `getInitialLink`; a later one goes through
 ///   `onLink`. A `celaut:` link longer than 4096 characters is cut after one more
 ///   character, enough for Flutter to see that it is too long.
-/// - `org.celaut.chatui/incoming`: `celaut://import?url=<an http(s) link>` gives
+/// - `org.celaut.superapp/incoming`: `celaut://import?url=<an http(s) link>` gives
 ///   `{link: url}`, and a `.celaut.bee` file that the user opens with the app (the
 ///   document type `org.celaut.bee`) gives `{uri, name, bytes}`; `PackagePlugin` copies it.
 ///   The item that came before Flutter listened is answered by `takeIncoming`.
@@ -20,7 +20,7 @@ import UIKit
 /// (`FlutterDeepLinkingEnabled`), as on Android: an unknown route would be a second home.
 final class LinksPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelegate {
   private static let deepLinkChannel = "argus/deeplink"
-  private static let incomingChannel = "org.celaut.chatui/incoming"
+  private static let incomingChannel = "org.celaut.superapp/incoming"
 
   private var deepLink: FlutterMethodChannel?
   private var incoming: FlutterMethodChannel?

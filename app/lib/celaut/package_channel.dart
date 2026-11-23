@@ -105,7 +105,7 @@ class AndroidPackageChannel implements PackageChannel {
   /// [android] stands in for the platform check in tests.
   const AndroidPackageChannel({bool? android}) : _android = android;
 
-  static const channel = MethodChannel('org.celaut.chatui/package');
+  static const channel = MethodChannel('org.celaut.superapp/package');
 
   /// The count of the copy: one for the app, as the Android side has one channel.
   static int _copied = 0;

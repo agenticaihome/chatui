@@ -1,4 +1,4 @@
-package org.celaut.chatui
+package org.celaut.superapp
 
 import android.Manifest
 import android.annotation.SuppressLint

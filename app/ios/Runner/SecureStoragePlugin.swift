@@ -13,8 +13,8 @@ final class SecureStoragePlugin: NSObject, FlutterPlugin {
   // The key of the Celaut database: one for the app, not one per wallet.
   private static let celautDbKey = "celaut_db_key_v1"
   private static let pinGateKey = "pin_gate"
-  private static let service = "org.celaut.chatui.secure"
-  private static let installedFlag = "org.celaut.chatui.keychain_owner"
+  private static let service = "org.celaut.superapp.secure"
+  private static let installedFlag = "org.celaut.superapp.keychain_owner"
 
   static func register(with registrar: FlutterPluginRegistrar) {
     KeychainStore(service: service).claim(flag: installedFlag)

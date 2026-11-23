@@ -16,6 +16,6 @@ import UserNotifications
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     // The channels of the app itself: the ports of the Android handlers (docs/ios.md).
-    ChatuiPlugins.register(with: engineBridge.pluginRegistry)
+    SuperappPlugins.register(with: engineBridge.pluginRegistry)
   }
 }

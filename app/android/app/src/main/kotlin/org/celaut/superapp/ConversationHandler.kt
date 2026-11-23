@@ -1,4 +1,4 @@
-package org.celaut.chatui
+package org.celaut.superapp
 
 import android.Manifest
 import android.app.Activity
@@ -13,7 +13,7 @@ import io.flutter.plugin.common.MethodChannel
 /// (Android 13+) when Dart asks. Nothing here needs the permission: without it the
 /// service runs with no notification.
 object ConversationHandler {
-    private const val CHANNEL = "org.celaut.chatui/conversation"
+    private const val CHANNEL = "org.celaut.superapp/conversation"
     private const val REQUEST_NOTIFICATIONS = 7302
 
     private var pending: MethodChannel.Result? = null

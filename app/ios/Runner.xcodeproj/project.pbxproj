@@ -15,7 +15,7 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
-		6F94C18046801779A356F57F /* ChatuiPlugins.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE2077DF10541DC67F56F0D /* ChatuiPlugins.swift */; };
+		6F94C18046801779A356F57F /* SuperappPlugins.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE2077DF10541DC67F56F0D /* SuperappPlugins.swift */; };
 		D722FCC779EFD62D9B00D971 /* SecureStoragePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D87A8A854F799763F8BFD242 /* SecureStoragePlugin.swift */; };
 		343119B5C74129DC3AEDA1ED /* LinksPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7F7A0B224E9AB6AEE228D15 /* LinksPlugin.swift */; };
 		FA7C67E394F7AAF881416903 /* PackagePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB945CB596969441497F479 /* PackagePlugin.swift */; };
@@ -65,7 +65,7 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		3AE2077DF10541DC67F56F0D /* ChatuiPlugins.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatuiPlugins.swift; sourceTree = "<group>"; };
+		3AE2077DF10541DC67F56F0D /* SuperappPlugins.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperappPlugins.swift; sourceTree = "<group>"; };
 		D87A8A854F799763F8BFD242 /* SecureStoragePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStoragePlugin.swift; sourceTree = "<group>"; };
 		C7F7A0B224E9AB6AEE228D15 /* LinksPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinksPlugin.swift; sourceTree = "<group>"; };
 		4AB945CB596969441497F479 /* PackagePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackagePlugin.swift; sourceTree = "<group>"; };
@@ -142,7 +142,7 @@
 				4AB945CB596969441497F479 /* PackagePlugin.swift */,
 				C7F7A0B224E9AB6AEE228D15 /* LinksPlugin.swift */,
 				D87A8A854F799763F8BFD242 /* SecureStoragePlugin.swift */,
-				3AE2077DF10541DC67F56F0D /* ChatuiPlugins.swift */,
+				3AE2077DF10541DC67F56F0D /* SuperappPlugins.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
@@ -321,7 +321,7 @@
 				FA7C67E394F7AAF881416903 /* PackagePlugin.swift in Sources */,
 				343119B5C74129DC3AEDA1ED /* LinksPlugin.swift in Sources */,
 				D722FCC779EFD62D9B00D971 /* SecureStoragePlugin.swift in Sources */,
-				6F94C18046801779A356F57F /* ChatuiPlugins.swift in Sources */,
+				6F94C18046801779A356F57F /* SuperappPlugins.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -424,7 +424,7 @@
 					"$(inherited)",
 					"$(RUST_CORE_LDFLAGS)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.chatui;
+				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.superapp;
 				STRIP_STYLE = "non-global";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -441,7 +441,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.chatui.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.superapp.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -458,7 +458,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.chatui.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.superapp.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -473,7 +473,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.chatui.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.superapp.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -608,7 +608,7 @@
 					"$(inherited)",
 					"$(RUST_CORE_LDFLAGS)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.chatui;
+				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.superapp;
 				STRIP_STYLE = "non-global";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -635,7 +635,7 @@
 					"$(inherited)",
 					"$(RUST_CORE_LDFLAGS)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.chatui;
+				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.superapp;
 				STRIP_STYLE = "non-global";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";

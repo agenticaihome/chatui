@@ -62,7 +62,7 @@ of the app, so it installs over the app and keeps its data.
 
 ## 3. What it found (October 2026)
 
-The setup: AVD `chatui-x86` (Android 15, x86_64, SwiftShader, 1080 × 2400), profile builds,
+The setup: AVD `superapp-x86` (Android 15, x86_64, SwiftShader, 1080 × 2400), profile builds,
 the app at 0.1.13, our node on the same host, two runs of each build. On SwiftShader a
 frame of a plain page takes about 18 ms to raster, so most frames miss the budget of 16 ms
 before and after; the slow frames below are the ones of 0.1 s and more.
@@ -166,7 +166,7 @@ keyboard of the app in a conversation. SurfaceFlinger keeps the times of the las
 each surface:
 
 ```sh
-L='SurfaceView[org.celaut.chatui/org.celaut.chatui.MainActivity](BLAST)#<id>'  # dumpsys SurfaceFlinger --list
+L='SurfaceView[org.celaut.superapp/org.celaut.superapp.MainActivity](BLAST)#<id>'  # dumpsys SurfaceFlinger --list
 adb shell "dumpsys SurfaceFlinger --latency-clear '$L'"
 adb shell 'for i in $(seq 1 10); do input tap <x> <y>; sleep 1; done; sleep 2'
 adb shell "dumpsys SurfaceFlinger --latency '$L'"   # one line for each frame
@@ -174,7 +174,7 @@ adb shell "dumpsys SurfaceFlinger --latency '$L'"   # one line for each frame
 
 Also count the frames with no key for the same time: the cursor blinks twice a second.
 
-**What it found.** The setup: AVD `chatui-x86-a` (Android 15, x86_64, SwiftShader, 1080 ×
+**What it found.** The setup: AVD `superapp-x86-a` (Android 15, x86_64, SwiftShader, 1080 ×
 2400), debug builds, a conversation with echo-chat, the build host under load. With no key, the
 chat showed 2 frames a second (the cursor). Ten keys, one each second:
 
@@ -212,13 +212,13 @@ imports a `.celaut.bee` file, and read the times of the frames (`Animator::Begin
 UI thread, `Rasterizer::DoDraw` on the raster thread). The timeline keeps a ring of events,
 so read it every 3 seconds and join the parts. Note the time of the VM (`getVMTimelineMicros`)
 just before the tap on the file in the picker, and follow the copy of the app with
-`adb shell run-as org.celaut.chatui ls -l cache/packages` (now `no_backup/celaut/packages/incoming`;
+`adb shell run-as org.celaut.superapp ls -l cache/packages` (now `no_backup/celaut/packages/incoming`;
 the copy grows, then the check moves
 it into the library). The VM service needs no tool of its own: `setVMTimelineFlags` with the
 streams `Dart`, `Embedder` and `GC`, `clearVMTimeline`, then `getVMTimeline`, over its web
 socket (`adb forward` to the port that `adb logcat -s flutter` gives).
 
-**What it found.** The setup: AVD `chatui-x86-a` (Android 15, x86_64, SwiftShader), profile
+**What it found.** The setup: AVD `superapp-x86-a` (Android 15, x86_64, SwiftShader), profile
 builds, the files in Downloads, the build host under load (two other emulators and builds):
 
 | File | Build | Card shows after the tap | Frames until the card | Longest time with no frame during the import | Frames during the import |
@@ -259,7 +259,7 @@ a tap there did nothing: on a phone of 360 dp, about a quarter of the area of th
 A slow typist aims at the middle of the caps; a fast one does not, and lost the keys that
 landed between two caps. The speed itself did not lose keys.
 
-**How it was found.** On the emulator (`chatui-x86`, 1080 × 2400, 420 dpi), a script taps
+**How it was found.** On the emulator (`superapp-x86`, 1080 × 2400, 420 dpi), a script taps
 "the quick brown fox jumps over the lazy dog" (43 keys) in one `adb shell` command, about
 25 ms a key. Each finger lands anywhere within half a key pitch of the middle of the key it
 aims at, so the point is always nearer to that key than to any other. Six runs with fixed

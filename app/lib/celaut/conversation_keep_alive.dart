@@ -38,7 +38,7 @@ class ForegroundHolds {
       : _channel = channel ?? const MethodChannel(channelName),
         _isAndroid = isAndroid ?? Platform.isAndroid;
 
-  static const channelName = 'org.celaut.chatui/conversation';
+  static const channelName = 'org.celaut.superapp/conversation';
 
   final MethodChannel _channel;
   final bool _isAndroid;

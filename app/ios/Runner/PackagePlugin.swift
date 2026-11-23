@@ -2,7 +2,7 @@ import Flutter
 import Network
 import UIKit
 
-/// `org.celaut.chatui/package` on iOS: the port of `PackageHandler.kt`.
+/// `org.celaut.superapp/package` on iOS: the port of `PackageHandler.kt`.
 ///
 /// The user picks a `.celaut.bee` file in the Files app (`pickPackage`, which answers with
 /// its uri, name and size), then the app copies it into a private folder with a stream and
@@ -11,7 +11,7 @@ import UIKit
 /// service": Rust reads the file where it is and closes the descriptor. `isMetered` is true
 /// on a cellular or a Low Data network.
 final class PackagePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate {
-  private static let channelName = "org.celaut.chatui/package"
+  private static let channelName = "org.celaut.superapp/package"
   /// The time between two counts of the copy that go to Flutter.
   private static let reportEvery: TimeInterval = 0.1
 
@@ -49,7 +49,7 @@ final class PackagePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate {
       let value = path.isExpensive || path.isConstrained
       DispatchQueue.main.async { plugin?.expensive = value }
     }
-    plugin.monitor.start(queue: DispatchQueue(label: "org.celaut.chatui.network"))
+    plugin.monitor.start(queue: DispatchQueue(label: "org.celaut.superapp.network"))
   }
 
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -175,11 +175,11 @@ final class PackagePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate {
     let scoped = source.startAccessingSecurityScopedResource()
     defer { if scoped { source.stopAccessingSecurityScopedResource() } }
     guard let input = InputStream(url: source) else {
-      throw NSError(domain: "chatui", code: 1, userInfo: [NSLocalizedDescriptionKey: "the file cannot be opened"])
+      throw NSError(domain: "superapp", code: 1, userInfo: [NSLocalizedDescriptionKey: "the file cannot be opened"])
     }
     guard fm.createFile(atPath: target.path, contents: nil), let output = FileHandle(forWritingAtPath: target.path)
     else {
-      throw NSError(domain: "chatui", code: 2, userInfo: [NSLocalizedDescriptionKey: "the copy cannot be written"])
+      throw NSError(domain: "superapp", code: 2, userInfo: [NSLocalizedDescriptionKey: "the copy cannot be written"])
     }
     input.open()
     var total: Int64 = 0
@@ -193,7 +193,7 @@ final class PackagePlugin: NSObject, FlutterPlugin, UIDocumentPickerDelegate {
       while true {
         if cancelled.get() { throw CopyCancelled() }
         let n = input.read(&buffer, maxLength: buffer.count)
-        if n < 0 { throw input.streamError ?? (NSError(domain: "chatui", code: 3) as Error) }
+        if n < 0 { throw input.streamError ?? (NSError(domain: "superapp", code: 3) as Error) }
         if n == 0 { break }
         output.write(Data(buffer[0..<n]))
         total += Int64(n)

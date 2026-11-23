@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ─── pack_ipa.sh ──────────────────────────────────────────────────────────
 # Pack the unsigned release app of `flutter build ios --release --no-codesign` into
-# dist/chatui-<version>-unsigned.ipa, check it, and write dist/SHA256SUMS-ipa.
+# dist/superapp-<version>-unsigned.ipa, check it, and write dist/SHA256SUMS-ipa.
 # The user signs the .ipa with AltStore, SideStore or Sideloadly (docs/ios.md).
 #
 # Checks: the executable is arm64 and exports the entry points of the Rust bridge (Dart
@@ -33,7 +33,7 @@ done
 echo "exported bridge functions: $(grep -c ' _frb_' <<<"$exports")"
 
 version="$(sed -n "s/^const appVersion = '\(.*\)';/\1/p" "$REPO_ROOT/app/lib/build_info.dart")"
-ipa="chatui-$version-unsigned.ipa"
+ipa="superapp-$version-unsigned.ipa"
 mkdir -p "$DIST"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT

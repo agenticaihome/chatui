@@ -298,7 +298,7 @@ ReleaseAsset? pickAsset(List<ReleaseAsset> assets, List<String> supportedAbis) {
   ReleaseAsset? named(String variant) {
     for (final a in assets) {
       final name = a.name.toLowerCase();
-      if (name.startsWith('chatui-') && name.endsWith('-$variant.apk')) return a;
+      if (name.startsWith('superapp-') && name.endsWith('-$variant.apk')) return a;
     }
     return null;
   }

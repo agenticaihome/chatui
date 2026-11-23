@@ -436,7 +436,7 @@ void main() {
       expect(file.uri, 'https://h/x.celaut.bee');
       expect(chosenFileOf({'link': 'not a link'}), isNull);
       // The old scheme is gone (issue #135, answer 3).
-      expect(chosenFileOf({'link': 'chatui://import?url=https%3A%2F%2Fh%2Fx.celaut.bee'}), isNull);
+      expect(chosenFileOf({'link': 'superapp://import?url=https%3A%2F%2Fh%2Fx.celaut.bee'}), isNull);
       final plain = chosenFileOf({'uri': 'content://x/1', 'name': 'a.celaut.bee', 'bytes': 3});
       expect(plain!.isLink, isFalse);
     });
@@ -456,7 +456,7 @@ void main() {
       expect(serviceLinkOf('celaut://import?url=ftp://h/a'), isNull);
       expect(serviceLinkOf('celaut://import?url=%E0%A4%A'), isNull);
       expect(serviceLinkOf('celaut://import?url=%zz'), isNull);
-      expect(serviceLinkOf('chatui://import?url=https%3A%2F%2Fh%2Fa'), isNull);
+      expect(serviceLinkOf('superapp://import?url=https%3A%2F%2Fh%2Fa'), isNull);
       expect(serviceLinkOf('ergopay:abc'), isNull);
       expect(serviceLinkOf(''), isNull);
       expect(serviceLinkOf('no link here'), isNull);

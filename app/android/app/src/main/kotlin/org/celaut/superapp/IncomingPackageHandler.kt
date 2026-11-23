@@ -1,4 +1,4 @@
-package org.celaut.chatui
+package org.celaut.superapp
 
 import android.content.Context
 import android.content.Intent
@@ -20,11 +20,11 @@ import io.flutter.plugin.common.MethodChannel
 /// `celaut://import?url=…` link ([OpenLinkActivity]), or an http(s) link to a `.celaut.bee`
 /// file ([OpenPackageActivity]). Both put it in [EXTRA_LINK].
 object IncomingPackageHandler {
-    private const val CHANNEL = "org.celaut.chatui/incoming"
+    private const val CHANNEL = "org.celaut.superapp/incoming"
 
     /// The link to a service that [OpenLinkActivity] or [OpenPackageActivity] gives to
     /// MainActivity.
-    const val EXTRA_LINK = "org.celaut.chatui.LINK"
+    const val EXTRA_LINK = "org.celaut.superapp.LINK"
 
     private var channel: MethodChannel? = null
     private var pending: Map<String, Any>? = null

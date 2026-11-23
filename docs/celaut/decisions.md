@@ -9,10 +9,13 @@
 - **Updater:** reads the releases of celaut-project/superapp.
 - **QR scanner:** flutter_zxing (no Google ML Kit).
 - **App:** label "Celaut" (2026-11-23, Josemi; it was "Chatui" from 2026-10-23, and "Celaut"
-  before). The repository is `superapp` (2026-11-23; it was `chatui`). The applicationId stays
-  `org.celaut.chatui`, as the channels, the keychain services and the names of the release
-  files (`chatui-<version>-<kind>.apk`): they must not change, or the installed apps could not update
-  and would lose their stored data. Android only (GrapheneOS
+  before). The repository is `superapp` (2026-11-23; it was `chatui`). In the same change, in
+  the alpha phase, every identifier that had the name `chatui` changed to `superapp`: the
+  applicationId and bundle id `org.celaut.superapp` (it was `org.celaut.chatui`), the channels,
+  the keychain services, the marker `superapp_env`, the names of the release files
+  (`superapp-<version>-<kind>.apk`) and the `SUPERAPP_*` variables and secrets of the release
+  job. An app of an earlier build is another app: it does not update to this one and does not
+  share its stored data. Android only (GrapheneOS
   without Play Services must work). APK built in GitHub Actions, published in GitHub
   Releases. UI in English and Spanish.
 - **No third-party services:** no Firebase or similar. Ergo data comes from public Ergo

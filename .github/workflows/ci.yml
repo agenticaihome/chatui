@@ -192,10 +192,10 @@ jobs:
         run: flutter test integration_test/ios_tor_test.dart -d "$SIM"
       - name: Screenshot of the first start
         run: |
-          xcrun simctl uninstall "$SIM" org.celaut.chatui || true
+          xcrun simctl uninstall "$SIM" org.celaut.superapp || true
           (cd app && flutter build ios --simulator --debug -d "$SIM")
           xcrun simctl install "$SIM" app/build/ios/iphonesimulator/Runner.app
-          xcrun simctl launch "$SIM" org.celaut.chatui
+          xcrun simctl launch "$SIM" org.celaut.superapp
           sleep 25
           mkdir -p shots
           xcrun simctl io "$SIM" screenshot shots/first-start.png

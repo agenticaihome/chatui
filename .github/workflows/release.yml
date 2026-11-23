@@ -68,7 +68,7 @@ jobs:
       - name: Build the unsigned release APKs
         working-directory: app
         env:
-          CHATUI_UNSIGNED_RELEASE: '1'
+          SUPERAPP_UNSIGNED_RELEASE: '1'
         run: |
           flutter pub get --enforce-lockfile
           flutter build apk --release --config-only
@@ -83,13 +83,13 @@ jobs:
           out=app/build/app/outputs/apk/release
           mkdir dist
           for kind in universal arm64-v8a x86_64; do
-            cp "$out/app-$kind-release-unsigned.apk" "dist/chatui-$VERSION-$kind-unsigned.apk"
+            cp "$out/app-$kind-release-unsigned.apk" "dist/superapp-$VERSION-$kind-unsigned.apk"
           done
           declare -A want=([universal]=$BASE_CODE [arm64-v8a]=$((BASE_CODE + 2000)) [x86_64]=$((BASE_CODE + 4000)))
           declare -A native=([universal]='arm64-v8a x86_64' [arm64-v8a]=arm64-v8a [x86_64]=x86_64)
           fail=0
           for kind in universal arm64-v8a x86_64; do
-            badging="$("$aapt2" dump badging "dist/chatui-$VERSION-$kind-unsigned.apk")"
+            badging="$("$aapt2" dump badging "dist/superapp-$VERSION-$kind-unsigned.apk")"
             code="$(sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" <<<"$badging" | head -1)"
             name="$(sed -n "s/.*versionName='\([^']*\)'.*/\1/p" <<<"$badging" | head -1)"
             abis="$(sed -n 's/^native-code: //p' <<<"$badging" | tr -d \' | tr -s ' ')"
@@ -179,16 +179,16 @@ jobs:
       - name: Check the .ipa
         run: |
           (cd ipa && sha256sum --check SHA256SUMS-ipa)
-          scripts/release_check.sh ipa "ipa/chatui-${GITHUB_REF_NAME#v}-unsigned.ipa"
+          scripts/release_check.sh ipa "ipa/superapp-${GITHUB_REF_NAME#v}-unsigned.ipa"
       - name: Sign the APKs
         env:
-          KEYSTORE_BASE64: ${{ secrets.CHATUI_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.CHATUI_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.CHATUI_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.CHATUI_KEY_PASSWORD }}
+          KEYSTORE_BASE64: ${{ secrets.SUPERAPP_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.SUPERAPP_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SUPERAPP_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SUPERAPP_KEY_PASSWORD }}
         run: |
           for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS; do
-            [ -n "${!v}" ] || { echo "The secret CHATUI_$v is not set in the release environment."; exit 1; }
+            [ -n "${!v}" ] || { echo "The secret SUPERAPP_$v is not set in the release environment."; exit 1; }
           done
           export KEYSTORE_PASSWORD
           export KEY_PASSWORD="${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
@@ -201,7 +201,7 @@ jobs:
           for kind in universal arm64-v8a x86_64; do
             "$apksigner" sign --ks "$keystore" --ks-key-alias "$KEY_ALIAS" \
               --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD \
-              --out "dist/chatui-$version-$kind.apk" "unsigned/chatui-$version-$kind-unsigned.apk"
+              --out "dist/superapp-$version-$kind.apk" "unsigned/superapp-$version-$kind-unsigned.apk"
           done
           rm -f dist/*.idsig
       - name: Check the signed APKs
@@ -210,7 +210,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp "ipa/chatui-${GITHUB_REF_NAME#v}-unsigned.ipa" dist/
+          cp "ipa/superapp-${GITHUB_REF_NAME#v}-unsigned.ipa" dist/
           (cd dist && sha256sum *.apk *.ipa > SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \

@@ -20,9 +20,9 @@ final goodApk = signedApk(certA);
 final otherKeyApk = signedApk(certB);
 final unsignedApk = apk();
 
-const arm64 = 'chatui-1.0.0-beta.2-arm64-v8a.apk';
-const x86 = 'chatui-1.0.0-beta.2-x86_64.apk';
-const universal = 'chatui-1.0.0-beta.2-universal.apk';
+const arm64 = 'superapp-1.0.0-beta.2-arm64-v8a.apk';
+const x86 = 'superapp-1.0.0-beta.2-x86_64.apk';
+const universal = 'superapp-1.0.0-beta.2-universal.apk';
 
 class Harness {
   Harness(this.root) : platform = FakePlatform(Directory('${root.path}/updates')) {
@@ -667,7 +667,7 @@ void main() {
     });
 
     group('redirects', () {
-      const cdn = 'https://release-assets.githubusercontent.com/github-production-release-asset/1/chatui.apk?sig=abc';
+      const cdn = 'https://release-assets.githubusercontent.com/github-production-release-asset/1/superapp.apk?sig=abc';
 
       test('the hand-off to the CDN is followed, one hop at a time', () async {
         final svc = await h.found();
@@ -683,8 +683,8 @@ void main() {
 
       test('a relative Location is resolved against the address that sent it', () async {
         final svc = await h.found();
-        h.gh.files[assetUrl(arm64)] = Served.redirect('/celaut-project/superapp/releases/moved/chatui.apk', status: 301);
-        h.gh.files['https://github.com/celaut-project/superapp/releases/moved/chatui.apk'] = Served.bytes(goodApk);
+        h.gh.files[assetUrl(arm64)] = Served.redirect('/celaut-project/superapp/releases/moved/superapp.apk', status: 301);
+        h.gh.files['https://github.com/celaut-project/superapp/releases/moved/superapp.apk'] = Served.bytes(goodApk);
         await svc.downloadAndVerify();
         expect(svc.stage, UpdateStage.verified, reason: svc.stageMessage);
       });
@@ -916,8 +916,8 @@ void main() {
       // The check starts first and is held at GitHub's door.
       h.gh.releaseGate = Completer<void>();
       h.publish('v1.0.0-beta.3', files: {
-        'chatui-1.0.0-beta.3-arm64-v8a.apk': goodApk,
-        'chatui-1.0.0-beta.3-universal.apk': goodApk,
+        'superapp-1.0.0-beta.3-arm64-v8a.apk': goodApk,
+        'superapp-1.0.0-beta.3-universal.apk': goodApk,
       });
       final check = svc.checkNow();
       await _until(() => h.gh.apiRequests.length == 2);
@@ -948,8 +948,8 @@ void main() {
       await svc.downloadAndVerify();
       expect(svc.stage, UpdateStage.verified);
       h.publish('v1.0.0-beta.3', files: {
-        'chatui-1.0.0-beta.3-arm64-v8a.apk': goodApk,
-        'chatui-1.0.0-beta.3-universal.apk': goodApk,
+        'superapp-1.0.0-beta.3-arm64-v8a.apk': goodApk,
+        'superapp-1.0.0-beta.3-universal.apk': goodApk,
       });
       await svc.checkNow();
       expect(svc.available!.version.toString(), '1.0.0-beta.3');

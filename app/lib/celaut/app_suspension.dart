@@ -23,7 +23,7 @@ class AppSuspension with WidgetsBindingObserver {
         _enabled = enabled ?? (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS),
         _now = now ?? DateTime.now;
 
-  static const channelName = 'org.celaut.chatui/lifecycle';
+  static const channelName = 'org.celaut.superapp/lifecycle';
 
   /// The longest time that the sessions get to close: iOS gives the background task about
   /// 30 seconds, and the Swift side ends it after 8.

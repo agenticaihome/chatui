@@ -20,7 +20,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ENGINE="${DOCKER:-docker}"
-IMAGE="${CHATUI_DEV_IMAGE:-chatui-dev:latest}"
+IMAGE="${SUPERAPP_DEV_IMAGE:-superapp-dev:latest}"
 
 build() { "$ENGINE" build -t "$IMAGE" -f "$REPO_ROOT/docker/Dockerfile" "$REPO_ROOT/docker"; }
 
@@ -38,8 +38,8 @@ in_container() {
   [ "$ENGINE" = podman ] && user=(--userns=keep-id --user "$(id -u):$(id -g)")
   "$ENGINE" run --rm "${tty[@]}" "${user[@]}" \
     -v "$REPO_ROOT:/work:z" -w "/work/$workdir" \
-    -v chatui-pub-cache:/pub-cache \
-    -v chatui-cargo-home:/cargo-home \
+    -v superapp-pub-cache:/pub-cache \
+    -v superapp-cargo-home:/cargo-home \
     -e HOME=/tmp/home \
     "$IMAGE" "$@"
 }

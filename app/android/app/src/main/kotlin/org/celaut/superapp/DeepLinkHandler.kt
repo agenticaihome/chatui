@@ -1,4 +1,4 @@
-package org.celaut.chatui
+package org.celaut.superapp
 
 import android.content.Intent
 import io.flutter.embedding.engine.FlutterEngine
