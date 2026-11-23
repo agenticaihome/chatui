@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../theme/arcane.dart';
 import '../../theme/argus_theme.dart';
 import 'launch_rocket.dart';
 
@@ -85,6 +86,7 @@ class RaiseStageState extends State<RaiseStage> with SingleTickerProviderStateMi
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final colors = ArgusColors.of(context);
     return SizedBox(
       width: 120,
       height: 132,
@@ -96,8 +98,9 @@ class RaiseStageState extends State<RaiseStage> with SingleTickerProviderStateMi
               raise: _raise,
               body: scheme.onSurface,
               window: accentOf(context),
-              flame: rustFor(context),
+              flame: colors.isArcane ? colors.accent : rustFor(context),
               pad: scheme.outline,
+              trim: colors.isArcane ? colors.trim : null,
             ),
           ),
         ),
@@ -115,6 +118,7 @@ class RaisePainter extends CustomPainter {
     required this.window,
     required this.flame,
     required this.pad,
+    this.trim,
   }) : super(repaint: raise);
 
   final Animation<double> raise;
@@ -122,6 +126,10 @@ class RaisePainter extends CustomPainter {
   final Color window;
   final Color flame;
   final Color pad;
+
+  /// The metal of a house palette, or null: the arcane rocket, and sparks round it as it
+  /// rises.
+  final Color? trim;
 
   /// The rocket is drawn at this scale, so that it fits the stage flat as well as upright.
   static const _scale = 0.8;
@@ -160,11 +168,32 @@ class RaisePainter extends CustomPainter {
       flame: flame,
       // The flame shows when it stands, at its full length.
       flicker: t >= 0.999 ? 1.0 : null,
+      trim: trim,
     );
     canvas.restore();
+
+    // A house palette: sparks twinkle along the rocket's way up, and burst round its nose
+    // when it stands.
+    final metal = trim;
+    if (metal != null && t > 0) {
+      final nose = pivot + Offset.fromDirection(-pi / 2 + (1 - t) * pi / 2, 74 * _scale);
+      if (t >= 0.999) {
+        paintSparkBurst(canvas, nose, 0.35, a: metal, b: window, count: 6);
+      } else {
+        for (var i = 0; i < 3; i++) {
+          final along = (t * 3 + i / 3) % 1;
+          paintSpark(
+            canvas,
+            Offset.lerp(pivot, nose, along)! + Offset(10 * sin(along * pi * 2 + i), -6),
+            2 + 2 * sin(along * pi),
+            Paint()..color = metal.withValues(alpha: 0.4 + 0.5 * sin(along * pi)),
+          );
+        }
+      }
+    }
   }
 
   @override
   bool shouldRepaint(RaisePainter old) =>
-      old.body != body || old.window != window || old.flame != flame || old.pad != pad;
+      old.body != body || old.window != window || old.flame != flame || old.pad != pad || old.trim != trim;
 }

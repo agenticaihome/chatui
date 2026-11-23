@@ -539,6 +539,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chatBgDiamonds => 'Rombos';
 
   @override
+  String get chatBgTheme => 'Del tema';
+
+  @override
   String get addressBookTitle => 'Libreta de direcciones';
 
   @override
@@ -867,6 +870,84 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get themeDraculaHint => 'Índigo profundo, acento morado';
+
+  @override
+  String get displayPaletteGroupStandard => 'Estándar';
+
+  @override
+  String get displayPaletteGroupHarryPotter => 'Harry Potter';
+
+  @override
+  String get themeLionNightName => 'Gryffindor de noche';
+
+  @override
+  String get themeLionDayName => 'Gryffindor de día';
+
+  @override
+  String get themeLionHint => 'Harry Potter · escarlata y oro';
+
+  @override
+  String get themeSerpentNightName => 'Slytherin de noche';
+
+  @override
+  String get themeSerpentDayName => 'Slytherin de día';
+
+  @override
+  String get themeSerpentHint => 'Harry Potter · esmeralda y plata';
+
+  @override
+  String get themeRavenNightName => 'Ravenclaw de noche';
+
+  @override
+  String get themeRavenDayName => 'Ravenclaw de día';
+
+  @override
+  String get themeRavenHint => 'Harry Potter · azul y bronce';
+
+  @override
+  String get themeBadgerNightName => 'Hufflepuff de noche';
+
+  @override
+  String get themeBadgerDayName => 'Hufflepuff de día';
+
+  @override
+  String get themeBadgerHint => 'Harry Potter · amarillo y negro';
+
+  @override
+  String get themeHogwartsNightName => 'Hogwarts de noche';
+
+  @override
+  String get themeHogwartsDayName => 'Hogwarts de día';
+
+  @override
+  String get themeHogwartsHint => 'Harry Potter · piedra y velas';
+
+  @override
+  String get themePatronusNightName => 'Patronus de noche';
+
+  @override
+  String get themePatronusDayName => 'Patronus de día';
+
+  @override
+  String get themePatronusHint => 'Harry Potter · luz plateada';
+
+  @override
+  String get themeForestNightName => 'Bosque de noche';
+
+  @override
+  String get themeForestDayName => 'Bosque de día';
+
+  @override
+  String get themeForestHint => 'Harry Potter · Bosque Prohibido';
+
+  @override
+  String get themePhoenixNightName => 'Fénix de noche';
+
+  @override
+  String get themePhoenixDayName => 'Fénix de día';
+
+  @override
+  String get themePhoenixHint => 'Harry Potter · Orden del Fénix';
 
   @override
   String get networkConnectedNode => 'Nodo conectado';

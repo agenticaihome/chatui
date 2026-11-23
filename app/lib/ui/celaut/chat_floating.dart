@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 
 import '../../celaut/chat_backgrounds.dart';
+import '../../theme/argus_theme.dart' show ArgusColors;
 
 /// A rounded, translucent and blurred surface that floats over the chat: the header and
 /// the input bar. The messages scroll behind it.
@@ -50,7 +51,7 @@ class ChatBackdrop extends StatelessWidget {
       child: RepaintBoundary(
         child: CustomPaint(
           key: const Key('chat-background'),
-          painter: ChatBackgroundPainter(id, dark),
+          painter: ChatBackgroundPainter(id, dark, scene: ArgusColors.sceneOf(context)),
         ),
       ),
     );

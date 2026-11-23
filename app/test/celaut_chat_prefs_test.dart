@@ -41,7 +41,7 @@ void main() {
   test('every background has a unique id and paints', () {
     final ids = chatBackgrounds.map((b) => b.id).toSet();
     expect(ids.length, chatBackgrounds.length);
-    expect(chatBackgrounds.length, inInclusiveRange(6, 8));
+    expect(chatBackgrounds.length, inInclusiveRange(6, 9));
     for (final b in chatBackgrounds) {
       for (final dark in [false, true]) {
         b.paint(Canvas(PictureRecorder()), const Size(200, 300), dark);

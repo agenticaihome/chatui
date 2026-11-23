@@ -1010,6 +1010,12 @@ abstract class AppLocalizations {
   /// **'Diamonds'**
   String get chatBgDiamonds;
 
+  /// No description provided for @chatBgTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get chatBgTheme;
+
   /// No description provided for @addressBookTitle.
   ///
   /// In en, this message translates to:
@@ -1585,6 +1591,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deep indigo, purple accent'**
   String get themeDraculaHint;
+
+  /// No description provided for @displayPaletteGroupStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get displayPaletteGroupStandard;
+
+  /// No description provided for @displayPaletteGroupHarryPotter.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter'**
+  String get displayPaletteGroupHarryPotter;
+
+  /// No description provided for @themeLionNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Gryffindor Night'**
+  String get themeLionNightName;
+
+  /// No description provided for @themeLionDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Gryffindor Day'**
+  String get themeLionDayName;
+
+  /// No description provided for @themeLionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · scarlet and gold'**
+  String get themeLionHint;
+
+  /// No description provided for @themeSerpentNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Slytherin Night'**
+  String get themeSerpentNightName;
+
+  /// No description provided for @themeSerpentDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Slytherin Day'**
+  String get themeSerpentDayName;
+
+  /// No description provided for @themeSerpentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · emerald and silver'**
+  String get themeSerpentHint;
+
+  /// No description provided for @themeRavenNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Ravenclaw Night'**
+  String get themeRavenNightName;
+
+  /// No description provided for @themeRavenDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Ravenclaw Day'**
+  String get themeRavenDayName;
+
+  /// No description provided for @themeRavenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · blue and bronze'**
+  String get themeRavenHint;
+
+  /// No description provided for @themeBadgerNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hufflepuff Night'**
+  String get themeBadgerNightName;
+
+  /// No description provided for @themeBadgerDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hufflepuff Day'**
+  String get themeBadgerDayName;
+
+  /// No description provided for @themeBadgerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · yellow and black'**
+  String get themeBadgerHint;
+
+  /// No description provided for @themeHogwartsNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hogwarts Night'**
+  String get themeHogwartsNightName;
+
+  /// No description provided for @themeHogwartsDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hogwarts Day'**
+  String get themeHogwartsDayName;
+
+  /// No description provided for @themeHogwartsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · stone and candlelight'**
+  String get themeHogwartsHint;
+
+  /// No description provided for @themePatronusNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Patronus Night'**
+  String get themePatronusNightName;
+
+  /// No description provided for @themePatronusDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Patronus Day'**
+  String get themePatronusDayName;
+
+  /// No description provided for @themePatronusHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · silver light'**
+  String get themePatronusHint;
+
+  /// No description provided for @themeForestNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Forest Night'**
+  String get themeForestNightName;
+
+  /// No description provided for @themeForestDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Forest Day'**
+  String get themeForestDayName;
+
+  /// No description provided for @themeForestHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · Forbidden Forest'**
+  String get themeForestHint;
+
+  /// No description provided for @themePhoenixNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Phoenix Night'**
+  String get themePhoenixNightName;
+
+  /// No description provided for @themePhoenixDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Phoenix Day'**
+  String get themePhoenixDayName;
+
+  /// No description provided for @themePhoenixHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · Order of the Phoenix'**
+  String get themePhoenixHint;
 
   /// No description provided for @networkConnectedNode.
   ///

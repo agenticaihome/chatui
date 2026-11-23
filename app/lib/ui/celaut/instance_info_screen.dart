@@ -185,7 +185,9 @@ class _InstanceInfoScreenState extends State<InstanceInfoScreen> {
                                   ),
                                 ),
                                 clipBehavior: Clip.antiAlias,
-                                child: CustomPaint(painter: ChatBackgroundPainter(bg.id, dark)),
+                                child: CustomPaint(
+                                  painter: ChatBackgroundPainter(bg.id, dark, scene: ArgusColors.sceneOf(context)),
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
