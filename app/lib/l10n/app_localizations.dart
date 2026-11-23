@@ -1772,6 +1772,78 @@ abstract class AppLocalizations {
   /// **'Cyberpunk'**
   String get displayPaletteGroupCyberpunk;
 
+  /// No description provided for @themeCyberCityNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Night City by Night'**
+  String get themeCyberCityNightName;
+
+  /// No description provided for @themeCyberCityDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Night City by Day'**
+  String get themeCyberCityDayName;
+
+  /// No description provided for @themeCyberCityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk · acid yellow and teal'**
+  String get themeCyberCityHint;
+
+  /// No description provided for @themeCyberNoirNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon Noir Night'**
+  String get themeCyberNoirNightName;
+
+  /// No description provided for @themeCyberNoirDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon Noir Day'**
+  String get themeCyberNoirDayName;
+
+  /// No description provided for @themeCyberNoirHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk · magenta and cyan'**
+  String get themeCyberNoirHint;
+
+  /// No description provided for @themeCyberNetrunnerNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Netrunner Night'**
+  String get themeCyberNetrunnerNightName;
+
+  /// No description provided for @themeCyberNetrunnerDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Netrunner Day'**
+  String get themeCyberNetrunnerDayName;
+
+  /// No description provided for @themeCyberNetrunnerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk · terminal green on black'**
+  String get themeCyberNetrunnerHint;
+
+  /// No description provided for @themeCyberRainNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Blade Rain Night'**
+  String get themeCyberRainNightName;
+
+  /// No description provided for @themeCyberRainDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Blade Rain Day'**
+  String get themeCyberRainDayName;
+
+  /// No description provided for @themeCyberRainHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk · teal and orange in the rain'**
+  String get themeCyberRainHint;
+
   /// No description provided for @themeMaterialLightName.
   ///
   /// In en, this message translates to:

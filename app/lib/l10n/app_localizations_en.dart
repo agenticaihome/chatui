@@ -960,6 +960,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get displayPaletteGroupCyberpunk => 'Cyberpunk';
 
   @override
+  String get themeCyberCityNightName => 'Night City by Night';
+
+  @override
+  String get themeCyberCityDayName => 'Night City by Day';
+
+  @override
+  String get themeCyberCityHint => 'Cyberpunk · acid yellow and teal';
+
+  @override
+  String get themeCyberNoirNightName => 'Neon Noir Night';
+
+  @override
+  String get themeCyberNoirDayName => 'Neon Noir Day';
+
+  @override
+  String get themeCyberNoirHint => 'Cyberpunk · magenta and cyan';
+
+  @override
+  String get themeCyberNetrunnerNightName => 'Netrunner Night';
+
+  @override
+  String get themeCyberNetrunnerDayName => 'Netrunner Day';
+
+  @override
+  String get themeCyberNetrunnerHint => 'Cyberpunk · terminal green on black';
+
+  @override
+  String get themeCyberRainNightName => 'Blade Rain Night';
+
+  @override
+  String get themeCyberRainDayName => 'Blade Rain Day';
+
+  @override
+  String get themeCyberRainHint => 'Cyberpunk · teal and orange in the rain';
+
+  @override
   String get themeMaterialLightName => 'Material Light';
 
   @override
