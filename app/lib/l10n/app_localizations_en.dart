@@ -848,6 +848,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get displayPaletteGroupGta => 'Grand Theft Auto';
 
   @override
+  String get themeGtaViceNightName => 'Vice City Night';
+
+  @override
+  String get themeGtaViceDayName => 'Vice City Day';
+
+  @override
+  String get themeGtaViceHint =>
+      'GTA · neon pink and teal, shoulder pads included';
+
+  @override
+  String get themeGtaSantosNightName => 'Los Santos Night';
+
+  @override
+  String get themeGtaSantosDayName => 'Los Santos Day';
+
+  @override
+  String get themeGtaSantosHint =>
+      'GTA · orange sunset, purple smog, palm trees';
+
+  @override
+  String get themeGtaLibertyNightName => 'Liberty City Night';
+
+  @override
+  String get themeGtaLibertyDayName => 'Liberty City Day';
+
+  @override
+  String get themeGtaLibertyHint =>
+      'GTA · steel and taxi yellow, honking optional';
+
+  @override
+  String get themeGtaWantedNightName => 'Wanted Night';
+
+  @override
+  String get themeGtaWantedDayName => 'Wanted Day';
+
+  @override
+  String get themeGtaWantedHint =>
+      'GTA · police red and blue, five stars (not the hotel kind)';
+
+  @override
   String get themeParchmentName => 'Parchment';
 
   @override

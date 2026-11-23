@@ -1556,6 +1556,78 @@ abstract class AppLocalizations {
   /// **'Grand Theft Auto'**
   String get displayPaletteGroupGta;
 
+  /// No description provided for @themeGtaViceNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Vice City Night'**
+  String get themeGtaViceNightName;
+
+  /// No description provided for @themeGtaViceDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Vice City Day'**
+  String get themeGtaViceDayName;
+
+  /// No description provided for @themeGtaViceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'GTA · neon pink and teal, shoulder pads included'**
+  String get themeGtaViceHint;
+
+  /// No description provided for @themeGtaSantosNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Los Santos Night'**
+  String get themeGtaSantosNightName;
+
+  /// No description provided for @themeGtaSantosDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Los Santos Day'**
+  String get themeGtaSantosDayName;
+
+  /// No description provided for @themeGtaSantosHint.
+  ///
+  /// In en, this message translates to:
+  /// **'GTA · orange sunset, purple smog, palm trees'**
+  String get themeGtaSantosHint;
+
+  /// No description provided for @themeGtaLibertyNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Liberty City Night'**
+  String get themeGtaLibertyNightName;
+
+  /// No description provided for @themeGtaLibertyDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Liberty City Day'**
+  String get themeGtaLibertyDayName;
+
+  /// No description provided for @themeGtaLibertyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'GTA · steel and taxi yellow, honking optional'**
+  String get themeGtaLibertyHint;
+
+  /// No description provided for @themeGtaWantedNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Wanted Night'**
+  String get themeGtaWantedNightName;
+
+  /// No description provided for @themeGtaWantedDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Wanted Day'**
+  String get themeGtaWantedDayName;
+
+  /// No description provided for @themeGtaWantedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'GTA · police red and blue, five stars (not the hotel kind)'**
+  String get themeGtaWantedHint;
+
   /// No description provided for @themeParchmentName.
   ///
   /// In en, this message translates to:
