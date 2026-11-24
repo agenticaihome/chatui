@@ -8654,7 +8654,6 @@ impl SseDecode for crate::api::celaut::PeerInfoView {
             <Vec<crate::api::celaut::PaymentContractView>>::sse_decode(deserializer);
         let mut var_resources =
             <Vec<crate::api::celaut::NodeResourcesView>>::sse_decode(deserializer);
-        let mut var_reputationProofs = <u32>::sse_decode(deserializer);
         return crate::api::celaut::PeerInfoView {
             peer_id: var_peerId,
             ts: var_ts,
@@ -8662,7 +8661,6 @@ impl SseDecode for crate::api::celaut::PeerInfoView {
             rates: var_rates,
             payment_contracts: var_paymentContracts,
             resources: var_resources,
-            reputation_proofs: var_reputationProofs,
         };
     }
 }
@@ -11841,7 +11839,6 @@ impl flutter_rust_bridge::IntoDart for crate::api::celaut::PeerInfoView {
             self.rates.into_into_dart().into_dart(),
             self.payment_contracts.into_into_dart().into_dart(),
             self.resources.into_into_dart().into_dart(),
-            self.reputation_proofs.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -14269,7 +14266,6 @@ impl SseEncode for crate::api::celaut::PeerInfoView {
             serializer,
         );
         <Vec<crate::api::celaut::NodeResourcesView>>::sse_encode(self.resources, serializer);
-        <u32>::sse_encode(self.reputation_proofs, serializer);
     }
 }
 

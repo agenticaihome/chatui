@@ -269,9 +269,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get celautResourcesTitle => 'Recursos';
 
   @override
-  String get celautProofsLabel => 'Pruebas de reputación';
-
-  @override
   String get celautNoUris => 'El nodo no anuncia ninguna dirección.';
 
   @override

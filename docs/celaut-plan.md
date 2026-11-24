@@ -209,8 +209,7 @@ Facts from nodo dev `e3d12301` that differ from the first notes:
   (the same message), and refuses an older `ts`, or an equal `ts` with another digest.
 - The node checks `Peer.signature_scheme` before the key (`speaks_our_signature_scheme`).
   The client does the same: one component that names Ed25519 as nodo defines it.
-- The digest covers the expiry and the transport of each URI, the reputation proofs,
-  the scheme and every resource field with its presence. `benchmark` is sorted by the
+- The digest covers the expiry and the transport of each URI, the scheme and every resource field with its presence. `benchmark` is sorted by the
   text of each entry, and a repeated key stays (it is not "sorted by key").
 - GenerateClient: the client proposes a random UUID4 as `client_id`. With a proof of
   work the node uses the id in the challenge, and the difficulty in the challenge

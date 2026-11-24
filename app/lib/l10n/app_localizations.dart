@@ -548,12 +548,6 @@ abstract class AppLocalizations {
   /// **'Resources'**
   String get celautResourcesTitle;
 
-  /// No description provided for @celautProofsLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Reputation proofs'**
-  String get celautProofsLabel;
-
   /// No description provided for @celautNoUris.
   ///
   /// In en, this message translates to:

@@ -286,9 +286,6 @@ class PeerInfoView {
   final List<PaymentContractView> paymentContracts;
   final List<NodeResourcesView> resources;
 
-  /// How many reputation proofs the advertisement has. M1 does not check them.
-  final int reputationProofs;
-
   const PeerInfoView({
     required this.peerId,
     required this.ts,
@@ -296,7 +293,6 @@ class PeerInfoView {
     required this.rates,
     required this.paymentContracts,
     required this.resources,
-    required this.reputationProofs,
   });
 
   @override
@@ -306,8 +302,7 @@ class PeerInfoView {
       uris.hashCode ^
       rates.hashCode ^
       paymentContracts.hashCode ^
-      resources.hashCode ^
-      reputationProofs.hashCode;
+      resources.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -319,6 +314,5 @@ class PeerInfoView {
           uris == other.uris &&
           rates == other.rates &&
           paymentContracts == other.paymentContracts &&
-          resources == other.resources &&
-          reputationProofs == other.reputationProofs;
+          resources == other.resources;
 }

@@ -12,10 +12,12 @@ use blake2::{Blake2b, Digest};
 use celaut_proto::celaut::peer::signature_scheme::Protocol as SchemeProtocol;
 use celaut_proto::celaut::peer::uri::Protocol;
 use celaut_proto::celaut::{
-    ActivityWindow, AmountKeyValue, ArchitectureResources, Contract, ContractRate, Device, Peer,
+    ActivityWindow, AmountKeyValue, ArchitectureResources, ContractRate, Device, Peer, Uint64KeyValue,
     Sysresources,
 };
 use ring::signature::{UnparsedPublicKey, ED25519};
+
+use celaut_wire::reputation::canonical_contract_message;
 
 use crate::store::Seen;
 
@@ -82,30 +84,6 @@ fn canonical_protocol(p: &Protocol) -> String {
 
 fn canonical_scheme_protocol(p: &SchemeProtocol) -> String {
     canonical_protocol_parts(&p.formal, &p.tags, &p.prose)
-}
-
-fn canonical_contract_message(contract: &Contract) -> String {
-    let ledger = contract.ledger.clone().unwrap_or_default();
-    let protocol = contract.protocol.clone().unwrap_or_default();
-    let xattrs = items(
-        &contract.xattrs,
-        |e| e.key.as_str(),
-        |e| hex::encode(e.value.as_deref().unwrap_or_default()),
-    )
-    .into_iter()
-    .map(|(key, value)| format!("{key}={value}"))
-    .collect::<Vec<_>>()
-    .join(";");
-    [
-        hex::encode(&ledger.formal),
-        sorted(ledger.tags.clone()).join(","),
-        ledger.prose.clone(),
-        hex::encode(&protocol.formal),
-        sorted(protocol.tags.clone()).join(","),
-        protocol.prose.clone(),
-        xattrs,
-    ]
-    .join("~")
 }
 
 fn canonical_contract(rate: &ContractRate) -> String {
@@ -212,6 +190,16 @@ fn canonical_rates(entries: &[AmountKeyValue]) -> String {
     .join(";")
 }
 
+/// The `limits` part of the digest: the same encoding as the rates, `key=value` sorted
+/// by key and joined by `;`. An unset value is 0.
+fn canonical_limits(entries: &[Uint64KeyValue]) -> String {
+    items(entries, |e| e.key.as_str(), |e| e.value.unwrap_or_default())
+        .into_iter()
+        .map(|(key, n)| format!("{key}={n}"))
+        .collect::<Vec<_>>()
+        .join(";")
+}
+
 /// The `activity_window` part of the digest (nodo#344): `-` when the Peer has no window
 /// (it gives no schedule), else `w:<on_close>:<spans>`, with the spans as
 /// `start-end` texts sorted as text and joined by `,` (empty: always open).
@@ -239,12 +227,6 @@ pub fn content_digest(peer: &Peer) -> String {
             .map(canonical_contract)
             .collect(),
     );
-    let proofs = sorted(
-        peer.reputation_proofs
-            .iter()
-            .map(canonical_contract_message)
-            .collect(),
-    );
     let scheme = sorted(
         peer.signature_scheme
             .clone()
@@ -263,14 +245,14 @@ pub fn content_digest(peer: &Peer) -> String {
     );
     let devices = sorted(peer.devices.iter().map(canonical_device).collect());
     let canonical = [
+        scheme,
         uris.join("/"),
         contracts.join("/"),
-        proofs.join("/"),
         canonical_rates(&peer.rates),
-        scheme,
+        canonical_limits(&peer.limits),
         resources.join("/"),
-        canonical_activity_window(peer.activity_window.as_ref()),
         devices.join("/"),
+        canonical_activity_window(peer.activity_window.as_ref()),
     ]
     .join("|");
     let mut hasher = Blake2b::<U32>::new();

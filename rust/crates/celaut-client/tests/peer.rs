@@ -5,7 +5,7 @@ mod common;
 use celaut_client::peer::{check_ts, content_digest, signed_payload, verify_signature, PeerError};
 use celaut_client::Seen;
 use celaut_proto::celaut::peer::signature_scheme::Protocol as SchemeProtocol;
-use celaut_proto::celaut::AmountKeyValue;
+use celaut_proto::celaut::{AmountKeyValue, Uint64KeyValue};
 
 #[test]
 fn digest_payload_and_signature_equal_nodo() {
@@ -135,7 +135,15 @@ fn every_changed_field_breaks_the_signature() {
                 })
             }),
         ),
-        ("proof", Box::new(|p| p.reputation_proofs.clear())),
+        (
+            "limits",
+            Box::new(|p| {
+                p.limits.push(Uint64KeyValue {
+                    key: "max_gib_per_day:*".into(),
+                    value: Some(1),
+                })
+            }),
+        ),
         (
             "resources",
             Box::new(|p| p.resources[0].resources.as_mut().unwrap().mem_limit = Some(1)),

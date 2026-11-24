@@ -45,6 +45,9 @@ of the tag with `celaut_balancer::ledger_chain`: the part before the first `-`. 
   `ItemBranch` (6), the root `Filesystem` (2) and `Init` (2). Celaut reads none of them.
 - New and not used by Celaut: `Policy`, `FaultEvidence`, `ReputationOpinion`, `ReputationProof`,
   `ReputationProofAck`, and the Gateway calls `GetReputationProofs` and `PushReputationProof`.
+  (The digests and signatures of `ReputationProof` and of the signed `EstimatedCost` offer are
+  implemented and checked against nodo in `celaut-wire` (`reputation.rs`, `offer.rs`), but no
+  screen uses them yet.)
 
 `celaut.proto` was then re-pinned to nodo dev `5798cea4` (file last changed in `69ca79c9`):
 

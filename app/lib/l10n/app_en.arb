@@ -219,7 +219,6 @@
   "celautRatesTitle": "Rates",
   "celautContractsTitle": "Payment contracts",
   "celautResourcesTitle": "Resources",
-  "celautProofsLabel": "Reputation proofs",
   "celautNoUris": "The node advertises no address.",
   "celautNoRates": "The node advertises no rates.",
   "celautNoContracts": "The node advertises no payment contract. It cannot be paid yet.",

@@ -70,8 +70,6 @@ pub struct PeerInfoView {
     pub rates: Vec<KeyValueView>,
     pub payment_contracts: Vec<PaymentContractView>,
     pub resources: Vec<NodeResourcesView>,
-    /// How many reputation proofs the advertisement has. M1 does not check them.
-    pub reputation_proofs: u32,
 }
 
 /// What went wrong. The screen shows its own text for each kind.
@@ -305,7 +303,6 @@ fn view_of(info: &NodeInfo) -> PeerInfoView {
         rates,
         payment_contracts: peer.payment_contracts.iter().map(contract_view).collect(),
         resources: peer.resources.iter().map(resources_view).collect(),
-        reputation_proofs: u32::try_from(peer.reputation_proofs.len()).unwrap_or(u32::MAX),
     }
 }
 

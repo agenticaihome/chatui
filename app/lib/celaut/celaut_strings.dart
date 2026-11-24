@@ -29,7 +29,6 @@ class CelautStrings {
   static String get ratesTitle => appL10n.celautRatesTitle;
   static String get contractsTitle => appL10n.celautContractsTitle;
   static String get resourcesTitle => appL10n.celautResourcesTitle;
-  static String get proofsLabel => appL10n.celautProofsLabel;
   static String get noUris => appL10n.celautNoUris;
   static String get noRates => appL10n.celautNoRates;
   static String get noContracts => appL10n.celautNoContracts;

@@ -14,6 +14,8 @@
 //! - [`statement`]: the balance statements of `GetBalanceStatement`: the request, its
 //!   maximum cost, and the check of the signature, the chain and the `instance_ref`.
 //! - [`receipt`]: the execution receipts that a node signs (nodo#419), and their check.
+//! - [`offer`]: the signed price offer (`EstimatedCost`, nodo#657): digest and signature.
+//! - [`reputation`]: the off-chain `ReputationProof` (nodo#652, #677): digest, work and signature.
 //!
 //! Input from a peer must never make this crate panic.
 #![forbid(unsafe_code)]
@@ -26,7 +28,9 @@ pub mod channel;
 pub mod error;
 pub mod gateway;
 pub mod identity;
+pub mod offer;
 pub mod receipt;
+pub mod reputation;
 pub mod relay;
 pub mod skips;
 pub mod statement;

@@ -1,6 +1,6 @@
 """Known-answer vectors for celaut-client, made with the nodo code.
 
-Run from a nodo checkout (nodo dev 17e63ca4 is the pin):
+Run from a nodo checkout (nodo dev 6540fb0e is the pin):
 
     PYTHONPATH=<nodo> python3 generate.py > vectors.json
 
@@ -81,9 +81,10 @@ def full_peer(pub):
     for key, n in (("tunnel_open_mu", "10000"), ("net_mu_per_gib", "2000000"), ("build_mu", "10000000")):
         entry = peer.rates.add(key=key)
         entry.value.n = n
-    proof = peer.reputation_proofs.add()
-    proof.ledger.tags.append("ergo")
-    keyvalue.from_dict(proof.xattrs, {"box_id": b"\x01\x02", "empty": b""})
+    # The limits (nodo 29e923d3): the same encoding as the rates; the Peer has no
+    # reputation proofs since nodo#677.
+    for key, value in (("max_gib_per_day:*", 5), ("max_concurrent_connections:example.org", 0)):
+        peer.limits.add(key=key, value=value)
     ni.declare_signature_scheme(peer, prose=True)
     res = peer.resources.add()
     protocol(res.architecture, ["linux/amd64"], "x86-64 Linux")
@@ -117,6 +118,10 @@ def edge_peer(pub):
             entry.value = value
     for key, n in (("z_mu", "5"), ("a_mu", "7"), ("z_mu", "6")):
         peer.rates.add(key=key).value.n = n
+    # A repeated limit key (the last wins), an unset value and a value of 0.
+    peer.limits.add(key="b", value=3)
+    peer.limits.add(key="a")
+    peer.limits.add(key="b", value=0)
     ni.declare_signature_scheme(peer, prose=False)
     res = peer.resources.add()
     protocol(res.architecture, ["linux/amd64"])

@@ -8255,8 +8255,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PeerInfoView dco_decode_peer_info_view(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return PeerInfoView(
       peerId: dco_decode_String(arr[0]),
       ts: dco_decode_i_64(arr[1]),
@@ -8264,7 +8264,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       rates: dco_decode_list_key_value_view(arr[3]),
       paymentContracts: dco_decode_list_payment_contract_view(arr[4]),
       resources: dco_decode_list_node_resources_view(arr[5]),
-      reputationProofs: dco_decode_u_32(arr[6]),
     );
   }
 
@@ -11057,7 +11056,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       deserializer,
     );
     var var_resources = sse_decode_list_node_resources_view(deserializer);
-    var var_reputationProofs = sse_decode_u_32(deserializer);
     return PeerInfoView(
       peerId: var_peerId,
       ts: var_ts,
@@ -11065,7 +11063,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       rates: var_rates,
       paymentContracts: var_paymentContracts,
       resources: var_resources,
-      reputationProofs: var_reputationProofs,
     );
   }
 
@@ -13457,7 +13454,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_key_value_view(self.rates, serializer);
     sse_encode_list_payment_contract_view(self.paymentContracts, serializer);
     sse_encode_list_node_resources_view(self.resources, serializer);
-    sse_encode_u_32(self.reputationProofs, serializer);
   }
 
   @protected

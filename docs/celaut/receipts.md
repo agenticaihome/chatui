@@ -15,8 +15,11 @@ The app checks each receipt when it comes. It keeps the receipt and lets the use
 The node signs `celaut-execution-receipt:<peer_id>|<receipt_digest>` with its identity
 key (Ed25519). The signature has one spelling: 128 lowercase hex characters. The app
 refuses any other spelling. The file `rust/crates/celaut-wire/src/receipt.rs` has the
-canonical text, the digests, the chains and the check. Its tests use the vectors of
-`nodo:tests/identity/test_execution_receipt.py`. They give the same bytes.
+canonical text, the digests, the chains and the check. The canonical text is the one of
+`canonical_receipt` in nodo: `kind`, `peer_id`, the digest of the scheme and `ts` first, then
+the fields in the order of their numbers, with the start resources (`cpu_period`, `cpu_quota`,
+`mem_limit`, `disk_space`, `kernel`, `devices`). Its tests use vectors made with the Python code
+of nodo (`rust/crates/celaut-wire/tests/vectors/generate.py`). They give the same bytes.
 
 ## 2. The tunnel
 

@@ -74,7 +74,6 @@
   "celautRatesTitle": "Tarifas",
   "celautContractsTitle": "Contratos de pago",
   "celautResourcesTitle": "Recursos",
-  "celautProofsLabel": "Pruebas de reputación",
   "celautNoUris": "El nodo no anuncia ninguna dirección.",
   "celautNoRates": "El nodo no anuncia tarifas.",
   "celautNoContracts": "El nodo no anuncia ningún contrato de pago. Todavía no se le puede pagar.",
