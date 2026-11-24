@@ -9313,4 +9313,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get iosLimitsOk => 'I understand';
+
+  @override
+  String get celautKeepMacNote =>
+      'On a Mac, automatic top-up works only while Celaut is open and the Mac is awake. If you quit the app (⌘Q) or the Mac sleeps, nothing is added, and the node stops the instance when its balance runs out.';
+
+  @override
+  String get scanFromImageNote =>
+      'On a Mac the app cannot scan with the camera. Choose an image of the QR code, for example a screenshot (⇧⌘4).';
+
+  @override
+  String get scanChooseImage => 'Choose an image';
+
+  @override
+  String get scanNoCodeInImage => 'No QR code was found in this image.';
 }

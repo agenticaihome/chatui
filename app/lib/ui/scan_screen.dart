@@ -1,3 +1,5 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_zxing/flutter_zxing.dart';
 
@@ -8,10 +10,17 @@ import '../services/session_lock.dart';
 /// Reads one QR code and closes with it. By default the result is the trimmed text
 /// (`String`). With [binary] it is a [ScannedCode] with the text and the bytes, for the
 /// peer invitation of a node, which is binary (`docs/celaut/invite.md`).
+///
+/// On macOS the `camera` plugin has no implementation (issue #154): the user chooses an
+/// image of the code (a screenshot), and zxing reads it ([readQrImage]).
 class ScanScreen extends StatefulWidget {
-  const ScanScreen({super.key, this.binary = false});
+  const ScanScreen({super.key, this.binary = false, this.chooseImage});
 
   final bool binary;
+
+  /// Stands in for the file picker and the read of the image in tests; null if the user
+  /// chose no image.
+  final Future<Code?> Function()? chooseImage;
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
@@ -55,8 +64,50 @@ class _ScanScreenState extends State<ScanScreen> {
     setState(() => _cameraFailed = true);
   }
 
+  Future<void> _fromImage() async {
+    final code = await (widget.chooseImage ?? _chooseAndRead)();
+    if (code == null || !mounted) return;
+    final before = _done;
+    _onScan(code);
+    if (!before && !_done && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(key: const Key('scan-image-none'), content: Text(context.l10n.scanNoCodeInImage)),
+      );
+    }
+  }
+
+  static Future<Code?> _chooseAndRead() async {
+    final picked = await FilePicker.platform.pickFiles(type: FileType.image);
+    final path = picked?.files.single.path;
+    if (path == null) return null;
+    return readQrImage(path);
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
+      return Scaffold(
+        appBar: AppBar(title: Text(context.l10n.scanTitle)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(context.l10n.scanFromImageNote, key: const Key('scan-image-note'), textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  key: const Key('scan-image-choose'),
+                  onPressed: _fromImage,
+                  icon: const Icon(Icons.image_outlined),
+                  label: Text(context.l10n.scanChooseImage),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.scanTitle)),
       body: _cameraFailed
@@ -99,3 +150,10 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 }
+
+/// Read a QR code in the image file at [path] (PNG, JPEG…), as the camera scan does: the
+/// whole image, also inverted (light modules on a dark ground).
+Future<Code> readQrImage(String path) => zx.readBarcodeImagePathString(
+      path,
+      DecodeParams(format: Format.qrCode, tryHarder: true, tryInverted: true, maxSize: 2048),
+    );

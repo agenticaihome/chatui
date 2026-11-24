@@ -2,9 +2,10 @@ import Foundation
 import Security
 
 /// The secrets of the app in the Keychain: Foundation and Security only, no Flutter, so the
-/// iOS app (`app/ios`) and the macOS app can share it. Each value is a generic password item
-/// of [service], with the access `AfterFirstUnlockThisDeviceOnly`: never in a backup, never
-/// on another device.
+/// iOS app (`app/ios`) and the macOS app (`app/macos`) share it. Each value is a generic
+/// password item of [service]. On iOS its access is `AfterFirstUnlockThisDeviceOnly`: never
+/// in a backup, never on another device. On macOS the item is in the login keychain, which
+/// has no such access: the data protection keychain needs an Apple team, and the app has none.
 ///
 /// The Keychain outlives the app: an item stays after the app is deleted, while on Android
 /// the data goes with the app. [claim] deletes, once per install, the items that a former
@@ -20,8 +21,13 @@ final class KeychainStore {
 
   let service: String
 
-  init(service: String) {
+  /// The name of the items in Keychain Access, and in the password prompt of macOS. Without
+  /// it, macOS shows [service].
+  let label: String?
+
+  init(service: String, label: String? = nil) {
     self.service = service
+    self.label = label
   }
 
   /// Delete the items of a former install, once per install ([flag] in UserDefaults).
@@ -56,14 +62,15 @@ final class KeychainStore {
   }
 
   func write(_ key: String, _ value: String) throws {
-    let attributes: [String: Any] = [
-      kSecValueData as String: Data(value.utf8),
-      kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-    ]
+    var attributes: [String: Any] = [kSecValueData as String: Data(value.utf8)]
+    #if os(iOS)
+      attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    #endif
     var status = SecItemUpdate(query(key) as CFDictionary, attributes as CFDictionary)
     if status == errSecItemNotFound {
       var add = query(key)
       add.merge(attributes) { _, new in new }
+      if let label { add[kSecAttrLabel as String] = label }
       status = SecItemAdd(add as CFDictionary, nil)
     }
     guard status == errSecSuccess else { throw Failure(status: status) }

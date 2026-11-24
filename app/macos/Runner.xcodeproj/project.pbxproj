@@ -33,6 +33,8 @@
 		C15400000000000000000012 /* OpenedItemsChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15400000000000000000002 /* OpenedItemsChannel.swift */; };
 		C15400000000000000000013 /* PackageChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15400000000000000000003 /* PackageChannel.swift */; };
 		C15400000000000000000014 /* KeepAwakeChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15400000000000000000004 /* KeepAwakeChannel.swift */; };
+		C15400000000000000000016 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15400000000000000000006 /* AppPaths.swift */; };
+		C15400000000000000000017 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15400000000000000000007 /* KeychainStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,7 +74,7 @@
 		331C80D7294CF71000263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		333000ED22D3DE5D00554162 /* Warnings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Warnings.xcconfig; sourceTree = "<group>"; };
 		335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GeneratedPluginRegistrant.swift; sourceTree = "<group>"; };
-		33CC10ED2044A3C60003C045 /* Chatui.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chatui.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		33CC10ED2044A3C60003C045 /* Celaut.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Celaut.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		33CC10F02044A3C60003C045 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		33CC10F22044A3C60003C045 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Runner/Assets.xcassets; sourceTree = "<group>"; };
 		33CC10F52044A3C60003C045 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -94,6 +96,8 @@
 		C15400000000000000000003 /* PackageChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackageChannel.swift; sourceTree = "<group>"; };
 		C15400000000000000000004 /* KeepAwakeChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepAwakeChannel.swift; sourceTree = "<group>"; };
 		C15400000000000000000005 /* RustCore.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = RustCore.xcconfig; sourceTree = "<group>"; };
+		C15400000000000000000006 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppPaths.swift; path = ../darwin/AppPaths.swift; sourceTree = SOURCE_ROOT; };
+		C15400000000000000000007 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeychainStore.swift; path = ../darwin/KeychainStore.swift; sourceTree = SOURCE_ROOT; };
 		E47FA3E85FF5B52C85EF2E8C /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F62EF19C62B6028B7CC17EC8 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
 		F7E3CFE962A2485EEE32CB75 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
@@ -154,7 +158,7 @@
 		33CC10EE2044A3C60003C045 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				33CC10ED2044A3C60003C045 /* Chatui.app */,
+				33CC10ED2044A3C60003C045 /* Celaut.app */,
 				331C80D5294CF71000263BE5 /* RunnerTests.xctest */,
 			);
 			name = Products;
@@ -191,6 +195,8 @@
 				C15400000000000000000002 /* OpenedItemsChannel.swift */,
 				C15400000000000000000003 /* PackageChannel.swift */,
 				C15400000000000000000004 /* KeepAwakeChannel.swift */,
+				C15400000000000000000006 /* AppPaths.swift */,
+				C15400000000000000000007 /* KeychainStore.swift */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
 				33CC11242044D66E0003C045 /* Resources */,
@@ -264,7 +270,7 @@
 			);
 			name = Runner;
 			productName = Runner;
-			productReference = 33CC10ED2044A3C60003C045 /* Chatui.app */;
+			productReference = 33CC10ED2044A3C60003C045 /* Celaut.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -477,6 +483,8 @@
 				C15400000000000000000012 /* OpenedItemsChannel.swift in Sources */,
 				C15400000000000000000013 /* PackageChannel.swift in Sources */,
 				C15400000000000000000014 /* KeepAwakeChannel.swift in Sources */,
+				C15400000000000000000016 /* AppPaths.swift in Sources */,
+				C15400000000000000000017 /* KeychainStore.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
 			);
@@ -521,7 +529,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.argusWallet.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Chatui.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Chatui";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Celaut.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Celaut";
 			};
 			name = Debug;
 		};
@@ -536,7 +544,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.argusWallet.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Chatui.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Chatui";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Celaut.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Celaut";
 			};
 			name = Release;
 		};
@@ -551,7 +559,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = org.celaut.argusWallet.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Chatui.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Chatui";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Celaut.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Celaut";
 			};
 			name = Profile;
 		};

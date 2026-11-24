@@ -15046,6 +15046,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I understand'**
   String get iosLimitsOk;
+
+  /// No description provided for @celautKeepMacNote.
+  ///
+  /// In en, this message translates to:
+  /// **'On a Mac, automatic top-up works only while Celaut is open and the Mac is awake. If you quit the app (⌘Q) or the Mac sleeps, nothing is added, and the node stops the instance when its balance runs out.'**
+  String get celautKeepMacNote;
+
+  /// No description provided for @scanFromImageNote.
+  ///
+  /// In en, this message translates to:
+  /// **'On a Mac the app cannot scan with the camera. Choose an image of the QR code, for example a screenshot (⇧⌘4).'**
+  String get scanFromImageNote;
+
+  /// No description provided for @scanChooseImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an image'**
+  String get scanChooseImage;
+
+  /// No description provided for @scanNoCodeInImage.
+  ///
+  /// In en, this message translates to:
+  /// **'No QR code was found in this image.'**
+  String get scanNoCodeInImage;
 }
 
 class _AppLocalizationsDelegate

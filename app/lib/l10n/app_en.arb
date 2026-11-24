@@ -6586,5 +6586,9 @@
   "iosLimitsConversations": "Conversations do not stay connected when the app is in the background or closed. Your messages wait on the node, and the app syncs them when you open it.",
   "iosLimitsNotifications": "No notification arrives for a new message while the app is suspended.",
   "iosLimitsTopUp": "Automatic top-up (Keep running) does not always work. It runs only while the app runs, and iOS stops it when the app is suspended or closed. When the balance of an instance runs out, the node stops the instance.",
-  "iosLimitsOk": "I understand"
+  "iosLimitsOk": "I understand",
+  "celautKeepMacNote": "On a Mac, automatic top-up works only while Celaut is open and the Mac is awake. If you quit the app (⌘Q) or the Mac sleeps, nothing is added, and the node stops the instance when its balance runs out.",
+  "scanFromImageNote": "On a Mac the app cannot scan with the camera. Choose an image of the QR code, for example a screenshot (⇧⌘4).",
+  "scanChooseImage": "Choose an image",
+  "scanNoCodeInImage": "No QR code was found in this image."
 }

@@ -5,21 +5,21 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Chatui</string>
+	<string>Celaut</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.social-networking</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Chatui uses the camera to scan QR codes: addresses, node links and service links.</string>
+	<string>Celaut uses the camera to scan QR codes: addresses, node links and service links.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Chatui uses the microphone to record a voice message for a service.</string>
+	<string>Celaut uses the microphone to record a voice message for a service.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Chatui connects to Celaut nodes, which can be on your local network.</string>
+	<string>Celaut connects to Celaut nodes, which can be on your local network.</string>
 	<!-- Links that open the app: celaut:// (nodes, services) and ergopay: (payments). -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>org.celaut.chatui.celaut</string>
+			<string>org.celaut.superapp.celaut</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>CFBundleURLSchemes</key>
@@ -29,7 +29,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>org.celaut.chatui.ergopay</string>
+			<string>org.celaut.superapp.ergopay</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>CFBundleURLSchemes</key>

@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = Chatui
+PRODUCT_NAME = Celaut
 
 // The application's bundle identifier (the applicationId of Android).
-PRODUCT_BUNDLE_IDENTIFIER = org.celaut.chatui
+PRODUCT_BUNDLE_IDENTIFIER = org.celaut.superapp
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 Celaut. All rights reserved.

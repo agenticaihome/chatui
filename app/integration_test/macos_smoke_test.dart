@@ -33,7 +33,7 @@ import 'package:record/record.dart';
 
 void say(String name, Object? result) => debugPrint('MACOS_SMOKE $name $result');
 
-/// The .app of this run: …/Chatui.app/Contents/MacOS/Chatui.
+/// The .app of this run: …/Celaut.app/Contents/MacOS/Celaut.
 String appBundle() => File(Platform.resolvedExecutable).parent.parent.parent.path;
 
 Future<void> until(bool Function() done, Duration limit, {Duration step = const Duration(milliseconds: 200)}) async {
@@ -79,7 +79,7 @@ void main() {
     expect(await SecureStorageService.hasEncryptedSeed(walletId: id), isFalse);
     expect(await SecureStorageService.listWalletIds(), isNot(contains(id)));
     final dbPath = await SecureStorageService.celautDbPath();
-    expect(dbPath, endsWith('Library/Application Support/org.celaut.chatui/celaut/celaut.db'));
+    expect(dbPath, endsWith('Library/Application Support/org.celaut.superapp/celaut/celaut.db'));
     expect(Directory(File(dbPath!).parent.path).existsSync(), isTrue);
     final biometric = await SecureStorageService.hasBiometric();
     final hidden = await SecureStorageService.setSecureFlag(true);
@@ -100,10 +100,26 @@ void main() {
       say('deeplink', '$link -> ${deepLinkController.pending}');
       expect(deepLinkController.take(), link);
     }
+
+    // celaut://import?url= gives the link of a service to the import (issue #135), as on
+    // Android and iOS (LinkRules.importLink in app/darwin).
+    await IncomingPackageChannel.start();
+    incomingPackages.take();
+    incomingPackages.setBusy(false);
+    const service = 'https://example.org/smoke.celaut.bee';
+    final importLink = 'celaut://import?url=${Uri.encodeComponent(service)}';
+    final openImport = await Process.run('open', [importLink]);
+    expect(openImport.exitCode, 0, reason: '${openImport.stderr}');
+    await until(() => incomingPackages.pending != null, const Duration(seconds: 20));
+    final item = incomingPackages.take();
+    incomingPackages.setBusy(false);
+    say('import_link', '$importLink -> ${item?.uri} link=${item?.isLink}');
+    expect(item?.isLink, isTrue);
+    expect(item?.uri, service);
   });
 
   testWidgets('a .celaut.bee file opens in the app, and the package channel reads it', (tester) async {
-    final dir = await Directory.systemTemp.createTemp('chatui-smoke');
+    final dir = await Directory.systemTemp.createTemp('superapp-smoke');
     final file = File('${dir.path}/smoke.celaut.bee');
     await file.writeAsBytes(List<int>.generate(5 << 20, (i) => i % 251));
     await IncomingPackageChannel.start();
@@ -146,8 +162,8 @@ void main() {
     await pumpEventQueue();
     expect((await state())?['activity'], 'userInitiated');
     final assertions = await Process.run('pmset', ['-g', 'assertions']);
-    final ours = (assertions.stdout as String).split('\n').where((l) => l.contains('Chatui')).join(' | ');
-    say('pmset', ours.isEmpty ? '(no assertion line with Chatui)' : ours);
+    final ours = (assertions.stdout as String).split('\n').where((l) => l.contains('Celaut')).join(' | ');
+    say('pmset', ours.isEmpty ? '(no assertion line with Celaut)' : ours);
 
     await launch();
     await talk();
@@ -206,7 +222,7 @@ void main() {
     QrPainter(data: text, version: QrVersions.auto, gapless: true).paint(canvas, const Size(400, 400));
     final image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
     final png = await image.toByteData(format: ui.ImageByteFormat.png);
-    final dir = await Directory.systemTemp.createTemp('chatui-qr');
+    final dir = await Directory.systemTemp.createTemp('superapp-qr');
     final file = File('${dir.path}/qr.png');
     await file.writeAsBytes(png!.buffer.asUint8List());
     final code = await readQrImage(file.path);

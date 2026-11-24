@@ -1,15 +1,15 @@
 import Cocoa
 import FlutterMacOS
 
-/// The macOS side of `org.celaut.chatui/package` (`lib/celaut/package_channel.dart`), as
+/// The macOS side of `org.celaut.superapp/package` (`lib/celaut/package_channel.dart`), as
 /// `PackageHandler.kt`: pick a `.celaut.bee` file, give a descriptor of it to the core
 /// (`openPackage`), or copy it into a private folder with the count of the bytes (`copied`).
 /// The uri of a file is its `file://` URL.
 final class PackageChannel: NSObject {
-  static let channelName = "org.celaut.chatui/package"
+  static let channelName = "org.celaut.superapp/package"
 
   private let channel: FlutterMethodChannel
-  private let queue = DispatchQueue(label: "org.celaut.chatui.package-copy")
+  private let queue = DispatchQueue(label: "org.celaut.superapp.package-copy")
   private let lock = NSLock()
   private var cancelled = false
 
@@ -85,7 +85,7 @@ final class PackageChannel: NSObject {
     queue.async {
       var target: URL?
       do {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("chatui-import", isDirectory: true)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("superapp-import", isDirectory: true)
         // One copy at a time: what an earlier copy left is deleted.
         try? FileManager.default.removeItem(at: dir)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

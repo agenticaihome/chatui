@@ -235,7 +235,7 @@ class _RunConfirmDialogState extends State<_RunConfirmDialog> {
               )
             else ...[
               _KeepWarning(text: l.celautKeepWarning),
-              const IosTopUpWarning(padding: EdgeInsets.only(top: 8)),
+              const TopUpWarning(padding: EdgeInsets.only(top: 8)),
               const SizedBox(height: 12),
               TextField(
                 key: const Key('run-confirm-limit'),

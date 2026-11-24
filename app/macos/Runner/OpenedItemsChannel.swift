@@ -5,17 +5,19 @@ import FlutterMacOS
 ///
 /// - `celaut:` and `ergopay:` links go to `argus/deeplink`
 ///   (`lib/services/deep_link_channel.dart`), as from `DeepLinkHandler.kt`;
-/// - `.celaut.bee` files (Finder, "Open With", a drop on the Dock icon) go to
-///   `org.celaut.chatui/incoming` (`lib/celaut/incoming_package.dart`), as from
+/// - `celaut://import?url=<an http(s) link>` gives `{link: url}`, and a `.celaut.bee` file
+///   (Finder, "Open With", a drop on the Dock icon) gives `{uri, name, bytes}`, to
+///   `org.celaut.superapp/incoming` (`lib/celaut/incoming_package.dart`), as from
 ///   `IncomingPackageHandler.kt`.
+///
+/// The rules of the links and of a file are the ones of the iOS app (`LinkRules` in
+/// `app/darwin/AppPaths.swift`).
 ///
 /// A link or a file can come before the Dart side listens (the app starts because of it):
 /// it waits until Dart asks for it (`getInitialLink`, `takeIncoming`). After that, each one
 /// goes to Dart at once.
 final class OpenedItemsChannel: NSObject, FlutterAppLifecycleDelegate {
   static let shared = OpenedItemsChannel()
-
-  private static let linkSchemes: Set<String> = ["celaut", "ergopay"]
 
   private var deepLink: FlutterMethodChannel?
   private var incoming: FlutterMethodChannel?
@@ -35,7 +37,7 @@ final class OpenedItemsChannel: NSObject, FlutterAppLifecycleDelegate {
       result(self.pendingLink)
       self.pendingLink = nil
     }
-    let incoming = FlutterMethodChannel(name: "org.celaut.chatui/incoming", binaryMessenger: messenger)
+    let incoming = FlutterMethodChannel(name: "org.celaut.superapp/incoming", binaryMessenger: messenger)
     incoming.setMethodCallHandler { [weak self] call, result in
       guard let self = self, call.method == "takeIncoming" else {
         result(FlutterMethodNotImplemented)
@@ -56,10 +58,14 @@ final class OpenedItemsChannel: NSObject, FlutterAppLifecycleDelegate {
     for url in urls {
       if url.isFileURL {
         handled = true
-        openFile(url)
-      } else if let scheme = url.scheme?.lowercased(), Self.linkSchemes.contains(scheme) {
+        give(LinkRules.describe(url))
+      } else if let service = LinkRules.importLink(url) {
+        // A link to a service (issue #135): Flutter asks before the download.
         handled = true
-        openLink(url.absoluteString)
+        give(["link": service])
+      } else if let link = LinkRules.deepLink(url) {
+        handled = true
+        openLink(link)
       }
     }
     if handled { NSApp.activate(ignoringOtherApps: true) }
@@ -74,15 +80,11 @@ final class OpenedItemsChannel: NSObject, FlutterAppLifecycleDelegate {
     }
   }
 
-  private func openFile(_ url: URL) {
-    var file: [String: Any] = ["uri": url.absoluteString, "name": url.lastPathComponent]
-    if let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize {
-      file["bytes"] = size
-    }
+  private func give(_ item: [String: Any]) {
     if fileListening, let channel = incoming {
-      channel.invokeMethod("incoming", arguments: file)
+      channel.invokeMethod("incoming", arguments: item)
     } else {
-      pendingFile = file
+      pendingFile = item
     }
   }
 }

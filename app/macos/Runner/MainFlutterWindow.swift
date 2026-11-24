@@ -12,7 +12,7 @@ class MainFlutterWindow: NSWindow {
     self.setContentSize(NSSize(width: 480, height: 860))
     self.contentMinSize = NSSize(width: 360, height: 560)
     self.center()
-    self.title = "Chatui"
+    self.title = "Celaut"
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 

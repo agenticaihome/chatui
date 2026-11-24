@@ -85,8 +85,9 @@ class _AutoTopUpScreenState extends State<AutoTopUpScreen> {
                 padding: EdgeInsets.fromLTRB(homeGutter, 8, homeGutter, 32 + MediaQuery.paddingOf(context).bottom),
                 children: [
                   Text(l.celautTopUpIntro, key: const Key('top-up-intro'), style: t.secondary),
-                  // iOS stops the app soon after it leaves the screen, and the top-up with it.
-                  const IosTopUpWarning(padding: EdgeInsets.only(top: 12)),
+                  // iOS stops the app soon after it leaves the screen, and the top-up with it; macOS when
+                  // the app quits or the Mac sleeps.
+                  const TopUpWarning(padding: EdgeInsets.only(top: 12)),
                   const SizedBox(height: 16),
                   TextField(
                     key: const Key('top-up-threshold'),

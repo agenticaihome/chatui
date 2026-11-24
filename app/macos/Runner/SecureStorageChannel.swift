@@ -1,7 +1,6 @@
 import Cocoa
 import FlutterMacOS
 import LocalAuthentication
-import Security
 
 /// The macOS side of `com.argus.wallet/secure_storage` (`lib/services/secure_storage.dart`),
 /// with the same methods and the same names of the values as `SecureStorageHandler.kt`.
@@ -11,15 +10,17 @@ import Security
 /// does not know a new version of the app as the same app. After an update, macOS asks the
 /// user once for the password of the keychain ("Always Allow"), for the one item. The data
 /// protection keychain needs an Apple team (keychain-access-groups), so it is not used.
+/// The keychain calls and the folder of the Celaut database are shared with the iOS app
+/// (`app/darwin`: `KeychainStore`, `AppPaths`).
 final class SecureStorageChannel: NSObject {
   static let channelName = "com.argus.wallet/secure_storage"
 
-  private static let service = "org.celaut.chatui"
   private static let account = "secure-store-v1"
   private static let walletRegistry = "wallet_registry"
   private static let celautDbKey = "celaut_db_key_v1"
 
-  private let queue = DispatchQueue(label: "org.celaut.chatui.secure-storage")
+  private let queue = DispatchQueue(label: "org.celaut.superapp.secure-storage")
+  private let keychain = KeychainStore(service: "org.celaut.superapp", label: "Celaut wallet keys")
   private weak var window: NSWindow?
 
   init(window: NSWindow?) {
@@ -40,16 +41,14 @@ final class SecureStorageChannel: NSObject {
   }
 
   private func load() throws -> [String: Any] {
-    var query = Self.baseQuery()
-    query[kSecReturnData as String] = true
-    query[kSecMatchLimit as String] = kSecMatchLimitOne
-    var out: CFTypeRef?
-    let status = SecItemCopyMatching(query as CFDictionary, &out)
-    if status == errSecItemNotFound { return [:] }
-    guard status == errSecSuccess, let data = out as? Data else {
-      throw StoreError(message: "keychain read failed: \(Self.text(status))")
+    let text: String?
+    do {
+      text = try keychain.read(Self.account)
+    } catch let failure as KeychainStore.Failure {
+      throw StoreError(message: "keychain read failed: \(failure.status) \(failure.message)")
     }
-    guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+    guard let text = text else { return [:] }
+    guard let object = try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any] else {
       throw StoreError(message: "the keychain item is not a JSON object")
     }
     return object
@@ -57,30 +56,11 @@ final class SecureStorageChannel: NSObject {
 
   private func save(_ values: [String: Any]) throws {
     let data = try JSONSerialization.data(withJSONObject: values, options: [.sortedKeys])
-    let update = [kSecValueData as String: data] as CFDictionary
-    var status = SecItemUpdate(Self.baseQuery() as CFDictionary, update)
-    if status == errSecItemNotFound {
-      var add = Self.baseQuery()
-      add[kSecValueData as String] = data
-      add[kSecAttrLabel as String] = "Chatui wallet keys"
-      status = SecItemAdd(add as CFDictionary, nil)
+    do {
+      try keychain.write(Self.account, String(decoding: data, as: UTF8.self))
+    } catch let failure as KeychainStore.Failure {
+      throw StoreError(message: "keychain write failed: \(failure.status) \(failure.message)")
     }
-    guard status == errSecSuccess else {
-      throw StoreError(message: "keychain write failed: \(Self.text(status))")
-    }
-  }
-
-  private static func baseQuery() -> [String: Any] {
-    [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: service,
-      kSecAttrAccount as String: account,
-    ]
-  }
-
-  private static func text(_ status: OSStatus) -> String {
-    let message = SecCopyErrorMessageString(status, nil) as String? ?? "unknown"
-    return "\(status) \(message)"
   }
 
   private static func seedKey(_ id: String?) -> String { id.map { "seed_\($0)" } ?? "encrypted_seed" }
@@ -116,7 +96,7 @@ final class SecureStorageChannel: NSObject {
       return
     case "celautDbPath":
       do {
-        result(try Self.celautDbPath())
+        result(try AppPaths.celautDbPath())
       } catch {
         result(FlutterError(code: "STORAGE_ERROR", message: "\(error)", details: nil))
       }
@@ -290,27 +270,5 @@ final class SecureStorageChannel: NSObject {
         DispatchQueue.main.async { result(answer) }
       }
     }
-  }
-
-  // MARK: Files
-
-  /// The private folder of the app: `~/Library/Application Support/org.celaut.chatui`.
-  static func appSupportDirectory() throws -> URL {
-    let base = try FileManager.default.url(
-      for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-    let dir = base.appendingPathComponent(Bundle.main.bundleIdentifier ?? "org.celaut.chatui", isDirectory: true)
-    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-    return dir
-  }
-
-  /// The file of the Celaut database. Its folder is left out of Time Machine, as Android
-  /// leaves it out of the cloud backup: the file is useless without the key in the keychain.
-  private static func celautDbPath() throws -> String {
-    var dir = try appSupportDirectory().appendingPathComponent("celaut", isDirectory: true)
-    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-    var noBackup = URLResourceValues()
-    noBackup.isExcludedFromBackup = true
-    try? dir.setResourceValues(noBackup)
-    return dir.appendingPathComponent("celaut.db").path
   }
 }

@@ -1,7 +1,7 @@
 import Cocoa
 import FlutterMacOS
 
-/// The macOS side of `org.celaut.chatui/conversation` (`lib/celaut/conversation_keep_alive.dart`).
+/// The macOS side of `org.celaut.superapp/conversation` (`lib/celaut/conversation_keep_alive.dart`).
 /// On Android the holds run a foreground service; a Mac does not suspend an app in the
 /// background, but App Nap slows the timers and the network of an app that is hidden or
 /// covered. While a hold is taken, the app runs a `ProcessInfo` activity that turns App Nap off:
@@ -11,7 +11,7 @@ import FlutterMacOS
 /// - only an open conversation or automatic top-up: `.userInitiatedAllowingIdleSystemSleep`.
 ///   The Mac can still sleep when it is idle; then nothing of the app runs.
 final class KeepAwakeChannel: NSObject {
-  static let channelName = "org.celaut.chatui/conversation"
+  static let channelName = "org.celaut.superapp/conversation"
 
   private static let busyReasons: Set<String> = ["launch", "transfer", "answer", "import"]
 
@@ -59,7 +59,7 @@ final class KeepAwakeChannel: NSObject {
     if !next.isEmpty {
       // The new activity starts before the old one ends: App Nap never comes in between.
       activity = ProcessInfo.processInfo.beginActivity(
-        options: next, reason: "Chatui: \(wanted.joined(separator: ", "))")
+        options: next, reason: "Celaut: \(wanted.joined(separator: ", "))")
     }
     if let old = old { ProcessInfo.processInfo.endActivity(old) }
     options = next
