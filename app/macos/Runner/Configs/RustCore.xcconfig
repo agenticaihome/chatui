@@ -1,0 +1,18 @@
+// The Rust core (rust/crates/wallet-ffi) for macOS on Apple Silicon: a static library that
+// scripts/build_macos.sh builds in the first build phase of Runner ("Build the Rust core").
+// -force_load keeps every function of the bridge in the app, although no Swift code calls
+// them: Dart finds them in the process (ExternalLibrary.process in lib/services/rust_library.dart).
+//
+// Apple Silicon only (issue #154): no x86_64 part, no universal binary.
+ARCHS = arm64
+EXCLUDED_ARCHS = x86_64
+MACOSX_DEPLOYMENT_TARGET = 13.0
+
+RUST_CORE_LIB = $(PROJECT_DIR)/../../rust/target/aarch64-apple-darwin/release/libwallet_ffi.a
+// The system libraries of the crates (cargo rustc -- --print native-static-libs).
+// -export_dynamic: the link strips dead code (DEAD_CODE_STRIPPING), and in an app the global
+// symbols are not kept without it, so the functions of the bridge can go away after -force_load
+// loaded them (the release build had none of them). The same as app/ios.
+OTHER_LDFLAGS = $(inherited) -force_load "$(RUST_CORE_LIB)" -Wl,-export_dynamic -framework Security -framework SystemConfiguration -framework CoreFoundation -liconv -lresolv
+// The release build strips the executable: keep its global symbols, Dart looks them up by name.
+STRIP_STYLE = non-global
