@@ -57,7 +57,6 @@ final _info = PeerInfoView(
       benchmark: [KeyValueView(key: 'int_ops_per_sec', value: '123456789')],
     ),
   ],
-  reputationProofs: 2,
 );
 
 class NodeApi extends RustLibApi {
@@ -172,7 +171,6 @@ void main() {
       rates: [],
       paymentContracts: [],
       resources: [],
-      reputationProofs: 0,
     );
     await pump(tester);
     await connect(tester, 'node.example:9000');
@@ -196,7 +194,6 @@ void main() {
           benchmark: [const KeyValueView(key: 'int_ops_per_sec', value: '')],
         ),
       ],
-      reputationProofs: 0,
     );
     await pump(tester);
     await connect(tester, 'node.example:9000');
@@ -347,7 +344,6 @@ void main() {
       rates: [],
       paymentContracts: [],
       resources: [],
-      reputationProofs: 0,
     );
     await pump(tester);
     await connect(tester, 'node.example:9000');
@@ -384,6 +380,7 @@ void main() {
       CelautErrorKind.transferFailed: 'The transfer of the service stopped',
       CelautErrorKind.noDescendants: 'does not support descendants',
       CelautErrorKind.onionNeedsTor: 'An onion address needs Tor',
+      CelautErrorKind.noSpace: 'not enough free space',
     };
     for (final entry in cases.entries) {
       testWidgets('${entry.key.name} shows its text and the detail', (tester) async {

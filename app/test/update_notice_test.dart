@@ -49,7 +49,7 @@ void main() {
     svc.offer('1.0.0-beta.2');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('update-notice')), findsOneWidget);
-    expect(find.text('Chatui 1.0.0-beta.2 is available.'), findsOneWidget);
+    expect(find.text('Celaut 1.0.0-beta.2 is available.'), findsOneWidget);
     expect(find.text('View'), findsOneWidget);
     expect(find.byTooltip('Dismiss'), findsOneWidget);
   });
@@ -85,7 +85,7 @@ void main() {
 
     relaunched.offer('1.0.0-beta.3');
     await tester.pumpAndSettle();
-    expect(find.text('Chatui 1.0.0-beta.3 is available.'), findsOneWidget);
+    expect(find.text('Celaut 1.0.0-beta.3 is available.'), findsOneWidget);
   });
 
   testWidgets('the Settings hub carries it, and it appears from a saved check without any request', (tester) async {
@@ -107,12 +107,12 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: SettingsScreen()));
     await tester.pumpAndSettle();
     expect(find.byType(UpdateNotice), findsOneWidget);
-    expect(find.text('Chatui $ahead is available.'), findsOneWidget);
+    expect(find.text('Celaut $ahead is available.'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Dismiss'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('update-notice')), findsNothing);
     // The rest of the hub is where it was.
-    expect(find.text('About Chatui'), findsOneWidget);
+    expect(find.text('About Celaut'), findsOneWidget);
   });
 }

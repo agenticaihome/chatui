@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/package_library.dart';
 import '../../l10n/l10n.dart';
+import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 import 'raise_rocket.dart';
 
@@ -131,77 +132,83 @@ class _ImportCardState extends State<_ImportCard> {
             (fraction * 100).floor().toString(),
           )
         : l.celautSendSoFar(CelautStrings.bytes(done));
+    final colors = ArgusColors.of(context);
     return Material(
       key: const Key('import-progress'),
       color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(child: RaiseStage(key: widget.stage)),
-            const SizedBox(height: 12),
-            Text(
-              switch (phase) {
-                ImportPhase.reading => l.celautImportReading,
-                ImportPhase.checking => l.celautImportChecking,
-                ImportPhase.downloading => l.celautLinkDownloading,
-              },
-              key: const Key('import-step'),
-              style: t.title,
-              textAlign: TextAlign.center,
+      shape: panelShapeOf(context, radius: 20),
+      child: Stack(
+        children: [
+          if (colors.look case final look?) Positioned.fill(child: LookOrnaments(look: look, color: colors.trim)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(child: RaiseStage(key: widget.stage)),
+                const SizedBox(height: 12),
+                Text(
+                  switch (phase) {
+                    ImportPhase.reading => l.celautImportReading,
+                    ImportPhase.checking => l.celautImportChecking,
+                    ImportPhase.downloading => l.celautLinkDownloading,
+                  },
+                  key: const Key('import-step'),
+                  style: t.title,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  switch (phase) {
+                    ImportPhase.reading => l.celautImportReadingNote,
+                    ImportPhase.checking => l.celautImportNote,
+                    ImportPhase.downloading => l.celautLinkDownloadingNote,
+                  },
+                  style: t.secondary,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                LinearProgressIndicator(
+                  key: const Key('import-bar'),
+                  // A manifest gives no size: the bar goes by its parts.
+                  value: phase == ImportPhase.downloading ? view?.overall : fraction,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  amount,
+                  key: const Key('import-amount'),
+                  textAlign: TextAlign.center,
+                ),
+                if (view != null && view.chunks > 0)
+                  Text(
+                    l.celautLinkChunk(view.chunk, view.chunks),
+                    key: const Key('import-chunk'),
+                    style: t.secondary,
+                    textAlign: TextAlign.center,
+                  ),
+                if (view != null && view.retries > 0)
+                  Text(
+                    l.celautLinkRetries(view.retries),
+                    key: const Key('import-retries'),
+                    style: t.secondary,
+                    textAlign: TextAlign.center,
+                  ),
+                const SizedBox(height: 4),
+                TextButton(
+                  key: const Key('import-cancel'),
+                  onPressed: _cancelling
+                      ? null
+                      : () {
+                          setState(() => _cancelling = true);
+                          widget.onCancel();
+                        },
+                  child: Text(l.celautSendCancel),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              switch (phase) {
-                ImportPhase.reading => l.celautImportReadingNote,
-                ImportPhase.checking => l.celautImportNote,
-                ImportPhase.downloading => l.celautLinkDownloadingNote,
-              },
-              style: t.secondary,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              key: const Key('import-bar'),
-              // A manifest gives no size: the bar goes by its parts.
-              value: phase == ImportPhase.downloading ? view?.overall : fraction,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              amount,
-              key: const Key('import-amount'),
-              textAlign: TextAlign.center,
-            ),
-            if (view != null && view.chunks > 0)
-              Text(
-                l.celautLinkChunk(view.chunk, view.chunks),
-                key: const Key('import-chunk'),
-                style: t.secondary,
-                textAlign: TextAlign.center,
-              ),
-            if (view != null && view.retries > 0)
-              Text(
-                l.celautLinkRetries(view.retries),
-                key: const Key('import-retries'),
-                style: t.secondary,
-                textAlign: TextAlign.center,
-              ),
-            const SizedBox(height: 4),
-            TextButton(
-              key: const Key('import-cancel'),
-              onPressed: _cancelling
-                  ? null
-                  : () {
-                      setState(() => _cancelling = true);
-                      widget.onCancel();
-                    },
-              child: Text(l.celautSendCancel),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -6,7 +6,8 @@
 #   version          build_info.dart and pubspec.yaml agree
 #   libs             the built jniLibs match a fresh build of this source
 #   apks <dir>       the built APKs carry the right versionCode, ABI and cert
-#   all <dir>        all three
+#   ipa <file>       the unsigned iOS app carries the right version and build number
+#   all <dir>        version, libs and apks
 #
 # Every check asserts on positive evidence — a file exists, a number equals an
 # expected value. A check that silently measures nothing is worse than none:
@@ -26,7 +27,14 @@ ABIS=(arm64-v8a x86_64)
 # overwrites the split APKs with ones carrying the bare base code. That
 # shipped once as a silent downgrade: an arm64 user on a +2000 code cannot
 # install a later release numbered without it.
-declare -A ABI_OFFSET=([arm64-v8a]=2000 [x86_64]=4000)
+# A function, not an associative array: pack_ipa.sh runs this on macOS, whose bash is 3.2.
+abi_offset() {
+  case "$1" in
+    arm64-v8a) echo 2000 ;;
+    x86_64) echo 4000 ;;
+    *) echo "no versionCode offset for the ABI $1" >&2; return 1 ;;
+  esac
+}
 
 FAIL=0
 pass() { printf '  \033[32mok\033[0m    %s\n' "$1"; }
@@ -41,7 +49,7 @@ sdk_tool() {
 }
 
 # ── version ───────────────────────────────────────────────────────────────
-declare -g BASE_CODE="" VERSION_NAME=""
+BASE_CODE="" VERSION_NAME=""
 
 read_version() {
   local bi="$APP/lib/build_info.dart" ps="$APP/pubspec.yaml"
@@ -128,7 +136,7 @@ check_apks() {
     local apk="${found[0]}"
 
     local want=$BASE_CODE
-    [ "$kind" != universal ] && want=$(( BASE_CODE + ${ABI_OFFSET[$kind]} ))
+    [ "$kind" != universal ] && want=$(( BASE_CODE + $(abi_offset "$kind") ))
 
     local badging code name abis
     badging="$("$aapt" dump badging "$apk" 2>/dev/null)"
@@ -169,12 +177,60 @@ check_apks() {
   [ -n "$expect_cert" ] && printf '\n  Compare against the previous release before publishing:\n    apksigner verify --print-certs <previous.apk>\n    this release: %s\n' "$expect_cert"
 }
 
+# ── ipa ───────────────────────────────────────────────────────────────────
+# The unsigned .ipa of iOS (docs/ios.md): its Info.plist must carry the version name and
+# the build number of build_info.dart, the bundle id of the app, and its executable; and it
+# must be unsigned (the user's AltStore, SideStore or Sideloadly signs it). Python reads
+# the plist, so the check runs on Linux too (the publish job).
+IOS_BUNDLE_ID="org.celaut.superapp"
+
+check_ipa() {
+  local ipa="${1:-}"
+  head_ "iOS app"
+  [ -n "$ipa" ] && [ -f "$ipa" ] || { fail "usage: release_check.sh ipa <file.ipa>"; return; }
+  [ -n "$BASE_CODE" ] || { read_version >/dev/null || { fail "no version to check against"; return; }; }
+  local info
+  if ! info="$(python3 - "$ipa" 2>&1 <<'PY'
+import plistlib, sys, zipfile
+z = zipfile.ZipFile(sys.argv[1])
+names = z.namelist()
+plists = [n for n in names if n.startswith('Payload/') and n.count('/') == 2 and n.endswith('.app/Info.plist')]
+if len(plists) != 1:
+    sys.exit('want one Payload/<name>.app/Info.plist, found %d' % len(plists))
+p = plistlib.loads(z.read(plists[0]))
+app = plists[0][:-len('Info.plist')]
+exe = p.get('CFBundleExecutable', '')
+print(p.get('CFBundleShortVersionString', '-'), p.get('CFBundleVersion', '-'),
+      p.get('CFBundleIdentifier', '-'), p.get('MinimumOSVersion', '-'),
+      int(bool(exe) and app + exe in names),
+      int(any(n.startswith(app + '_CodeSignature/') for n in names)))
+PY
+)"; then
+    fail "$(basename "$ipa"): cannot read its Info.plist: $info"; return
+  fi
+  local name code bundle minos hasexe signed
+  read -r name code bundle minos hasexe signed <<<"$info"
+  [ "$name" = "$VERSION_NAME" ] \
+    && pass "ipa: version $name" \
+    || fail "ipa: version $name, expected $VERSION_NAME"
+  [ "$code" = "$BASE_CODE" ] \
+    && pass "ipa: build number $code" \
+    || fail "ipa: build number $code, expected $BASE_CODE"
+  [ "$bundle" = "$IOS_BUNDLE_ID" ] \
+    && pass "ipa: bundle id $bundle" \
+    || fail "ipa: bundle id $bundle, expected $IOS_BUNDLE_ID"
+  [ "$hasexe" = 1 ] && pass "ipa: has its executable" || fail "ipa: the executable of the app is missing"
+  [ "$signed" = 0 ] && pass "ipa: unsigned" || fail "ipa: signed; the release ships it unsigned"
+  echo "  minimum iOS: $minos"
+}
+
 case "${1:-all}" in
   version) check_version ;;
   libs)    check_version; check_libs ;;
   apks)    check_version; check_apks "${2:-}" ;;
+  ipa)     check_version; check_ipa "${2:-}" ;;
   all)     check_version; check_libs; check_apks "${2:-}" ;;
-  *) echo "usage: $0 {version|libs|apks <dir>|all <dir>}" >&2; exit 2 ;;
+  *) echo "usage: $0 {version|libs|apks <dir>|ipa <file>|all <dir>}" >&2; exit 2 ;;
 esac
 
 echo

@@ -1,0 +1,78 @@
+name: linux
+
+# The Linux app (issue #153): a .deb for amd64 and one for arm64, each built on
+# a native runner, checked, and installed in a clean Ubuntu 24.04 container.
+# release.yml calls this workflow and publishes both .deb files.
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # Keep equal to FLUTTER_VERSION in ci.yml.
+  FLUTTER_VERSION: '3.41.2'
+
+jobs:
+  deb:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.99.0
+      - name: Install the build packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang lld llvm cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev liblzma-dev \
+            dpkg-dev imagemagick
+      # The archive of the SDK that flutter-action downloads is for x64 only. The
+      # tag of the SDK works on both architectures.
+      - name: Install Flutter
+        run: |
+          git clone --quiet --depth 1 --branch "$FLUTTER_VERSION" \
+            https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      # CMake runs scripts/build_linux.sh, which builds libwallet_ffi.so.
+      - name: Build the Linux app
+        working-directory: app
+        run: |
+          flutter --disable-analytics
+          flutter pub get --enforce-lockfile
+          flutter build linux --release
+      - name: Make the .deb
+        run: scripts/package_deb.sh dist
+      - name: SHA-256
+        working-directory: dist
+        run: sha256sum ./*.deb | tee "SHA256SUMS-${{ matrix.arch }}"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: deb-${{ matrix.arch }}
+          path: dist/
+          if-no-files-found: error
+      - name: Check the .deb
+        run: scripts/check_deb.sh fields dist/superapp-*-linux-${{ matrix.arch }}.deb ${{ matrix.arch }}
+      - name: Install the .deb in a clean Ubuntu 24.04 and start the app
+        run: |
+          docker run --rm -v "$PWD:/src:ro" -w /src ubuntu:24.04 \
+            scripts/check_deb.sh install dist/superapp-*-linux-${{ matrix.arch }}.deb
+      # The channels of the runner and the plugins, in the real app: the Secret
+      # Service (GNOME Keyring), the package channel, zxing on an image file, and
+      # the microphone of `record` (PulseAudio with a tone as the microphone).
+      - name: Test the Linux platform in the runner
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            xvfb xauth dbus-x11 gnome-keyring pulseaudio pulseaudio-utils
+          scripts/test_linux.sh

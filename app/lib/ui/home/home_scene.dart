@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../theme/argus_theme.dart';
+import '../../theme/scene_art.dart';
 import '../layout.dart';
 
 /// What lights the scene: an eclipse's rim (the overview) or the haze of a
@@ -264,6 +265,10 @@ class ScenePainter extends CustomPainter {
 
     if (light == SceneLight.eclipse) _eclipse(canvas, centre, lightRadius);
 
+    // The palette's own drawing behind the range (a Harry Potter palette: the candles, the
+    // castle, the pines, the wisps or the feathers).
+    paintSceneArtBack(canvas, size, spec, dark: dark, light: centre, strength: 0.6 + 0.4 * rimStrength);
+
     // The range, far to near: pale, high crests under the light, then
     // nearer and darker ridges falling to the lower left, the nearest all
     // but the page. Each is a mass with light only on its crest's faces
@@ -307,6 +312,9 @@ class ScenePainter extends CustomPainter {
       _gullies(canvas, points, colour, strength, centre, w, range.seed);
       _rim(canvas, points, strength, centre, w);
     }
+
+    // And what floats in the air before it: fireflies, sparks, embers.
+    paintSceneArtFront(canvas, size, spec, dark: dark, strength: 0.6 + 0.4 * rimStrength);
 
     // A faint grain, so the dark reads as air rather than flat fill.
     final grain = Paint()

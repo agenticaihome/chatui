@@ -12,6 +12,7 @@ import '../../bridge/api/celaut_env.dart' show DeclaredVariableView, EnvChoice;
 import '../../bridge/api/celaut_home.dart' show celautKnownNodes;
 import '../../bridge/api/celaut_service.dart';
 import '../../bridge/api/celaut_service_info.dart';
+import '../../celaut/app_suspension.dart';
 import '../../celaut/attachment_picker.dart';
 import '../../celaut/audio_recorder.dart';
 import '../../celaut/celaut_format.dart';
@@ -31,6 +32,7 @@ import '../../celaut/pinned_position.dart';
 import '../../celaut/secret_answers.dart';
 import '../../celaut/typewriter.dart';
 import '../../l10n/l10n.dart';
+import '../../services/linux_app.dart';
 import '../../theme/argus_theme.dart';
 import '../layout.dart';
 import 'chat_floating.dart';
@@ -90,7 +92,13 @@ class ChatScreen extends StatefulWidget {
     this.secretAnswers,
     this.saveTitle,
     this.openTunnel,
+    this.suspension,
   });
+
+  /// The suspension of the app on iOS: the chat closes its stream before iOS suspends the
+  /// app, and reconnects when the app is in front again. Null: [appSuspension]. Tests give
+  /// their own.
+  final AppSuspension? suspension;
 
   /// Opens the tunnel to another slot of the instance, for a `slot_link` and for the
   /// deck of cards. Null: `celautOpenTunnel`. Tests give their own.
@@ -335,12 +343,45 @@ class _ChatScreenState extends State<ChatScreen>
     _input.addListener(_followCaret);
     _chat.addListener(_onChat);
     unawaited(_keepAlive.start());
+    _unregisterSuspension = (widget.suspension ?? appSuspension).register(
+      suspend: _chat.suspend,
+      resume: _resumeAfterSuspension,
+    );
     // The screen reads the chat now: a watch that a former screen left stops.
     _watcher.release(_id);
     _open();
     _secretAnswers.load().then((_) {
       if (mounted) setState(() {});
     });
+  }
+
+  VoidCallback? _unregisterSuspension;
+
+  /// iOS suspended the app and it is in front again (`docs/ios.md`, "Background"). The
+  /// local port of the tunnel can be gone (iOS takes back the listening sockets of a
+  /// suspended app), and the connection to the node can be broken: opening the tunnel
+  /// again keeps its port if it still works, or makes a new one on a fresh connection.
+  /// Then the chat subscribes again from its last message and gets what it missed.
+  Future<void> _resumeAfterSuspension(Duration away) async {
+    int? port;
+    final slots = widget.instance.chatSlots;
+    if (slots.isNotEmpty) {
+      try {
+        port = await (widget.openTunnel ?? (id, s) => celautOpenTunnel(instanceId: id, slot: s))(
+          widget.instance.instanceId,
+          slots.first,
+        );
+      } on Object catch (e) {
+        // The chat tries its current port, and shows its error if that fails too.
+        debugPrint('The tunnel did not open again after the suspension: $e');
+      }
+    }
+    if (!mounted) return;
+    try {
+      await _chat.resume(port: port);
+    } on ChatException catch (e) {
+      if (mounted) setState(() => _error = e.kind);
+    }
   }
 
   /// A running instance can have messages already: read them, then the cost.
@@ -1215,6 +1256,7 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _unregisterSuspension?.call();
     _revealTicker.dispose();
     _scroll.removeListener(_updatePinned);
     unawaited(_recSub?.cancel() ?? Future<void>.value());
@@ -2650,7 +2692,7 @@ class _AttachmentViewState extends State<_AttachmentView> {
 
   Future<void> _share(Uint8List bytes) async {
     final a = widget.attachment;
-    await SharePlus.instance.share(
+    await shareFiles(
       ShareParams(
         files: [XFile.fromData(bytes, mimeType: a.mime, name: a.safeName)],
       ),

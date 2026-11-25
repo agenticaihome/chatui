@@ -2,13 +2,13 @@
 <resources>
     <string name="conversation_channel_name">Conversación abierta</string>
     <string name="conversation_notification_title">Conversación abierta</string>
-    <string name="conversation_notification_text">Chatui mantiene la conexión con el servicio. Abre la app para salir o detenerlo.</string>
+    <string name="conversation_notification_text">Celaut mantiene la conexión con el servicio. Abre la app para salir o detenerlo.</string>
     <string name="answer_notification_title">Esperando una respuesta</string>
-    <string name="answer_notification_text">Chatui lee el chat hasta que la respuesta esté lista y te avisa.</string>
+    <string name="answer_notification_text">Celaut lee el chat hasta que la respuesta esté lista y te avisa.</string>
     <string name="launch_notification_title">Lanzando un servicio</string>
-    <string name="launch_notification_text">Chatui sigue con el lanzamiento con la pantalla apagada.</string>
+    <string name="launch_notification_text">Celaut sigue con el lanzamiento con la pantalla apagada.</string>
     <string name="transfer_notification_title">Enviando un servicio</string>
-    <string name="transfer_notification_text">Chatui sigue enviando el archivo del servicio al nodo.</string>
+    <string name="transfer_notification_text">Celaut sigue enviando el archivo del servicio al nodo.</string>
     <string name="import_notification_title">Cargando un archivo de servicio</string>
-    <string name="import_notification_text">Chatui sigue cargando el archivo mientras lo eliges.</string>
+    <string name="import_notification_text">Celaut sigue cargando el archivo mientras lo eliges.</string>
 </resources>

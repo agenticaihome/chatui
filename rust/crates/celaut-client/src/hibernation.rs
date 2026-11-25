@@ -210,7 +210,7 @@ const GIB: u128 = 1 << 30;
 
 /// The rate `key` of the node, in MU, from the rates that it advertised.
 fn rate(peer: &Peer, key: &str) -> Option<u128> {
-    peer.mu_per_call
+    peer.rates
         .iter()
         .find(|kv| kv.key == key)
         .and_then(|kv| kv.value.as_ref())

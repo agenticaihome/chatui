@@ -40,7 +40,7 @@ fn peer(query: Option<&str>, row: Option<&str>) -> Peer {
     let mut p = Peer::default();
     for (key, value) in [("statement_query_mu", query), ("statement_row_mu", row)] {
         if let Some(v) = value {
-            p.mu_per_call.push(AmountKeyValue {
+            p.rates.push(AmountKeyValue {
                 key: key.into(),
                 value: Some(Amount { n: v.into() }),
             });

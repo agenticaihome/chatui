@@ -145,7 +145,7 @@ void main() {
     expect(find.byKey(const Key('service-info-chat-unsupported')), findsNothing);
   });
 
-  testWidgets('an interface that Chatui does not support says so', (tester) async {
+  testWidgets('an interface that Celaut does not support says so', (tester) async {
     await _pump(tester, _full(chat: ChatSupportView.unsupported, chatSlot: false));
     expect(find.text(appL10n.serviceInfoChatUnsupported), findsOneWidget);
     expect(find.byKey(const Key('service-info-chat-supported')), findsNothing);
@@ -349,7 +349,7 @@ void main() {
   });
 
   group('the title of the app', () {
-    testWidgets('is Chatui, in lower case except the C, with "ui" in the other colour', (tester) async {
+    testWidgets('is Celaut, in lower case except the C, with "ut" in the other colour', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(extensions: const [ArgusColors(muted: Colors.grey, cardBorder: Colors.grey, inset: Colors.grey, chip: Colors.grey)]),
@@ -358,19 +358,19 @@ void main() {
       );
       final rich = tester.widget<RichText>(find.byType(RichText).first);
       final root = rich.text as TextSpan;
-      expect(root.toPlainText(), 'Chatui');
-      // The text of each span, with its own style: the first is the accent, the last "ui".
+      expect(root.toPlainText(), 'Celaut');
+      // The text of each span, with its own style: the first is the accent, the last "ut".
       final spans = <TextSpan>[];
       root.visitChildren((span) {
         if (span is TextSpan && span.text != null) spans.add(span);
         return true;
       });
-      expect(spans.map((s) => s.text), ['Chat', 'ui']);
-      final ui = spans.last;
-      expect(ui.text, equals(ui.text!.toLowerCase()));
+      expect(spans.map((s) => s.text), ['Cela', 'ut']);
+      final tail = spans.last;
+      expect(tail.text, equals(tail.text!.toLowerCase()));
       // Another colour than the rest of the title.
-      expect(ui.style!.color, isNot(root.style!.color));
-      expect(CelautWordmark.name, 'Chatui');
+      expect(tail.style!.color, isNot(root.style!.color));
+      expect(CelautWordmark.name, 'Celaut');
     });
   });
 }

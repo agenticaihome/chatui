@@ -10,12 +10,12 @@ sensitive mark).
 One variable for each code. The text of the code is JSON with a marker:
 
 ```json
-{"chatui_env":1,"n":"TOKEN_DE_GITHUB","v":"ghp_...","s":true}
+{"superapp_env":1,"n":"TOKEN_DE_GITHUB","v":"ghp_...","s":true}
 ```
 
 | Field | Meaning |
 |---|---|
-| `chatui_env` | Marker and version of the format (`1`) |
+| `superapp_env` | Marker and version of the format (`1`) |
 | `n` | Name of the variable |
 | `v` | Value, in plain text |
 | `s` | The variable is sensitive (`true`) or not (`false`) |

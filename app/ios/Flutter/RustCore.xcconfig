@@ -1,0 +1,13 @@
+// The Rust core (crate wallet-ffi) is a static library that scripts/build_ios.sh builds
+// for each SDK; the "Build the Rust core" phase of Runner runs it before the link.
+// -force_load keeps every function of the bridge: no Swift code calls them, Dart finds them
+// in the process with dlsym (flutter_rust_bridge, ExternalLibrary.process). Runner adds
+// RUST_CORE_LDFLAGS to OTHER_LDFLAGS, and keeps its global symbols (STRIP_STYLE non-global).
+// -export_dynamic: the release link strips dead code (DEAD_CODE_STRIPPING), and in an app
+// executable only the code that main reaches stays, unless every global symbol is a root:
+// without it the functions of the bridge are removed after -force_load loaded them.
+RUST_CORE_DIR = $(PROJECT_DIR)/../../rust/target
+RUST_CORE_LDFLAGS[sdk=iphoneos*] = -force_load "$(RUST_CORE_DIR)/aarch64-apple-ios/release/libwallet_ffi.a" -Wl,-export_dynamic -framework Security -framework SystemConfiguration -lresolv
+RUST_CORE_LDFLAGS[sdk=iphonesimulator*] = -force_load "$(RUST_CORE_DIR)/ios-simulator/libwallet_ffi.a" -Wl,-export_dynamic -framework Security -framework SystemConfiguration -lresolv
+// The simulator library has each architecture of the simulator build (arm64 on Apple
+// silicon, x86_64 on Intel): build_ios.sh reads ARCHS.

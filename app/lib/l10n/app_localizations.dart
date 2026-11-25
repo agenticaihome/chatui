@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'Chatui'**
+  /// **'Celaut'**
   String get appTitle;
 
   /// No description provided for @commonCancel.
@@ -547,12 +547,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Resources'**
   String get celautResourcesTitle;
-
-  /// No description provided for @celautProofsLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Reputation proofs'**
-  String get celautProofsLabel;
 
   /// No description provided for @celautNoUris.
   ///
@@ -1010,6 +1004,12 @@ abstract class AppLocalizations {
   /// **'Diamonds'**
   String get chatBgDiamonds;
 
+  /// No description provided for @chatBgTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get chatBgTheme;
+
   /// No description provided for @addressBookTitle.
   ///
   /// In en, this message translates to:
@@ -1019,7 +1019,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAboutRowTitle.
   ///
   /// In en, this message translates to:
-  /// **'About Chatui'**
+  /// **'About Celaut'**
   String get settingsAboutRowTitle;
 
   /// No description provided for @settingsAboutRowSubtitle.
@@ -1043,7 +1043,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSecurityWalletSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Phone unlock, auto-lock'**
+  /// **'Device unlock, auto-lock'**
   String get settingsSecurityWalletSubtitle;
 
   /// No description provided for @settingsErgoGroup.
@@ -1075,6 +1075,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Auto-lock, screenshots, unconfirmed funds'**
   String get settingsSecurityAppSubtitle;
+
+  /// No description provided for @settingsSecurityAppSubtitleLinux.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-lock, unconfirmed funds'**
+  String get settingsSecurityAppSubtitleLinux;
 
   /// No description provided for @settingsRemotePreviewsTitle.
   ///
@@ -1169,8 +1175,14 @@ abstract class AppLocalizations {
   /// No description provided for @aboutUpdatesNote.
   ///
   /// In en, this message translates to:
-  /// **'Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app\'s signing key before Android is asked to install it.'**
+  /// **'Off by default. When on, Celaut asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app\'s signing key before Android is asked to install it.'**
   String get aboutUpdatesNote;
+
+  /// No description provided for @aboutUpdatesNoteLinux.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. When on, Celaut asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. On Linux, Celaut does not download or install an update: it shows the link to the .deb for this computer, and your browser downloads it from github.com.'**
+  String get aboutUpdatesNoteLinux;
 
   /// No description provided for @aboutThisBuild.
   ///
@@ -1202,6 +1214,12 @@ abstract class AppLocalizations {
   /// **'What changed in each alpha, and the latest APK.'**
   String get aboutReleasesSubtitle;
 
+  /// No description provided for @aboutReleasesSubtitleLinux.
+  ///
+  /// In en, this message translates to:
+  /// **'What changed in each alpha, and the latest .deb files.'**
+  String get aboutReleasesSubtitleLinux;
+
   /// No description provided for @aboutLicenses.
   ///
   /// In en, this message translates to:
@@ -1211,7 +1229,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutLightClientNote.
   ///
   /// In en, this message translates to:
-  /// **'Chatui is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.'**
+  /// **'Celaut is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.'**
   String get aboutLightClientNote;
 
   /// No description provided for @aboutSigningCertificate.
@@ -1373,7 +1391,7 @@ abstract class AppLocalizations {
   /// No description provided for @displayMotionCuesAutomaticSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'When the phone feels that you ride a vehicle'**
+  /// **'When the device feels that you ride a vehicle'**
   String get displayMotionCuesAutomaticSubtitle;
 
   /// No description provided for @displayMotionCuesAlways.
@@ -1442,6 +1460,84 @@ abstract class AppLocalizations {
   /// **'True black, steel accent'**
   String get themeObsidianHint;
 
+  /// No description provided for @displayPaletteGroupChristmas.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas'**
+  String get displayPaletteGroupChristmas;
+
+  /// No description provided for @themeXmasEveNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas Eve'**
+  String get themeXmasEveNightName;
+
+  /// No description provided for @themeXmasEveDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas Morning'**
+  String get themeXmasEveDayName;
+
+  /// No description provided for @themeXmasEveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas · red, pine and gold'**
+  String get themeXmasEveHint;
+
+  /// No description provided for @themeXmasSnowNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Snowy Night'**
+  String get themeXmasSnowNightName;
+
+  /// No description provided for @themeXmasSnowDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Snowy Day'**
+  String get themeXmasSnowDayName;
+
+  /// No description provided for @themeXmasSnowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas · ice white and silver blue'**
+  String get themeXmasSnowHint;
+
+  /// No description provided for @themeXmasGingerNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Gingerbread Night'**
+  String get themeXmasGingerNightName;
+
+  /// No description provided for @themeXmasGingerDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Gingerbread Day'**
+  String get themeXmasGingerDayName;
+
+  /// No description provided for @themeXmasGingerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas · ginger, icing and red'**
+  String get themeXmasGingerHint;
+
+  /// No description provided for @themeXmasTreeNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas Tree Night'**
+  String get themeXmasTreeNightName;
+
+  /// No description provided for @themeXmasTreeDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas Tree Day'**
+  String get themeXmasTreeDayName;
+
+  /// No description provided for @themeXmasTreeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Christmas · pine green and golden lights'**
+  String get themeXmasTreeHint;
+
   /// No description provided for @themeHarborName.
   ///
   /// In en, this message translates to:
@@ -1466,6 +1562,84 @@ abstract class AppLocalizations {
   /// **'Warm charcoal, copper accent'**
   String get themeEmberHint;
 
+  /// No description provided for @displayPaletteGroupGta.
+  ///
+  /// In en, this message translates to:
+  /// **'Grand Theft Auto'**
+  String get displayPaletteGroupGta;
+
+  /// No description provided for @themeGtaViceNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Vice City Night'**
+  String get themeGtaViceNightName;
+
+  /// No description provided for @themeGtaViceDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Vice City Day'**
+  String get themeGtaViceDayName;
+
+  /// No description provided for @themeGtaViceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'GTA · neon pink and teal, shoulder pads included'**
+  String get themeGtaViceHint;
+
+  /// No description provided for @themeGtaSantosNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Los Santos Night'**
+  String get themeGtaSantosNightName;
+
+  /// No description provided for @themeGtaSantosDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Los Santos Day'**
+  String get themeGtaSantosDayName;
+
+  /// No description provided for @themeGtaSantosHint.
+  ///
+  /// In en, this message translates to:
+  /// **'GTA · orange sunset, purple smog, palm trees'**
+  String get themeGtaSantosHint;
+
+  /// No description provided for @themeGtaLibertyNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Liberty City Night'**
+  String get themeGtaLibertyNightName;
+
+  /// No description provided for @themeGtaLibertyDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Liberty City Day'**
+  String get themeGtaLibertyDayName;
+
+  /// No description provided for @themeGtaLibertyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'GTA · steel and taxi yellow, honking optional'**
+  String get themeGtaLibertyHint;
+
+  /// No description provided for @themeGtaWantedNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Wanted Night'**
+  String get themeGtaWantedNightName;
+
+  /// No description provided for @themeGtaWantedDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Wanted Day'**
+  String get themeGtaWantedDayName;
+
+  /// No description provided for @themeGtaWantedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'GTA · police red and blue, five stars (not the hotel kind)'**
+  String get themeGtaWantedHint;
+
   /// No description provided for @themeParchmentName.
   ///
   /// In en, this message translates to:
@@ -1489,6 +1663,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cool white, slate-blue accent'**
   String get themeFrostHint;
+
+  /// No description provided for @displayPaletteGroupMarvel.
+  ///
+  /// In en, this message translates to:
+  /// **'Marvel'**
+  String get displayPaletteGroupMarvel;
+
+  /// No description provided for @themeIronManNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Iron Man Night'**
+  String get themeIronManNightName;
+
+  /// No description provided for @themeIronManDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Iron Man Day'**
+  String get themeIronManDayName;
+
+  /// No description provided for @themeIronManHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Marvel · red and gold'**
+  String get themeIronManHint;
+
+  /// No description provided for @themeSpiderManNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Spider-Man Night'**
+  String get themeSpiderManNightName;
+
+  /// No description provided for @themeSpiderManDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Spider-Man Day'**
+  String get themeSpiderManDayName;
+
+  /// No description provided for @themeSpiderManHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Marvel · red and blue, web'**
+  String get themeSpiderManHint;
+
+  /// No description provided for @themeHulkNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hulk Night'**
+  String get themeHulkNightName;
+
+  /// No description provided for @themeHulkDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hulk Day'**
+  String get themeHulkDayName;
+
+  /// No description provided for @themeHulkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Marvel · gamma green and purple'**
+  String get themeHulkHint;
+
+  /// No description provided for @themeThorNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Thor Night'**
+  String get themeThorNightName;
+
+  /// No description provided for @themeThorDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Thor Day'**
+  String get themeThorDayName;
+
+  /// No description provided for @themeThorHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Marvel · storm and lightning'**
+  String get themeThorHint;
 
   /// No description provided for @themeCyberpunkName.
   ///
@@ -1525,6 +1777,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'True black, system blue'**
   String get themeAppleDarkHint;
+
+  /// No description provided for @displayPaletteGroupCyberpunk.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk'**
+  String get displayPaletteGroupCyberpunk;
+
+  /// No description provided for @themeCyberCityNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Night City by Night'**
+  String get themeCyberCityNightName;
+
+  /// No description provided for @themeCyberCityDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Night City by Day'**
+  String get themeCyberCityDayName;
+
+  /// No description provided for @themeCyberCityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk · acid yellow and teal'**
+  String get themeCyberCityHint;
+
+  /// No description provided for @themeCyberNoirNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon Noir Night'**
+  String get themeCyberNoirNightName;
+
+  /// No description provided for @themeCyberNoirDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon Noir Day'**
+  String get themeCyberNoirDayName;
+
+  /// No description provided for @themeCyberNoirHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk · magenta and cyan'**
+  String get themeCyberNoirHint;
+
+  /// No description provided for @themeCyberNetrunnerNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Netrunner Night'**
+  String get themeCyberNetrunnerNightName;
+
+  /// No description provided for @themeCyberNetrunnerDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Netrunner Day'**
+  String get themeCyberNetrunnerDayName;
+
+  /// No description provided for @themeCyberNetrunnerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk · terminal green on black'**
+  String get themeCyberNetrunnerHint;
+
+  /// No description provided for @themeCyberRainNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Blade Rain Night'**
+  String get themeCyberRainNightName;
+
+  /// No description provided for @themeCyberRainDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Blade Rain Day'**
+  String get themeCyberRainDayName;
+
+  /// No description provided for @themeCyberRainHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyberpunk · teal and orange in the rain'**
+  String get themeCyberRainHint;
 
   /// No description provided for @themeMaterialLightName.
   ///
@@ -1585,6 +1915,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deep indigo, purple accent'**
   String get themeDraculaHint;
+
+  /// No description provided for @displayPaletteGroupStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get displayPaletteGroupStandard;
+
+  /// No description provided for @displayPaletteGroupHarryPotter.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter'**
+  String get displayPaletteGroupHarryPotter;
+
+  /// No description provided for @themeLionNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Gryffindor Night'**
+  String get themeLionNightName;
+
+  /// No description provided for @themeLionDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Gryffindor Day'**
+  String get themeLionDayName;
+
+  /// No description provided for @themeLionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · scarlet and gold'**
+  String get themeLionHint;
+
+  /// No description provided for @themeSerpentNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Slytherin Night'**
+  String get themeSerpentNightName;
+
+  /// No description provided for @themeSerpentDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Slytherin Day'**
+  String get themeSerpentDayName;
+
+  /// No description provided for @themeSerpentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · emerald and silver'**
+  String get themeSerpentHint;
+
+  /// No description provided for @themeRavenNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Ravenclaw Night'**
+  String get themeRavenNightName;
+
+  /// No description provided for @themeRavenDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Ravenclaw Day'**
+  String get themeRavenDayName;
+
+  /// No description provided for @themeRavenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · blue and bronze'**
+  String get themeRavenHint;
+
+  /// No description provided for @themeBadgerNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hufflepuff Night'**
+  String get themeBadgerNightName;
+
+  /// No description provided for @themeBadgerDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hufflepuff Day'**
+  String get themeBadgerDayName;
+
+  /// No description provided for @themeBadgerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · yellow and black'**
+  String get themeBadgerHint;
+
+  /// No description provided for @themeHogwartsNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hogwarts Night'**
+  String get themeHogwartsNightName;
+
+  /// No description provided for @themeHogwartsDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hogwarts Day'**
+  String get themeHogwartsDayName;
+
+  /// No description provided for @themeHogwartsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · stone and candlelight'**
+  String get themeHogwartsHint;
+
+  /// No description provided for @themePatronusNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Patronus Night'**
+  String get themePatronusNightName;
+
+  /// No description provided for @themePatronusDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Patronus Day'**
+  String get themePatronusDayName;
+
+  /// No description provided for @themePatronusHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · silver light'**
+  String get themePatronusHint;
+
+  /// No description provided for @themeForestNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Forest Night'**
+  String get themeForestNightName;
+
+  /// No description provided for @themeForestDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Forest Day'**
+  String get themeForestDayName;
+
+  /// No description provided for @themeForestHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · Forbidden Forest'**
+  String get themeForestHint;
+
+  /// No description provided for @themePhoenixNightName.
+  ///
+  /// In en, this message translates to:
+  /// **'Phoenix Night'**
+  String get themePhoenixNightName;
+
+  /// No description provided for @themePhoenixDayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Phoenix Day'**
+  String get themePhoenixDayName;
+
+  /// No description provided for @themePhoenixHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Harry Potter · Order of the Phoenix'**
+  String get themePhoenixHint;
 
   /// No description provided for @networkConnectedNode.
   ///
@@ -2013,7 +2499,7 @@ abstract class AppLocalizations {
   /// No description provided for @securityBiometricUnlock.
   ///
   /// In en, this message translates to:
-  /// **'Unlock with your phone'**
+  /// **'Unlock with your device'**
   String get securityBiometricUnlock;
 
   /// No description provided for @securityBiometricOn.
@@ -2021,6 +2507,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Fingerprint or screen lock'**
   String get securityBiometricOn;
+
+  /// No description provided for @securityUnlockKeyring.
+  ///
+  /// In en, this message translates to:
+  /// **'Login keyring of the desktop'**
+  String get securityUnlockKeyring;
 
   /// No description provided for @securityOff.
   ///
@@ -2037,8 +2529,14 @@ abstract class AppLocalizations {
   /// No description provided for @securityDeviceLockNote.
   ///
   /// In en, this message translates to:
-  /// **'The wallet opens with your fingerprint or the screen lock of your phone. The app has no PIN of its own.'**
+  /// **'The wallet opens with your fingerprint or the screen lock of your device. The app has no PIN of its own.'**
   String get securityDeviceLockNote;
+
+  /// No description provided for @securityKeyringNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The wallet opens with your desktop session: its keys are in the login keyring, which the desktop unlocks when you log in. The app has no PIN of its own.'**
+  String get securityKeyringNote;
 
   /// No description provided for @securityScreen.
   ///
@@ -2109,13 +2607,13 @@ abstract class AppLocalizations {
   /// No description provided for @updateCardVersion.
   ///
   /// In en, this message translates to:
-  /// **'Chatui {version}'**
+  /// **'Celaut {version}'**
   String updateCardVersion(String version);
 
   /// No description provided for @updateCardVersionDate.
   ///
   /// In en, this message translates to:
-  /// **'Chatui {version} · {date}'**
+  /// **'Celaut {version} · {date}'**
   String updateCardVersionDate(String version, String date);
 
   /// No description provided for @updateHideNotes.
@@ -2199,7 +2697,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateAssetNote.
   ///
   /// In en, this message translates to:
-  /// **'{name} · {size}. Before anything is installed, Chatui checks the file against the checksum GitHub lists and against the key this app is signed with.'**
+  /// **'{name} · {size}. Before anything is installed, Celaut checks the file against the checksum GitHub lists and against the key this app is signed with.'**
   String updateAssetNote(String name, String size);
 
   /// No description provided for @updateOpenReleasesPage.
@@ -2208,16 +2706,28 @@ abstract class AppLocalizations {
   /// **'Open the releases page'**
   String get updateOpenReleasesPage;
 
+  /// No description provided for @updateDownloadDeb.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the .deb ({arch})'**
+  String updateDownloadDeb(String arch);
+
+  /// No description provided for @updateDebNote.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {size}. Your browser downloads it from GitHub. Then install it over this version with the command below, and start Celaut again.'**
+  String updateDebNote(String name, String size);
+
   /// No description provided for @updateNoApkForPhone.
   ///
   /// In en, this message translates to:
-  /// **'This release has no APK for your phone.'**
+  /// **'This release has no APK for this device.'**
   String get updateNoApkForPhone;
 
   /// No description provided for @updateNoticeAvailable.
   ///
   /// In en, this message translates to:
-  /// **'Chatui {version} is available.'**
+  /// **'Celaut {version} is available.'**
   String updateNoticeAvailable(String version);
 
   /// No description provided for @updateNoticeView.
@@ -2307,13 +2817,13 @@ abstract class AppLocalizations {
   /// No description provided for @updateErrorDownloadTooLarge.
   ///
   /// In en, this message translates to:
-  /// **'The download is larger than Chatui will accept.'**
+  /// **'The download is larger than Celaut will accept.'**
   String get updateErrorDownloadTooLarge;
 
   /// No description provided for @updateErrorStorage.
   ///
   /// In en, this message translates to:
-  /// **'Chatui could not save the download. Is the phone out of storage?'**
+  /// **'Celaut could not save the download. Is the device out of storage?'**
   String get updateErrorStorage;
 
   /// No description provided for @updateErrorLargerThanListed.
@@ -2349,7 +2859,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateRejectedAppKeyUnknown.
   ///
   /// In en, this message translates to:
-  /// **'Chatui could not read its own signing key, so it cannot check this download. It has been deleted.'**
+  /// **'Celaut could not read its own signing key, so it cannot check this download. It has been deleted.'**
   String get updateRejectedAppKeyUnknown;
 
   /// No description provided for @updateCheckFailed.
@@ -2361,7 +2871,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateNoApkSeeReleases.
   ///
   /// In en, this message translates to:
-  /// **'This release has no APK for your phone. The releases page has the files.'**
+  /// **'This release has no APK for this device. The releases page has the files.'**
   String get updateNoApkSeeReleases;
 
   /// No description provided for @updateCannotKeepDownload.
@@ -2385,7 +2895,7 @@ abstract class AppLocalizations {
   /// No description provided for @updateInstallPermission.
   ///
   /// In en, this message translates to:
-  /// **'Android needs your permission first. Allow Chatui to install apps on the next screen, then tap Install again.'**
+  /// **'Android needs your permission first. Allow Celaut to install apps on the next screen, then tap Install again.'**
   String get updateInstallPermission;
 
   /// No description provided for @updateInstallerFailed.
@@ -2403,7 +2913,7 @@ abstract class AppLocalizations {
   /// No description provided for @walletSettingsRemoveBody.
   ///
   /// In en, this message translates to:
-  /// **'This removes the wallet from this device. Chatui does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.'**
+  /// **'This removes the wallet from this device. Celaut does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.'**
   String get walletSettingsRemoveBody;
 
   /// No description provided for @walletSettingsRemoveFailed.
@@ -2529,7 +3039,7 @@ abstract class AppLocalizations {
   /// No description provided for @walletSettingsBackupNote.
   ///
   /// In en, this message translates to:
-  /// **'Chatui does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.'**
+  /// **'Celaut does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.'**
   String get walletSettingsBackupNote;
 
   /// No description provided for @walletSettingsRemoveWallet.
@@ -2733,7 +3243,7 @@ abstract class AppLocalizations {
   /// No description provided for @coinSelectionNone.
   ///
   /// In en, this message translates to:
-  /// **'No boxes chosen — Chatui will pick them.'**
+  /// **'No boxes chosen — Celaut will pick them.'**
   String get coinSelectionNone;
 
   /// count is 1 for exactly one unit, else 2; amount is the formatted number.
@@ -2787,7 +3297,7 @@ abstract class AppLocalizations {
   /// No description provided for @spendUnconfirmedNote.
   ///
   /// In en, this message translates to:
-  /// **'Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Chatui spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.'**
+  /// **'Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Celaut spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.'**
   String get spendUnconfirmedNote;
 
   /// No description provided for @rentNoChargeZeroRate.
@@ -3417,7 +3927,7 @@ abstract class AppLocalizations {
   /// No description provided for @tokenBurnDetail.
   ///
   /// In en, this message translates to:
-  /// **'These units are left out of every output of the transaction and stop existing. Nobody, including Chatui, can bring them back.'**
+  /// **'These units are left out of every output of the transaction and stop existing. Nobody, including Celaut, can bring them back.'**
   String get tokenBurnDetail;
 
   /// No description provided for @tokenBurnBackToYou.
@@ -3801,7 +4311,7 @@ abstract class AppLocalizations {
   /// No description provided for @tokenLeaveFor.
   ///
   /// In en, this message translates to:
-  /// **'Leave Chatui for {host}?'**
+  /// **'Leave Celaut for {host}?'**
   String tokenLeaveFor(String host);
 
   /// No description provided for @tokenExplorerPrivacy.
@@ -4227,7 +4737,7 @@ abstract class AppLocalizations {
   /// No description provided for @discoverIntro.
   ///
   /// In en, this message translates to:
-  /// **'What Chatui can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.'**
+  /// **'What Celaut can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.'**
   String get discoverIntro;
 
   /// No description provided for @discoverTools.
@@ -4587,7 +5097,7 @@ abstract class AppLocalizations {
   /// No description provided for @overviewPrototypeBody.
   ///
   /// In en, this message translates to:
-  /// **'Chatui is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.'**
+  /// **'Celaut is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.'**
   String get overviewPrototypeBody;
 
   /// No description provided for @overviewGotIt.
@@ -5663,6 +6173,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get scanBack;
+
+  /// No description provided for @scanFromImageNoteLinux.
+  ///
+  /// In en, this message translates to:
+  /// **'On this computer the app cannot scan with the camera. Choose an image of the QR code, for example a screenshot or a photo of the code.'**
+  String get scanFromImageNoteLinux;
 
   /// No description provided for @txArgusFee.
   ///
@@ -6891,7 +7407,7 @@ abstract class AppLocalizations {
   /// No description provided for @sendAutoInputsNote.
   ///
   /// In en, this message translates to:
-  /// **'Chatui will pick boxes for you. Choose some to control exactly what this transaction spends.'**
+  /// **'Celaut will pick boxes for you. Choose some to control exactly what this transaction spends.'**
   String get sendAutoInputsNote;
 
   /// No description provided for @sendShortBy.
@@ -9266,13 +9782,13 @@ abstract class AppLocalizations {
   /// No description provided for @chatsRenameNote.
   ///
   /// In en, this message translates to:
-  /// **'Only this phone sees this name. The node does not get it. Leave it empty to remove it.'**
+  /// **'Only this device sees this name. The node does not get it. Leave it empty to remove it.'**
   String get chatsRenameNote;
 
   /// No description provided for @chatsRenameNoteOriginal.
   ///
   /// In en, this message translates to:
-  /// **'Only this phone sees this name. The node does not get it. Leave it empty to show \"{name}\" again.'**
+  /// **'Only this device sees this name. The node does not get it. Leave it empty to show \"{name}\" again.'**
   String chatsRenameNoteOriginal(String name);
 
   /// No description provided for @chatsShowStopped.
@@ -9452,31 +9968,31 @@ abstract class AppLocalizations {
   /// No description provided for @chatsReceiptsFaultSent.
   ///
   /// In en, this message translates to:
-  /// **'The node signed data that does not match what this phone sent'**
+  /// **'The node signed data that does not match what this device sent'**
   String get chatsReceiptsFaultSent;
 
   /// No description provided for @chatsReceiptsFaultReceived.
   ///
   /// In en, this message translates to:
-  /// **'The node signed data that does not match what this phone received'**
+  /// **'The node signed data that does not match what this device received'**
   String get chatsReceiptsFaultReceived;
 
   /// No description provided for @chatsReceiptsFaultEnvs.
   ///
   /// In en, this message translates to:
-  /// **'The node signed environment variables that this phone did not send'**
+  /// **'The node signed environment variables that this device did not send'**
   String get chatsReceiptsFaultEnvs;
 
   /// No description provided for @chatsReceiptsFaultService.
   ///
   /// In en, this message translates to:
-  /// **'The node signed a different service from the one that this phone started'**
+  /// **'The node signed a different service from the one that this device started'**
   String get chatsReceiptsFaultService;
 
   /// No description provided for @chatsReceiptsFaultAmount.
   ///
   /// In en, this message translates to:
-  /// **'The node signed a different start balance from the one that this phone asked for'**
+  /// **'The node signed a different start balance from the one that this device asked for'**
   String get chatsReceiptsFaultAmount;
 
   /// No description provided for @chatsReceiptsFaultInvalid.
@@ -9518,7 +10034,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatsReceiptsNote.
   ///
   /// In en, this message translates to:
-  /// **'The node signs these receipts. They are evidence against the node. You can give them to other people. A tunnel with no close is not always a fault. For example, this phone or the node can stop the tunnel.'**
+  /// **'The node signs these receipts. They are evidence against the node. You can give them to other people. A tunnel with no close is not always a fault. For example, this device or the node can stop the tunnel.'**
   String get chatsReceiptsNote;
 
   /// No description provided for @celautErrorNodeClosed.
@@ -9584,25 +10100,25 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search skills and tags'**
+  /// **'Search objectives and tags'**
   String get celautRunSearchHint;
 
   /// No description provided for @celautRunLoading.
   ///
   /// In en, this message translates to:
-  /// **'Loading skills…'**
+  /// **'Loading objectives…'**
   String get celautRunLoading;
 
   /// No description provided for @celautRunEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No skill matches.'**
+  /// **'No objective matches.'**
   String get celautRunEmpty;
 
   /// No description provided for @celautRunCatalogError.
   ///
   /// In en, this message translates to:
-  /// **'The skill catalog is not available now.'**
+  /// **'The objective catalog is not available now.'**
   String get celautRunCatalogError;
 
   /// No description provided for @celautRunRetry.
@@ -9614,7 +10130,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunNoServices.
   ///
   /// In en, this message translates to:
-  /// **'No service has this skill yet.'**
+  /// **'No service has this objective yet.'**
   String get celautRunNoServices;
 
   /// No description provided for @celautRunButton.
@@ -9938,7 +10454,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautSendConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'The whole service goes through this phone to the node, and a service can be large. The node keeps it, so later launches on that node do not send it again.'**
+  /// **'The whole service goes through this device to the node, and a service can be large. The node keeps it, so later launches on that node do not send it again.'**
   String get celautSendConfirmBody;
 
   /// No description provided for @celautSendMetered.
@@ -10172,7 +10688,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautEnvIntro.
   ///
   /// In en, this message translates to:
-  /// **'Named values that you can give to a service when you run it, for example a key. They stay encrypted on this phone. A service only gets the ones that you choose.'**
+  /// **'Named values that you can give to a service when you run it, for example a key. They stay encrypted on this device. A service only gets the ones that you choose.'**
   String get celautEnvIntro;
 
   /// No description provided for @celautEnvEmpty.
@@ -10406,7 +10922,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautEnvDeclUnreadableBody.
   ///
   /// In en, this message translates to:
-  /// **'The app could not read the interface and the variables of this service, so it cannot tell if Chatui supports it or if it needs variables. Run it anyway, or cancel.'**
+  /// **'The app could not read the interface and the variables of this service, so it cannot tell if Celaut supports it or if it needs variables. Run it anyway, or cancel.'**
   String get celautEnvDeclUnreadableBody;
 
   /// No description provided for @celautEnvRunWithout.
@@ -10472,13 +10988,13 @@ abstract class AppLocalizations {
   /// No description provided for @serviceInfoChatSupported.
   ///
   /// In en, this message translates to:
-  /// **'It follows the chat convention of Chatui, so it opens as a conversation.'**
+  /// **'It follows the chat convention of Celaut, so it opens as a conversation.'**
   String get serviceInfoChatSupported;
 
   /// No description provided for @serviceInfoChatUnsupported.
   ///
   /// In en, this message translates to:
-  /// **'Chatui does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Chatui cannot open a conversation with it.'**
+  /// **'Celaut does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Celaut cannot open a conversation with it.'**
   String get serviceInfoChatUnsupported;
 
   /// No description provided for @serviceInfoChatUnknown.
@@ -10658,13 +11174,13 @@ abstract class AppLocalizations {
   /// No description provided for @celautChatUnsupportedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Chatui does not support this interface'**
+  /// **'Celaut does not support this interface'**
   String get celautChatUnsupportedTitle;
 
   /// No description provided for @celautChatUnsupportedBody.
   ///
   /// In en, this message translates to:
-  /// **'This service does not follow the chat convention that Chatui uses, so Chatui cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.'**
+  /// **'This service does not follow the chat convention that Celaut uses, so Celaut cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.'**
   String get celautChatUnsupportedBody;
 
   /// No description provided for @celautChatRunAnyway.
@@ -10724,7 +11240,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunOnPhone.
   ///
   /// In en, this message translates to:
-  /// **'On this phone'**
+  /// **'On this device'**
   String get celautRunOnPhone;
 
   /// No description provided for @celautRunImport.
@@ -10736,7 +11252,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautRunPhoneServices.
   ///
   /// In en, this message translates to:
-  /// **'Run the services on this phone'**
+  /// **'Run the services on this device'**
   String get celautRunPhoneServices;
 
   /// No description provided for @celautStoreServices.
@@ -11804,7 +12320,7 @@ abstract class AppLocalizations {
   /// No description provided for @btcMainnetWarnBody.
   ///
   /// In en, this message translates to:
-  /// **'On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Chatui is new: use small amounts.'**
+  /// **'On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Celaut is new: use small amounts.'**
   String get btcMainnetWarnBody;
 
   /// No description provided for @btcMainnetWarnOk.
@@ -12050,13 +12566,13 @@ abstract class AppLocalizations {
   /// No description provided for @celautEnvShareNotSecure.
   ///
   /// In en, this message translates to:
-  /// **'This phone could not block screenshots of this screen. A screenshot of this code holds the value.'**
+  /// **'This device could not block screenshots of this screen. A screenshot of this code holds the value.'**
   String get celautEnvShareNotSecure;
 
   /// No description provided for @celautEnvValueNotSecure.
   ///
   /// In en, this message translates to:
-  /// **'This phone could not block screenshots of this screen. A screenshot shows the value.'**
+  /// **'This device could not block screenshots of this screen. A screenshot shows the value.'**
   String get celautEnvValueNotSecure;
 
   /// No description provided for @celautEnvShareTooBig.
@@ -12497,6 +13013,12 @@ abstract class AppLocalizations {
   /// **'This node does not support descendants.'**
   String get celautErrorNoDescendants;
 
+  /// No description provided for @celautErrorNoSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'This device has not enough free space.'**
+  String get celautErrorNoSpace;
+
   /// No description provided for @celautErrorOnionNeedsTor.
   ///
   /// In en, this message translates to:
@@ -12755,11 +13277,11 @@ abstract class AppLocalizations {
   /// **'or'**
   String get serviceInfoWorkloadOr;
 
-  /// No description provided for @celautSkillsIntro.
+  /// No description provided for @celautObjectivesIntro.
   ///
   /// In en, this message translates to:
-  /// **'Pick a skill to see the services that do it.'**
-  String get celautSkillsIntro;
+  /// **'Pick an objective to see the services that do it.'**
+  String get celautObjectivesIntro;
 
   /// No description provided for @celautStoreOtherField.
   ///
@@ -12779,106 +13301,100 @@ abstract class AppLocalizations {
   /// **'Show fewer'**
   String get celautStoreShowFewer;
 
-  /// No description provided for @celautSkillAbout.
+  /// No description provided for @celautObjectiveAbout.
   ///
   /// In en, this message translates to:
-  /// **'About this skill'**
-  String get celautSkillAbout;
+  /// **'About this objective'**
+  String get celautObjectiveAbout;
 
-  /// No description provided for @celautSkillField.
-  ///
-  /// In en, this message translates to:
-  /// **'Field: {field}'**
-  String celautSkillField(String field);
-
-  /// No description provided for @celautSkillTestBanner.
+  /// No description provided for @celautObjectiveTestBanner.
   ///
   /// In en, this message translates to:
   /// **'Most results are tests. Check before you trust them.'**
-  String get celautSkillTestBanner;
+  String get celautObjectiveTestBanner;
 
-  /// No description provided for @celautSkillRecommended.
+  /// No description provided for @celautObjectiveRecommended.
   ///
   /// In en, this message translates to:
   /// **'Recommended'**
-  String get celautSkillRecommended;
+  String get celautObjectiveRecommended;
 
-  /// No description provided for @celautSkillOtherOptions.
+  /// No description provided for @celautObjectiveOtherOptions.
   ///
   /// In en, this message translates to:
   /// **'Other options ({count})'**
-  String celautSkillOtherOptions(String count);
+  String celautObjectiveOtherOptions(String count);
 
-  /// No description provided for @celautSkillRating.
+  /// No description provided for @celautObjectiveRating.
   ///
   /// In en, this message translates to:
   /// **'Rating: {level}'**
-  String celautSkillRating(String level);
+  String celautObjectiveRating(String level);
 
-  /// No description provided for @celautSkillRatingHigh.
+  /// No description provided for @celautObjectiveRatingHigh.
   ///
   /// In en, this message translates to:
   /// **'High'**
-  String get celautSkillRatingHigh;
+  String get celautObjectiveRatingHigh;
 
-  /// No description provided for @celautSkillRatingMedium.
+  /// No description provided for @celautObjectiveRatingMedium.
   ///
   /// In en, this message translates to:
   /// **'Medium'**
-  String get celautSkillRatingMedium;
+  String get celautObjectiveRatingMedium;
 
-  /// No description provided for @celautSkillRatingLow.
+  /// No description provided for @celautObjectiveRatingLow.
   ///
   /// In en, this message translates to:
   /// **'Low'**
-  String get celautSkillRatingLow;
+  String get celautObjectiveRatingLow;
 
-  /// No description provided for @celautSkillRatingExact.
+  /// No description provided for @celautObjectiveRatingExact.
   ///
   /// In en, this message translates to:
   /// **'Exact rating: {score} of 1'**
-  String celautSkillRatingExact(String score);
+  String celautObjectiveRatingExact(String score);
 
-  /// No description provided for @celautSkillDeclared.
+  /// No description provided for @celautObjectiveDeclared.
   ///
   /// In en, this message translates to:
   /// **'Declared by the publisher'**
-  String get celautSkillDeclared;
+  String get celautObjectiveDeclared;
 
-  /// No description provided for @celautSkillFromResults.
+  /// No description provided for @celautObjectiveFromResults.
   ///
   /// In en, this message translates to:
   /// **'Seen only in test results, not declared by a publisher'**
-  String get celautSkillFromResults;
+  String get celautObjectiveFromResults;
 
-  /// No description provided for @celautSkillUnverified.
+  /// No description provided for @celautObjectiveUnverified.
   ///
   /// In en, this message translates to:
   /// **'Unverified'**
-  String get celautSkillUnverified;
+  String get celautObjectiveUnverified;
 
-  /// No description provided for @celautSkillServiceId.
+  /// No description provided for @celautObjectiveServiceId.
   ///
   /// In en, this message translates to:
   /// **'Service id {id}'**
-  String celautSkillServiceId(String id);
+  String celautObjectiveServiceId(String id);
 
-  /// No description provided for @celautSkillIdCopied.
+  /// No description provided for @celautObjectiveIdCopied.
   ///
   /// In en, this message translates to:
   /// **'Service id copied'**
-  String get celautSkillIdCopied;
+  String get celautObjectiveIdCopied;
 
-  /// No description provided for @celautSkillUse.
+  /// No description provided for @celautObjectiveUse.
   ///
   /// In en, this message translates to:
   /// **'Use this service'**
-  String get celautSkillUse;
+  String get celautObjectiveUse;
 
   /// No description provided for @celautRunServicesTitle.
   ///
   /// In en, this message translates to:
-  /// **'Services with this skill'**
+  /// **'Services with this objective'**
   String get celautRunServicesTitle;
 
   /// No description provided for @celautRunBest.
@@ -12932,7 +13448,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautStoreFeaturedHint.
   ///
   /// In en, this message translates to:
-  /// **'One skill of each field, from the publisher with the most reputation'**
+  /// **'One objective of each field, from the publisher with the most reputation'**
   String get celautStoreFeaturedHint;
 
   /// No description provided for @celautStoreSuggested.
@@ -12944,7 +13460,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautStoreSuggestedHint.
   ///
   /// In en, this message translates to:
-  /// **'In the fields of the skills that you ran'**
+  /// **'In the fields of the objectives that you ran'**
   String get celautStoreSuggestedHint;
 
   /// No description provided for @celautStoreNew.
@@ -12956,7 +13472,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautStoreNewHint.
   ///
   /// In en, this message translates to:
-  /// **'The last skills published on Ergo'**
+  /// **'The last objectives published on Ergo'**
   String get celautStoreNewHint;
 
   /// No description provided for @celautStorePopular.
@@ -12968,7 +13484,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautStorePopularHint.
   ///
   /// In en, this message translates to:
-  /// **'The skills with the most services'**
+  /// **'The objectives with the most services'**
   String get celautStorePopularHint;
 
   /// No description provided for @celautStoreCategories.
@@ -12980,14 +13496,14 @@ abstract class AppLocalizations {
   /// No description provided for @celautStoreAll.
   ///
   /// In en, this message translates to:
-  /// **'All skills'**
+  /// **'All objectives'**
   String get celautStoreAll;
 
-  /// No description provided for @celautStoreSkills.
+  /// No description provided for @celautStoreObjectives.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 skill} other{{count} skills}}'**
-  String celautStoreSkills(int count);
+  /// **'{count, plural, =1{1 objective} other{{count} objectives}}'**
+  String celautStoreObjectives(int count);
 
   /// No description provided for @cardsLoading.
   ///
@@ -13226,7 +13742,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardsSettingsReflectionsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'A light on the image that follows the tilt of the phone and your finger'**
+  /// **'A light on the image that follows the tilt of the device and your finger'**
   String get cardsSettingsReflectionsSubtitle;
 
   /// No description provided for @cardsSettingsReflectionsPointer.
@@ -13472,7 +13988,7 @@ abstract class AppLocalizations {
   /// No description provided for @cardsSettingsNote.
   ///
   /// In en, this message translates to:
-  /// **'The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the phone.'**
+  /// **'The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the device.'**
   String get cardsSettingsNote;
 
   /// No description provided for @cardsSettingsTestValue.
@@ -13598,7 +14114,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautLinkChooseFile.
   ///
   /// In en, this message translates to:
-  /// **'Choose a file on this phone'**
+  /// **'Choose a file on this device'**
   String get celautLinkChooseFile;
 
   /// No description provided for @celautLinkFromLink.
@@ -13658,7 +14174,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautLinkPendingBody.
   ///
   /// In en, this message translates to:
-  /// **'{bytes} are on this phone. Continue goes on from there.'**
+  /// **'{bytes} are on this device. Continue goes on from there.'**
   String celautLinkPendingBody(String bytes);
 
   /// No description provided for @celautLinkPendingContinue.
@@ -13706,7 +14222,7 @@ abstract class AppLocalizations {
   /// No description provided for @celautLinkStopped.
   ///
   /// In en, this message translates to:
-  /// **'The download stopped: {reason}. The bytes that arrived stay on the phone: Continue goes on from there.'**
+  /// **'The download stopped: {reason}. The bytes that arrived stay on this device: Continue goes on from there.'**
   String celautLinkStopped(String reason);
 
   /// No description provided for @celautLinkTooLarge.
@@ -13714,6 +14230,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The file is larger than {limit}, the limit of a download. Its bytes were deleted.'**
   String celautLinkTooLarge(String limit);
+
+  /// No description provided for @celautLinkNoSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough free space. The download needs {needed} and this device has {available} free. Free some space, then tap Continue.'**
+  String celautLinkNoSpace(String needed, String available);
+
+  /// No description provided for @celautLinkNoSpaceRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough free space. The download needs {needed} and this device has {available} free. Free some space, then try again.'**
+  String celautLinkNoSpaceRetry(String needed, String available);
 
   /// No description provided for @celautLinkBadFile.
   ///
@@ -14212,6 +14740,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.'**
   String get celautHomeBalancesNote;
+
+  /// No description provided for @registrySettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Celaut Registry'**
+  String get registrySettingsTitle;
+
+  /// No description provided for @registrySettingsRowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Type ids of the registry'**
+  String get registrySettingsRowSubtitle;
+
+  /// No description provided for @registrySettingsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'The Celaut Registry keeps its boxes on Ergo. Each kind of box has a type id. The app reads the catalog of objectives with these ids. Registry: https://github.com/celaut-project/registry'**
+  String get registrySettingsIntro;
+
+  /// No description provided for @registryTypesGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Type ids'**
+  String get registryTypesGroup;
+
+  /// No description provided for @registryTypeObjective.
+  ///
+  /// In en, this message translates to:
+  /// **'Objective type id'**
+  String get registryTypeObjective;
+
+  /// No description provided for @registryTypeBenchmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Benchmark type id'**
+  String get registryTypeBenchmark;
+
+  /// No description provided for @registryTypeCoverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Coverage type id'**
+  String get registryTypeCoverage;
+
+  /// No description provided for @registryTypeResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Result type id'**
+  String get registryTypeResult;
+
+  /// No description provided for @registryTypeObjectiveHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty by default. With no id, the catalog is empty.'**
+  String get registryTypeObjectiveHelper;
+
+  /// No description provided for @registryTypeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 64 hexadecimal characters.'**
+  String get registryTypeInvalid;
+
+  /// No description provided for @registryTypeInvalidOrEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 64 hexadecimal characters, or leave it empty.'**
+  String get registryTypeInvalidOrEmpty;
+
+  /// No description provided for @registryRestoreDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore default'**
+  String get registryRestoreDefault;
+
+  /// No description provided for @registryTypesSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Type ids saved.'**
+  String get registryTypesSaved;
+
+  /// No description provided for @registryNoObjectiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No objective type id'**
+  String get registryNoObjectiveTitle;
+
+  /// No description provided for @registryNoObjectiveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The catalog has no objectives, because the objective type id is empty. Enter the id in the settings of the Celaut Registry.'**
+  String get registryNoObjectiveBody;
+
+  /// No description provided for @registryOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the registry settings'**
+  String get registryOpenSettings;
+
+  /// No description provided for @celautStoreMostBacked.
+  ///
+  /// In en, this message translates to:
+  /// **'Most backed'**
+  String get celautStoreMostBacked;
+
+  /// No description provided for @celautStoreRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Number {rank}'**
+  String celautStoreRank(int rank);
+
+  /// No description provided for @celautStoreRunObjective.
+  ///
+  /// In en, this message translates to:
+  /// **'Run {name}'**
+  String celautStoreRunObjective(String name);
+
+  /// No description provided for @celautStoreOpenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the page of the objective'**
+  String get celautStoreOpenHint;
+
+  /// No description provided for @celautStoreTopObjectives.
+  ///
+  /// In en, this message translates to:
+  /// **'Top objectives'**
+  String get celautStoreTopObjectives;
+
+  /// No description provided for @celautStoreMoreFields.
+  ///
+  /// In en, this message translates to:
+  /// **'More fields'**
+  String get celautStoreMoreFields;
+
+  /// No description provided for @celautStoreByField.
+  ///
+  /// In en, this message translates to:
+  /// **'By field'**
+  String get celautStoreByField;
+
+  /// No description provided for @celautStoreCatalogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The catalog has no objectives yet.'**
+  String get celautStoreCatalogEmpty;
+
+  /// No description provided for @celautObjectiveRunService.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} this service (rating: {rating})'**
+  String celautObjectiveRunService(String action, String rating);
+
+  /// No description provided for @celautObjectiveStatRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank'**
+  String get celautObjectiveStatRank;
+
+  /// No description provided for @celautObjectiveStatRankNote.
+  ///
+  /// In en, this message translates to:
+  /// **'most backed'**
+  String get celautObjectiveStatRankNote;
+
+  /// No description provided for @celautObjectiveStatServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Services'**
+  String get celautObjectiveStatServices;
+
+  /// No description provided for @celautObjectiveStatServicesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'declared'**
+  String get celautObjectiveStatServicesNote;
+
+  /// No description provided for @celautObjectiveStatBacking.
+  ///
+  /// In en, this message translates to:
+  /// **'Backing'**
+  String get celautObjectiveStatBacking;
+
+  /// No description provided for @celautObjectiveStatBackingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'of the publisher'**
+  String get celautObjectiveStatBackingNote;
+
+  /// No description provided for @celautObjectiveStatBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Block'**
+  String get celautObjectiveStatBlock;
+
+  /// No description provided for @celautObjectiveStatBlockNote.
+  ///
+  /// In en, this message translates to:
+  /// **'published'**
+  String get celautObjectiveStatBlockNote;
+
+  /// No description provided for @celautObjectiveMore.
+  ///
+  /// In en, this message translates to:
+  /// **'more'**
+  String get celautObjectiveMore;
+
+  /// No description provided for @celautObjectiveLess.
+  ///
+  /// In en, this message translates to:
+  /// **'less'**
+  String get celautObjectiveLess;
+
+  /// No description provided for @celautObjectiveServicesLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the services…'**
+  String get celautObjectiveServicesLoading;
+
+  /// No description provided for @presetPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin as preset'**
+  String get presetPin;
+
+  /// No description provided for @presetPinNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a new instance of this service with the same settings from the ✏ button of Chats.'**
+  String get presetPinNote;
+
+  /// No description provided for @presetPinBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The ✏ button of Chats will show it on a wheel. One tap starts a new instance of this service with the same variables. You still see the cost and confirm it before it starts.'**
+  String get presetPinBody;
+
+  /// No description provided for @presetPinUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'This device does not know the variables that this instance was started with (it started on an earlier version of the app, or on another device): the launch asks for them.'**
+  String get presetPinUnknown;
+
+  /// No description provided for @presetPinAsks.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{One secret value was typed and not saved, so the preset does not keep it: the launch asks for it each time.} other{{count} secret values were typed and not saved, so the preset does not keep them: the launch asks for them each time.}}'**
+  String presetPinAsks(int count);
+
+  /// No description provided for @presetPinAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get presetPinAction;
+
+  /// No description provided for @presetPinnedDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned. Hold or tap the ✏ button of Chats to start it.'**
+  String get presetPinnedDone;
+
+  /// No description provided for @presetPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned to the ✏ button as \"{name}\"'**
+  String presetPinned(String name);
+
+  /// No description provided for @presetUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get presetUnpin;
+
+  /// No description provided for @presetFull.
+  ///
+  /// In en, this message translates to:
+  /// **'The wheel holds {max} presets. Remove one first: long-press it on the wheel.'**
+  String presetFull(int max);
+
+  /// No description provided for @presetNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name on the wheel'**
+  String get presetNameLabel;
+
+  /// No description provided for @presetRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from the wheel'**
+  String get presetRemove;
+
+  /// No description provided for @presetRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" removed from the wheel'**
+  String presetRemoved(String name);
+
+  /// No description provided for @presetWheelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens your presets. Slide to one and let go to start it.'**
+  String get presetWheelHint;
+
+  /// No description provided for @presetWheelObjectives.
+  ///
+  /// In en, this message translates to:
+  /// **'Objectives'**
+  String get presetWheelObjectives;
+
+  /// No description provided for @presetWheelObjectivesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Objectives: choose a new service'**
+  String get presetWheelObjectivesLabel;
+
+  /// No description provided for @presetWheelStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start {name}'**
+  String presetWheelStart(String name);
+
+  /// No description provided for @presetWheelEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename or remove'**
+  String get presetWheelEditHint;
+
+  /// No description provided for @iosLimitsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'On iPhone, the app works only while it is open'**
+  String get iosLimitsTitle;
+
+  /// No description provided for @iosLimitsConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations do not stay connected when the app is in the background or closed. Your messages wait on the node, and the app syncs them when you open it.'**
+  String get iosLimitsConversations;
+
+  /// No description provided for @iosLimitsNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'No notification arrives for a new message while the app is suspended.'**
+  String get iosLimitsNotifications;
+
+  /// No description provided for @iosLimitsTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic top-up (Keep running) does not always work. It runs only while the app runs, and iOS stops it when the app is suspended or closed. When the balance of an instance runs out, the node stops the instance.'**
+  String get iosLimitsTopUp;
+
+  /// No description provided for @iosLimitsOk.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand'**
+  String get iosLimitsOk;
+
+  /// No description provided for @celautKeepLinuxNote.
+  ///
+  /// In en, this message translates to:
+  /// **'On this computer, automatic top-up works only while Celaut is open and the computer is awake. If you close the app or the computer sleeps, nothing is added, and the node stops the instance when its balance runs out.'**
+  String get celautKeepLinuxNote;
+
+  /// No description provided for @celautKeepMacNote.
+  ///
+  /// In en, this message translates to:
+  /// **'On a Mac, automatic top-up works only while Celaut is open and the Mac is awake. If you quit the app (⌘Q) or the Mac sleeps, nothing is added, and the node stops the instance when its balance runs out.'**
+  String get celautKeepMacNote;
+
+  /// No description provided for @scanFromImageNote.
+  ///
+  /// In en, this message translates to:
+  /// **'On a Mac the app cannot scan with the camera. Choose an image of the QR code, for example a screenshot (⇧⌘4).'**
+  String get scanFromImageNote;
+
+  /// No description provided for @scanChooseImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an image'**
+  String get scanChooseImage;
+
+  /// No description provided for @scanNoCodeInImage.
+  ///
+  /// In en, this message translates to:
+  /// **'No QR code was found in this image.'**
+  String get scanNoCodeInImage;
 }
 
 class _AppLocalizationsDelegate

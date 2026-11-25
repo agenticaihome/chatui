@@ -66,12 +66,10 @@ pub struct PeerInfoView {
     /// The time of the advertisement, in Unix seconds.
     pub ts: i64,
     pub uris: Vec<NodeUriView>,
-    /// The rates of the node (`mu_per_call`), in MU, sorted by key.
+    /// The rates of the node (`rates`), in MU, sorted by key.
     pub rates: Vec<KeyValueView>,
     pub payment_contracts: Vec<PaymentContractView>,
     pub resources: Vec<NodeResourcesView>,
-    /// How many reputation proofs the advertisement has. M1 does not check them.
-    pub reputation_proofs: u32,
 }
 
 /// What went wrong. The screen shows its own text for each kind.
@@ -134,6 +132,10 @@ pub enum CelautErrorKind {
     /// The address is an onion and the route is direct: only Tor (the client of the app or
     /// an external proxy) opens it. The app makes no lookup of the name.
     OnionNeedsTor,
+    /// The phone has not enough free space for a download. The message is the bytes that it
+    /// needs (with the space that stays free) and the bytes that are free: `"<needed>
+    /// <available>"`.
+    NoSpace,
 }
 
 /// The error of [`celaut_peer_info`].
@@ -286,7 +288,7 @@ fn resources_view(entry: &ArchitectureResources) -> NodeResourcesView {
 fn view_of(info: &NodeInfo) -> PeerInfoView {
     let peer = &info.peer;
     let mut rates: Vec<KeyValueView> = peer
-        .mu_per_call
+        .rates
         .iter()
         .map(|e| KeyValueView {
             key: e.key.clone(),
@@ -301,7 +303,6 @@ fn view_of(info: &NodeInfo) -> PeerInfoView {
         rates,
         payment_contracts: peer.payment_contracts.iter().map(contract_view).collect(),
         resources: peer.resources.iter().map(resources_view).collect(),
-        reputation_proofs: u32::try_from(peer.reputation_proofs.len()).unwrap_or(u32::MAX),
     }
 }
 

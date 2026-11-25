@@ -1,6 +1,6 @@
 # Licence
 
-chatui is free software under the **GNU General Public License, version 3 only**
+Celaut is free software under the **GNU General Public License, version 3 only**
 (`GPL-3.0-only`). The full text is in `LICENSE`.
 
 The reason is `bee-rpc` (https://github.com/bee-rpc-protocol/bee-rpc-over-grpc-rs),
@@ -9,7 +9,7 @@ links it has to be offered under the GPL.
 
 ## Argus (MIT)
 
-chatui is a fork of the Argus Ergo wallet (https://github.com/arkadianet/Argus), with
+Celaut is a fork of the Argus Ergo wallet (https://github.com/arkadianet/Argus), with
 its history kept. Argus declares the MIT licence (`license = "MIT"` in its Cargo
 manifest, authors "arkadianet"). The code that comes from Argus stays available under
 the MIT terms below. The MIT licence is compatible with the GPL, and the combined work

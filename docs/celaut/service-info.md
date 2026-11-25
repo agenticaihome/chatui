@@ -1,7 +1,7 @@
 # What a service says about itself (2026-10-22)
 
 The app shows the details of a service and checks, before it starts one, that its interface
-is the chat convention of Chatui ([chat.md](chat.md)). Both need the `Service` message of the
+is the chat convention of Celaut ([chat.md](chat.md)). Both need the `Service` message of the
 service (`celaut.proto`), and most of that message is the filesystem of the container:
 hundreds of megabytes (`claude-code.bee` has 536 MB), which the app never uses.
 
@@ -72,7 +72,7 @@ one, and the field counts as read.
 | Banner | When |
 |---|---|
 | Follows the chat convention | a slot has `tcp`, then `http2`, then `grpc`, and `chat` above them ([chat.md](chat.md), section 3) |
-| Chatui does not support its interface | the interface is known and no port follows the convention, or there is no interface |
+| Celaut does not support its interface | the interface is known and no port follows the convention, or there is no interface |
 | The interface could not be read | the service was too large to read from a node, or its interface was too large to decode |
 
 Then, in cards: **About** (prose, architecture, the executable that the node starts, the
@@ -91,7 +91,7 @@ instance, and from the alert below.
 After the quotes (a quote is free) and before the first start, `RunServiceSection` reads the
 service once and:
 
-1. If the interface is **not** the chat convention, an alert says that Chatui does not support
+1. If the interface is **not** the chat convention, an alert says that Celaut does not support
    it and that, if run, the service shows in Compute and there is no conversation. The user runs
    it anyway, or cancels. Details opens the screen above with the info that was read, so the
    service is not read twice.

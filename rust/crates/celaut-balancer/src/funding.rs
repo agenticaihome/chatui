@@ -150,7 +150,7 @@ pub fn funding_sum_mu(
     Some(rounded as u128)
 }
 
-/// The funding sum of `n` periods with the numbers of a quote, as the issue chatui#129
+/// The funding sum of `n` periods with the numbers of a quote, as the issue superapp#129
 /// names it: `balance_for_periods(init_maintenance, price_volatility,
 /// volatility_period_seconds, maintenance_seconds_loop, n)`. The volatility and the
 /// period are read strictly ([`PriceBound::strict`]): a value that is not finite, or

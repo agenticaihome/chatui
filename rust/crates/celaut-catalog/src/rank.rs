@@ -1,5 +1,5 @@
-//! The ranking of the services of a skill (`docs/celaut/catalog.md`, "Ranking"). It
-//! follows `skills:src/lib/scoreGlobal.ts`:
+//! The ranking of the services of an objective (`docs/celaut/catalog.md`, "Ranking"). It
+//! follows `registry:src/lib/scoreGlobal.ts`:
 //!
 //! ```text
 //! W(r)      = 0.5 + 0.5 * sign(r) * ln(1 + |r|) / ln(1 + N_max)    (0.5 if N_max <= 0)
@@ -24,12 +24,12 @@ const ALPHA: f64 = 0.4;
 /// `beta`: how much the measured performance counts against the service reputation.
 const BETA: f64 = 0.7;
 
-/// What the ranking reads about one skill.
+/// What the ranking reads about one objective.
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct SkillData {
-    /// The coverage boxes about the skill, in the order of the explorer.
+pub struct ObjectiveData {
+    /// The coverage boxes about the objective, in the order of the explorer.
     pub coverages: Vec<Coverage>,
-    /// The benchmarks of the skill.
+    /// The benchmarks of the objective.
     pub benchmarks: Vec<Benchmark>,
     /// The results of those benchmarks.
     pub results: Vec<BenchResult>,
@@ -49,7 +49,7 @@ impl Reputations {
     }
 }
 
-/// A service of a skill with its score.
+/// A service of an objective with its score.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ServiceScore {
     pub service_id: String,
@@ -70,7 +70,7 @@ pub struct ServiceScore {
 }
 
 /// `W(r)`, from 0 to 1. A reputation that is not a number, or no reputation at all in
-/// the skill (`n_max` is 0), gives the neutral 0.5.
+/// the objective (`n_max` is 0), gives the neutral 0.5.
 pub fn confidence_weight(reputation: f64, n_max: f64) -> f64 {
     if !reputation.is_finite() || !(n_max > 0.0) {
         return 0.5;
@@ -179,13 +179,13 @@ fn performance_in(
     (count > 0 && denominator > 0.0).then(|| (numerator / denominator, count))
 }
 
-/// The services of a skill with their scores, best first. The services are the ones
+/// The services of an objective with their scores, best first. The services are the ones
 /// that a coverage box names (in the order of the boxes) and then the ones that only a
 /// result names. Equal scores are ordered by the reputation of the service, and then by
 /// that order.
 ///
-/// A coverage of a benchmark is not in [`SkillData`]: it is a runner, not a solution.
-pub fn rank_services(data: &SkillData, reps: &Reputations) -> Vec<ServiceScore> {
+/// A coverage of a benchmark is not in [`ObjectiveData`]: it is a runner, not a solution.
+pub fn rank_services(data: &ObjectiveData, reps: &Reputations) -> Vec<ServiceScore> {
     let benchmark_ids: HashSet<&str> = data.benchmarks.iter().map(|b| b.id.as_str()).collect();
     let results: Vec<&BenchResult> = data
         .results
@@ -208,7 +208,7 @@ pub fn rank_services(data: &SkillData, reps: &Reputations) -> Vec<ServiceScore> 
         }
     }
 
-    // N_max: the largest reputation in the skill.
+    // N_max: the largest reputation in the objective.
     let n_max = services
         .iter()
         .map(|(_, r, _)| *r)
@@ -281,7 +281,7 @@ mod tests {
         Benchmark {
             id: id.into(),
             profile: profile.map(str::to_string),
-            skill_box_id: "skill".into(),
+            objective_box_id: "objective".into(),
             name: id.into(),
             metrics,
         }
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn services_with_no_results_are_ranked_by_reputation() {
-        let data = SkillData {
+        let data = ObjectiveData {
             coverages: vec![
                 coverage("low", Some("t-low")),
                 coverage("high", Some("t-high")),
@@ -368,7 +368,7 @@ mod tests {
 
     #[test]
     fn no_reputation_at_all_gives_every_service_the_same_neutral_score() {
-        let data = SkillData {
+        let data = ObjectiveData {
             coverages: vec![coverage("a", None), coverage("b", None)],
             ..Default::default()
         };
@@ -380,7 +380,7 @@ mod tests {
 
     #[test]
     fn the_better_measurement_wins_and_the_direction_counts() {
-        let data = SkillData {
+        let data = ObjectiveData {
             coverages: vec![coverage("slow", None), coverage("fast", None)],
             benchmarks: vec![benchmark("b", None, vec![metric("ms", false)])],
             results: vec![
@@ -400,7 +400,7 @@ mod tests {
 
     #[test]
     fn a_service_that_only_a_result_names_counts_and_is_not_direct() {
-        let data = SkillData {
+        let data = ObjectiveData {
             coverages: vec![coverage("covered", None)],
             benchmarks: vec![benchmark("b", None, vec![metric("x", true)])],
             results: vec![
@@ -418,8 +418,8 @@ mod tests {
     }
 
     #[test]
-    fn a_result_of_a_benchmark_that_is_not_of_the_skill_is_ignored() {
-        let data = SkillData {
+    fn a_result_of_a_benchmark_that_is_not_of_the_objective_is_ignored() {
+        let data = ObjectiveData {
             coverages: vec![coverage("a", None)],
             benchmarks: vec![benchmark("b", None, vec![metric("x", true)])],
             results: vec![result("r", "other", "stranger", &[&[Some(1.0)]])],
@@ -433,7 +433,7 @@ mod tests {
     fn a_result_of_a_reputable_publisher_weighs_more() {
         // Two results for the service "s": one good from a trusted profile, one bad
         // from a profile with no reputation.
-        let data = SkillData {
+        let data = ObjectiveData {
             coverages: vec![coverage("s", None), coverage("anchor", None)],
             benchmarks: vec![benchmark("b", None, vec![metric("x", true)])],
             results: vec![
@@ -457,7 +457,7 @@ mod tests {
 
     #[test]
     fn a_benchmark_with_no_metrics_and_values_that_are_not_numbers_give_no_performance() {
-        let data = SkillData {
+        let data = ObjectiveData {
             coverages: vec![coverage("a", None)],
             benchmarks: vec![
                 benchmark("empty", None, vec![]),
@@ -475,7 +475,7 @@ mod tests {
 
     #[test]
     fn the_median_of_the_cases_is_used_and_a_missing_metric_is_skipped() {
-        let data = SkillData {
+        let data = ObjectiveData {
             coverages: vec![coverage("a", None), coverage("b", None)],
             benchmarks: vec![benchmark("b", None, vec![metric("m0", true), metric("m1", true)])],
             results: vec![
@@ -492,7 +492,7 @@ mod tests {
 
     #[test]
     fn the_same_service_in_two_coverages_is_listed_once() {
-        let data = SkillData {
+        let data = ObjectiveData {
             coverages: vec![coverage("s", Some("t1")), coverage("s", Some("t2"))],
             ..Default::default()
         };

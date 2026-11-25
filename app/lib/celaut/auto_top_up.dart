@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../bridge/api/celaut.dart';
 import '../bridge/api/celaut_service.dart';
+import 'conversation_keep_alive.dart';
 import 'maintenance_price.dart';
 
 /// A top-up that the app could not make. Either the credit of the app on the node of the
@@ -62,7 +63,9 @@ class AutoTopUp extends ChangeNotifier {
     void Function(String instanceId, bool enabled, String? budgetMu)? setKeepAlive,
     DateTime Function()? now,
     this.periodic = true,
-  })  : _topUp = topUp ?? ((id, mu) => celautTopUpInstance(instanceId: id, amountMu: mu)),
+    ForegroundHolds? holds,
+  })  : _holds = holds,
+        _topUp = topUp ?? ((id, mu) => celautTopUpInstance(instanceId: id, amountMu: mu)),
         _instances = instances ?? celautInstances,
         _status = status ?? ((id) => celautInstanceStatus(instanceId: id)),
         _plan = plan ?? ((id) => celautInstancePlan(instanceId: id)),
@@ -102,6 +105,11 @@ class AutoTopUp extends ChangeNotifier {
   final InstancePlanView Function(String instanceId) _plan;
   final void Function(String instanceId, bool enabled, String? budgetMu) _setKeepAlive;
   final DateTime Function() _now;
+  final ForegroundHolds? _holds;
+
+  /// The hold of [KeepAliveReason.topUp] while the timer runs: on macOS it keeps App Nap
+  /// from slowing the checks of a hidden app (issue #154).
+  Future<void> Function()? _release;
 
   /// Check once a minute. Tests check by hand.
   final bool periodic;
@@ -238,15 +246,24 @@ class AutoTopUp extends ChangeNotifier {
     }
     if (kept) {
       _timer ??= Timer.periodic(_every, (_) => unawaited(check()));
+      _release ??= (_holds ?? foregroundHolds).hold(KeepAliveReason.topUp);
     } else {
       _timer?.cancel();
       _timer = null;
+      _releaseHold();
     }
+  }
+
+  void _releaseHold() {
+    final release = _release;
+    _release = null;
+    if (release != null) unawaited(release());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _releaseHold();
     super.dispose();
   }
 

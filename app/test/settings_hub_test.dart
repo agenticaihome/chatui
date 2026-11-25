@@ -1,3 +1,4 @@
+import 'package:argus_wallet/services/linux_app.dart';
 import 'package:argus_wallet/services/wallet_service.dart';
 import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/ui/settings_screen.dart';
@@ -66,11 +67,11 @@ void main() {
       expect(ergo, contains(text), reason: text);
     }
     final compute = rowsOf(tester, 'compute');
-    for (final text in ['Nodes', 'Celaut deposit', 'Tor', 'Environment variables', 'Celaut node', 'Celaut service']) {
+    for (final text in ['Nodes', 'Celaut deposit', 'Tor', 'Environment variables', 'Celaut Registry', 'Celaut node', 'Celaut service']) {
       expect(compute, contains(text), reason: text);
     }
     final general = rowsOf(tester, 'general');
-    for (final text in ['Security', 'Display', 'Chats home', 'About Chatui']) {
+    for (final text in ['Security', 'Display', 'Chats home', 'About Celaut']) {
       expect(general, contains(text), reason: text);
     }
     // The one wallet has no name.
@@ -87,6 +88,15 @@ void main() {
     }
   });
 
+  testWidgets('on Linux, the Security row does not promise screenshot blocking', (tester) async {
+    debugLinuxAppOverride = true;
+    addTearDown(() => debugLinuxAppOverride = null);
+    listWallets(tester, const []);
+    await pump(tester, const SettingsScreen());
+    expect(find.text('Auto-lock, unconfirmed funds'), findsOneWidget);
+    expect(find.textContaining('screenshots'), findsNothing);
+  });
+
   testWidgets('the page of the wallet shows the same sections', (tester) async {
     listWallets(tester, const ['hub-wallet']);
     await tester.runAsync(
@@ -95,7 +105,7 @@ void main() {
     await pump(tester, const SettingsScreen(walletId: 'hub-wallet', embedded: true));
     expect(find.byKey(const Key('settings-wallet')), findsOneWidget);
     expect(find.byKey(const Key('settings-section-compute')), findsOneWidget);
-    expect(find.text('Phone unlock, auto-lock'), findsOneWidget);
+    expect(find.text('Device unlock, auto-lock'), findsOneWidget);
     expect(find.textContaining('on this device'), findsNothing);
   });
 }

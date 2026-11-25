@@ -29,7 +29,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     pushed = [];
     pushError = null;
-    dir = '/data/user/0/org.celaut.chatui/files';
+    dir = '/data/user/0/org.celaut.superapp/files';
   });
 
   test('the default is off, with the address of Orbot', () async {

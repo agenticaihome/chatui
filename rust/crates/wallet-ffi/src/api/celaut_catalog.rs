@@ -1,5 +1,5 @@
-//! The skill catalog for the app (milestone M4, `docs/celaut/catalog.md`): the skills
-//! that publishers put on Ergo, and the services of a skill, best first.
+//! The objective catalog for the app (milestone M4, `docs/celaut/catalog.md`): the objectives
+//! that publishers put on Ergo, and the services of an objective, best first.
 //!
 //! The explorer is fixed to the default of nodo (`NODO_DEFAULT_EXPLORER`), as for the
 //! deposits. The ranking is in the `celaut-catalog` crate; this module asks the explorer
@@ -10,12 +10,12 @@ use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 use celaut_catalog::fetch::{
-    load_declared_services, load_publisher_reputations, load_skill_services, load_skills,
+    load_declared_services, load_publisher_reputations, load_objective_services, load_objectives,
     CatalogError, Explorer,
 };
-use celaut_catalog::parse::Skill;
+use celaut_catalog::parse::Objective;
 use celaut_catalog::rank::Reputations;
-use celaut_catalog::ERGO_TREE_TEMPLATE_HASH;
+use celaut_catalog::{TypeIds, ERGO_TREE_TEMPLATE_HASH};
 use celaut_client::deposit::NODO_DEFAULT_EXPLORER;
 use serde_json::{json, Value};
 
@@ -40,11 +40,11 @@ const MAX_BOX_PAGES: usize = 50;
 const MAX_TOKEN_PAGES: usize = 20;
 /// How long the app keeps the reputation of a token.
 const REPUTATION_TTL: Duration = Duration::from_secs(300);
-/// The longest prose that the list of skills shows, in characters.
+/// The longest prose that the list of objectives shows, in characters.
 const PROSE_CHARS: usize = 200;
 
 /// The reputation of the tokens that were read lately, so that the list of the services
-/// of a skill, and then of another one, do not ask for the same publisher again.
+/// of an objective, and then of another one, do not ask for the same publisher again.
 static REPUTATIONS: LazyLock<Mutex<HashMap<String, (Instant, f64)>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
@@ -92,81 +92,128 @@ impl<K: std::hash::Hash + Eq + Clone, V: Clone> CatalogCache<K, V> {
     }
 }
 
-static SKILLS: CatalogCache<(), Vec<SkillView>> = CatalogCache::new();
-static SERVICES: CatalogCache<String, Vec<SkillServiceView>> = CatalogCache::new();
+static OBJECTIVES: CatalogCache<CatalogTypeIds, Vec<ObjectiveView>> = CatalogCache::new();
+static SERVICES: CatalogCache<(CatalogTypeIds, String), Vec<ObjectiveServiceView>> = CatalogCache::new();
 
-/// A skill that the user can pick.
+/// The type NFTs of the boxes of the registry. The user sets them in the settings of the app.
+/// The objective type has no default value: it is empty, and then the catalog is empty.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CatalogTypeIds {
+    /// The type NFT of an objective box: 64 hexadecimal characters, or empty.
+    pub objective: String,
+    pub coverage: String,
+    pub benchmark: String,
+    pub result: String,
+}
+
+impl From<CatalogTypeIds> for TypeIds {
+    fn from(t: CatalogTypeIds) -> Self {
+        TypeIds {
+            objective: t.objective,
+            coverage: t.coverage,
+            benchmark: t.benchmark,
+            result: t.result,
+        }
+    }
+}
+
+impl From<TypeIds> for CatalogTypeIds {
+    fn from(t: TypeIds) -> Self {
+        CatalogTypeIds {
+            objective: t.objective,
+            coverage: t.coverage,
+            benchmark: t.benchmark,
+            result: t.result,
+        }
+    }
+}
+
+/// The default type NFTs: the objective is empty, the other three have the ids of the
+/// registry.
+#[flutter_rust_bridge::frb(sync)]
+pub fn celaut_default_catalog_type_ids() -> CatalogTypeIds {
+    TypeIds::default().into()
+}
+
+/// An objective that the user can pick.
 #[derive(Debug, Clone, PartialEq)]
-pub struct SkillView {
-    /// The id of the skill: its box id on Ergo.
+pub struct ObjectiveView {
+    /// The id of the objective: its box id on Ergo.
     pub box_id: String,
     pub name: String,
-    /// The start of the text that explains the skill.
+    /// The start of the text that explains the objective.
     pub prose: String,
     pub tags: Vec<String>,
-    /// The field of the skill, as its publisher wrote it ("finance", "nlp"...); empty if
-    /// none. The app groups the skills by it.
+    /// The field of the objective, as its publisher wrote it ("finance", "nlp"...); empty if
+    /// none. The app groups the objectives by it.
     pub domain: String,
-    /// The height of the block that has the skill box; 0 if unknown. The store shows the
-    /// newest skills by it.
+    /// The height of the block that has the objective box; 0 if unknown. The store shows the
+    /// newest objectives by it.
     pub height: u32,
-    /// The services that publishers declared for the skill (its coverage boxes), each once,
+    /// The services that publishers declared for the objective (its coverage boxes), each once,
     /// in lower case. Empty if there is none, or if the explorer did not answer. A service
     /// that is only in the results of a benchmark is not here.
     pub service_ids: Vec<String>,
-    /// The reputation of the publisher of the skill: the value in nanoERG of the boxes that
+    /// The reputation of the publisher of the objective: the value in nanoERG of the boxes that
     /// hold its profile token. 0 if unknown.
     pub publisher_reputation: f64,
 }
 
-/// A service that covers a skill.
+/// A service that covers an objective.
 #[derive(Debug, Clone, PartialEq)]
-pub struct SkillServiceView {
+pub struct ObjectiveServiceView {
     /// The id of the service: 64 hexadecimal characters.
     pub service_id: String,
-    /// The score of the service in the skill, from 0 to 1. The best has the highest.
+    /// The score of the service in the objective, from 0 to 1. The best has the highest.
     pub score: f64,
-    /// True if a publisher declared that the service covers the skill. False if the
-    /// service is only in the results of a benchmark of the skill.
+    /// True if a publisher declared that the service covers the objective. False if the
+    /// service is only in the results of a benchmark of the objective.
     pub direct: bool,
 }
 
-/// The skills of the catalog, in the order of the explorer, with what the store sorts
+/// The objectives of the catalog, in the order of the explorer, with what the store sorts
 /// them by: the height of the box, the services that publishers declared, and the
 /// reputation of the publisher. These cost one more query and one request for each
-/// publisher, not one for each skill.
+/// publisher, not one for each objective.
 #[flutter_rust_bridge::frb]
-pub async fn celaut_skills() -> Result<Vec<SkillView>, CelautError> {
-    if let Some(fresh) = SKILLS.fresh(&()) {
+///
+/// With an empty objective type in `types`, the list is empty and the app asks nothing.
+pub async fn celaut_objectives(types: CatalogTypeIds) -> Result<Vec<ObjectiveView>, CelautError> {
+    let key = types.clone();
+    let types: TypeIds = types.into();
+    if types.objective.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    if let Some(fresh) = OBJECTIVES.fresh(&key) {
         return Ok(fresh);
     }
     let explorer = HttpExplorer::new(NODO_DEFAULT_EXPLORER);
-    let skills = match load_skills(&explorer).await {
-        Ok(skills) => skills,
-        Err(e) => return SKILLS.settle((), Err(error_of(e))),
+    let objectives = match load_objectives(&explorer, &types).await {
+        Ok(objectives) => objectives,
+        Err(e) => return OBJECTIVES.settle(key, Err(error_of(e))),
     };
-    let declared = load_declared_services(&explorer).await;
-    let reputations = load_publisher_reputations(&explorer, &skills).await;
-    let views = skill_views(skills, declared.as_ref().ok(), &reputations);
+    let declared = load_declared_services(&explorer, &types).await;
+    let reputations = load_publisher_reputations(&explorer, &objectives).await;
+    let views = objective_views(objectives, declared.as_ref().ok(), &reputations);
     match declared {
-        Ok(_) => SKILLS.settle((), Ok(views)),
-        // The skills are still listed, but with no services the store has no "featured"
+        Ok(_) => OBJECTIVES.settle(key, Ok(views)),
+        // The objectives are still listed, but with no services the store has no "featured"
         // and no "popular". The list is not kept, so the next read asks again; a full list
         // from before is better.
-        Err(e) => SKILLS.settle((), Err(error_of(e))).or(Ok(views)),
+        Err(e) => OBJECTIVES.settle(key, Err(error_of(e))).or(Ok(views)),
     }
 }
 
-/// The skills for the app. With no `declared` (the explorer did not answer), every skill
+/// The objectives for the app. With no `declared` (the explorer did not answer), every objective
 /// has no service.
-fn skill_views(
-    skills: Vec<Skill>,
+fn objective_views(
+    objectives: Vec<Objective>,
     declared: Option<&HashMap<String, Vec<String>>>,
     reputations: &Reputations,
-) -> Vec<SkillView> {
-    skills
+) -> Vec<ObjectiveView> {
+    objectives
         .into_iter()
-        .map(|s| SkillView {
+        .map(|s| ObjectiveView {
             service_ids: declared
                 .and_then(|d| d.get(&s.box_id.to_ascii_lowercase()))
                 .cloned()
@@ -188,36 +235,38 @@ fn skill_views(
         .collect()
 }
 
-/// The services of a skill, best first. The score follows `docs/celaut/catalog.md`: the
-/// measured performance of the service in the benchmarks of the skill, and the
+/// The services of an objective, best first. The score follows `docs/celaut/catalog.md`: the
+/// measured performance of the service in the benchmarks of the objective, and the
 /// reputation of its publisher, weighted by the reputation of who published each result.
 #[flutter_rust_bridge::frb]
-pub async fn celaut_skill_services(
-    skill_box_id: String,
-) -> Result<Vec<SkillServiceView>, CelautError> {
-    if let Some(fresh) = SERVICES.fresh(&skill_box_id) {
+pub async fn celaut_objective_services(
+    types: CatalogTypeIds,
+    objective_box_id: String,
+) -> Result<Vec<ObjectiveServiceView>, CelautError> {
+    let key = (types.clone(), objective_box_id);
+    if let Some(fresh) = SERVICES.fresh(&key) {
         return Ok(fresh);
     }
     let explorer = HttpExplorer::new(NODO_DEFAULT_EXPLORER);
-    let ranked = match load_skill_services(&explorer, &skill_box_id).await {
+    let ranked = match load_objective_services(&explorer, &types.into(), &key.1).await {
         Ok(ranked) => ranked,
-        Err(e) => return SERVICES.settle(skill_box_id, Err(error_of(e))),
+        Err(e) => return SERVICES.settle(key, Err(error_of(e))),
     };
-    let views: Vec<SkillServiceView> = ranked
+    let views: Vec<ObjectiveServiceView> = ranked
         .into_iter()
-        .map(|s| SkillServiceView {
+        .map(|s| ObjectiveServiceView {
             service_id: s.service_id,
             score: s.score,
             direct: s.direct,
         })
         .collect();
-    SERVICES.settle(skill_box_id, Ok(views))
+    SERVICES.settle(key, Ok(views))
 }
 
 fn error_of(e: CatalogError) -> CelautError {
     let kind = match e {
         CatalogError::Explorer(_) => CelautErrorKind::Unreachable,
-        CatalogError::BadSkillId => CelautErrorKind::InvalidInput,
+        CatalogError::BadObjectiveId | CatalogError::BadTypeId(_) => CelautErrorKind::InvalidInput,
     };
     CelautError {
         kind,
@@ -582,33 +631,33 @@ mod tests {
         assert!(!REPUTATIONS.lock().unwrap().contains_key(token));
     }
 
-    fn skill(id: &str, profile: Option<&str>) -> Skill {
-        Skill {
+    fn objective(id: &str, profile: Option<&str>) -> Objective {
+        Objective {
             box_id: id.into(),
             profile: profile.map(Into::into),
-            name: format!("skill {id}"),
+            name: format!("objective {id}"),
             prose: " text ".into(),
             tags: vec!["t".into()],
             domain: "d".into(),
-            extended_skill_boxes: vec![],
+            extended_objective_boxes: vec![],
             height: 7,
         }
     }
 
     #[test]
-    fn a_skill_view_has_its_services_and_the_reputation_of_its_publisher() {
+    fn an_objective_view_has_its_services_and_the_reputation_of_its_publisher() {
         let declared = HashMap::from([("aa".to_string(), vec!["s1".to_string(), "s2".to_string()])]);
         let reputations = Reputations(HashMap::from([
             ("tok".to_string(), 3e9),
             ("nan".to_string(), f64::NAN),
         ]));
-        let skills = vec![
-            skill("AA", Some("tok")),
-            skill("bb", None),
-            skill("cc", Some("other")),
-            skill("dd", Some("nan")),
+        let objectives = vec![
+            objective("AA", Some("tok")),
+            objective("bb", None),
+            objective("cc", Some("other")),
+            objective("dd", Some("nan")),
         ];
-        let views = skill_views(skills.clone(), Some(&declared), &reputations);
+        let views = objective_views(objectives.clone(), Some(&declared), &reputations);
         assert_eq!(views[0].service_ids, ["s1", "s2"]);
         assert_eq!(views[0].publisher_reputation, 3e9);
         assert_eq!((views[0].height, views[0].prose.as_str()), (7, "text"));
@@ -616,8 +665,8 @@ mod tests {
         assert_eq!(views[1].publisher_reputation, 0.0);
         assert_eq!(views[2].publisher_reputation, 0.0);
         assert_eq!(views[3].publisher_reputation, 0.0);
-        // No answer for the services: the skills are there, with none.
-        let views = skill_views(skills, None, &reputations);
+        // No answer for the services: the objectives are there, with none.
+        let views = objective_views(objectives, None, &reputations);
         assert_eq!(views.len(), 4);
         assert!(views.iter().all(|v| v.service_ids.is_empty()));
     }
@@ -635,7 +684,7 @@ mod tests {
     #[test]
     fn the_errors_have_the_kinds_that_the_screen_knows() {
         assert_eq!(
-            error_of(CatalogError::BadSkillId).kind,
+            error_of(CatalogError::BadObjectiveId).kind,
             CelautErrorKind::InvalidInput
         );
         let e = error_of(CatalogError::Explorer("HTTP 500".into()));
@@ -644,21 +693,53 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_bad_skill_id_is_refused_without_a_request() {
-        let error = celaut_skill_services("not an id".into()).await.unwrap_err();
+    async fn a_bad_objective_id_is_refused_without_a_request() {
+        let types = celaut_default_catalog_type_ids();
+        let error = celaut_objective_services(types, "not an id".into()).await.unwrap_err();
         assert_eq!(error.kind, CelautErrorKind::InvalidInput);
     }
 
-    /// Ask the real explorer of Ergo. Run it with
-    /// `cargo test -p wallet-ffi the_real_catalog -- --ignored --nocapture`.
+    #[test]
+    fn the_default_type_ids_have_no_objective() {
+        let types = celaut_default_catalog_type_ids();
+        assert_eq!(types.objective, "");
+        assert_eq!(types.coverage, celaut_catalog::DEFAULT_COVERAGE_TYPE);
+        assert_eq!(types.benchmark, celaut_catalog::DEFAULT_BENCHMARK_TYPE);
+        assert_eq!(types.result, celaut_catalog::DEFAULT_RESULT_TYPE);
+    }
+
+    #[tokio::test]
+    async fn with_no_objective_type_id_the_list_is_empty_without_a_request() {
+        let objectives = celaut_objectives(celaut_default_catalog_type_ids()).await.unwrap();
+        assert!(objectives.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_bad_type_id_is_refused_without_a_request() {
+        let types = CatalogTypeIds {
+            objective: "abc".into(),
+            ..celaut_default_catalog_type_ids()
+        };
+        let error = celaut_objectives(types).await.unwrap_err();
+        assert_eq!(error.kind, CelautErrorKind::InvalidInput);
+        assert!(error.message.contains("objective"));
+    }
+
+    /// Ask the real explorer of Ergo. The objective type has no default: set it in
+    /// `CELAUT_OBJECTIVE_TYPE`. Run it with
+    /// `CELAUT_OBJECTIVE_TYPE=<64 hex> cargo test -p wallet-ffi the_real_catalog -- --ignored --nocapture`.
     #[tokio::test]
     #[ignore = "asks the real explorer of Ergo"]
-    async fn the_real_catalog_has_skills_with_ranked_services() {
-        let skills = celaut_skills().await.unwrap();
-        assert!(!skills.is_empty());
-        for skill in &skills {
-            let services = celaut_skill_services(skill.box_id.clone()).await.unwrap();
-            println!("{} ({}): {} services", skill.name, &skill.box_id[..8], services.len());
+    async fn the_real_catalog_has_objectives_with_ranked_services() {
+        let types = CatalogTypeIds {
+            objective: std::env::var("CELAUT_OBJECTIVE_TYPE").expect("set CELAUT_OBJECTIVE_TYPE"),
+            ..celaut_default_catalog_type_ids()
+        };
+        let objectives = celaut_objectives(types.clone()).await.unwrap();
+        assert!(!objectives.is_empty());
+        for objective in &objectives {
+            let services = celaut_objective_services(types.clone(), objective.box_id.clone()).await.unwrap();
+            println!("{} ({}): {} services", objective.name, &objective.box_id[..8], services.len());
             for s in &services {
                 println!("  {} {:.4} direct={}", &s.service_id[..8], s.score, s.direct);
             }

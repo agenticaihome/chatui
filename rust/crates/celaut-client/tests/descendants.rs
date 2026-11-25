@@ -710,7 +710,7 @@ fn the_descendants_go_with_their_instance_and_a_merge_keeps_both() {
 
 fn signed_peer(rates: &[(&str, &str)]) -> Peer {
     let mut peer = common::vectors().peers[0].peer();
-    peer.mu_per_call = rates
+    peer.rates = rates
         .iter()
         .map(|(k, v)| AmountKeyValue {
             key: (*k).into(),

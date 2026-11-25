@@ -1,6 +1,6 @@
 # Bitcoin wallet and deposits in BTC (issue #92)
 
-Chatui has a Bitcoin wallet next to the Ergo wallet, and it can buy MU from a node with
+Celaut has a Bitcoin wallet next to the Ergo wallet, and it can buy MU from a node with
 BTC. This note gives the design, what nodo does, and what nodo can add.
 
 Sources: celaut-project/nodo `dev` (`nodo:docs/BITCOIN.md`,
@@ -70,7 +70,7 @@ app shows it while a Bitcoin page is open (`bitcoinThemeActive`, which wins over
 nodo takes BTC on-chain (issue nodo#340):
 
 - The node advertises a `ContractRate` with `ledger.tags[0] = "bitcoin"`, `token_id =
-  BTC`, `contract_type = p2wpkh`, and `script` = the P2WPKH scriptPubKey of one fixed
+  BTC`, `protocol.tags` with `bitcoin-p2wpkh`, and `script` = the P2WPKH scriptPubKey of one fixed
   receiving address. `mu_per_unit` is MU per satoshi (`MU_PER_SATOSHI`). The ledger
   declaration has `chain=bitcoin` and `network=mainnet|testnet|signet|regtest`.
 - To pay: one transaction with an output of the amount or more to `script`, and an
@@ -102,7 +102,7 @@ works with the wallet locked: it reads only the server. "Forget" removes only a 
 whose transaction the server does not know (the broadcast failed).
 
 **How many confirmations.** nodo does not advertise `MIN_CONFIRMATIONS`. The app reads
-`payment.min_confirmations=<n>` from the declaration when a node gives it (see 7), and
+`payment.min_confirmations=<n>` from the declaration (the protocol, then the ledger) when a node gives it (see 7), and
 waits for 6 when it does not. 6 is more than nodo's default 1 and is about one hour, well
 inside the 6-hour life of the token. The app never waits for more than 36 (about 6 hours).
 

@@ -3,7 +3,7 @@
 Revision 6 (2026-10-24). Language: ASD-STE100 (Simplified Technical English).
 
 This document is the specification of the "chat" interface. A service that follows it can
-be used from the conversation screen of chatui. This document is the only source of truth
+be used from the conversation screen of Celaut. This document is the only source of truth
 for the interface. Each service and each client must adapt to it. If a service or a client
 and this document do not agree, the service or the client is wrong.
 
@@ -41,7 +41,7 @@ Text in a table or in a list that does not use these words is a fact or an examp
 | Term | Meaning |
 |---|---|
 | service | The program in the instance. It answers the calls of this document |
-| client | The program that makes the calls. In chatui, the app |
+| client | The program that makes the calls. In Celaut, the app |
 | instance | One running copy of a service. One instance holds one main conversation |
 | main conversation | The conversation of the instance. It has no `conversation_id` (section 6.8) |
 | message | One `Message` of `chat.proto`: `message_id`, `sequence`, `content`, `status` and other fields (section 5) |
@@ -91,7 +91,7 @@ if the text of the row is not in conflict with a newer row.
 | Pinned | 2026-10-24 | `pinned` follows `chat.proto`: any message can be pinned, `SetMessagePinned` changes it, and `updated_at` changes with it. The service and the client can both change it (section 6.6). The client keeps the last pinned message above the visible part at the top of the chat (section 5.4) |
 | Send over the stream | 2026-10-24 | The client sends over `Connect` when its stream is open, and with the unary `SendMessage` when it is not (for example in the watcher of answers). The two ways use the same `idempotency_key` rules. Each `ClientEvent` can have an `event_id`, and `ProtocolError` gives it back, so that the client knows which event failed (section 6.5) |
 | Acknowledge | 2026-10-24 | `acknowledge` is a hint: the client has all messages up to `last_sequence` in a final state. The service can drop buffered events for them. It never deletes history (section 6.5) |
-| Cancelled | 2026-10-24 | `CANCELLED` is a final status, as `FAILED`: no notice of a done answer. The client shows it as cancelled. Chatui has no cancel button yet. A service can implement `cancel_message` (optional) |
+| Cancelled | 2026-10-24 | `CANCELLED` is a final status, as `FAILED`: no notice of a done answer. The client shows it as cancelled. Celaut has no cancel button yet. A service can implement `cancel_message` (optional) |
 | Other hash algorithms | 2026-10-24 | SHA3-256 is the algorithm that the client uses and that each service that accepts files must support. The `type` of a `Hash` names the algorithm, so more algorithms can be added later with no change to `chat.proto`. A `FileReference` can have many hashes of the same content (section 6.4) |
 | Defaults of the limits | 2026-10-24 | 1 MiB for a message, 4 MiB for a file and 64 KiB for a chunk are defaults. `GetCapabilities` replaces them (sections 6.7 and 7) |
 | Wire form of the hash | 2026-10-24 | `Hash.type` and `Hash.value` are the raw bytes of the digest (32 bytes for SHA3-256). The hexadecimal text of the document is only a way to write them (section 6.4) |
@@ -103,7 +103,7 @@ if the text of the row is not in conflict with a newer row.
 | File limits | 2026-10-24 | The limits of revision 5 stay: 4 files of 4 MiB in one message, and `image/jpeg`, `image/png`, `audio/mpeg`, `audio/wav` (section 7) |
 | HTML widgets | 2026-10-24 | A service sends an HTML widget as a fenced block that starts with ```` ```html ```` in a `TextContent`. This stays a client feature that is not normative (section 5.4). `StructuredContent` with `text/html` is not used, because the answer of a model comes as a stream of text and a `StructuredContent` part cannot grow |
 | Keyboard block | 2026-10-29 | A service offers keys to the user as a fenced block that starts with ```` ```keyboard ````, in a `TextContent`, as the HTML block. A key has a `data-say`. A tap on a key puts the `data-say` in the input of the user. The client does not send it: the user sends it with Send, unless the key has `data-send`: then a tap sends it. The block can also have fields (`input`): a `{name}` in a `data-say` is the value that the user wrote in the field `name`. Nothing changes on the wire, and the service gets the text as a normal user message (section 5.5) |
-| Keyboard controls and keyboard of the app | 2026-10-29 | A field of a keyboard block can be a calendar (`type="date"`), a clock (`type="time"`), a slider (`type="range"`), a checkbox (`type="checkbox"`) or a list of options (`select`, one or many with `multiple`), as well as one line of text. The value of each one is text, and a `{name}` in a `data-say` is that text: the wire does not change. In chatui the form shows **under** the input (not above it), the chat does not open the keyboard of the system, and under the input it shows the form or, if there is none, a keyboard of the app. A setting (off by default) lets the user choose the keyboard of the system. A closed form opens again with a tap on its card (section 5.5) |
+| Keyboard controls and keyboard of the app | 2026-10-29 | A field of a keyboard block can be a calendar (`type="date"`), a clock (`type="time"`), a slider (`type="range"`), a checkbox (`type="checkbox"`) or a list of options (`select`, one or many with `multiple`), as well as one line of text. The value of each one is text, and a `{name}` in a `data-say` is that text: the wire does not change. In Celaut the form shows **under** the input (not above it), the chat does not open the keyboard of the system, and under the input it shows the form or, if there is none, a keyboard of the app. A setting (off by default) lets the user choose the keyboard of the system. A closed form opens again with a tap on its card (section 5.5) |
 | Attachments | 2026-10-22 | A message can have image files and audio files. The client shows the attach button only for the kinds that the service accepts. The files stay in memory only |
 | Recorded audio | 2026-10-24 | A client can record sound and send it as `audio/wav`. A service that accepts `audio` must accept `audio/wav` |
 | Secret requests | 2026-11-01 | The service can ask the user for a secret by name, for example an API key. The app shows the selector of environment variables (`env-variables.md`, section 3), with a typed value and **Skip**. The user can save a typed value in the container. The service waits until the user answers. The value goes to the service in `AnswerSecretRequest`, and never in a message, an event or the history. The app warns before a sensitive value goes out (sections 5.6 and 6.9) |
@@ -393,7 +393,7 @@ ignore them. The wire format does not change.
   of the conversation at the top of the chat. It limits the space of this message to a part
   of the chat height. A pinned message anchors only the messages after it. If the user
   scrolls up past a pinned message, the client shows the pinned message before it. This is
-  the behavior of chatui ([ui-chat-first.md](ui-chat-first.md), section 9). A client that
+  the behavior of Celaut ([ui-chat-first.md](ui-chat-first.md), section 9). A client that
   does not have this feature shows a pinned message as the other messages.
 - **HTML block.** A service can put a fenced block that starts with ```` ```html ```` in the
   text of a message. A client can show the block as a simple widget. The client must not run
@@ -459,7 +459,7 @@ The kinds of field. The client gives the value as text, and it is at most 200 ch
 
 A `select` with `multiple` that has no option chosen is empty, so a key that uses it cannot be tapped.
 
-Options. chatui shows the options of a `select` in the form, as chips side by side while they
+Options. Celaut shows the options of a `select` in the form, as chips side by side while they
 fit in the width, and in more rows if they do not. The rows turn like a wheel: the row in the
 middle is bigger and clear, and the rows above and below are smaller and fade. Three rows show
 at once (fewer if there are fewer rows), and the user turns the wheel with a drag up or down.
@@ -473,13 +473,13 @@ A service that wants a kind that a client does not know can write a plain `input
 `placeholder` that says the format (for example `YYYY-MM-DD`), or keys that give the values.
 A client that does not know a `type` shows a line of text, and a `{name}` is still replaced.
 
-In chatui, the form (the keys and the fields) shows **under** the input of the conversation,
+In Celaut, the form (the keys and the fields) shows **under** the input of the conversation,
 never above it. The message itself shows a small card in place of the block, so the keys are
 not twice on the screen. The user can close the form with the button of the form. A tap on
 the card of the last message opens it again, if the user closed it. The form is also closed
 when a key with `data-send` sends. If the HTML widgets are off, the block is shown as code.
 
-Keyboard of the text. chatui does not open the keyboard of the system, so the form can always
+Keyboard of the text. Celaut does not open the keyboard of the system, so the form can always
 be under the input. Under the input it shows:
 
 | Case | What shows under the input |
@@ -528,7 +528,7 @@ action that has a cost, unless the label says it.
 
 A service can ask the user for a secret, for example an API key, by name. The user gives the
 value from the variables of the app, or skips the request. The value goes to the service in
-`AnswerSecretRequest` (section 6.9). The value is never in a message. This section is revision 6, round 8. `chat.proto` has its messages, and chatui implements it from version 0.1.30. Josemi's decisions of 2026-11-01 are in it.
+`AnswerSecretRequest` (section 6.9). The value is never in a message. This section is revision 6, round 8. `chat.proto` has its messages, and Celaut implements it from version 0.1.30. Josemi's decisions of 2026-11-01 are in it.
 
 A `SecretRequest` has these fields:
 
@@ -626,7 +626,7 @@ The rules:
 - `corrector` is not a secret, but it is text that the user wrote. A service must not send it
   to a third party for another use.
 
-In chatui: three chips show above the keyboard of the app. While the input is empty, or the
+In Celaut: three chips show above the keyboard of the app. While the input is empty, or the
 cursor is after a space, they show the active suggestions of the service. While the user
 writes a word, they show the words of the corrector: words that start with what the user
 wrote, then close words (one or two letters are different), from the words of the
@@ -1138,7 +1138,7 @@ rpc GetCapabilities(GetCapabilitiesRequest) returns (Capabilities);
 
 The instance has one main conversation. All the calls of this document are for the main
 conversation. The messages of `chat.proto` have a `conversation_id` for other conversations
-(branches), which the service can implement. Chatui does not use them.
+(branches), which the service can implement. Celaut does not use them.
 
 | Item | Service | Client |
 |---|---|---|
@@ -1239,7 +1239,7 @@ The rules for the client:
 - A client that does not know the event ignores it (section 4): a `ServerEvent` that has no
   event that the client knows is not an error.
 
-In chatui: the title shows in the list of conversations and at the top of the conversation,
+In Celaut: the title shows in the list of conversations and at the top of the conversation,
 if the user did not rename the conversation. The app keeps the last title in its database, so
 the list shows it after a restart and after the instance stops. The info page of the instance
 still shows the name of the service.
@@ -1409,7 +1409,7 @@ storage of the app are not part of this document ([ui-chat-first.md](ui-chat-fir
 - The client shows the `error` of a `FAILED` message to the user if there is one. It must not
   read the failure from the text, and must not need `error` to show that the message failed.
 - The client treats `CANCELLED` as a final status. It gets no notice of a done answer, as a
-  `FAILED` message. The client shows the message as cancelled. Chatui has no button that
+  `FAILED` message. The client shows the message as cancelled. Celaut has no button that
   cancels an answer, so it sends no `cancel_message`.
 - A client that has no open stream can read with `GetMessages`. While it waits for an answer,
   it reads every 2 seconds. Otherwise it reads every 10 seconds, or less often. It must not
@@ -1753,7 +1753,7 @@ The service must do all the items of section 13.3, and also:
 10. Optional: `supports_cancel`, with `cancel_message` that stops the model call and sets
     `CANCELLED`.
 
-### 13.5 What changes in the client (chatui)
+### 13.5 What changes in the client (Celaut)
 
 - `ChatClient` uses `grpc` instead of `TunnelHttp` (an h2c channel on the local port).
 - The check of the interface (`api_chat_ports`) looks for `http2`, `grpc`, `chat` and not for
@@ -1824,8 +1824,8 @@ more than 30 seconds. The service must follow these rules:
 | 6 (round 4) | 2026-10-24 | More clarifications of revision 6. A later `file` of an upload is found while the chunks are read, after the checks of size, type and storage. A `type` that is set and empty is an unknown type. A SHA3-256 hash with a `value` that is not 32 bytes is `bad_request`. The queue limit of a stream is at least 1 000 events. The cases of a failing first event of `Connect`, and the client behavior after each (also after `busy` and after a `ProtocolError` with no `event_id`). A client does not call `DownloadFile` for a `FileReference` with no SHA3-256 hash. `error` is 1 to 1 024 bytes, and a client can cut it for display. Test 29 is valid for a service that never uses `PENDING`. New tests 27j, 27k, 27l, 48b, 55e and 55f; changes to tests 29 and 55c |
 | 6 (round 5) | 2026-10-24 | `Hash.type` is required: `chat.proto` has `bytes type = 1;` (it was `optional`, and the field number is the same). The `type` is explicit in each `Hash` of each call. The rule "reuse the last `type` of the stream" is gone. An empty `type` is the same as a missing `type`: `bad_request` in each call that takes a `Hash`, `QueryFiles` too. A `type` that is not empty and not known is an unknown algorithm. A SHA3-256 hash with a `value` that is not 32 bytes is `bad_request` in `QueryFiles` too. Test 48b is removed (its number stays). Tests 48, 49, 55b and 71 are changed, and test 49a is new |
 | 6 (round 6) | 2026-10-29 | New section 5.5 and a line in the decisions table: the keyboard block (```` ```keyboard ````). It is a client feature, as the HTML block, and the wire does not change. Keys can send at once (`data-send`), and the block can have fields (`input` with `data-name`) that a `{name}` in a `data-say` uses |
-| 6 (round 7) | 2026-10-29 | Section 5.5: the fields of a keyboard block can be of the types `date`, `time`, `range`, `checkbox` and `select` (one option, or many with `multiple`), with new attributes (`type`, `min`, `max`, `step`, `value`, `checked`, `data-off`, `multiple`, `selected`, and the `option` element). New limits: 32 options in a `select`, 80 characters in the label of an option. Where chatui shows the form, the keyboard of the app, the setting of the keyboard of the system, and how to open a closed form. The options of a `select` show as chips side by side, in a wheel. The wire does not change |
-| 6 (round 8) | 2026-11-01 | Draft: secret requests. New part `secret_request` (sections 5.1 and 5.6), new call `AnswerSecretRequest` (section 6.9), new reasons in section 9, new rules for the client (section 10), and tests 75 to 82. Decided on the same day: typed values and saving in the container, a wait with no time limit, requests only in `COMPLETED` messages, and the warnings for sensitive values. A service that does not send secret requests keeps the wire of revision 6. `chat.proto` has the new messages, and chatui implements them from version 0.1.30 |
+| 6 (round 7) | 2026-10-29 | Section 5.5: the fields of a keyboard block can be of the types `date`, `time`, `range`, `checkbox` and `select` (one option, or many with `multiple`), with new attributes (`type`, `min`, `max`, `step`, `value`, `checked`, `data-off`, `multiple`, `selected`, and the `option` element). New limits: 32 options in a `select`, 80 characters in the label of an option. Where Celaut shows the form, the keyboard of the app, the setting of the keyboard of the system, and how to open a closed form. The options of a `select` show as chips side by side, in a wheel. The wire does not change |
+| 6 (round 8) | 2026-11-01 | Draft: secret requests. New part `secret_request` (sections 5.1 and 5.6), new call `AnswerSecretRequest` (section 6.9), new reasons in section 9, new rules for the client (section 10), and tests 75 to 82. Decided on the same day: typed values and saving in the container, a wait with no time limit, requests only in `COMPLETED` messages, and the warnings for sensitive values. A service that does not send secret requests keeps the wire of revision 6. `chat.proto` has the new messages, and Celaut implements them from version 0.1.30 |
 | 6 (round 9) | 2026-11-04 | Proposal (issue #89): the title of the conversation. New field `title` of `SubscriptionReady` (2), new event `ConversationTitleChanged` (9 of `ServerEvent`), and `Conversation.title` of `GetConversation` for the main conversation (section 6.10). The name that the user gives in the app is stronger than the title. New tests 83 to 86. A service that does not give a title keeps the wire of revision 6 |
 | 6 (round 10) | 2026-11-04 | Proposal (issue #88): suggestions and the state of the corrector. New fields `Message.suggestions` (15), `MessageStatusChanged.suggestions` (6), `SendMessageRequest.corrector` (5) and `Message.corrector` (16), and the messages `CorrectorState` and `Correction` (section 5.7). The suggestions are for each message, not live. New tests 87 to 90. A service that does not know the new fields keeps the wire of revision 6 |
 | 6 (round 11) | 2026-11-10 | Proposal (issue #120): a pointer to another slot. New part `slot_link` (7 of `ContentPart`) and the message `SlotLink` (`port`, `label`), section 5.8. The client shows a button and opens the slot (a deck of `cards.md`, the browser, or the conversation) only after a tap. New tests 91 to 94. A service that sends no `slot_link` keeps the wire of revision 6 |

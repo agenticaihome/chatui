@@ -307,8 +307,6 @@ class _NodeConnectScreenState extends State<NodeConnectScreen> {
               _labelled(context, appL10n.celautClientIdLabel, appL10n.celautClientIdNone),
             const SizedBox(height: 12),
             _labelled(context, CelautStrings.advertisedLabel, formatUtc(info.ts)),
-            const SizedBox(height: 6),
-            _labelled(context, CelautStrings.proofsLabel, '${info.reputationProofs}'),
             const SizedBox(height: 10),
             Text(CelautStrings.verifiedNote, style: Theme.of(context).textTheme.bodySmall),
           ],

@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Chatui",
+  "appTitle": "Celaut",
   "commonCancel": "Cancel",
   "commonSave": "Save",
   "commonRetry": "Retry",
@@ -219,7 +219,6 @@
   "celautRatesTitle": "Rates",
   "celautContractsTitle": "Payment contracts",
   "celautResourcesTitle": "Resources",
-  "celautProofsLabel": "Reputation proofs",
   "celautNoUris": "The node advertises no address.",
   "celautNoRates": "The node advertises no rates.",
   "celautNoContracts": "The node advertises no payment contract. It cannot be paid yet.",
@@ -328,17 +327,19 @@
   "chatBgDots": "Dots",
   "chatBgWaves": "Waves",
   "chatBgDiamonds": "Diamonds",
+  "chatBgTheme": "Theme",
   "addressBookTitle": "Address book",
-  "settingsAboutRowTitle": "About Chatui",
+  "settingsAboutRowTitle": "About Celaut",
   "settingsAboutRowSubtitle": "Version, release notes, licenses",
   "settingsWalletRowTitle": "Addresses and backup",
   "settingsWalletRowSubtitle": "Primary address, change policy, remove",
-  "settingsSecurityWalletSubtitle": "Phone unlock, auto-lock",
+  "settingsSecurityWalletSubtitle": "Device unlock, auto-lock",
   "settingsErgoGroup": "Ergo",
   "settingsComputeGroup": "Compute",
   "settingsGeneralGroup": "General",
   "settingsScopeAppWide": "App-wide",
   "settingsSecurityAppSubtitle": "Auto-lock, screenshots, unconfirmed funds",
+  "settingsSecurityAppSubtitleLinux": "Auto-lock, unconfirmed funds",
   "settingsRemotePreviewsTitle": "Remote previews",
   "settingsRemotePreviewsSubtitle": "IPFS gateway and Never load remote previews",
   "settingsContactsCount": "{count, plural, other{{count} contacts}}",
@@ -388,14 +389,16 @@
   "aboutCheckForUpdates": "Check for updates",
   "aboutCheckForUpdatesSubtitle": "Asks GitHub once a day. GitHub sees your IP address, or a Tor exit when Tor is on.",
   "aboutCheckNow": "Check now",
-  "aboutUpdatesNote": "Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app's signing key before Android is asked to install it.",
+  "aboutUpdatesNote": "Off by default. When on, Celaut asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app's signing key before Android is asked to install it.",
+  "aboutUpdatesNoteLinux": "Off by default. When on, Celaut asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. On Linux, Celaut does not download or install an update: it shows the link to the .deb for this computer, and your browser downloads it from github.com.",
   "aboutThisBuild": "This build",
   "aboutUnauditedTitle": "Unaudited prototype",
   "aboutUnauditedSubtitle": "Transactions on Ergo are irreversible. Use only funds you can afford to lose.",
   "aboutReleasesTitle": "Releases and notes",
   "aboutReleasesSubtitle": "What changed in each alpha, and the latest APK.",
+  "aboutReleasesSubtitleLinux": "What changed in each alpha, and the latest .deb files.",
   "aboutLicenses": "Open-source licenses",
-  "aboutLightClientNote": "Chatui is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.",
+  "aboutLightClientNote": "Celaut is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.",
   "aboutSigningCertificate": "Signing certificate",
   "aboutSigningCertificateSubtitle": "SHA-256 of the key this build is signed with. An update must be signed with the same one.",
   "aboutReading": "Reading…",
@@ -439,7 +442,7 @@
   "displayVehicleMotionCuesNote": "Dots at the sides of the screen move with the car, bus or train, so reading on the road makes you less sick.",
   "displayMotionCuesOff": "Off",
   "displayMotionCuesAutomatic": "Automatic",
-  "displayMotionCuesAutomaticSubtitle": "When the phone feels that you ride a vehicle",
+  "displayMotionCuesAutomaticSubtitle": "When the device feels that you ride a vehicle",
   "displayMotionCuesAlways": "Always",
   "displayMotionCuesAlwaysSubtitle": "All the time",
   "displayMotionCuesGps": "Use the speed of the GPS",
@@ -451,20 +454,72 @@
   "themeCreamHint": "Cream, teal type, coral",
   "themeObsidianName": "Obsidian",
   "themeObsidianHint": "True black, steel accent",
+  "displayPaletteGroupChristmas": "Christmas",
+  "themeXmasEveNightName": "Christmas Eve",
+  "themeXmasEveDayName": "Christmas Morning",
+  "themeXmasEveHint": "Christmas · red, pine and gold",
+  "themeXmasSnowNightName": "Snowy Night",
+  "themeXmasSnowDayName": "Snowy Day",
+  "themeXmasSnowHint": "Christmas · ice white and silver blue",
+  "themeXmasGingerNightName": "Gingerbread Night",
+  "themeXmasGingerDayName": "Gingerbread Day",
+  "themeXmasGingerHint": "Christmas · ginger, icing and red",
+  "themeXmasTreeNightName": "Christmas Tree Night",
+  "themeXmasTreeDayName": "Christmas Tree Day",
+  "themeXmasTreeHint": "Christmas · pine green and golden lights",
   "themeHarborName": "Harbor",
   "themeHarborHint": "Deep navy, teal accent",
   "themeEmberName": "Ember",
   "themeEmberHint": "Warm charcoal, copper accent",
+  "displayPaletteGroupGta": "Grand Theft Auto",
+  "themeGtaViceNightName": "Vice City Night",
+  "themeGtaViceDayName": "Vice City Day",
+  "themeGtaViceHint": "GTA · neon pink and teal, shoulder pads included",
+  "themeGtaSantosNightName": "Los Santos Night",
+  "themeGtaSantosDayName": "Los Santos Day",
+  "themeGtaSantosHint": "GTA · orange sunset, purple smog, palm trees",
+  "themeGtaLibertyNightName": "Liberty City Night",
+  "themeGtaLibertyDayName": "Liberty City Day",
+  "themeGtaLibertyHint": "GTA · steel and taxi yellow, honking optional",
+  "themeGtaWantedNightName": "Wanted Night",
+  "themeGtaWantedDayName": "Wanted Day",
+  "themeGtaWantedHint": "GTA · police red and blue, five stars (not the hotel kind)",
   "themeParchmentName": "Parchment",
   "themeParchmentHint": "Cream, sage accent",
   "themeFrostName": "Frost",
   "themeFrostHint": "Cool white, slate-blue accent",
+  "displayPaletteGroupMarvel": "Marvel",
+  "themeIronManNightName": "Iron Man Night",
+  "themeIronManDayName": "Iron Man Day",
+  "themeIronManHint": "Marvel · red and gold",
+  "themeSpiderManNightName": "Spider-Man Night",
+  "themeSpiderManDayName": "Spider-Man Day",
+  "themeSpiderManHint": "Marvel · red and blue, web",
+  "themeHulkNightName": "Hulk Night",
+  "themeHulkDayName": "Hulk Day",
+  "themeHulkHint": "Marvel · gamma green and purple",
+  "themeThorNightName": "Thor Night",
+  "themeThorDayName": "Thor Day",
+  "themeThorHint": "Marvel · storm and lightning",
   "themeCyberpunkName": "Cyberpunk",
   "themeCyberpunkHint": "Night violet, neon pink",
   "themeAppleLightName": "Apple Light",
   "themeAppleLightHint": "Clean white, system blue",
   "themeAppleDarkName": "Apple Dark",
   "themeAppleDarkHint": "True black, system blue",
+  "displayPaletteGroupCyberpunk": "Cyberpunk",
+  "themeCyberCityNightName": "Night City by Night",
+  "themeCyberCityDayName": "Night City by Day",
+  "themeCyberCityHint": "Cyberpunk · acid yellow and teal",
+  "themeCyberNoirNightName": "Neon Noir Night",
+  "themeCyberNoirDayName": "Neon Noir Day",
+  "themeCyberNoirHint": "Cyberpunk · magenta and cyan",
+  "themeCyberNetrunnerNightName": "Netrunner Night",
+  "themeCyberNetrunnerDayName": "Netrunner Day",
+  "themeCyberNetrunnerHint": "Cyberpunk · terminal green on black",
+  "themeCyberRainNightName": "Blade Rain Night",
+  "themeCyberRainDayName": "Blade Rain Day",
+  "themeCyberRainHint": "Cyberpunk · teal and orange in the rain",
   "themeMaterialLightName": "Material Light",
   "themeMaterialLightHint": "Soft lilac, Material purple",
   "themeMaterialDarkName": "Material Dark",
@@ -475,6 +530,32 @@
   "themeSolarizedHint": "Warm paper, blue accent",
   "themeDraculaName": "Dracula",
   "themeDraculaHint": "Deep indigo, purple accent",
+  "displayPaletteGroupStandard": "Standard",
+  "displayPaletteGroupHarryPotter": "Harry Potter",
+  "themeLionNightName": "Gryffindor Night",
+  "themeLionDayName": "Gryffindor Day",
+  "themeLionHint": "Harry Potter · scarlet and gold",
+  "themeSerpentNightName": "Slytherin Night",
+  "themeSerpentDayName": "Slytherin Day",
+  "themeSerpentHint": "Harry Potter · emerald and silver",
+  "themeRavenNightName": "Ravenclaw Night",
+  "themeRavenDayName": "Ravenclaw Day",
+  "themeRavenHint": "Harry Potter · blue and bronze",
+  "themeBadgerNightName": "Hufflepuff Night",
+  "themeBadgerDayName": "Hufflepuff Day",
+  "themeBadgerHint": "Harry Potter · yellow and black",
+  "themeHogwartsNightName": "Hogwarts Night",
+  "themeHogwartsDayName": "Hogwarts Day",
+  "themeHogwartsHint": "Harry Potter · stone and candlelight",
+  "themePatronusNightName": "Patronus Night",
+  "themePatronusDayName": "Patronus Day",
+  "themePatronusHint": "Harry Potter · silver light",
+  "themeForestNightName": "Forest Night",
+  "themeForestDayName": "Forest Day",
+  "themeForestHint": "Harry Potter · Forbidden Forest",
+  "themePhoenixNightName": "Phoenix Night",
+  "themePhoenixDayName": "Phoenix Day",
+  "themePhoenixHint": "Harry Potter · Order of the Phoenix",
   "networkConnectedNode": "Connected node",
   "networkChecking": "Checking…",
   "networkCheckNodes": "Check nodes",
@@ -620,11 +701,13 @@
   "securityUnlockFirstSubtitle": "Biometric and PIN settings need an unlocked wallet.",
   "securityRetryUnlockSettings": "Retry unlock settings",
   "securityReadSetupFailed": "Could not read the current setup.",
-  "securityBiometricUnlock": "Unlock with your phone",
+  "securityBiometricUnlock": "Unlock with your device",
   "securityBiometricOn": "Fingerprint or screen lock",
+  "securityUnlockKeyring": "Login keyring of the desktop",
   "securityOff": "Off",
   "securitySetPinHint": "Set a PIN when you create or restore a wallet.",
-  "securityDeviceLockNote": "The wallet opens with your fingerprint or the screen lock of your phone. The app has no PIN of its own.",
+  "securityDeviceLockNote": "The wallet opens with your fingerprint or the screen lock of your device. The app has no PIN of its own.",
+  "securityKeyringNote": "The wallet opens with your desktop session: its keys are in the login keyring, which the desktop unlocks when you log in. The app has no PIN of its own.",
   "securityScreen": "Screen",
   "securityBlockScreenshots": "Block screenshots",
   "securityScreenshotsBlocked": "Screens cannot be captured or recorded",
@@ -636,7 +719,7 @@
   "securitySpendUnconfirmedOff": "Off: received funds and change wait for 1 confirmation",
   "securitySpendingSaveFailed": "Could not save the spending setting",
   "updateAvailableTitle": "Update available",
-  "updateCardVersion": "Chatui {version}",
+  "updateCardVersion": "Celaut {version}",
   "@updateCardVersion": {
     "placeholders": {
       "version": {
@@ -644,7 +727,7 @@
       }
     }
   },
-  "updateCardVersionDate": "Chatui {version} · {date}",
+  "updateCardVersionDate": "Celaut {version} · {date}",
   "@updateCardVersionDate": {
     "placeholders": {
       "version": {
@@ -685,7 +768,7 @@
   "updateInstall": "Install",
   "updateTryAgain": "Try again",
   "updateDownloadAndVerify": "Download and verify",
-  "updateAssetNote": "{name} · {size}. Before anything is installed, Chatui checks the file against the checksum GitHub lists and against the key this app is signed with.",
+  "updateAssetNote": "{name} · {size}. Before anything is installed, Celaut checks the file against the checksum GitHub lists and against the key this app is signed with.",
   "@updateAssetNote": {
     "placeholders": {
       "name": {
@@ -697,8 +780,27 @@
     }
   },
   "updateOpenReleasesPage": "Open the releases page",
-  "updateNoApkForPhone": "This release has no APK for your phone.",
-  "updateNoticeAvailable": "Chatui {version} is available.",
+  "updateDownloadDeb": "Download the .deb ({arch})",
+  "@updateDownloadDeb": {
+    "placeholders": {
+      "arch": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDebNote": "{name} · {size}. Your browser downloads it from GitHub. Then install it over this version with the command below, and start Celaut again.",
+  "@updateDebNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "updateNoApkForPhone": "This release has no APK for this device.",
+  "updateNoticeAvailable": "Celaut {version} is available.",
   "@updateNoticeAvailable": {
     "placeholders": {
       "version": {
@@ -727,23 +829,23 @@
   "updateErrorNotUnderstood": "GitHub's answer was not understood.",
   "updateErrorTooLarge": "GitHub's answer was larger than expected.",
   "updateErrorNotOnGithub": "The download address is not on GitHub.",
-  "updateErrorDownloadTooLarge": "The download is larger than Chatui will accept.",
-  "updateErrorStorage": "Chatui could not save the download. Is the phone out of storage?",
+  "updateErrorDownloadTooLarge": "The download is larger than Celaut will accept.",
+  "updateErrorStorage": "Celaut could not save the download. Is the device out of storage?",
   "updateErrorLargerThanListed": "The download is larger than GitHub lists it, so it was stopped.",
   "updateErrorEndedEarly": "The download ended early.",
   "updateRejectedWrongSigner": "This download is not signed by the same key as this app, so it must not be installed. It has been deleted.",
   "updateRejectedChecksum": "This download does not match the SHA-256 checksum GitHub lists for it, so it may be damaged or tampered with. It has been deleted.",
   "updateRejectedUnreadable": "The signing key of this download could not be read, so it was not offered for install. It has been deleted.",
-  "updateRejectedAppKeyUnknown": "Chatui could not read its own signing key, so it cannot check this download. It has been deleted.",
+  "updateRejectedAppKeyUnknown": "Celaut could not read its own signing key, so it cannot check this download. It has been deleted.",
   "updateCheckFailed": "The update check failed.",
-  "updateNoApkSeeReleases": "This release has no APK for your phone. The releases page has the files.",
+  "updateNoApkSeeReleases": "This release has no APK for this device. The releases page has the files.",
   "updateCannotKeepDownload": "This device cannot keep a download.",
   "updateDownloadCancelled": "Download cancelled.",
   "updateDownloadFailed": "The download failed.",
-  "updateInstallPermission": "Android needs your permission first. Allow Chatui to install apps on the next screen, then tap Install again.",
+  "updateInstallPermission": "Android needs your permission first. Allow Celaut to install apps on the next screen, then tap Install again.",
   "updateInstallerFailed": "Android could not open its installer. The releases page has the file.",
   "walletSettingsRemoveTitle": "Remove the wallet?",
-  "walletSettingsRemoveBody": "This removes the wallet from this device. Chatui does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.",
+  "walletSettingsRemoveBody": "This removes the wallet from this device. Celaut does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.",
   "walletSettingsRemoveFailed": "Could not remove wallet",
   "walletSettingsPinIndexTitle": "Pin address index",
   "walletSettingsPinIndexIntro": "Derive the address at this index and use it as the primary address for send and receive. Index 0 resets to the default. The balance still counts every address of the wallet.",
@@ -809,7 +911,7 @@
   "walletSettingsUnlockToChange": "Unlock the wallet to change this setting",
   "walletSettingsPrivacySaveFailed": "Could not update privacy setting",
   "walletSettingsBackup": "Backup",
-  "walletSettingsBackupNote": "Chatui does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.",
+  "walletSettingsBackupNote": "Celaut does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.",
   "walletSettingsRemoveWallet": "Remove wallet",
   "walletSettingsRemoveWalletSubtitle": "From this device only. Keep the recovery phrase.",
   "secureSaveFailed": "Failed to save",
@@ -941,7 +1043,7 @@
       }
     }
   },
-  "coinSelectionNone": "No boxes chosen — Chatui will pick them.",
+  "coinSelectionNone": "No boxes chosen — Celaut will pick them.",
   "coinRawUnits": "{count, plural, =1{{amount} raw unit} other{{amount} raw units}}",
   "@coinRawUnits": {
     "description": "count is 1 for exactly one unit, else 2; amount is the formatted number.",
@@ -1005,7 +1107,7 @@
       }
     }
   },
-  "spendUnconfirmedNote": "Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Chatui spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.",
+  "spendUnconfirmedNote": "Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Celaut spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.",
   "rentNoChargeZeroRate": "No storage rent is charged at the current rate.",
   "rentNoChargeOverflow": "No storage rent can be charged on a box over {bytes} bytes under current rules.",
   "@rentNoChargeOverflow": {
@@ -1336,7 +1438,7 @@
   },
   "tokenBurnTitle": "Burn tokens",
   "tokenBurnForGood": "Burn for good",
-  "tokenBurnDetail": "These units are left out of every output of the transaction and stop existing. Nobody, including Chatui, can bring them back.",
+  "tokenBurnDetail": "These units are left out of every output of the transaction and stop existing. Nobody, including Celaut, can bring them back.",
   "tokenBurnBackToYou": "Back to you",
   "tokenBurnSubmitted": "Token burn submitted",
   "tokenBurnWarning": "Burning destroys tokens permanently. It is not a send: the units leave the chain rather than move to anyone. Use it for tokens you are sure you never want back, such as spam or a supply you mean to cut.",
@@ -1541,7 +1643,7 @@
   "artworkConsent": "Artwork is loaded only with your consent",
   "tokenYouHold": "YOU HOLD",
   "tokenIdCaps": "TOKEN ID",
-  "tokenLeaveFor": "Leave Chatui for {host}?",
+  "tokenLeaveFor": "Leave Celaut for {host}?",
   "@tokenLeaveFor": {
     "placeholders": {
       "host": {
@@ -1695,7 +1797,7 @@
   "discoverUtxosGo": "Open UTXO management",
   "discoverWhatYouCanDo": "WHAT YOU CAN DO",
   "discoverWatchFor": "WATCH FOR",
-  "discoverIntro": "What Chatui can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.",
+  "discoverIntro": "What Celaut can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.",
   "discoverTools": "Tools",
   "discoverRowHint": "What it is, and the way in",
   "navActivity": "Activity",
@@ -1978,7 +2080,7 @@
   "overviewTotalBalance": "Total balance",
   "overviewWalletRowTitle": "Wallet details",
   "overviewPrototypeTitle": "Prototype software",
-  "overviewPrototypeBody": "Chatui is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.",
+  "overviewPrototypeBody": "Celaut is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.",
   "overviewGotIt": "Got it",
   "overviewPrototypeNote": "Unaudited prototype. Use only funds you can afford to lose.",
   "overviewLearnMore": "Learn more",
@@ -2363,6 +2465,7 @@
   "scanTitle": "Scan",
   "scanCameraUnavailable": "Camera is unavailable. Allow camera access and try again.",
   "scanBack": "Back",
+  "scanFromImageNoteLinux": "On this computer the app cannot scan with the camera. Choose an image of the QR code, for example a screenshot or a photo of the code.",
   "txArgusFee": "Argus fee",
   "txLeftWallet": "Left your wallet",
   "txBurned": "Burned",
@@ -2854,7 +2957,7 @@
   },
   "sendReview": "Review",
   "sendChooseInputs": "Choose inputs",
-  "sendAutoInputsNote": "Chatui will pick boxes for you. Choose some to control exactly what this transaction spends.",
+  "sendAutoInputsNote": "Celaut will pick boxes for you. Choose some to control exactly what this transaction spends.",
   "sendShortBy": "Short by {amount} for this amount plus fees.",
   "@sendShortBy": {
     "placeholders": {
@@ -4285,8 +4388,8 @@
   "chatsDelete": "Delete",
   "chatsRename": "Rename",
   "chatsRenameTitle": "Rename",
-  "chatsRenameNote": "Only this phone sees this name. The node does not get it. Leave it empty to remove it.",
-  "chatsRenameNoteOriginal": "Only this phone sees this name. The node does not get it. Leave it empty to show \"{name}\" again.",
+  "chatsRenameNote": "Only this device sees this name. The node does not get it. Leave it empty to remove it.",
+  "chatsRenameNoteOriginal": "Only this device sees this name. The node does not get it. Leave it empty to show \"{name}\" again.",
   "chatsShowStopped": "{count, plural, =1{Show 1 stopped instance} other{Show {count} stopped instances}}",
   "chatsHideStopped": "Hide stopped instances",
   "@chatsShowStopped": {
@@ -4351,11 +4454,11 @@
   "chatsReceiptsNoTunnel": "no tunnel yet",
   "chatsReceiptsCancelled": "none (cancelled)",
   "chatsReceiptsOpen": "open",
-  "chatsReceiptsFaultSent": "The node signed data that does not match what this phone sent",
-  "chatsReceiptsFaultReceived": "The node signed data that does not match what this phone received",
-  "chatsReceiptsFaultEnvs": "The node signed environment variables that this phone did not send",
-  "chatsReceiptsFaultService": "The node signed a different service from the one that this phone started",
-  "chatsReceiptsFaultAmount": "The node signed a different start balance from the one that this phone asked for",
+  "chatsReceiptsFaultSent": "The node signed data that does not match what this device sent",
+  "chatsReceiptsFaultReceived": "The node signed data that does not match what this device received",
+  "chatsReceiptsFaultEnvs": "The node signed environment variables that this device did not send",
+  "chatsReceiptsFaultService": "The node signed a different service from the one that this device started",
+  "chatsReceiptsFaultAmount": "The node signed a different start balance from the one that this device asked for",
   "chatsReceiptsFaultInvalid": "A receipt does not verify",
   "chatsReceiptsFaultOmitted": "The node gave no start receipt, but it gave one before",
   "chatsReceiptsDropped": "Tunnels dropped",
@@ -4369,7 +4472,7 @@
       }
     }
   },
-  "chatsReceiptsNote": "The node signs these receipts. They are evidence against the node. You can give them to other people. A tunnel with no close is not always a fault. For example, this phone or the node can stop the tunnel.",
+  "chatsReceiptsNote": "The node signs these receipts. They are evidence against the node. You can give them to other people. A tunnel with no close is not always a fault. For example, this device or the node can stop the tunnel.",
   "celautErrorNodeClosed": "The node is closed now: its operator accepts new work only at certain hours. Try later or choose another node.",
   "celautErrorNoRoom": "The node has not enough free resources for this service now. Try later or choose another node.",
   "celautErrorServiceMissing": "The node does not have this service. Choose a node that has it.",
@@ -4380,12 +4483,12 @@
   "celautErrorInsufficientCredit": "Your credit on the node is less than the price of the service. Add a deposit on this node or choose another one.",
   "celautErrorLaunchFailed": "The node tried to start the service and could not.",
   "celautRunTitle": "Run a service",
-  "celautRunSearchHint": "Search skills and tags",
-  "celautRunLoading": "Loading skills…",
-  "celautRunEmpty": "No skill matches.",
-  "celautRunCatalogError": "The skill catalog is not available now.",
+  "celautRunSearchHint": "Search objectives and tags",
+  "celautRunLoading": "Loading objectives…",
+  "celautRunEmpty": "No objective matches.",
+  "celautRunCatalogError": "The objective catalog is not available now.",
   "celautRunRetry": "Try again",
-  "celautRunNoServices": "No service has this skill yet.",
+  "celautRunNoServices": "No service has this objective yet.",
   "celautRunButton": "Run",
   "celautRunLaunching": "Launching {name}…",
   "celautRunLaunchingNote": "The app asks the nodes, then starts the service on the best one.",
@@ -4579,7 +4682,7 @@
   },
   "celautSendNoHolder": "No node of your list has this service. You can give it to a node from a .celaut.bee file.",
   "celautSendConfirmTitle": "Send the service?",
-  "celautSendConfirmBody": "The whole service goes through this phone to the node, and a service can be large. The node keeps it, so later launches on that node do not send it again.",
+  "celautSendConfirmBody": "The whole service goes through this device to the node, and a service can be large. The node keeps it, so later launches on that node do not send it again.",
   "celautSendMetered": "You are on mobile data: this can use a lot of it.",
   "celautSendConfirm": "Send",
   "celautSendCancel": "Cancel",
@@ -4704,7 +4807,7 @@
   },
   "celautEnvTitle": "Environment variables",
   "celautEnvRowSubtitle": "Values that a service can get when it starts",
-  "celautEnvIntro": "Named values that you can give to a service when you run it, for example a key. They stay encrypted on this phone. A service only gets the ones that you choose.",
+  "celautEnvIntro": "Named values that you can give to a service when you run it, for example a key. They stay encrypted on this device. A service only gets the ones that you choose.",
   "celautEnvEmpty": "No variables yet.",
   "celautEnvAdd": "Add variable",
   "celautEnvEditTitle": "Edit {name}",
@@ -4781,7 +4884,7 @@
   "celautEnvReviewNote": "The node that starts the service reads these values. A node that refuses the start has read them too.",
   "celautEnvRun": "Run",
   "celautEnvDeclUnreadableTitle": "The service could not be read",
-  "celautEnvDeclUnreadableBody": "The app could not read the interface and the variables of this service, so it cannot tell if Chatui supports it or if it needs variables. Run it anyway, or cancel.",
+  "celautEnvDeclUnreadableBody": "The app could not read the interface and the variables of this service, so it cannot tell if Celaut supports it or if it needs variables. Run it anyway, or cancel.",
   "celautEnvRunWithout": "Run anyway",
   "celautInviteConnected": "Connected by {address}. The node is in your list.",
   "@celautInviteConnected": {
@@ -4799,8 +4902,8 @@
   "serviceInfoLoading": "Reading the service…",
   "serviceInfoReadFailed": "The service could not be read",
   "serviceInfoTruncated": "This service is too large to read from a node, so only what comes first is shown. Load its file to see everything.",
-  "serviceInfoChatSupported": "It follows the chat convention of Chatui, so it opens as a conversation.",
-  "serviceInfoChatUnsupported": "Chatui does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Chatui cannot open a conversation with it.",
+  "serviceInfoChatSupported": "It follows the chat convention of Celaut, so it opens as a conversation.",
+  "serviceInfoChatUnsupported": "Celaut does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Celaut cannot open a conversation with it.",
   "serviceInfoChatUnknown": "The app could not read the interface of this service, so it cannot tell if it works as a conversation.",
   "serviceInfoAbout": "About",
   "serviceInfoNoProse": "The service gives no description.",
@@ -4858,8 +4961,8 @@
       }
     }
   },
-  "celautChatUnsupportedTitle": "Chatui does not support this interface",
-  "celautChatUnsupportedBody": "This service does not follow the chat convention that Chatui uses, so Chatui cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.",
+  "celautChatUnsupportedTitle": "Celaut does not support this interface",
+  "celautChatUnsupportedBody": "This service does not follow the chat convention that Celaut uses, so Celaut cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.",
   "celautChatRunAnyway": "Run anyway",
   "celautChatDetails": "Details",
   "celautRunConfirmDetails": "Service details",
@@ -4876,9 +4979,9 @@
   "walletSummaryLatest": "Latest transactions",
   "walletSummaryNoTransactions": "No transactions yet",
   "chatSelectText": "Select text",
-  "celautRunOnPhone": "On this phone",
+  "celautRunOnPhone": "On this device",
   "celautRunImport": "Import",
-  "celautRunPhoneServices": "Run the services on this phone",
+  "celautRunPhoneServices": "Run the services on this device",
   "celautStoreServices": "{count, plural, =1{1 service} other{{count} services}}",
   "@celautStoreServices": {
     "placeholders": {
@@ -5322,7 +5425,7 @@
   "btcNetSignet": "Signet (test)",
   "btcNetRegtest": "Regtest (local test)",
   "btcMainnetWarnTitle": "Use real bitcoin?",
-  "btcMainnetWarnBody": "On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Chatui is new: use small amounts.",
+  "btcMainnetWarnBody": "On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Celaut is new: use small amounts.",
   "btcMainnetWarnOk": "Use mainnet",
   "btcServerTitle": "Esplora server",
   "btcServerHint": "Empty: {url}",
@@ -5464,8 +5567,8 @@
   },
   "celautEnvShareWarn": "Whoever scans this code gets the value in plain text. Show it only to people you trust.",
   "celautEnvShareWarnSensitive": "This variable is sensitive. Whoever scans this code gets the value in plain text. Show it only to people you trust, and make sure nobody else sees or records your screen.",
-  "celautEnvShareNotSecure": "This phone could not block screenshots of this screen. A screenshot of this code holds the value.",
-  "celautEnvValueNotSecure": "This phone could not block screenshots of this screen. A screenshot shows the value.",
+  "celautEnvShareNotSecure": "This device could not block screenshots of this screen. A screenshot of this code holds the value.",
+  "celautEnvValueNotSecure": "This device could not block screenshots of this screen. A screenshot shows the value.",
   "celautEnvShareTooBig": "This value is too large for a QR code.",
   "celautEnvScan": "Receive by QR",
   "celautEnvAskScan": "Scan a QR code",
@@ -5646,6 +5749,7 @@
   "btcToolBackupBlurb": "The same words as the wallet",
   "btcToolLockBlurb": "Lock the wallet: Ergo and Bitcoin",
   "celautErrorNoDescendants": "This node does not support descendants.",
+  "celautErrorNoSpace": "This device has not enough free space.",
   "celautErrorOnionNeedsTor": "An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.",
   "descendantsTitle": "Descendants",
   "descendantsNote": "Instances that this instance started, and the ones that they started. The app finds them when you check. A check asks the node and costs MU.",
@@ -5775,7 +5879,7 @@
   "descendantsOpenConfirm": "Open and pay",
   "serviceInfoWorkloadsInitial": "First instances that it starts",
   "serviceInfoWorkloadOr": "or",
-  "celautSkillsIntro": "Pick a skill to see the services that do it.",
+  "celautObjectivesIntro": "Pick an objective to see the services that do it.",
   "celautStoreOtherField": "Other",
   "celautStoreShowMore": "Show more ({count})",
   "@celautStoreShowMore": {
@@ -5786,58 +5890,50 @@
     }
   },
   "celautStoreShowFewer": "Show fewer",
-  "celautSkillAbout": "About this skill",
-  "celautSkillField": "Field: {field}",
-  "@celautSkillField": {
-    "placeholders": {
-      "field": {
-        "type": "String"
-      }
-    }
-  },
-  "celautSkillTestBanner": "Most results are tests. Check before you trust them.",
-  "celautSkillRecommended": "Recommended",
-  "celautSkillOtherOptions": "Other options ({count})",
-  "@celautSkillOtherOptions": {
+  "celautObjectiveAbout": "About this objective",
+  "celautObjectiveTestBanner": "Most results are tests. Check before you trust them.",
+  "celautObjectiveRecommended": "Recommended",
+  "celautObjectiveOtherOptions": "Other options ({count})",
+  "@celautObjectiveOtherOptions": {
     "placeholders": {
       "count": {
         "type": "String"
       }
     }
   },
-  "celautSkillRating": "Rating: {level}",
-  "@celautSkillRating": {
+  "celautObjectiveRating": "Rating: {level}",
+  "@celautObjectiveRating": {
     "placeholders": {
       "level": {
         "type": "String"
       }
     }
   },
-  "celautSkillRatingHigh": "High",
-  "celautSkillRatingMedium": "Medium",
-  "celautSkillRatingLow": "Low",
-  "celautSkillRatingExact": "Exact rating: {score} of 1",
-  "@celautSkillRatingExact": {
+  "celautObjectiveRatingHigh": "High",
+  "celautObjectiveRatingMedium": "Medium",
+  "celautObjectiveRatingLow": "Low",
+  "celautObjectiveRatingExact": "Exact rating: {score} of 1",
+  "@celautObjectiveRatingExact": {
     "placeholders": {
       "score": {
         "type": "String"
       }
     }
   },
-  "celautSkillDeclared": "Declared by the publisher",
-  "celautSkillFromResults": "Seen only in test results, not declared by a publisher",
-  "celautSkillUnverified": "Unverified",
-  "celautSkillServiceId": "Service id {id}",
-  "@celautSkillServiceId": {
+  "celautObjectiveDeclared": "Declared by the publisher",
+  "celautObjectiveFromResults": "Seen only in test results, not declared by a publisher",
+  "celautObjectiveUnverified": "Unverified",
+  "celautObjectiveServiceId": "Service id {id}",
+  "@celautObjectiveServiceId": {
     "placeholders": {
       "id": {
         "type": "String"
       }
     }
   },
-  "celautSkillIdCopied": "Service id copied",
-  "celautSkillUse": "Use this service",
-  "celautRunServicesTitle": "Services with this skill",
+  "celautObjectiveIdCopied": "Service id copied",
+  "celautObjectiveUse": "Use this service",
+  "celautRunServicesTitle": "Services with this objective",
   "celautRunBest": "Best",
   "celautRunScore": "Score {score}",
   "@celautRunScore": {
@@ -5877,17 +5973,17 @@
   "celautRunFewerOptions": "Show fewer options",
   "celautRunCategoryAll": "All",
   "celautStoreFeatured": "Featured",
-  "celautStoreFeaturedHint": "One skill of each field, from the publisher with the most reputation",
+  "celautStoreFeaturedHint": "One objective of each field, from the publisher with the most reputation",
   "celautStoreSuggested": "Suggested for you",
-  "celautStoreSuggestedHint": "In the fields of the skills that you ran",
+  "celautStoreSuggestedHint": "In the fields of the objectives that you ran",
   "celautStoreNew": "New",
-  "celautStoreNewHint": "The last skills published on Ergo",
+  "celautStoreNewHint": "The last objectives published on Ergo",
   "celautStorePopular": "Popular",
-  "celautStorePopularHint": "The skills with the most services",
+  "celautStorePopularHint": "The objectives with the most services",
   "celautStoreCategories": "Categories",
-  "celautStoreAll": "All skills",
-  "celautStoreSkills": "{count, plural, =1{1 skill} other{{count} skills}}",
-  "@celautStoreSkills": {
+  "celautStoreAll": "All objectives",
+  "celautStoreObjectives": "{count, plural, =1{1 objective} other{{count} objectives}}",
+  "@celautStoreObjectives": {
     "placeholders": {
       "count": {
         "type": "int"
@@ -6005,7 +6101,7 @@
   "cardsSettingsRowSubtitle": "Reflections, vibration, sounds, transitions, frames, motion gestures",
   "cardsSettingsGroup": "Effects of the cards",
   "cardsSettingsReflections": "Reflections",
-  "cardsSettingsReflectionsSubtitle": "A light on the image that follows the tilt of the phone and your finger",
+  "cardsSettingsReflectionsSubtitle": "A light on the image that follows the tilt of the device and your finger",
   "cardsSettingsReflectionsPointer": "A light on the image that follows your finger",
   "cardsSettingsStrength": "Strength",
   "cardsStrengthLow": "Low",
@@ -6046,7 +6142,7 @@
   "cardsSettingsTestDown": "Detected: a swipe down",
   "cardsSettingsReduceMotion": "\"Remove animations\" is on in the system, so the reflections and the transitions are lower until you choose.",
   "cardsSettingsFollowSystem": "Follow the system",
-  "cardsSettingsNote": "The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the phone.",
+  "cardsSettingsNote": "The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the device.",
   "cardsSettingsTestValue": "Turn: {value} rad/s (a gesture needs {needed})",
   "@cardsSettingsTestValue": {
     "placeholders": {
@@ -6084,7 +6180,7 @@
   "celautNodeShareCopied": "Link copied",
   "celautNodeShareNone": "This app has no address of the node that another device could use, so it cannot make a link.",
   "celautLinkSheetTitle": "Import a service",
-  "celautLinkChooseFile": "Choose a file on this phone",
+  "celautLinkChooseFile": "Choose a file on this device",
   "celautLinkFromLink": "Import from a link",
   "celautLinkFromLinkNote": "A link to a .celaut.bee file, or to a list of the links of its parts. The app checks the file while it downloads it.",
   "celautLinkHint": "https://…/service.celaut.bee",
@@ -6094,7 +6190,7 @@
   "celautLinkClipboardEmpty": "The clipboard has no text.",
   "celautLinkNotALink": "This is not an https:// or http:// link.",
   "celautLinkPendingTitle": "A download stopped",
-  "celautLinkPendingBody": "{bytes} are on this phone. Continue goes on from there.",
+  "celautLinkPendingBody": "{bytes} are on this device. Continue goes on from there.",
   "@celautLinkPendingBody": {
     "placeholders": {
       "bytes": {
@@ -6126,7 +6222,7 @@
     }
   },
   "celautLinkCancelled": "Download cancelled. Its bytes were deleted.",
-  "celautLinkStopped": "The download stopped: {reason}. The bytes that arrived stay on the phone: Continue goes on from there.",
+  "celautLinkStopped": "The download stopped: {reason}. The bytes that arrived stay on this device: Continue goes on from there.",
   "@celautLinkStopped": {
     "placeholders": {
       "reason": {
@@ -6138,6 +6234,28 @@
   "@celautLinkTooLarge": {
     "placeholders": {
       "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkNoSpace": "Not enough free space. The download needs {needed} and this device has {available} free. Free some space, then tap Continue.",
+  "@celautLinkNoSpace": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      },
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "celautLinkNoSpaceRetry": "Not enough free space. The download needs {needed} and this device has {available} free. Free some space, then try again.",
+  "@celautLinkNoSpaceRetry": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      },
+      "available": {
         "type": "String"
       }
     }
@@ -6375,5 +6493,128 @@
     }
   },
   "celautHomeBalancesTitle": "Balance and spending by node",
-  "celautHomeBalancesNote": "The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week."
+  "celautHomeBalancesNote": "The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.",
+  "registrySettingsTitle": "Celaut Registry",
+  "registrySettingsRowSubtitle": "Type ids of the registry",
+  "registrySettingsIntro": "The Celaut Registry keeps its boxes on Ergo. Each kind of box has a type id. The app reads the catalog of objectives with these ids. Registry: https://github.com/celaut-project/registry",
+  "registryTypesGroup": "Type ids",
+  "registryTypeObjective": "Objective type id",
+  "registryTypeBenchmark": "Benchmark type id",
+  "registryTypeCoverage": "Coverage type id",
+  "registryTypeResult": "Result type id",
+  "registryTypeObjectiveHelper": "Empty by default. With no id, the catalog is empty.",
+  "registryTypeInvalid": "Enter 64 hexadecimal characters.",
+  "registryTypeInvalidOrEmpty": "Enter 64 hexadecimal characters, or leave it empty.",
+  "registryRestoreDefault": "Restore default",
+  "registryTypesSaved": "Type ids saved.",
+  "registryNoObjectiveTitle": "No objective type id",
+  "registryNoObjectiveBody": "The catalog has no objectives, because the objective type id is empty. Enter the id in the settings of the Celaut Registry.",
+  "registryOpenSettings": "Open the registry settings",
+  "celautStoreMostBacked": "Most backed",
+  "celautStoreRank": "Number {rank}",
+  "@celautStoreRank": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "celautStoreRunObjective": "Run {name}",
+  "@celautStoreRunObjective": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "celautStoreOpenHint": "Opens the page of the objective",
+  "celautStoreTopObjectives": "Top objectives",
+  "celautStoreMoreFields": "More fields",
+  "celautStoreByField": "By field",
+  "celautStoreCatalogEmpty": "The catalog has no objectives yet.",
+  "celautObjectiveRunService": "{action} this service (rating: {rating})",
+  "@celautObjectiveRunService": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
+  "celautObjectiveStatRank": "Rank",
+  "celautObjectiveStatRankNote": "most backed",
+  "celautObjectiveStatServices": "Services",
+  "celautObjectiveStatServicesNote": "declared",
+  "celautObjectiveStatBacking": "Backing",
+  "celautObjectiveStatBackingNote": "of the publisher",
+  "celautObjectiveStatBlock": "Block",
+  "celautObjectiveStatBlockNote": "published",
+  "celautObjectiveMore": "more",
+  "celautObjectiveLess": "less",
+  "celautObjectiveServicesLoading": "Loading the services…",
+  "presetPin": "Pin as preset",
+  "presetPinNote": "Start a new instance of this service with the same settings from the ✏ button of Chats.",
+  "presetPinBody": "The ✏ button of Chats will show it on a wheel. One tap starts a new instance of this service with the same variables. You still see the cost and confirm it before it starts.",
+  "presetPinUnknown": "This device does not know the variables that this instance was started with (it started on an earlier version of the app, or on another device): the launch asks for them.",
+  "presetPinAsks": "{count, plural, =1{One secret value was typed and not saved, so the preset does not keep it: the launch asks for it each time.} other{{count} secret values were typed and not saved, so the preset does not keep them: the launch asks for them each time.}}",
+  "@presetPinAsks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "presetPinAction": "Pin",
+  "presetPinnedDone": "Pinned. Hold or tap the ✏ button of Chats to start it.",
+  "presetPinned": "Pinned to the ✏ button as \"{name}\"",
+  "@presetPinned": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetUnpin": "Unpin",
+  "presetFull": "The wheel holds {max} presets. Remove one first: long-press it on the wheel.",
+  "@presetFull": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "presetNameLabel": "Name on the wheel",
+  "presetRemove": "Remove from the wheel",
+  "presetRemoved": "\"{name}\" removed from the wheel",
+  "@presetRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetWheelHint": "Opens your presets. Slide to one and let go to start it.",
+  "presetWheelObjectives": "Objectives",
+  "presetWheelObjectivesLabel": "Objectives: choose a new service",
+  "presetWheelStart": "Start {name}",
+  "@presetWheelStart": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "presetWheelEditHint": "Rename or remove",
+  "iosLimitsTitle": "On iPhone, the app works only while it is open",
+  "iosLimitsConversations": "Conversations do not stay connected when the app is in the background or closed. Your messages wait on the node, and the app syncs them when you open it.",
+  "iosLimitsNotifications": "No notification arrives for a new message while the app is suspended.",
+  "iosLimitsTopUp": "Automatic top-up (Keep running) does not always work. It runs only while the app runs, and iOS stops it when the app is suspended or closed. When the balance of an instance runs out, the node stops the instance.",
+  "iosLimitsOk": "I understand",
+  "celautKeepLinuxNote": "On this computer, automatic top-up works only while Celaut is open and the computer is awake. If you close the app or the computer sleeps, nothing is added, and the node stops the instance when its balance runs out.",
+  "celautKeepMacNote": "On a Mac, automatic top-up works only while Celaut is open and the Mac is awake. If you quit the app (⌘Q) or the Mac sleeps, nothing is added, and the node stops the instance when its balance runs out.",
+  "scanFromImageNote": "On a Mac the app cannot scan with the camera. Choose an image of the QR code, for example a screenshot (⇧⌘4).",
+  "scanChooseImage": "Choose an image",
+  "scanNoCodeInImage": "No QR code was found in this image."
 }

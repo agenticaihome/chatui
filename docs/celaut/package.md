@@ -16,7 +16,7 @@ app then:
 
 1. **reads** it: Android copies the file with a stream into `<private dir>/packages/incoming`
    (not the cache: Android clears the cache when the storage is low, also in the middle of
-   a copy of 1.45 GB), and tells the bytes copied (`copied` on the channel `org.celaut.chatui/package`). The card says
+   a copy of 1.45 GB), and tells the bytes copied (`copied` on the channel `org.celaut.superapp/package`). The card says
    "Reading the service file…" with these bytes; Cancel stops the copy and deletes it. A
    file that the app cannot read is refused with the reason;
 2. checks it: the file must be a package of a service, with a Service part, and it must say
@@ -50,7 +50,7 @@ the permission to read it, to `MainActivity` in the task of the app. A file mana
 the activity of its intent in its own task, so without this step a second `MainActivity`,
 with a second Flutter engine, started there while the app ran. The file goes to Flutter on
 the channel
-`org.celaut.chatui/incoming` (`IncomingPackageHandler`): `takeIncoming` gives the file that
+`org.celaut.superapp/incoming` (`IncomingPackageHandler`): `takeIncoming` gives the file that
 launched the app, and `incoming` the files that come while the app runs, in front or in the
 background. Android forgets the file only when Flutter answered, and an intent that it gives
 again from the recent apps, or after it saved the state of the activity, is not imported a
@@ -78,7 +78,7 @@ Other ways in, all to the same import:
 - `celaut://import?url=<the link, URL-encoded>`: a web page, a QR code of another app, or
   the camera app opens it (`OpenLinkActivity`, BROWSABLE). It is the `celaut://` scheme of
   the node links (#138, [invite.md](invite.md)), with the host `import`;
-- an `http(s)` link whose path ends with `.celaut.bee`, when an app offers Chatui for it
+- an `http(s)` link whose path ends with `.celaut.bee`, when an app offers Celaut for it
   (`OpenPackageActivity`; no domain is verified, so Android 12+ opens such a link in the
   browser by itself);
 - a QR code that holds the link or the `celaut://import` link (the scan button of the
@@ -152,6 +152,32 @@ the one before, and the sheet has "Delete".
 
 **Size limit.** 4 GiB. A file that the server says is larger stops before a byte is written;
 a manifest stops when its chunks pass the limit. Its bytes are deleted.
+
+**Free space** (issue #151). A download leaves 256 MiB free on the phone
+(`LinkOptions::min_free`), so that the phone keeps working. The app reads the space that it
+can use with `statvfs` (`f_bavail × f_frsize`) on the folder of the downloads; the library is
+on the same disk, so the file is renamed into it, not copied. The 4 GiB limit is checked
+first, and its message does not change. The download checks that what it still writes, plus
+the 256 MiB, fits:
+
+| When | What it still writes |
+|---|---|
+| The answer says its size (a file) | The size, less the bytes on disk when it goes on |
+| A chunk of a manifest starts | The size of that chunk |
+| Without the filesystem, or no `Content-Length` | Not known: only the 256 MiB, at the start |
+| Every 64 MiB that arrive | The same again: another app can fill the phone |
+
+- **Before the first byte**, a file that does not fit is refused, and nothing is kept: "Not
+  enough free space. The download needs {needed} and the phone has {available} free. Free
+  some space, then try again." *needed* counts the 256 MiB.
+- **During the download** (a chunk, a check every 64 MiB, or a write to a full disk), the
+  download stops and **keeps** its bytes, like a download that lost the network: "…Free some
+  space, then tap Continue." Continue goes on from there and checks again.
+- An unknown size alone is not refused.
+- If the rename into the library ever fell back to a copy (another disk), the copy needs the
+  size of the file again, plus the 256 MiB; it is refused without them.
+
+The FFI error is `noSpace`; its message is `"<needed> <available>"` in bytes.
 
 "Your services" lists the loaded files with Run and Remove. Run launches the service by
 its id, like a service of the catalog. If no node has it, the failure sheet offers to send
@@ -261,7 +287,7 @@ also shows its own size.
 2. **A `.celaut.bee` file** that `nodo export` wrote. It has the Metadata at index 1 and
    the Service at index 2; the app gives them the indices 5 and 6.
 
-The skill catalog does not give a source for a package today (`docs/celaut/catalog.md`).
+The objective catalog does not give a source for a package today (`docs/celaut/catalog.md`).
 
 ## How it moves
 

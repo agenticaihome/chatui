@@ -8,7 +8,7 @@ use celaut_client::deposit::{
     NODO_DEFAULT_EXPLORER,
 };
 use celaut_client::{ClientError, MemoryPeerStore, NodeSession};
-use celaut_proto::celaut::contract::Ledger;
+use celaut_proto::celaut::contract::{Ledger, Protocol};
 use celaut_proto::celaut::{
     Amount, BytesKeyValue, Client, Contract, ContractRate, Payment, Peer, TokenMessage,
 };
@@ -58,7 +58,6 @@ fn kv(key: &str, value: &[u8]) -> BytesKeyValue {
 
 fn contract(tag: &str, token_id: &str, formal: Vec<u8>, script: Option<&[u8]>) -> Contract {
     let mut xattrs = vec![
-        kv("contract_type", b"proveDlog(decodePoint())"),
         kv("token_id", token_id.as_bytes()),
     ];
     if let Some(s) = script {
@@ -69,6 +68,11 @@ fn contract(tag: &str, token_id: &str, formal: Vec<u8>, script: Option<&[u8]>) -
             tags: vec![tag.into()],
             prose: "Ergo mainnet.".into(),
             formal,
+        }),
+        protocol: Some(Protocol {
+            tags: vec!["ergo-p2pk".into()],
+            prose: "Pay to a public key.".into(),
+            formal: b"payment.kind=p2pk: proveDlog(decodePoint())".to_vec(),
         }),
         xattrs,
     }
@@ -389,4 +393,18 @@ async fn a_refused_payment_is_an_error() {
         s.payable(&payment).await,
         Err(ClientError::Wire(WireError::Call(_)))
     ));
+}
+
+#[test]
+fn the_binding_of_the_protocol_is_checked() {
+    // nodo puts payment.deposit_token in the formal of the protocol.
+    let mut bad = erg_contract();
+    bad.protocol.as_mut().unwrap().formal = b"payment.deposit_token=R5 of that box".to_vec();
+    assert!(matches!(
+        ErgPayment::of(&peer_with(vec![rate(bad, "1")])).unwrap_err(),
+        DepositError::UnknownBinding(_)
+    ));
+    let mut good = erg_contract();
+    good.protocol.as_mut().unwrap().formal = format!("payment.deposit_token={R4_BINDING}").into_bytes();
+    assert!(ErgPayment::of(&peer_with(vec![rate(good, "1")])).is_ok());
 }

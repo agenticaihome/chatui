@@ -22,9 +22,12 @@ class NotificationService {
     if (_ready) return;
     try {
       await _plugin.initialize(
-        settings: const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-          iOS: DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
+        settings: InitializationSettings(
+          android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
+          iOS: const DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
+          macOS: const DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
+          // The notification server of the desktop, over D-Bus; the icon is the one of the .deb.
+          linux: LinuxInitializationSettings(defaultActionName: 'Open', defaultIcon: ThemeLinuxIcon('org.celaut.superapp')),
         ),
         // A tap while the app runs: the payload names the screen.
         onDidReceiveNotificationResponse: (response) => _openTap(response.payload),
@@ -56,7 +59,8 @@ class NotificationService {
     deepLinkController.push('argus://$payload');
   }
 
-  /// Asks once per launch, after the wallet is unlocked (Android 13+).
+  /// Asks once per launch, after the wallet is unlocked (Android 13+, iOS, macOS). On iOS the
+  /// notifications come only while the app runs: iOS suspends it in the background.
   Future<void> requestPermission() async {
     if (!_ready || _permissionAsked) return;
     _permissionAsked = true;
@@ -64,6 +68,12 @@ class NotificationService {
       await _plugin
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.requestNotificationsPermission();
+      await _plugin
+          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, sound: true);
+      await _plugin
+          .resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, sound: true);
     } catch (_) {}
   }
 

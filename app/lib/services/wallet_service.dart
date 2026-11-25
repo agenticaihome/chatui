@@ -14,6 +14,7 @@ import '../bridge/frb_generated.dart';
 import '../l10n/l10n.dart';
 import 'network_controller.dart';
 import 'privacy_service.dart';
+import 'rust_library.dart';
 import 'token_decimals.dart';
 import 'token_descriptor_store.dart';
 import 'token_evidence.dart';
@@ -958,7 +959,7 @@ class WalletService with WidgetsBindingObserver {
   Future<void> init() async {
     if (_initialized) return;
     await Future.wait([
-      RustLib.init(),
+      initRustLib(),
       loadTokenMeta(),
     ]);
     // The unconfirmed-spending setting, which every spend's input gathering

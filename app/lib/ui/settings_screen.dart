@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../bitcoin/bitcoin_settings.dart';
 import '../celaut/auto_top_up.dart';
+import '../celaut/catalog_types.dart';
 import '../celaut/celaut_strings.dart';
 import '../celaut/compute_home_flag.dart';
 import '../celaut/deposit_strings.dart';
@@ -9,6 +10,7 @@ import '../celaut/network_strings.dart';
 import '../celaut/service_strings.dart';
 import '../l10n/l10n.dart';
 import '../services/contacts_service.dart';
+import '../services/linux_app.dart';
 import '../services/network_controller.dart';
 import '../services/wallet_service.dart';
 import '../theme/argus_theme.dart';
@@ -34,6 +36,7 @@ import 'settings/chat_settings_page.dart';
 import 'settings/display_settings_page.dart';
 import 'settings/network_settings_page.dart';
 import 'settings/preview_settings_page.dart';
+import 'settings/registry_settings_page.dart';
 import 'settings/security_settings_page.dart';
 import 'settings/settings_shared.dart';
 import 'settings/update_notice.dart';
@@ -45,7 +48,8 @@ import 'widgets/soft_card.dart';
 /// - Ergo: the wallet, the Ergo network (nodes and explorer), the address book and the
 ///   remote previews;
 /// - Compute: the Celaut nodes, the credit on them, the automatic top-up, Tor, the
-///   environment variables, and the tools that check a node or run a service by its id;
+///   environment variables, the type ids of the Celaut Registry, and the tools that check a node
+///   or run a service by its id;
 /// - General: security and auto-lock, display, the first screen, and About.
 ///
 /// The app holds one wallet, with no name. Creating and restoring it live on the
@@ -265,6 +269,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle: CelautStrings.nodeRowSubtitle,
           onTap: () => _open(const NodeConnectScreen()),
         ),
+        ListenableBuilder(
+          listenable: catalogTypes,
+          builder: (context, _) => SettingsRow(
+            key: const Key('settings-registry'),
+            icon: Icons.fact_check_outlined,
+            title: t.registrySettingsTitle,
+            subtitle: catalogTypes.hasObjective ? t.registrySettingsRowSubtitle : t.registryNoObjectiveTitle,
+            onTap: () => _open(const RegistrySettingsPage()),
+          ),
+        ),
         SettingsRow(
           key: const Key('settings-service'),
           icon: Icons.play_circle_outline,
@@ -286,7 +300,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           key: const Key('settings-security'),
           icon: Icons.lock_outline,
           title: t.securityTitle,
-          subtitle: current != null ? t.settingsSecurityWalletSubtitle : t.settingsSecurityAppSubtitle,
+          subtitle: current != null
+              ? t.settingsSecurityWalletSubtitle
+              : (isLinuxApp ? t.settingsSecurityAppSubtitleLinux : t.settingsSecurityAppSubtitle),
           onTap: () => _open(
             current != null ? SecuritySettingsPage(walletId: current.walletId) : const SecuritySettingsPage(),
           ),

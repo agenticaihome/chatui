@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The package of a Celaut service (docs/celaut/package.md). -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-celaut-bee">
+    <comment>Celaut service</comment>
+    <glob pattern="*.celaut.bee"/>
+  </mime-type>
+</mime-info>

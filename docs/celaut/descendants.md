@@ -82,23 +82,18 @@ New fields of `BalanceStatement`:
 
 ### 4.1 The digest
 
-The digest is the blake2b-256 hex of the UTF-8 of this text (`statement_digest`). All
-the fields but `signature` are in it. `hex(x)` is the lowercase hex of the UTF-8 bytes of
-the text `x`. Numbers are decimal.
+The digest is the blake2b-256 hex of the UTF-8 of this text (`statement_digest` in
+`nodo:src/identity/statement_signature.py`). All the fields but `signature` are in it, in the
+order of their numbers in `celaut.proto`, joined by `|` with no spaces. `hex(x)` is the
+lowercase hex of the UTF-8 bytes of the text `x`. Numbers are decimal. A part with no value
+is empty.
 
-    account_ref | from_seq | to_seq | ts | retention_days | oldest_seq | head_seq
-      | head_hash | hex(balance.n) | hash(m1)/hash(m2)/.../hash(mN)
+    ts | relayed (1 or 0) | account_ref | hex(service_id) | hex(instance_ref)
+      | from_seq | to_seq | hash(m1)/hash(m2)/.../hash(mN) | hex(balance.n)
+      | head_seq | head_hash | oldest_seq | retention_days
 
-The separator `|` has no spaces around it (the spaces above are for reading). The movement
-hashes are joined with `/`. For a statement with no movement, the last part is empty.
-Then the optional parts follow, in this order:
-
-1. If `service_id` is not empty: `|service_id:` and `hex(service_id)`.
-2. If `instance_ref` is not empty: `|instance_ref:` and `hex(instance_ref)`.
-3. If `relayed` is true: `|relayed`.
-
-A field that is empty or false adds nothing. So the digest of an old statement does not
-change. The digest does not cover the rows by their fields. It covers the hash of each row
+The movement hashes are joined with `/`. For a statement with no movement, that part is
+empty. The digest does not cover the rows by their fields. It covers the hash of each row
 (section 5).
 
 ### 4.2 The signature
@@ -248,7 +243,7 @@ on each leg. A node gives one hop less to the next node, so a stream has at most
 
     max_mu_per_stream = remaining_hops * tunnel_open_mu
 
-`tunnel_open_mu` is in the `mu_per_call` of the `Peer` (default 10 000 MU). The app does not
+`tunnel_open_mu` is in the `rates` of the `Peer` (default 10 000 MU). The app does not
 open the port if the node gives no rate. The app always sets `remaining_hops` (2 by
 default, 4 at most). The quote does not cover the traffic (`net_mu_per_gib`).
 
@@ -278,7 +273,7 @@ returns (`statement_price_mu`):
     price(rows) = statement_query_mu + statement_row_mu * rows
 
 The defaults are 100 MU and 1 MU (`docs/PRICING.md`). An operator can change them. The
-node advertises them in the `mu_per_call` of its `Peer`, as the rates `statement_query_mu`
+node advertises them in the `rates` of its `Peer`, as the rates `statement_query_mu`
 and `statement_row_mu`.
 
 - A read of a local descendant writes one `statement_query` movement on the account of the
@@ -375,10 +370,10 @@ The statement has `from_seq` 1, `to_seq` 4, `ts` 1700001001, `retention_days` 0,
 
 | Optional fields | Digest |
 |---|---|
-| none | `1fe4d386b30d8a32a6728b8e838d0adbaf90c9a83b95543ac6f7b6815591ead4` |
-| `service_id` = `S` and `instance_ref` = the child | `ba57e06097700132860ca253f405a2436a45642bbdae479cff2a8ecf8f258d30` |
-| the two above and `relayed` | `2cc1dce4e4304f8902c3a2c03492ce357dcb77be34a184bca665f1dfc1b7f351` |
-| only `relayed` | `33a235c568d0c346910a0e7044dea9733563e2ce561908eca84e90c3abddb9bb` |
+| none | `b6cb0651bed3d9e471d9d64346279cda0998dfb4cdcc5c0f8e154846c8a5d664` |
+| `service_id` = `S` and `instance_ref` = the child | `9e48c48a03950b171a30940eac8228a391563d5272a756346a57e481f4844ba6` |
+| the two above and `relayed` | `b6b240f4aede63ba6ee4db24c118924f6be1a02d0ab7762798c39d20b69bec33` |
+| only `relayed` | `2e75ca4021c3dec67a117d62611763531a7b15fb96acb07d6326f83a9928f24e` |
 
 The signature test uses an Ed25519 key with the seed `00 01 02 ... 1f` (bytes 0 to 31).
 Its public key (the `peer_id`) is:
@@ -387,23 +382,21 @@ Its public key (the `peer_id`) is:
 
 The signed text, for the second row of the table, is:
 
-    celaut-balance-statement:03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8|ba57e06097700132860ca253f405a2436a45642bbdae479cff2a8ecf8f258d30
+    celaut-balance-statement:03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8|9e48c48a03950b171a30940eac8228a391563d5272a756346a57e481f4844ba6
 
 The signature is:
 
-    a7af781d441f40e2ef248a39958d7bd1c363c934c1dcb254350060a8850c0906c374dfa991e833cf7d44159b1ee7be0c1b982a0291d8bd46779bd68efc77de0d
+    c20070cdc7e03714d7b8f084a6b4f9ef67095856559cdf2612c059cd88944edd9b5a49adb97a91ad7c2241f184272edcdb316413318dc6b3b471b7495cc4b703
 
 The execution name for a `DescendantTunnel` with the child above and that `peer_id`:
 
     f4ddd19cef1fc8bc22992a1e64f3098c7499d3dcfa931b0c9de925d5a2243b91
 
-Note on the method. The harness did not allow a run of the nodo Python code itself (the
-run was refused in two sessions). The vectors come from a separate script that follows
-`ledger.py`, `balance_statement.py` and `node_identity.py` line by line, and uses only
-`hashlib` and `cryptography`. A review of the code recomputed the `instance_ref`, the
-`account_ref`, the genesis hash, the four movement hashes and the first two digests with an
-own script of `hashlib`, and the values were the same. The Ed25519 signature and the digest
-with only `relayed` were not recomputed. The nodo code was not run on these values.
+Note on the method. The digests and the signature above (and the instance_ref, account_ref,
+genesis hash, movement hashes and execution name) were made with the Python code of nodo
+(working tree of 2026-11-24, `celaut.proto` sha256 4c48c295), and the Rust tests check them.
+`rust/crates/celaut-wire/tests/vectors/generate.py` makes more vectors (statements, receipts,
+offers and reputation proofs) with the nodo code, and `tests/nodo_vectors.rs` checks them.
 
 The first movement of these vectors does not start from 0 (its `amount` is not its
 `balance_after`), so the chain check refuses it. The vectors are for the hash, digest and

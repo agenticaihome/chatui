@@ -13,6 +13,7 @@ import 'package:argus_wallet/celaut/launcher.dart';
 import 'package:argus_wallet/celaut/package_channel.dart';
 import 'package:argus_wallet/celaut/package_library.dart';
 import 'package:argus_wallet/celaut/payers.dart';
+import 'package:argus_wallet/celaut/service_presets.dart';
 import 'package:argus_wallet/celaut/stopped_filter.dart';
 import 'package:argus_wallet/celaut/wallet_money.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
@@ -205,6 +206,8 @@ void main() {
   late int computeLoads;
   late List<String> named;
   late List<String> launched;
+  late ServicePresets presets;
+  late int presetDone;
   // Most tests show the stopped instances; the group "the filter of stopped instances"
   // checks the default, which hides them.
   late StoppedFilter filter;
@@ -222,6 +225,8 @@ void main() {
     computeLoads = 0;
     named = [];
     launched = [];
+    presets = ServicePresets();
+    presetDone = 0;
     filter = StoppedFilter();
     await filter.set(false);
   });
@@ -246,19 +251,20 @@ void main() {
         ),
       );
 
-  /// The picker of a new conversation, with the catalog and the launch in memory.
-  Widget picker(String title, StartedCall onStarted) => RunServiceScreen(
-        title: title,
-        section: RunServiceSection(
+  /// The section of the picker: the catalog and the launch in memory.
+  RunServiceSection section(StartedCall onStarted, {ServicePreset? preset, VoidCallback? done}) => RunServiceSection(
           showTitle: false,
+          preset: preset,
+          presets: presets,
+          onPresetDone: done,
           wallets: _Wallets(),
           onStarted: onStarted,
           nameInstance: (id, name) => named.add('$id $name'),
-          loadSkills: () async => const [
-            SkillView(boxId: 'skill-echo', name: 'Echo chat', prose: 'Says it back.', tags: [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0),
+          loadObjectives: () async => const [
+            ObjectiveView(boxId: 'objective-echo', name: 'Echo chat', prose: 'Says it back.', tags: [], domain: '', height: 0, serviceIds: const [], publisherReputation: 0),
           ],
           loadServices: (_) async =>
-              [SkillServiceView(serviceId: _echoId, score: 0.9, direct: true)],
+              [ObjectiveServiceView(serviceId: _echoId, score: 0.9, direct: true)],
           previewQuote: (_) async => null,
           library: PackageLibrary(
             importPackage: (path, name, dir) async => throw UnimplementedError(),
@@ -298,8 +304,20 @@ void main() {
               skipped: const [],
             );
           },
-        ),
+        );
+
+  /// The picker of a new conversation, with the catalog and the launch in memory.
+  Widget picker(String title, StartedCall onStarted) => RunServiceScreen(
+        title: title,
+        section: section(onStarted),
       );
+
+  /// The launch of a preset of the wheel, with the same calls in memory.
+  Widget presetPage(ServicePreset preset, StartedCall onStarted, VoidCallback done) =>
+      section(onStarted, preset: preset, done: () {
+        presetDone++;
+        done();
+      });
 
   /// Stop is not in the actions of the list: open the info page and stop from there.
   Future<void> stopFromInfo(WidgetTester tester) async {
@@ -337,6 +355,8 @@ void main() {
           wallets: _Wallets(full: full),
           list: (key, empty) => list(key, empty, full: full),
           runPage: picker,
+          presets: presets,
+          presetPage: presetPage,
           loadCompute: () async {
             computeLoads++;
             return _noNodes();
@@ -376,7 +396,7 @@ void main() {
       await tester.tap(find.byKey(const Key('chats-empty-new')));
       await tester.pumpAndSettle();
       expect(find.text(appL10n.chatsNewTitle), findsOneWidget);
-      expect(find.byKey(const Key('run-skill-skill-echo')), findsOneWidget);
+      expect(find.byKey(const Key('run-objective-objective-echo')), findsOneWidget);
     });
 
     testWidgets('a row has the robot, the name, the cost, the preview, the state and the node', (
@@ -721,7 +741,7 @@ void main() {
       await tester.tap(find.byKey(const Key('rename-cancel')));
       await tester.pumpAndSettle();
       expect(node.renamed, ['i1 My echo']);
-      // Empty: the name of the skill again.
+      // Empty: the name of the objective again.
       await tester.longPress(find.byKey(const Key('chats-row-i1')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('chats-action-rename')));
@@ -1122,16 +1142,16 @@ void main() {
       await tester.tap(find.byKey(const Key('chats-new')));
       await tester.pumpAndSettle();
       expect(find.text(appL10n.chatsNewTitle), findsOneWidget);
-      await tester.tap(find.byKey(const Key('run-skill-skill-echo')));
+      await tester.tap(find.byKey(const Key('run-objective-objective-echo')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('skill-sheet-run')));
+      await tester.tap(find.byKey(const Key('objective-detail-run')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('run-confirm')), findsOneWidget);
       await tester.tap(find.byKey(Key(confirm ? 'run-confirm-ok' : 'run-confirm-cancel')));
       await tester.pumpAndSettle();
     }
 
-    testWidgets('the pencil, a skill, the confirmation, then the conversation that starts', (
+    testWidgets('the pencil, an objective, the confirmation, then the conversation that starts', (
       tester,
     ) async {
       await open(tester);
@@ -1297,6 +1317,213 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Mostrar 1 instancia detenida'), findsOneWidget);
+    });
+  });
+
+  group('the wheel of presets on the pencil', () {
+    /// Pin the instance 'old-1' of the echo service, started with no variable.
+    Future<ServicePreset> pinEcho({String name = 'Echo ES'}) async {
+      await presets.recordLaunch('old-1', const []);
+      return (await presets.pin(instanceId: 'old-1', serviceId: _echoId, name: name))!;
+    }
+
+    Future<void> openWheel(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('chats-new')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('preset-wheel')), findsOneWidget);
+    }
+
+    testWidgets('with no preset the pencil opens the objectives at once, as before', (tester) async {
+      await open(tester);
+      await tester.tap(find.byKey(const Key('chats-new')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('preset-wheel')), findsNothing);
+      expect(find.text(appL10n.chatsNewTitle), findsOneWidget);
+    });
+
+    testWidgets('with presets a tap opens the wheel: Objectives opens the objectives', (tester) async {
+      final p = await pinEcho();
+      await open(tester);
+      await openWheel(tester);
+      expect(find.byKey(const Key('preset-slot-objectives')), findsOneWidget);
+      expect(find.byKey(Key('preset-slot-${p.id}')), findsOneWidget);
+      expect(find.text('Echo ES'), findsOneWidget);
+      // The slots are over the list, up and to the left of the pencil.
+      final pencil = tester.getCenter(find.byKey(const Key('preset-wheel-close')));
+      final slot = tester.getCenter(find.byKey(Key('preset-slot-${p.id}')));
+      expect(slot.dy, lessThan(pencil.dy));
+      await tester.tap(find.byKey(const Key('preset-slot-objectives')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('preset-wheel')), findsNothing);
+      expect(find.text(appL10n.chatsNewTitle), findsOneWidget);
+    });
+
+    testWidgets('Close, a tap outside and Back close the wheel', (tester) async {
+      await pinEcho();
+      await open(tester);
+      await openWheel(tester);
+      await tester.tap(find.byKey(const Key('preset-wheel-close')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('preset-wheel')), findsNothing);
+      await openWheel(tester);
+      await tester.tapAt(const Offset(40, 120));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('preset-wheel')), findsNothing);
+      await openWheel(tester);
+      // Back of the system.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('preset-wheel')), findsNothing);
+      expect(launched, isEmpty);
+    });
+
+    testWidgets('a preset starts a new instance by the confirmation with the cost, then its conversation', (
+      tester,
+    ) async {
+      final p = await pinEcho();
+      await open(tester);
+      await openWheel(tester);
+      await tester.tap(find.byKey(Key('preset-slot-${p.id}')));
+      await tester.pumpAndSettle();
+      // The payment is confirmed as for any start, with the name of the preset.
+      expect(find.byKey(const Key('run-confirm')), findsOneWidget);
+      expect(launched, isEmpty);
+      await tester.tap(find.byKey(const Key('run-confirm-ok')));
+      await tester.pumpAndSettle();
+      expect(launched, [_echoId]);
+      expect(named, ['new-1 Echo ES']);
+      // The new instance has the name of the preset.
+      expect(find.text('chat new-1 Echo ES 4321 starting'), findsOneWidget);
+      // Back from the conversation is the list: the page of the launch is gone.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('run-preset')), findsNothing);
+      expect(find.byKey(const Key('chats-row-new-1')), findsOneWidget);
+    });
+
+    testWidgets('Cancel in the confirmation starts nothing and leaves the list usable', (tester) async {
+      final p = await pinEcho();
+      await open(tester);
+      await openWheel(tester);
+      await tester.tap(find.byKey(Key('preset-slot-${p.id}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('run-confirm-cancel')));
+      await tester.pumpAndSettle();
+      expect(launched, isEmpty);
+      expect(presetDone, 1);
+      expect(find.byKey(const Key('run-preset')), findsNothing);
+      // The pencil answers again.
+      await openWheel(tester);
+    });
+
+    testWidgets('press, slide to a preset and let go: it starts, with the confirmation', (tester) async {
+      final p = await pinEcho();
+      await open(tester);
+      final pencil = tester.getCenter(find.byKey(const Key('chats-new')));
+      final gesture = await tester.startGesture(pencil);
+      await gesture.moveBy(const Offset(-30, -30));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byKey(const Key('preset-wheel')), findsOneWidget);
+      final slot = tester.getCenter(find.byKey(Key('preset-slot-${p.id}')));
+      await gesture.moveTo(slot - const Offset(0, 8));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('preset-wheel')), findsNothing);
+      expect(find.byKey(const Key('run-confirm')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('run-confirm-ok')));
+      await tester.pumpAndSettle();
+      expect(launched, [_echoId]);
+    });
+
+    testWidgets('a slide that ends on nothing closes the wheel; a long press keeps it open', (tester) async {
+      await pinEcho();
+      await open(tester);
+      final pencil = tester.getCenter(find.byKey(const Key('chats-new')));
+      var gesture = await tester.startGesture(pencil);
+      await gesture.moveBy(const Offset(-30, -30));
+      await tester.pump(const Duration(milliseconds: 300));
+      await gesture.moveTo(const Offset(30, 100));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('preset-wheel')), findsNothing);
+      expect(launched, isEmpty);
+      gesture = await tester.startGesture(pencil);
+      await tester.pump(const Duration(milliseconds: 700));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('preset-wheel')), findsOneWidget);
+      expect(find.byKey(const Key('run-confirm')), findsNothing);
+    });
+
+    testWidgets('a long press on a preset renames or removes it', (tester) async {
+      final p = await pinEcho();
+      await open(tester);
+      await openWheel(tester);
+      await tester.longPress(find.byKey(Key('preset-slot-${p.id}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('preset-edit-rename')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('preset-name-field')), '  Echo   night ');
+      await tester.tap(find.byKey(const Key('preset-name-ok')));
+      await tester.pumpAndSettle();
+      expect(presets.presets.single.name, 'Echo night');
+      await openWheel(tester);
+      expect(find.text('Echo night'), findsOneWidget);
+      await tester.longPress(find.byKey(Key('preset-slot-${p.id}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('preset-edit-remove')));
+      await tester.pumpAndSettle();
+      expect(presets.presets, isEmpty);
+      expect(find.text(appL10n.presetRemoved('Echo night')), findsOneWidget);
+      // No preset: the pencil is the pencil of before.
+      await tester.tap(find.byKey(const Key('chats-new')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('preset-wheel')), findsNothing);
+      expect(find.text(appL10n.chatsNewTitle), findsOneWidget);
+    });
+
+    testWidgets('the slots are buttons for a screen reader, without a slide', (tester) async {
+      final handle = tester.ensureSemantics();
+      final p = await pinEcho();
+      await open(tester);
+      expect(
+        tester.getSemantics(find.byKey(const Key('chats-new'))),
+        isSemantics(label: appL10n.chatsNewTitle, hint: appL10n.presetWheelHint, isButton: true, hasTapAction: true),
+      );
+      await openWheel(tester);
+      expect(
+        tester.getSemantics(find.byKey(Key('preset-slot-${p.id}'))),
+        isSemantics(
+          label: appL10n.presetWheelStart('Echo ES'),
+          isButton: true,
+          hasTapAction: true,
+          hasLongPressAction: true,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.byKey(const Key('preset-slot-objectives'))),
+        isSemantics(label: appL10n.presetWheelObjectivesLabel, isButton: true, hasTapAction: true),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('the info page of an instance has "Pin as preset"', (tester) async {
+      node.db = [_instance('i1')];
+      node.answers['i1'] = _status('1');
+      await open(tester);
+      await tester.longPress(find.byKey(const Key('chats-row-i1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('chats-action-info')));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('info-pin')),
+        200,
+        scrollable: find.descendant(of: find.byType(InstanceInfoScreen), matching: find.byType(Scrollable)).first,
+      );
+      expect(find.text(appL10n.presetPinNote), findsOneWidget);
     });
   });
 }

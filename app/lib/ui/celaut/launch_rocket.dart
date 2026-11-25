@@ -78,47 +78,53 @@ class _RocketCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final t = HomeText.of(context);
+    final colors = ArgusColors.of(context);
     return Material(
       key: const Key('run-progress'),
       color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 24, 28, 22),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RocketStage(key: stage),
-            const SizedBox(height: 12),
-            Text(
-              l.celautRunLaunching(name),
-              style: t.title,
-              textAlign: TextAlign.center,
+      shape: panelShapeOf(context, radius: 20),
+      child: Stack(
+        children: [
+          if (colors.look case final look?) Positioned.fill(child: LookOrnaments(look: look, color: colors.trim)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 24, 28, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RocketStage(key: stage),
+                const SizedBox(height: 12),
+                Text(
+                  l.celautRunLaunching(name),
+                  style: t.title,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 14),
+                ValueListenableBuilder<LaunchStep>(
+                  valueListenable: step,
+                  builder: (context, current, _) => Column(
+                    key: const Key('launch-steps'),
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _StepRow(
+                        label: l.celautRunStepNodes,
+                        state: _stateOf(LaunchStep.askingNodes, current),
+                      ),
+                      _StepRow(
+                        label: l.celautRunStepReading,
+                        state: _stateOf(LaunchStep.readingService, current),
+                      ),
+                      _StepRow(
+                        label: l.celautRunStepStarting,
+                        state: _stateOf(LaunchStep.starting, current),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 14),
-            ValueListenableBuilder<LaunchStep>(
-              valueListenable: step,
-              builder: (context, current, _) => Column(
-                key: const Key('launch-steps'),
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _StepRow(
-                    label: l.celautRunStepNodes,
-                    state: _stateOf(LaunchStep.askingNodes, current),
-                  ),
-                  _StepRow(
-                    label: l.celautRunStepReading,
-                    state: _stateOf(LaunchStep.readingService, current),
-                  ),
-                  _StepRow(
-                    label: l.celautRunStepStarting,
-                    state: _stateOf(LaunchStep.starting, current),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -228,6 +234,7 @@ class RocketStageState extends State<RocketStage>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final colors = ArgusColors.of(context);
     return SizedBox(
       width: 96,
       height: 132,
@@ -240,7 +247,11 @@ class RocketStageState extends State<RocketStage>
               lift: _lift,
               body: scheme.onSurface,
               window: accentOf(context),
-              flame: rustFor(context),
+              // A palette with a look: the flame in its accent, the fins in its trim, and
+              // what the rocket leaves is the look's.
+              flame: colors.hasLook ? colors.accent : rustFor(context),
+              trim: colors.hasLook ? colors.trim : null,
+              look: colors.look,
               still: _still,
             ),
           ),
@@ -260,6 +271,8 @@ class RocketPainter extends CustomPainter {
     required this.window,
     required this.flame,
     required this.still,
+    this.trim,
+    this.look,
   }) : super(repaint: Listenable.merge([hover, lift]));
 
   final Animation<double> hover;
@@ -268,6 +281,13 @@ class RocketPainter extends CustomPainter {
   final Color window;
   final Color flame;
   final bool still;
+
+  /// The trim of a palette with a look, or null: the fins and the core of the flame.
+  final Color? trim;
+
+  /// The look of the palette, or null: its details on the rocket and what the rocket leaves
+  /// in place of the smoke.
+  final PaletteLook? look;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -280,8 +300,19 @@ class RocketPainter extends CustomPainter {
 
     // The flame flickers: longer and shorter.
     final flicker = still ? 1.0 : 0.75 + 0.25 * sin(phase * 3).abs();
-    paintRocketShape(canvas, body: body, window: window, flame: flame, flicker: flicker);
+    paintRocketShape(canvas, body: body, window: window, flame: flame, flicker: flicker, trim: trim, look: look);
     canvas.restore();
+
+    final themed = look;
+    final metal = trim ?? window;
+    if (themed != null) {
+      if (!still && lift.value == 0) {
+        themed.paintRocketTrail(canvas, Offset(w / 2, h * 0.42 + 62), hover.value, trim: metal, flame: flame);
+      } else if (lift.value > 0) {
+        themed.paintRocketBurst(canvas, Offset(w / 2, h * 0.86), lift.value, trim: metal, accent: window);
+      }
+      return;
+    }
 
     // Three puffs of smoke that fall away under the rocket while it hovers.
     if (!still && lift.value == 0) {
@@ -301,18 +332,25 @@ class RocketPainter extends CustomPainter {
       old.body != body ||
       old.window != window ||
       old.flame != flame ||
+      old.trim != trim ||
+      old.look != look ||
       old.still != still;
 }
 
 /// The rocket itself, around the origin and pointing up: the nose at -44, the tail at 30.
 /// The flame is under the tail, [flicker] long (1 is its full length); a null [flicker]
 /// draws no flame. The launch rocket and the raised rocket of an import draw the same shape.
+///
+/// With a [trim] (a palette with a look) the fins and the flame's core are in it, and the
+/// [look] adds its details over the hull ([PaletteLook.paintRocketDetails]).
 void paintRocketShape(
   Canvas canvas, {
   required Color body,
   required Color window,
   required Color flame,
   double? flicker,
+  Color? trim,
+  PaletteLook? look,
 }) {
   if (flicker != null) {
     final flamePath = Path()
@@ -324,11 +362,11 @@ void paintRocketShape(
       ..moveTo(-4, 30)
       ..quadraticBezierTo(0, 30 + 18 * flicker, 4, 30)
       ..close();
-    canvas.drawPath(core, Paint()..color = window);
+    canvas.drawPath(core, Paint()..color = trim ?? window);
   }
 
   // The fins.
-  final fin = Paint()..color = flame;
+  final fin = Paint()..color = trim ?? flame;
   canvas.drawPath(
     Path()
       ..moveTo(-14, 10)
@@ -357,4 +395,5 @@ void paintRocketShape(
     ..close();
   canvas.drawPath(hull, Paint()..color = body);
   canvas.drawCircle(const Offset(0, -8), 7, Paint()..color = window);
+  if (trim != null) look?.paintRocketDetails(canvas, trim: trim, accent: window);
 }

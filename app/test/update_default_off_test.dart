@@ -47,13 +47,13 @@ void main() {
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(channel, (call) async => call.method == 'supportedAbis' ? <String>[] : null);
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
-    tester.view.physicalSize = const Size(390, 2400);
+    tester.view.physicalSize = const Size(390, 2600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(const MaterialApp(home: SettingsScreen()));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('About Chatui'));
+    await tester.tap(find.text('About Celaut'));
     await tester.pumpAndSettle();
     expect(find.text('Check for updates'), findsOneWidget);
     expect(deny.clients, 0);

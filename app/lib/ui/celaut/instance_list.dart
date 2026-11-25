@@ -13,6 +13,7 @@ import '../../celaut/chat_prefs.dart';
 import '../../celaut/conversations.dart';
 import '../../celaut/launcher.dart';
 import '../../celaut/payers.dart';
+import '../../celaut/service_presets.dart';
 import '../../celaut/stopped_filter.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
@@ -552,6 +553,7 @@ class InstanceListState extends State<InstanceList> {
         );
         if (deleted) {
           await _groups.forget(i.instanceId);
+          await servicePresets.forget(i.instanceId);
           if (mounted) await refresh();
         }
     }

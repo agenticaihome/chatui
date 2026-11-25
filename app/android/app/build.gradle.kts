@@ -6,13 +6,13 @@ plugins {
 }
 
 // Release signing comes from the environment (see example.env). Debug
-// builds need none of it. CI sets CHATUI_UNSIGNED_RELEASE=1 to build the
+// builds need none of it. CI sets SUPERAPP_UNSIGNED_RELEASE=1 to build the
 // release APKs unsigned; the publish job of the release workflow signs them.
 val releaseStore: String? = System.getenv("ARGUS_KEYSTORE")
-val unsignedRelease = System.getenv("CHATUI_UNSIGNED_RELEASE") == "1"
+val unsignedRelease = System.getenv("SUPERAPP_UNSIGNED_RELEASE") == "1"
 
 android {
-    namespace = "org.celaut.chatui"
+    namespace = "org.celaut.superapp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -28,7 +28,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.celaut.chatui"
+        applicationId = "org.celaut.superapp"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

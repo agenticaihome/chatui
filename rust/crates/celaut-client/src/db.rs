@@ -198,7 +198,7 @@ pub struct InstanceRecord {
     /// app could read the balance before and after the start.
     #[serde(default)]
     pub start_charge_mu: Option<String>,
-    /// The name that the user saw when the instance started: the skill or the service
+    /// The name that the user saw when the instance started: the objective or the service
     /// file. The list of conversations shows it. An old record has none.
     #[serde(default)]
     pub name: Option<String>,
