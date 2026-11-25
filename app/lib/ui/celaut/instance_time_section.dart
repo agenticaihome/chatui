@@ -375,7 +375,7 @@ class _KeepDialogState extends State<_KeepDialog> {
                 ],
               ),
             ),
-            const IosTopUpWarning(padding: EdgeInsets.only(top: 8)),
+            const TopUpWarning(padding: EdgeInsets.only(top: 8)),
             const SizedBox(height: 12),
             TextField(
               key: const Key('keep-dialog-limit'),

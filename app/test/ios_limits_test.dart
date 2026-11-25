@@ -49,7 +49,7 @@ void main() {
     await tester.tap(find.text('start'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('ios-limits')), findsNothing);
-    await tester.pumpWidget(_app(const Scaffold(body: IosTopUpWarning())));
+    await tester.pumpWidget(_app(const Scaffold(body: TopUpWarning())));
     expect(find.byKey(const Key('ios-top-up-warning')), findsNothing);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
@@ -59,15 +59,17 @@ void main() {
     expect(es.iosLimitsOk, 'Entendido');
   });
 
-  testWidgets('Keep running settings: the top-up warning on iOS only', (tester) async {
+  testWidgets('Keep running settings: the top-up warning on iOS and on macOS, each with its text', (tester) async {
     tester.view.physicalSize = const Size(390, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(_app(AutoTopUpScreen(topUp: AutoTopUp(periodic: false))));
     await tester.pumpAndSettle();
-    expect(
-      find.byKey(const Key('ios-top-up-warning')),
-      defaultTargetPlatform == TargetPlatform.iOS ? findsOneWidget : findsNothing,
-    );
-  }, variant: const TargetPlatformVariant({TargetPlatform.iOS, TargetPlatform.android}));
+    final platform = defaultTargetPlatform;
+    final l = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.byKey(const Key('ios-top-up-warning')), platform == TargetPlatform.iOS ? findsOneWidget : findsNothing);
+    expect(find.byKey(const Key('mac-top-up-warning')), platform == TargetPlatform.macOS ? findsOneWidget : findsNothing);
+    expect(find.text(l.iosLimitsTopUp), platform == TargetPlatform.iOS ? findsOneWidget : findsNothing);
+    expect(find.text(l.celautKeepMacNote), platform == TargetPlatform.macOS ? findsOneWidget : findsNothing);
+  }, variant: const TargetPlatformVariant({TargetPlatform.iOS, TargetPlatform.macOS, TargetPlatform.android}));
 }

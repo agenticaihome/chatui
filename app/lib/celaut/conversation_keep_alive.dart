@@ -21,9 +21,14 @@ enum KeepAliveReason {
   /// A service file is being loaded into the app (the system file picker is open, or the
   /// file is being copied).
   import,
+
+  /// An instance has automatic top-up on ([AutoTopUp]). Only on macOS: there it keeps App
+  /// Nap off. On Android it does not start the foreground service.
+  topUp,
 }
 
-/// The holds on the Android foreground service (`ConversationService.kt`): the service
+/// The holds on the Android foreground service (`ConversationService.kt`), and on macOS the
+/// activity that keeps App Nap off (`KeepAwakeChannel.swift`): the service
 /// runs while at least one hold is taken, and stops when the last one is released. The
 /// conversation, the launch, the transfer and the import of a service share it, so that
 /// one of them never stops the service while another one needs it.
@@ -34,14 +39,16 @@ enum KeepAliveReason {
 ///
 /// No call throws: the work goes on without the service.
 class ForegroundHolds {
-  ForegroundHolds({MethodChannel? channel, bool? isAndroid})
+  ForegroundHolds({MethodChannel? channel, bool? isAndroid, bool? isMacOS})
       : _channel = channel ?? const MethodChannel(channelName),
-        _isAndroid = isAndroid ?? Platform.isAndroid;
+        _isAndroid = isAndroid ?? Platform.isAndroid,
+        _isMacOS = isMacOS ?? Platform.isMacOS;
 
   static const channelName = 'org.celaut.superapp/conversation';
 
   final MethodChannel _channel;
   final bool _isAndroid;
+  final bool _isMacOS;
   final Map<KeepAliveReason, int> _held = {};
 
   /// The reasons that hold the service now.
@@ -53,6 +60,8 @@ class ForegroundHolds {
   /// Take a hold for [reason]. The service starts, or shows the new reason. Call the
   /// function that this gives, once, to release the hold.
   Future<void> Function() hold(KeepAliveReason reason) {
+    // Android runs the foreground service for the work that the user sees, not for a top-up.
+    if (reason == KeepAliveReason.topUp && !_isMacOS) return () async {};
     _held[reason] = (_held[reason] ?? 0) + 1;
     unawaited(_sync());
     var released = false;
@@ -83,7 +92,7 @@ class ForegroundHolds {
   }
 
   Future<void> _call(String method, [Object? arguments]) async {
-    if (!_isAndroid) return;
+    if (!_isAndroid && !_isMacOS) return;
     try {
       await _channel.invokeMethod<Object?>(method, arguments);
     } on Object {

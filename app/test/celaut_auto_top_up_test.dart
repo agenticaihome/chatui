@@ -3,11 +3,13 @@ import 'dart:typed_data';
 import 'package:argus_wallet/bridge/api/celaut.dart';
 import 'package:argus_wallet/bridge/api/celaut_service.dart';
 import 'package:argus_wallet/celaut/auto_top_up.dart';
+import 'package:argus_wallet/celaut/conversation_keep_alive.dart';
 import 'package:argus_wallet/l10n/l10n.dart';
 import 'package:argus_wallet/theme/argus_theme.dart';
 import 'package:argus_wallet/ui/celaut/auto_top_up_screen.dart';
 import 'package:argus_wallet/ui/celaut/chats_screen.dart';
 import 'package:argus_wallet/ui/celaut/instance_list.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -103,6 +105,27 @@ void main() {
   });
 
   group('the engine', () {
+    test('on macOS a kept instance holds the activity against App Nap, until none is kept', () async {
+      final holds = ForegroundHolds(isAndroid: false, isMacOS: true);
+      final e = AutoTopUp(
+        instances: () => db,
+        plan: (id) => plans[id] ?? (throw StateError('unknown')),
+        setKeepAlive: (id, enabled, budget) => plans[id] = _plan(keep: enabled),
+        now: () => clock,
+        holds: holds,
+      );
+      db = [_instance('a')];
+      plans['a'] = _plan(keep: false);
+      await e.start();
+      expect(holds.reasons, isEmpty);
+      e.setKeepAlive('a', enabled: true);
+      expect(holds.reasons, {KeepAliveReason.topUp});
+      e.setKeepAlive('a', enabled: false);
+      await pumpEventQueue();
+      expect(holds.reasons, isEmpty);
+      e.dispose();
+    });
+
     test('only an instance that the user keeps is asked and topped up', () async {
       final e = engine();
       await e.load();
@@ -293,6 +316,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(e.chunk, const Duration(hours: 2));
     });
+
+    testWidgets('on macOS it says that the top-up stops when the app is closed (issue #154)', (tester) async {
+      await pump(tester, engine());
+      expect(find.text(appL10n.celautKeepMacNote), defaultTargetPlatform == TargetPlatform.macOS ? findsOneWidget : findsNothing);
+    }, variant: const TargetPlatformVariant({TargetPlatform.android, TargetPlatform.macOS}));
   });
 
   group('the list', () {
