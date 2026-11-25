@@ -586,7 +586,7 @@ void main() {
       expect(svc.assetForDevice, isNull);
       await svc.downloadAndVerify();
       expect(svc.stage, UpdateStage.failed);
-      expect(svc.stageMessage, contains('no APK for your phone'));
+      expect(svc.stageMessage, contains('no APK for this device'));
       expect(h.gh.fileRequests, isEmpty);
     });
 

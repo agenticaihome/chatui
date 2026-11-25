@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
+import '../../services/linux_app.dart';
 import '../../services/motion_cues.dart';
 import '../../services/network_controller.dart';
 import '../../services/privacy_service.dart';
@@ -75,8 +76,9 @@ class DisplaySettingsPage extends StatelessWidget {
             onPick: themeController.setLightPalette,
           ),
           const SizedBox(height: 24),
-          // A Mac has no motion sensors (issue #154): no motion cues.
-          if (defaultTargetPlatform != TargetPlatform.macOS) ...[
+          // A Mac (issue #154) and the computer of the Linux app (issue #153) have no motion
+          // sensors: no motion cues.
+          if (defaultTargetPlatform != TargetPlatform.macOS && !isLinuxApp) ...[
             SettingsGroup(
               title: context.l10n.displayVehicleMotionCues,
               scope: context.l10n.settingsScopeAppWide,

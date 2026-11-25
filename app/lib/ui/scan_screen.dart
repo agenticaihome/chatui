@@ -5,14 +5,16 @@ import 'package:flutter_zxing/flutter_zxing.dart';
 
 import '../celaut/invite_scan.dart';
 import '../l10n/l10n.dart';
+import '../services/linux_app.dart';
 import '../services/session_lock.dart';
 
 /// Reads one QR code and closes with it. By default the result is the trimmed text
 /// (`String`). With [binary] it is a [ScannedCode] with the text and the bytes, for the
 /// peer invitation of a node, which is binary (`docs/celaut/invite.md`).
 ///
-/// On macOS the `camera` plugin has no implementation (issue #154): the user chooses an
-/// image of the code (a screenshot), and zxing reads it ([readQrImage]).
+/// On macOS the `camera` plugin has no implementation (issue #154), and on Linux the camera
+/// plugin of flutter_zxing has no Linux side (issue #153): the user chooses an image of the
+/// code (a screenshot), and zxing reads it ([readQrImage]).
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key, this.binary = false, this.chooseImage});
 
@@ -65,7 +67,7 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _fromImage() async {
-    final code = await (widget.chooseImage ?? _chooseAndRead)();
+    final code = await (widget.chooseImage ?? () => _chooseAndRead(context.l10n.scanChooseImage))();
     if (code == null || !mounted) return;
     final before = _done;
     _onScan(code);
@@ -76,8 +78,9 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  static Future<Code?> _chooseAndRead() async {
-    final picked = await FilePicker.platform.pickFiles(type: FileType.image);
+  // The title names the file chooser of the Linux desktop.
+  static Future<Code?> _chooseAndRead(String title) async {
+    final picked = await FilePicker.platform.pickFiles(type: FileType.image, dialogTitle: title);
     final path = picked?.files.single.path;
     if (path == null) return null;
     return readQrImage(path);
@@ -85,7 +88,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform == TargetPlatform.macOS) {
+    if (defaultTargetPlatform == TargetPlatform.macOS || isLinuxApp) {
       return Scaffold(
         appBar: AppBar(title: Text(context.l10n.scanTitle)),
         body: Center(
@@ -94,7 +97,7 @@ class _ScanScreenState extends State<ScanScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(context.l10n.scanFromImageNote, key: const Key('scan-image-note'), textAlign: TextAlign.center),
+                Text(isLinuxApp ? context.l10n.scanFromImageNoteLinux : context.l10n.scanFromImageNote, key: const Key('scan-image-note'), textAlign: TextAlign.center),
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   key: const Key('scan-image-choose'),

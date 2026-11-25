@@ -8,6 +8,7 @@ import '../bitcoin/btc_format.dart';
 import '../format.dart';
 import '../l10n/l10n.dart';
 import '../services/contacts_service.dart';
+import '../services/linux_app.dart';
 import '../services/wallet_service.dart';
 import '../theme/argus_theme.dart';
 import 'layout.dart';
@@ -74,7 +75,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }
     final json = '[${contacts.map((c) => jsonEncode({'name': c.name, 'address': c.address})).join(',')}]';
     try {
-      await SharePlus.instance.share(ShareParams(
+      await shareFiles(ShareParams(
         files: [XFile.fromData(
           Uint8List.fromList(utf8.encode(json)),
           mimeType: 'application/json',

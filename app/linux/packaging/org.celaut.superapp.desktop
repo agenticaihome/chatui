@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Celaut
+GenericName=Celaut client
+Comment=Use Celaut services without intermediaries
+Exec=superapp %U
+Icon=org.celaut.superapp
+Terminal=false
+StartupNotify=true
+StartupWMClass=org.celaut.superapp
+Categories=Network;
+Keywords=Celaut;Ergo;Bitcoin;wallet;chat;
+MimeType=x-scheme-handler/celaut;x-scheme-handler/ergopay;application/x-celaut-bee;

@@ -554,7 +554,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Primary address, change policy, remove';
 
   @override
-  String get settingsSecurityWalletSubtitle => 'Phone unlock, auto-lock';
+  String get settingsSecurityWalletSubtitle => 'Device unlock, auto-lock';
 
   @override
   String get settingsErgoGroup => 'Ergo';
@@ -571,6 +571,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsSecurityAppSubtitle =>
       'Auto-lock, screenshots, unconfirmed funds';
+
+  @override
+  String get settingsSecurityAppSubtitleLinux => 'Auto-lock, unconfirmed funds';
 
   @override
   String get settingsRemotePreviewsTitle => 'Remote previews';
@@ -637,6 +640,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Off by default. When on, Celaut asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app\'s signing key before Android is asked to install it.';
 
   @override
+  String get aboutUpdatesNoteLinux =>
+      'Off by default. When on, Celaut asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. On Linux, Celaut does not download or install an update: it shows the link to the .deb for this computer, and your browser downloads it from github.com.';
+
+  @override
   String get aboutThisBuild => 'This build';
 
   @override
@@ -652,6 +659,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aboutReleasesSubtitle =>
       'What changed in each alpha, and the latest APK.';
+
+  @override
+  String get aboutReleasesSubtitleLinux =>
+      'What changed in each alpha, and the latest .deb files.';
 
   @override
   String get aboutLicenses => 'Open-source licenses';
@@ -753,7 +764,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get displayMotionCuesAutomaticSubtitle =>
-      'When the phone feels that you ride a vehicle';
+      'When the device feels that you ride a vehicle';
 
   @override
   String get displayMotionCuesAlways => 'Always';
@@ -1362,10 +1373,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityReadSetupFailed => 'Could not read the current setup.';
 
   @override
-  String get securityBiometricUnlock => 'Unlock with your phone';
+  String get securityBiometricUnlock => 'Unlock with your device';
 
   @override
   String get securityBiometricOn => 'Fingerprint or screen lock';
+
+  @override
+  String get securityUnlockKeyring => 'Login keyring of the desktop';
 
   @override
   String get securityOff => 'Off';
@@ -1376,7 +1390,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get securityDeviceLockNote =>
-      'The wallet opens with your fingerprint or the screen lock of your phone. The app has no PIN of its own.';
+      'The wallet opens with your fingerprint or the screen lock of your device. The app has no PIN of its own.';
+
+  @override
+  String get securityKeyringNote =>
+      'The wallet opens with your desktop session: its keys are in the login keyring, which the desktop unlocks when you log in. The app has no PIN of its own.';
 
   @override
   String get securityScreen => 'Screen';
@@ -1481,7 +1499,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateOpenReleasesPage => 'Open the releases page';
 
   @override
-  String get updateNoApkForPhone => 'This release has no APK for your phone.';
+  String updateDownloadDeb(String arch) {
+    return 'Download the .deb ($arch)';
+  }
+
+  @override
+  String updateDebNote(String name, String size) {
+    return '$name · $size. Your browser downloads it from GitHub. Then install it over this version with the command below, and start Celaut again.';
+  }
+
+  @override
+  String get updateNoApkForPhone => 'This release has no APK for this device.';
 
   @override
   String updateNoticeAvailable(String version) {
@@ -1545,7 +1573,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateErrorStorage =>
-      'Celaut could not save the download. Is the phone out of storage?';
+      'Celaut could not save the download. Is the device out of storage?';
 
   @override
   String get updateErrorLargerThanListed =>
@@ -1575,7 +1603,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateNoApkSeeReleases =>
-      'This release has no APK for your phone. The releases page has the files.';
+      'This release has no APK for this device. The releases page has the files.';
 
   @override
   String get updateCannotKeepDownload => 'This device cannot keep a download.';
@@ -3704,6 +3732,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanBack => 'Back';
+
+  @override
+  String get scanFromImageNoteLinux =>
+      'On this computer the app cannot scan with the camera. Choose an image of the QR code, for example a screenshot or a photo of the code.';
 
   @override
   String get txArgusFee => 'Argus fee';
@@ -6061,11 +6093,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatsRenameNote =>
-      'Only this phone sees this name. The node does not get it. Leave it empty to remove it.';
+      'Only this device sees this name. The node does not get it. Leave it empty to remove it.';
 
   @override
   String chatsRenameNoteOriginal(String name) {
-    return 'Only this phone sees this name. The node does not get it. Leave it empty to show \"$name\" again.';
+    return 'Only this device sees this name. The node does not get it. Leave it empty to show \"$name\" again.';
   }
 
   @override
@@ -6175,23 +6207,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatsReceiptsFaultSent =>
-      'The node signed data that does not match what this phone sent';
+      'The node signed data that does not match what this device sent';
 
   @override
   String get chatsReceiptsFaultReceived =>
-      'The node signed data that does not match what this phone received';
+      'The node signed data that does not match what this device received';
 
   @override
   String get chatsReceiptsFaultEnvs =>
-      'The node signed environment variables that this phone did not send';
+      'The node signed environment variables that this device did not send';
 
   @override
   String get chatsReceiptsFaultService =>
-      'The node signed a different service from the one that this phone started';
+      'The node signed a different service from the one that this device started';
 
   @override
   String get chatsReceiptsFaultAmount =>
-      'The node signed a different start balance from the one that this phone asked for';
+      'The node signed a different start balance from the one that this device asked for';
 
   @override
   String get chatsReceiptsFaultInvalid => 'A receipt does not verify';
@@ -6216,7 +6248,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatsReceiptsNote =>
-      'The node signs these receipts. They are evidence against the node. You can give them to other people. A tunnel with no close is not always a fault. For example, this phone or the node can stop the tunnel.';
+      'The node signs these receipts. They are evidence against the node. You can give them to other people. A tunnel with no close is not always a fault. For example, this device or the node can stop the tunnel.';
 
   @override
   String get celautErrorNodeClosed =>
@@ -6480,7 +6512,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautSendConfirmBody =>
-      'The whole service goes through this phone to the node, and a service can be large. The node keeps it, so later launches on that node do not send it again.';
+      'The whole service goes through this device to the node, and a service can be large. The node keeps it, so later launches on that node do not send it again.';
 
   @override
   String get celautSendMetered =>
@@ -6627,7 +6659,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautEnvIntro =>
-      'Named values that you can give to a service when you run it, for example a key. They stay encrypted on this phone. A service only gets the ones that you choose.';
+      'Named values that you can give to a service when you run it, for example a key. They stay encrypted on this device. A service only gets the ones that you choose.';
 
   @override
   String get celautEnvEmpty => 'No variables yet.';
@@ -6958,13 +6990,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatSelectText => 'Select text';
 
   @override
-  String get celautRunOnPhone => 'On this phone';
+  String get celautRunOnPhone => 'On this device';
 
   @override
   String get celautRunImport => 'Import';
 
   @override
-  String get celautRunPhoneServices => 'Run the services on this phone';
+  String get celautRunPhoneServices => 'Run the services on this device';
 
   @override
   String celautStoreServices(int count) {
@@ -7763,11 +7795,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautEnvShareNotSecure =>
-      'This phone could not block screenshots of this screen. A screenshot of this code holds the value.';
+      'This device could not block screenshots of this screen. A screenshot of this code holds the value.';
 
   @override
   String get celautEnvValueNotSecure =>
-      'This phone could not block screenshots of this screen. A screenshot shows the value.';
+      'This device could not block screenshots of this screen. A screenshot shows the value.';
 
   @override
   String get celautEnvShareTooBig => 'This value is too large for a QR code.';
@@ -8038,7 +8070,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This node does not support descendants.';
 
   @override
-  String get celautErrorNoSpace => 'The phone has not enough free space.';
+  String get celautErrorNoSpace => 'This device has not enough free space.';
 
   @override
   String get celautErrorOnionNeedsTor =>
@@ -8506,7 +8538,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardsSettingsReflectionsSubtitle =>
-      'A light on the image that follows the tilt of the phone and your finger';
+      'A light on the image that follows the tilt of the device and your finger';
 
   @override
   String get cardsSettingsReflectionsPointer =>
@@ -8637,7 +8669,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cardsSettingsNote =>
-      'The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the phone.';
+      'The effects never change what a card does. The sensors run only while the cards are on screen, and their data stays on the device.';
 
   @override
   String cardsSettingsTestValue(String value, String needed) {
@@ -8711,7 +8743,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautLinkSheetTitle => 'Import a service';
 
   @override
-  String get celautLinkChooseFile => 'Choose a file on this phone';
+  String get celautLinkChooseFile => 'Choose a file on this device';
 
   @override
   String get celautLinkFromLink => 'Import from a link';
@@ -8743,7 +8775,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String celautLinkPendingBody(String bytes) {
-    return '$bytes are on this phone. Continue goes on from there.';
+    return '$bytes are on this device. Continue goes on from there.';
   }
 
   @override
@@ -8775,7 +8807,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String celautLinkStopped(String reason) {
-    return 'The download stopped: $reason. The bytes that arrived stay on the phone: Continue goes on from there.';
+    return 'The download stopped: $reason. The bytes that arrived stay on this device: Continue goes on from there.';
   }
 
   @override
@@ -8785,12 +8817,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String celautLinkNoSpace(String needed, String available) {
-    return 'Not enough free space. The download needs $needed and the phone has $available free. Free some space, then tap Continue.';
+    return 'Not enough free space. The download needs $needed and this device has $available free. Free some space, then tap Continue.';
   }
 
   @override
   String celautLinkNoSpaceRetry(String needed, String available) {
-    return 'Not enough free space. The download needs $needed and the phone has $available free. Free some space, then try again.';
+    return 'Not enough free space. The download needs $needed and this device has $available free. Free some space, then try again.';
   }
 
   @override
@@ -9232,7 +9264,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presetPinUnknown =>
-      'This phone does not know the variables that this instance was started with (it started on an earlier version of the app, or on another phone): the launch asks for them.';
+      'This device does not know the variables that this instance was started with (it started on an earlier version of the app, or on another device): the launch asks for them.';
 
   @override
   String presetPinAsks(int count) {
@@ -9313,6 +9345,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get iosLimitsOk => 'I understand';
+
+  @override
+  String get celautKeepLinuxNote =>
+      'On this computer, automatic top-up works only while Celaut is open and the computer is awake. If you close the app or the computer sleeps, nothing is added, and the node stops the instance when its balance runs out.';
 
   @override
   String get celautKeepMacNote =>

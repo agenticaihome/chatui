@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../format.dart';
 import '../l10n/l10n.dart';
 import '../services/activity_classifier.dart' show compareActivityRows;
+import '../services/linux_app.dart';
 import '../services/wallet_sync_controller.dart';
 import '../services/wallet_service.dart';
 import '../theme/argus_theme.dart';
@@ -256,7 +257,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
     final csv = _toCsv(_txs);
     try {
-      await SharePlus.instance.share(ShareParams(
+      await shareFiles(ShareParams(
         files: [XFile.fromData(
           Uint8List.fromList(utf8.encode(csv)),
           mimeType: 'text/csv',

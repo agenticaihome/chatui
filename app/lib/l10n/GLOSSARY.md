@@ -9,7 +9,8 @@ is the English one copied over.
 Style: neutral Spanish for Spain and Latin America, "tú" form, short and plain
 like the English. Imperatives: "Escribe" (not "Introduce" or "Ingresa"),
 "Toca", "Elige", "Comprueba". Sentence case as in English. No Spain-only words
-("teléfono", not "móvil"). Never "usted".
+("teléfono", not "móvil"). Never "usted". The app also runs on desktops: for the
+machine the app runs on, say "this device" / "este dispositivo", not "this phone".
 
 | English | Spanish |
 |---|---|
@@ -38,6 +39,7 @@ like the English. Imperatives: "Escribe" (not "Introduce" or "Ingresa"),
 | unlock / lock | desbloquear / bloquear |
 | sync / synced | sincronizar / sincronizada |
 | node | nodo |
+| this device (a phone or a computer) | este dispositivo |
 | objective (of the catalog) | objetivo |
 | service | servicio |
 | attachment / file (of a message) | adjunto / archivo |

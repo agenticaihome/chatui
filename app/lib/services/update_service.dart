@@ -13,12 +13,13 @@ import '../build_info.dart';
 import '../celaut/routed_http.dart';
 import '../l10n/l10n.dart';
 import 'apk_signature.dart';
+import 'linux_app.dart';
 import 'update_channel.dart';
 
 // Opt-in update check against the GitHub releases of celaut-project/superapp, and a download that is
 // checked before Android is asked to install it.
 //
-// What leaves the phone, and when:
+// What leaves the device, and when:
 //  * With the setting on, once a day when the app starts, and whenever
 //    "Check now" is tapped (that works with the setting off, because the tap
 //    is the request): one HTTPS GET of [latestReleaseUri]. It carries a
@@ -27,6 +28,8 @@ import 'update_channel.dart';
 //    a Tor exit when Tor is on.
 //  * When the user taps "Download and verify": one HTTPS GET of the APK, to
 //    github.com and the GitHub CDN it redirects to. Same headers.
+//  * The Linux app downloads nothing itself: it shows the link to the `.deb` for its
+//    architecture, and the browser fetches it when the user taps it.
 // Nothing is sent at any other time, and nothing about the wallet is ever
 // part of either request. Both requests follow the network route of the app
 // (`routedHttpClient`): with Tor on, they go through Tor or they fail.
@@ -314,6 +317,17 @@ ReleaseAsset? pickAsset(List<ReleaseAsset> assets, List<String> supportedAbis) {
     }
   }
   return named('universal');
+}
+
+/// The `.deb` of a release for a Linux machine of [arch] (`amd64` or `arm64`), as
+/// `release.yml` names it: `superapp-<version>-linux-<arch>.deb`. The Linux app does not download
+/// or install it: it shows the link, and the user installs it with apt.
+ReleaseAsset? pickDeb(List<ReleaseAsset> assets, String arch) {
+  for (final a in assets) {
+    final name = a.name.toLowerCase();
+    if (name.startsWith('superapp-') && name.endsWith('-linux-$arch.deb')) return a;
+  }
+  return null;
 }
 
 String formatDownloadSize(int bytes) => '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
@@ -634,7 +648,9 @@ class UpdateService extends ChangeNotifier {
     DateTime Function()? clock,
     AppVersion? current,
     Uri? endpoint,
+    String? debArch,
   })  : _platform = platform ?? const AndroidUpdatePlatform(),
+        _debArch = debArch ?? linuxDebArch,
         _newClient = clientFactory ?? http.Client.new,
         _now = clock ?? DateTime.now,
         _current = current ?? AppVersion.tryParse(appVersion),
@@ -650,6 +666,9 @@ class UpdateService extends ChangeNotifier {
   final DateTime Function() _now;
   final AppVersion? _current;
   final Uri _endpoint;
+
+  /// `amd64` or `arm64` in the Linux app, which offers a `.deb`; null elsewhere.
+  final String? _debArch;
 
   /// App-wide: ask GitHub for the latest release once a day at start-up.
   /// Off until the user turns it on.
@@ -700,6 +719,17 @@ class UpdateService extends ChangeNotifier {
 
   /// The APK this phone would download, or null when the release has none.
   ReleaseAsset? get assetForDevice => available == null ? null : pickAsset(available!.assets, _abis);
+
+  /// The `.deb` of [available] for this Linux machine, or null: not Linux, no release,
+  /// or a release with no `.deb` for this architecture.
+  ReleaseAsset? get debForDevice {
+    final arch = _debArch;
+    final release = available;
+    return arch == null || release == null ? null : pickDeb(release.assets, arch);
+  }
+
+  /// The Debian architecture behind [debForDevice]; null off Linux.
+  String? get debArch => _debArch;
 
   /// False on hosts that cannot install an APK; the UI then only reports the
   /// release and points at the releases page.

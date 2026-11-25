@@ -10,6 +10,7 @@ import '../celaut/network_strings.dart';
 import '../celaut/service_strings.dart';
 import '../l10n/l10n.dart';
 import '../services/contacts_service.dart';
+import '../services/linux_app.dart';
 import '../services/network_controller.dart';
 import '../services/wallet_service.dart';
 import '../theme/argus_theme.dart';
@@ -299,7 +300,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           key: const Key('settings-security'),
           icon: Icons.lock_outline,
           title: t.securityTitle,
-          subtitle: current != null ? t.settingsSecurityWalletSubtitle : t.settingsSecurityAppSubtitle,
+          subtitle: current != null
+              ? t.settingsSecurityWalletSubtitle
+              : (isLinuxApp ? t.settingsSecurityAppSubtitleLinux : t.settingsSecurityAppSubtitle),
           onTap: () => _open(
             current != null ? SecuritySettingsPage(walletId: current.walletId) : const SecuritySettingsPage(),
           ),

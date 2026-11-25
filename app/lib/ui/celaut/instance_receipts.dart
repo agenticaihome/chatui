@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../bridge/api/celaut_receipts.dart';
 import '../../l10n/l10n.dart';
+import '../../services/linux_app.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_style.dart';
 
@@ -26,7 +27,7 @@ Future<bool> shareReceipts(String instanceId) async {
   if (text.isEmpty) return false;
   final short = instanceId.length > 8 ? instanceId.substring(0, 8) : instanceId;
   final name = 'receipts-$short.jsonl';
-  await SharePlus.instance.share(ShareParams(
+  await shareFiles(ShareParams(
     files: [
       XFile.fromData(Uint8List.fromList(utf8.encode(text)), mimeType: 'text/plain', name: name),
     ],

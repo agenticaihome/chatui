@@ -1,5 +1,6 @@
 import 'package:argus_wallet/celaut/auto_top_up.dart';
 import 'package:argus_wallet/l10n/app_localizations.dart';
+import 'package:argus_wallet/services/linux_app.dart';
 import 'package:argus_wallet/ui/celaut/auto_top_up_screen.dart';
 import 'package:argus_wallet/ui/ios_limits.dart';
 import 'package:flutter/foundation.dart';
@@ -72,4 +73,19 @@ void main() {
     expect(find.text(l.iosLimitsTopUp), platform == TargetPlatform.iOS ? findsOneWidget : findsNothing);
     expect(find.text(l.celautKeepMacNote), platform == TargetPlatform.macOS ? findsOneWidget : findsNothing);
   }, variant: const TargetPlatformVariant({TargetPlatform.iOS, TargetPlatform.macOS, TargetPlatform.android}));
+
+  testWidgets('Keep running settings: the Linux app shows its own top-up warning', (tester) async {
+    debugLinuxAppOverride = true;
+    addTearDown(() => debugLinuxAppOverride = null);
+    tester.view.physicalSize = const Size(390, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_app(AutoTopUpScreen(topUp: AutoTopUp(periodic: false))));
+    await tester.pumpAndSettle();
+    final l = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.byKey(const Key('linux-top-up-warning')), findsOneWidget);
+    expect(find.text(l.celautKeepLinuxNote), findsOneWidget);
+    expect(find.text(l.celautKeepMacNote), findsNothing);
+    expect(find.text(l.iosLimitsTopUp), findsNothing);
+  });
 }
