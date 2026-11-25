@@ -1,10 +1,12 @@
 name: release
 
 # A tag v<appVersion> builds the release APKs unsigned, the iOS app as an
-# unsigned .ipa, and the macOS app for Apple Silicon as an unsigned .dmg. After a
-# reviewer approves the release environment, the publish job signs the APKs with
-# the key in that environment's secrets and creates a prerelease with them, the
-# .ipa (the user signs it, docs/ios.md) and the .dmg (docs/macos.md).
+# unsigned .ipa, the macOS app for Apple Silicon as an unsigned .dmg, and the
+# .deb files of the Linux app for amd64 and arm64 (linux.yml). After a reviewer
+# approves the release environment, the publish job signs the APKs with the key
+# in that environment's secrets and creates a prerelease with them, the .ipa
+# (the user signs it, docs/ios.md), the .dmg (docs/macos.md) and the .deb files
+# (docs/linux.md).
 on:
   push:
     tags: ['v*']
@@ -21,6 +23,7 @@ on:
       - scripts/build_macos.sh
       - scripts/pack_ipa.sh
       - scripts/release_check.sh
+      - .github/workflows/linux.yml
 
 permissions:
   contents: read
@@ -289,11 +292,15 @@ jobs:
           path: dist/
           if-no-files-found: error
 
+  # The .deb files for amd64 and arm64, checked and installed in a clean Ubuntu.
+  linux:
+    uses: ./.github/workflows/linux.yml
+
   # The release environment holds the signing secrets. It accepts only tags
   # v* and waits for a required reviewer before this job starts.
   publish:
     if: github.ref_type == 'tag'
-    needs: [build, ios, macos]
+    needs: [build, ios, macos, linux]
     runs-on: ubuntu-24.04
     environment: release
     permissions:
@@ -324,6 +331,19 @@ jobs:
       - name: Check the .dmg
         working-directory: macos
         run: sha256sum --check SHA256SUMS-macos
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: deb-*
+          path: debs
+          merge-multiple: true
+      - name: Check the .deb files
+        working-directory: debs
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          cat SHA256SUMS-amd64 SHA256SUMS-arm64 | sha256sum --check
+          for arch in amd64 arm64; do
+            [ -f "superapp-${version}-linux-${arch}.deb" ] || { echo "No superapp-${version}-linux-${arch}.deb"; exit 1; }
+          done
       - name: Sign the APKs
         env:
           KEYSTORE_BASE64: ${{ secrets.SUPERAPP_KEYSTORE_BASE64 }}
@@ -354,9 +374,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp "ipa/superapp-${GITHUB_REF_NAME#v}-unsigned.ipa" macos/*.dmg dist/
-          (cd dist && sha256sum *.apk *.ipa *.dmg > SHA256SUMS)
+          cp "ipa/superapp-${GITHUB_REF_NAME#v}-unsigned.ipa" macos/*.dmg debs/*.deb dist/
+          (cd dist && sha256sum *.apk *.ipa *.dmg *.deb > SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
             --title "Celaut ${GITHUB_REF_NAME#v}" \
-            --notes "Mark this release as latest after the test on GrapheneOS. The updater ignores prereleases. The .ipa is unsigned: install it with AltStore, SideStore or Sideloadly (docs/ios.md). The .dmg is the macOS app for Apple Silicon (macOS 13 or later); it has no Apple signature: see docs/macos.md for the Gatekeeper step."
+            --notes "Mark this release as latest after the test on GrapheneOS. The updater ignores prereleases. The .ipa is unsigned: install it with AltStore, SideStore or Sideloadly (docs/ios.md). The .dmg is the macOS app for Apple Silicon (macOS 13 or later); it has no Apple signature: see docs/macos.md for the Gatekeeper step. The .deb files are the Linux app for amd64 and arm64 (docs/linux.md)."
