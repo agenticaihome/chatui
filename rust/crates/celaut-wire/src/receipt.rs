@@ -324,7 +324,7 @@ pub fn receipt_scheme() -> SignatureScheme {
 
 /// One component that names the Ed25519 component of nodo (`same_component`): the
 /// `formal` decides if it has one, else the tag `ed25519`.
-fn scheme_is_ours(scheme: Option<&SignatureScheme>) -> bool {
+pub(crate) fn scheme_is_ours(scheme: Option<&SignatureScheme>) -> bool {
     let Some(scheme) = scheme else {
         return false;
     };
@@ -338,15 +338,17 @@ fn scheme_is_ours(scheme: Option<&SignatureScheme>) -> bool {
 }
 
 /// The text that [`receipt_digest`] hashes: every field but `envs_salt` and
-/// `signature`, in field order, joined by `|`:
+/// `signature`, in the order of the numbers of the fields in `celaut.proto`, joined by
+/// `|` (`canonical_receipt` of nodo):
 ///
 /// ```text
-/// hex(kind) | peer_id | execution_name | ts
+/// hex(kind) | peer_id | blake2b_256_hex(UTF-8(canonical_scheme(signature_scheme))) | ts
+/// | execution_name
 /// | hex(service_id.type) ~ hex(service_id.value) | envs_digest | hex(initial_mu.n)
+/// | cpu_period | cpu_quota | mem_limit | disk_space | kernel | hex(device)/hex(device)...
 /// | hex(plane) | session | hex(slot) | seq
 /// | in_events | in_bytes | in_head | out_events | out_bytes | out_head
 /// | hex(mu_charged.n) | hex(coverage) | hex(capture_mode) | hex(degraded_reason)
-/// | blake2b_256_hex(UTF-8(canonical_scheme(signature_scheme)))
 /// ```
 pub fn canonical_receipt(r: &ExecutionReceipt) -> String {
     let (service_type, service_value) = r
@@ -365,11 +367,22 @@ pub fn canonical_receipt(r: &ExecutionReceipt) -> String {
     [
         hex_text(&r.kind),
         r.peer_id.clone(),
-        r.execution_name.clone(),
+        blake2b_256_hex(scheme.as_bytes()),
         r.ts.to_string(),
+        r.execution_name.clone(),
         format!("{service_type}~{service_value}"),
         r.envs_digest.clone(),
         amount(&r.initial_mu),
+        r.cpu_period.to_string(),
+        r.cpu_quota.to_string(),
+        r.mem_limit.to_string(),
+        r.disk_space.to_string(),
+        r.kernel.clone(),
+        r.devices
+            .iter()
+            .map(|d| hex_text(d))
+            .collect::<Vec<_>>()
+            .join("/"),
         hex_text(&r.plane),
         r.session.clone(),
         hex_text(&r.slot),
@@ -384,7 +397,6 @@ pub fn canonical_receipt(r: &ExecutionReceipt) -> String {
         hex_text(&r.coverage),
         hex_text(&r.capture_mode),
         hex_text(&r.degraded_reason),
-        blake2b_256_hex(scheme.as_bytes()),
     ]
     .join("|")
 }
@@ -414,7 +426,17 @@ pub fn sign_with_seed(r: &mut ExecutionReceipt, seed: &[u8; 32]) -> Result<(), S
 
 /// The signed fields that only some kinds or planes use. A field that a receipt does
 /// not use must be empty or zero.
-const START_FIELDS: [&str; 3] = ["service_id", "envs_digest", "initial_mu"];
+const START_FIELDS: [&str; 9] = [
+    "service_id",
+    "envs_digest",
+    "initial_mu",
+    "cpu_period",
+    "cpu_quota",
+    "mem_limit",
+    "disk_space",
+    "kernel",
+    "devices",
+];
 const STREAM_FIELDS: [&str; 14] = [
     "plane",
     "session",
@@ -445,6 +467,12 @@ fn is_set(r: &ExecutionReceipt, field: &str) -> bool {
             .is_some_and(|s| !s.r#type.is_empty() || !s.value.is_empty()),
         "envs_digest" => !r.envs_digest.is_empty(),
         "initial_mu" => amount(&r.initial_mu),
+        "cpu_period" => r.cpu_period != 0,
+        "cpu_quota" => r.cpu_quota != 0,
+        "mem_limit" => r.mem_limit != 0,
+        "disk_space" => r.disk_space != 0,
+        "kernel" => !r.kernel.is_empty(),
+        "devices" => !r.devices.is_empty(),
         "plane" => !r.plane.is_empty(),
         "session" => !r.session.is_empty(),
         "slot" => !r.slot.is_empty(),
@@ -507,10 +535,20 @@ pub fn problems_named(
         ("envs_digest", &r.envs_digest),
         ("in_head", &r.in_head),
         ("out_head", &r.out_head),
+        ("kernel", &r.kernel),
     ] {
         if !value.is_empty() && !is_hex(value, Some(DIGEST_HEX_LEN)) {
             found.push(format!("{field} is not a 64-hex digest"));
         }
+    }
+    let mut sorted_devices: Vec<&String> = r.devices.iter().collect();
+    sorted_devices.sort();
+    sorted_devices.dedup();
+    if r.devices.iter().ne(sorted_devices.iter().copied()) {
+        found.push("devices is not sorted and without repeats".into());
+    }
+    if r.devices.iter().any(|d| d.is_empty()) {
+        found.push("devices has an empty chip".into());
     }
     if !r.session.is_empty() && !is_hex(&r.session, None) {
         found.push("session is not lowercase hex".into());
@@ -858,34 +896,36 @@ mod tests {
     const START_CANONICAL: &str = concat!(
         "7374617274",
         "|03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
-        "|b08b762433f9c582f3347fbe192e523260278d24533a94e1972fbcddba42158a",
+        "|94c3da627446ed1f3c3736d21ded39451ec00c4ccc687acc42b9d0c61dfcf573",
         "|1798329600",
+        "|b08b762433f9c582f3347fbe192e523260278d24533a94e1972fbcddba42158a",
         "|a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
         "~63e5b5a4137cfa77cb9d10adae081d0df082a826d8441721460d5933f5800056",
         "|e684ff3022c2a14c62addd0129cd4a5d3dc95b2d13a924ce4fc57aa7e9842a45",
         "|3132333435363738",
-        "||||0|0|0||0|0||||||",
-        "94c3da627446ed1f3c3736d21ded39451ec00c4ccc687acc42b9d0c61dfcf573",
+        "|0|0|0|0",
+        "||||||0|0|0||0|0|||||",
     );
-    const START_DIGEST: &str = "59ecb3f5e113da7bb9f76d41059a183bfd7d355e9ba32a53d848826be5502531";
+    const START_DIGEST: &str = "8cf6c9e0df9a9d82c53fd4c14f4815f3cd35bb19d33706c19309dd17d8b05c1b";
     const START_SIGNATURE: &str = concat!(
-        "f79ac345e0d9290dd803edf6b90cf16ef2680ba4353cf44f9a825b38b47be96c",
-        "de20b2d09453e24c965a25bbe1b846b7256fbc53fe79f921e88e70d967aa3d0b",
+        "a5390f4fe0b48312e6749803f035d212d21718624511623d6baae0f834bbf57d",
+        "26173e0f584e4c72d9815f392168147a7db59d1cd98034a7952d6a3edf398d0a",
     );
     const IN_HEAD: &str = "4cc36e6c5ce771828a06755610180b0db14686b7b88ec9aca2d94dc67cb82b58";
     const OUT_HEAD: &str = "721ba2dbda02e1f8d3f9bf151175163f77ece18af91d85a2357a438d36f2ed85";
     const CHECKPOINT_DIGEST: &str =
-        "94157eae3e1f9aef97bd3347e33e9ed85db5b8c515253881a55e5763f8f2b840";
+        "92b549c868ba4d005ed20f2937c162312016011e95153bde859af659aaec1257";
     const CHECKPOINT_SIGNATURE: &str = concat!(
-        "98bbc219739d19bc7663f99ae68e46d198795cad15d2e9fc5ddd9a8c6b47aef7",
-        "a4320777ed11f2d9ffd6fb43c40520e32f14be82193ab64b6cdc6ab74ee6900b",
+        "ff4b2145b7a18adc3add1ecee1d52bb6b0cc9ef157e289b4d861afc91c56a671",
+        "9e9e31ae09980af879a0ce9613cb8e46faa7f5414d1b214e7f3b750c9167790c",
     );
     const CHECKPOINT_CANONICAL: &str = concat!(
         "636865636b706f696e74",
         "|03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
-        "|b08b762433f9c582f3347fbe192e523260278d24533a94e1972fbcddba42158a",
+        "|94c3da627446ed1f3c3736d21ded39451ec00c4ccc687acc42b9d0c61dfcf573",
         "|1798329600",
-        "|~||",
+        "|b08b762433f9c582f3347fbe192e523260278d24533a94e1972fbcddba42158a",
+        "|~|||0|0|0|0||",
         "|74756e6e656c",
         "|00112233445566778899aabbccddeeff",
         "|38303830",
@@ -895,7 +935,6 @@ mod tests {
         "|37",
         "|636c69656e742d74756e6e656c",
         "||",
-        "|94c3da627446ed1f3c3736d21ded39451ec00c4ccc687acc42b9d0c61dfcf573",
     );
 
     fn envs() -> BTreeMap<String, Vec<u8>> {

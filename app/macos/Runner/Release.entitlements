@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- No App Sandbox: the app has no Apple signature (issue #154). It reads files that the
+	     user opens, runs the Tor client and keeps its keys in the login keychain. -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+	<!-- The QR scan (camera) and the voice messages (microphone). macOS still asks the user
+	     the first time, with the texts of Info.plist. -->
+	<key>com.apple.security.device.camera</key>
+	<true/>
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+</dict>
+</plist>

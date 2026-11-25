@@ -109,6 +109,12 @@ Future<void> celautDiscardLink({required String dir}) =>
 /// - `max_bytes`: the largest file. A larger one stops, and its bytes are deleted
 ///   (kind `limitReached`, the message is the limit).
 ///
+/// The phone must keep 256 MiB free after the download (`LinkOptions::min_free`). A file
+/// that does not fit is refused before its first byte, and nothing is kept; a download that
+/// fills the phone later (a chunk, a check every 64 MiB, a full disk) stops and keeps its
+/// bytes, like a download that lost the network: kind `noSpace`, the message is
+/// `"<needed> <available>"` in bytes. [`celaut_pending_link`] says if something was kept.
+///
 /// A failed request is tried again. A download that still fails (kind `unreachable`) stays
 /// on the phone, and the same link goes on from there ([`celaut_pending_link`]). A cancel
 /// ([`celaut_cancel_transfer`]) and a file that fails the check (kind `invalidInput`)

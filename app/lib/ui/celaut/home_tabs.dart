@@ -5,6 +5,7 @@ import '../../bridge/api/celaut_service.dart';
 import '../../celaut/conversations.dart';
 import '../../celaut/package_channel.dart';
 import '../../celaut/payers.dart';
+import '../../celaut/service_presets.dart';
 import '../../celaut/wallet_money.dart';
 import '../../l10n/l10n.dart';
 import '../layout.dart';
@@ -54,6 +55,8 @@ class HomeTabs extends StatefulWidget {
     this.loadCompute,
     this.page,
     this.importPage,
+    this.presets,
+    this.presetPage,
   });
 
   final HomeTab initialTab;
@@ -96,6 +99,12 @@ class HomeTabs extends StatefulWidget {
   /// The page of the import of an opened file ([HomeTabsState.importFile]). Tests give
   /// their own.
   final Widget Function(ChosenFile file)? importPage;
+
+  /// The presets of the wheel of the pencil button of Chats. Tests give their own.
+  final ServicePresets? presets;
+
+  /// The launch of a preset ([ChatsScreen.presetPage]). Tests give their own.
+  final Widget Function(ServicePreset preset, StartedCall onStarted, VoidCallback done)? presetPage;
 
   @override
   State<HomeTabs> createState() => HomeTabsState();
@@ -209,6 +218,8 @@ class HomeTabsState extends State<HomeTabs> {
           newClient: widget.newClient,
           list: widget.list,
           runPage: widget.runPage,
+          presets: widget.presets,
+          presetPage: widget.presetPage,
           onConversation: () => select(HomeTab.chats),
           active: _tab == HomeTab.chats,
         );

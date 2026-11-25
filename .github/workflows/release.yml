@@ -1,8 +1,10 @@
 name: release
 
-# A tag v<appVersion> builds the release APKs unsigned. After a reviewer
-# approves the release environment, the publish job signs them with the key in
-# that environment's secrets and creates a prerelease.
+# A tag v<appVersion> builds the release APKs unsigned, the iOS app as an
+# unsigned .ipa, and the macOS app for Apple Silicon as an unsigned .dmg. After a
+# reviewer approves the release environment, the publish job signs the APKs with
+# the key in that environment's secrets and creates a prerelease with them, the
+# .ipa (the user signs it, docs/ios.md) and the .dmg (docs/macos.md).
 on:
   push:
     tags: ['v*']
@@ -11,7 +13,13 @@ on:
     paths:
       - .github/workflows/release.yml
       - app/android/**
+      - app/darwin/**
+      - app/ios/**
+      - app/macos/**
       - scripts/build_android.sh
+      - scripts/build_ios.sh
+      - scripts/build_macos.sh
+      - scripts/pack_ipa.sh
       - scripts/release_check.sh
 
 permissions:
@@ -63,7 +71,7 @@ jobs:
       - name: Build the unsigned release APKs
         working-directory: app
         env:
-          CHATUI_UNSIGNED_RELEASE: '1'
+          SUPERAPP_UNSIGNED_RELEASE: '1'
         run: |
           flutter pub get --enforce-lockfile
           flutter build apk --release --config-only
@@ -78,13 +86,13 @@ jobs:
           out=app/build/app/outputs/apk/release
           mkdir dist
           for kind in universal arm64-v8a x86_64; do
-            cp "$out/app-$kind-release-unsigned.apk" "dist/chatui-$VERSION-$kind-unsigned.apk"
+            cp "$out/app-$kind-release-unsigned.apk" "dist/superapp-$VERSION-$kind-unsigned.apk"
           done
           declare -A want=([universal]=$BASE_CODE [arm64-v8a]=$((BASE_CODE + 2000)) [x86_64]=$((BASE_CODE + 4000)))
           declare -A native=([universal]='arm64-v8a x86_64' [arm64-v8a]=arm64-v8a [x86_64]=x86_64)
           fail=0
           for kind in universal arm64-v8a x86_64; do
-            badging="$("$aapt2" dump badging "dist/chatui-$VERSION-$kind-unsigned.apk")"
+            badging="$("$aapt2" dump badging "dist/superapp-$VERSION-$kind-unsigned.apk")"
             code="$(sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" <<<"$badging" | head -1)"
             name="$(sed -n "s/.*versionName='\([^']*\)'.*/\1/p" <<<"$badging" | head -1)"
             abis="$(sed -n 's/^native-code: //p' <<<"$badging" | tr -d \' | tr -s ' ')"
@@ -102,11 +110,190 @@ jobs:
           path: dist/
           if-no-files-found: error
 
+  # The iOS app, unsigned: no Apple signing secret in CI (docs/ios.md).
+  ios:
+    # The repository variable IOS_RUNNER can pick another macOS runner (macos-15-intel when the
+    # arm64 runners are busy: GitHub cancels a job that waits too long for one).
+    runs-on: ${{ vars.IOS_RUNNER || 'macos-15' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.99.0
+        with:
+          targets: aarch64-apple-ios
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - name: Check the version and the tag
+        run: |
+          scripts/release_check.sh version
+          version="$(sed -n "s/^const appVersion = '\(.*\)';/\1/p" app/lib/build_info.dart)"
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "The tag $GITHUB_REF_NAME does not match appVersion $version."
+            exit 1
+          fi
+      # The "Build the Rust core" phase of the Xcode project runs it too, and finds it done.
+      - name: Build the Rust core for iOS
+        run: scripts/build_ios.sh device
+      - name: Build the release app, unsigned
+        working-directory: app
+        run: |
+          flutter pub get --enforce-lockfile
+          # Flutter hides the error of xcodebuild behind a generic message: show it.
+          flutter build ios --release --no-codesign -v > "$RUNNER_TEMP/ios-build.log" 2>&1 || {
+            ../scripts/ios_build_failure.sh "$RUNNER_TEMP/ios-build.log"
+            exit 1
+          }
+          grep -E '^=== Building wallet-ffi|^aarch64-apple-ios|native-static-libs' "$RUNNER_TEMP/ios-build.log" || true
+      - name: Pack and check the .ipa
+        run: scripts/pack_ipa.sh
+      - uses: actions/upload-artifact@v5
+        with:
+          name: unsigned-ipa
+          path: dist/
+          if-no-files-found: error
+
+  # The macOS app: Apple Silicon only, macOS 13 or later, no Apple signature (Flutter signs
+  # it ad hoc) and no notarization, so no secret. The .dmg is checked and the app in it is
+  # started (docs/macos.md has the install steps with the Gatekeeper step).
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.99.0
+        with:
+          targets: aarch64-apple-darwin
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - name: Check the version and the tag
+        run: |
+          scripts/release_check.sh version
+          version="$(sed -n "s/^const appVersion = '\(.*\)';/\1/p" app/lib/build_info.dart)"
+          code="$(sed -n 's/^const appBuildNumber = \([0-9]*\);/\1/p' app/lib/build_info.dart)"
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "The tag $GITHUB_REF_NAME does not match appVersion $version."
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "BASE_CODE=$code" >> "$GITHUB_ENV"
+      # The Xcode build runs scripts/build_macos.sh ("Build the Rust core").
+      - name: Build the app
+        working-directory: app
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter build macos --release
+      - name: Check the app
+        run: |
+          app=app/build/macos/Build/Products/Release/Celaut.app
+          exe="$app/Contents/MacOS/Celaut"
+          plist="$app/Contents/Info.plist"
+          fail=0
+          check() { if [ "$2" = "$3" ]; then echo "ok   $1: $2"; else echo "FAIL $1: $2 (expected $3)"; fail=1; fi; }
+          check version "$(plutil -extract CFBundleShortVersionString raw "$plist")" "$VERSION"
+          check build "$(plutil -extract CFBundleVersion raw "$plist")" "$BASE_CODE"
+          check bundle "$(plutil -extract CFBundleIdentifier raw "$plist")" org.celaut.superapp
+          check minimum "$(plutil -extract LSMinimumSystemVersion raw "$plist")" 13.0
+          check archs "$(lipo -archs "$exe")" arm64
+          file "$exe"
+          for f in "$app"/Contents/Frameworks/*.framework; do
+            echo "  $(basename "$f"): $(lipo -archs "$f/$(basename "$f" .framework)")"
+          done
+          # The Rust core is in the executable, and Dart finds the functions of the bridge in it.
+          check bridge "$(nm -gU "$exe" | grep -cE ' _(frb_pde_ffi_dispatcher_primary|frb_pde_ffi_dispatcher_sync|frb_get_rust_content_hash|store_dart_post_cobject)$')" 4
+          otool -L "$exe" | sed 's/^/  /'
+          # Only system libraries: a Homebrew one (liblzma of xz) is not on the Mac of a user.
+          check homebrew "$(otool -L "$exe" | grep -cE '/(opt/homebrew|usr/local)/')" 0
+          codesign -dvv "$app" 2>&1 | grep -E 'Signature|Identifier|TeamIdentifier' | sed 's/^/  /'
+          ent="$RUNNER_TEMP/entitlements.plist"
+          codesign -d --entitlements - --xml "$app" > "$ent" 2>/dev/null
+          plutil -p "$ent" | sed 's/^/  /'
+          # PlistBuddy: plutil -extract reads the dots of the key as a key path.
+          check sandbox "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.app-sandbox' "$ent" 2>&1)" false
+          codesign --verify --deep --strict "$app" && echo "ok   ad hoc signature verifies"
+          exit "$fail"
+      - name: Pack the .dmg
+        run: |
+          app=app/build/macos/Build/Products/Release/Celaut.app
+          stage="$RUNNER_TEMP/dmg"
+          mkdir -p "$stage" dist
+          ditto "$app" "$stage/Celaut.app"
+          ln -s /Applications "$stage/Applications"
+          dmg="dist/superapp-$VERSION-macos-arm64.dmg"
+          hdiutil create -volname "Celaut $VERSION" -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$dmg"
+          hdiutil verify "$dmg"
+          (cd dist && shasum -a 256 *.dmg > SHA256SUMS-macos)
+          cat dist/SHA256SUMS-macos
+          ls -l dist
+      # The app from the .dmg, as a user installs it: copied to /Applications, marked as
+      # downloaded, refused by Gatekeeper, allowed with xattr, then started.
+      - name: Install and start the app from the .dmg
+        run: |
+          set -x
+          shots="$RUNNER_TEMP/smoke"
+          mkdir -p "$shots"
+          mnt="$(hdiutil attach -nobrowse -readonly "dist/superapp-$VERSION-macos-arm64.dmg" | awk -F'\t' '/\/Volumes\//{print $NF}')"
+          ls -la "$mnt"
+          test "$(plutil -extract CFBundleShortVersionString raw "$mnt/Celaut.app/Contents/Info.plist")" = "$VERSION"
+          ditto "$mnt/Celaut.app" /Applications/Celaut.app
+          hdiutil detach "$mnt"
+          # A browser download carries the quarantine flag; Gatekeeper refuses the app then.
+          xattr -w com.apple.quarantine "0081;$(printf %x "$(date +%s)");Safari;" /Applications/Celaut.app
+          spctl --assess --type execute -vv /Applications/Celaut.app > "$shots/spctl.txt" 2>&1 || true
+          cat "$shots/spctl.txt"
+          grep -q rejected "$shots/spctl.txt"
+          # The step of docs/macos.md for the Terminal.
+          xattr -dr com.apple.quarantine /Applications/Celaut.app
+          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/Celaut.app
+          start() {
+            /Applications/Celaut.app/Contents/MacOS/Celaut > "$shots/$1.log" 2>&1 &
+            echo $! > "$shots/pid"
+            sleep 25
+            kill -0 "$(cat "$shots/pid")"
+          }
+          stop() { kill "$(cat "$shots/pid")"; sleep 3; }
+          # 1. Default settings: "Block screenshots" is on, so the window is left out of the
+          #    screenshot (the macOS equal of FLAG_SECURE).
+          start run1
+          screencapture -x "$shots/1-block-screenshots-on.png"
+          stop
+          # 2. With the setting off: the first screen, then a celaut: link to the running app.
+          defaults write org.celaut.superapp flutter.argus_block_screenshots -bool false
+          start run2
+          screencapture -x "$shots/2-first-screen.png"
+          open 'celaut://node?addr=203.0.113.7:53460'
+          sleep 8
+          kill -0 "$(cat "$shots/pid")"
+          screencapture -x "$shots/3-after-celaut-link.png"
+          stop
+          log show --last 5m --style compact --predicate 'process == "Celaut"' > "$shots/unified.log" 2>&1 || true
+          tail -n 40 "$shots/run2.log" || true
+          if grep -iE 'loadExternalLibrary failed|Failed to lookup symbol|frbgen.*not found' "$shots"/run*.log; then
+            echo "The Rust core did not load."
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: macos-smoke-release
+          path: ${{ runner.temp }}/smoke/
+      - uses: actions/upload-artifact@v5
+        with:
+          name: macos-dmg
+          path: dist/
+          if-no-files-found: error
+
   # The release environment holds the signing secrets. It accepts only tags
   # v* and waits for a required reviewer before this job starts.
   publish:
     if: github.ref_type == 'tag'
-    needs: build
+    needs: [build, ios, macos]
     runs-on: ubuntu-24.04
     environment: release
     permissions:
@@ -119,18 +306,33 @@ jobs:
         with:
           name: unsigned-apks
           path: unsigned
+      - uses: actions/download-artifact@v5
+        with:
+          name: unsigned-ipa
+          path: ipa
+      - uses: actions/download-artifact@v5
+        with:
+          name: macos-dmg
+          path: macos
       - name: Check the unsigned APKs
         working-directory: unsigned
         run: sha256sum --check SHA256SUMS-unsigned
+      - name: Check the .ipa
+        run: |
+          (cd ipa && sha256sum --check SHA256SUMS-ipa)
+          scripts/release_check.sh ipa "ipa/superapp-${GITHUB_REF_NAME#v}-unsigned.ipa"
+      - name: Check the .dmg
+        working-directory: macos
+        run: sha256sum --check SHA256SUMS-macos
       - name: Sign the APKs
         env:
-          KEYSTORE_BASE64: ${{ secrets.CHATUI_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.CHATUI_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.CHATUI_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.CHATUI_KEY_PASSWORD }}
+          KEYSTORE_BASE64: ${{ secrets.SUPERAPP_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.SUPERAPP_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SUPERAPP_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SUPERAPP_KEY_PASSWORD }}
         run: |
           for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS; do
-            [ -n "${!v}" ] || { echo "The secret CHATUI_$v is not set in the release environment."; exit 1; }
+            [ -n "${!v}" ] || { echo "The secret SUPERAPP_$v is not set in the release environment."; exit 1; }
           done
           export KEYSTORE_PASSWORD
           export KEY_PASSWORD="${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
@@ -143,7 +345,7 @@ jobs:
           for kind in universal arm64-v8a x86_64; do
             "$apksigner" sign --ks "$keystore" --ks-key-alias "$KEY_ALIAS" \
               --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD \
-              --out "dist/chatui-$version-$kind.apk" "unsigned/chatui-$version-$kind-unsigned.apk"
+              --out "dist/superapp-$version-$kind.apk" "unsigned/superapp-$version-$kind-unsigned.apk"
           done
           rm -f dist/*.idsig
       - name: Check the signed APKs
@@ -152,8 +354,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          (cd dist && sha256sum *.apk > SHA256SUMS)
+          cp "ipa/superapp-${GITHUB_REF_NAME#v}-unsigned.ipa" macos/*.dmg dist/
+          (cd dist && sha256sum *.apk *.ipa *.dmg > SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
-            --title "chatui ${GITHUB_REF_NAME#v}" \
-            --notes "Mark this release as latest after the test on GrapheneOS. The updater ignores prereleases."
+            --title "Celaut ${GITHUB_REF_NAME#v}" \
+            --notes "Mark this release as latest after the test on GrapheneOS. The updater ignores prereleases. The .ipa is unsigned: install it with AltStore, SideStore or Sideloadly (docs/ios.md). The .dmg is the macOS app for Apple Silicon (macOS 13 or later); it has no Apple signature: see docs/macos.md for the Gatekeeper step."

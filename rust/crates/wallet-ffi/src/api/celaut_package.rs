@@ -381,6 +381,12 @@ const LINK_IDLE_PROXY: std::time::Duration = std::time::Duration::from_secs(120)
 /// - `max_bytes`: the largest file. A larger one stops, and its bytes are deleted
 ///   (kind `limitReached`, the message is the limit).
 ///
+/// The phone must keep 256 MiB free after the download (`LinkOptions::min_free`). A file
+/// that does not fit is refused before its first byte, and nothing is kept; a download that
+/// fills the phone later (a chunk, a check every 64 MiB, a full disk) stops and keeps its
+/// bytes, like a download that lost the network: kind `noSpace`, the message is
+/// `"<needed> <available>"` in bytes. [`celaut_pending_link`] says if something was kept.
+///
 /// A failed request is tried again. A download that still fails (kind `unreachable`) stays
 /// on the phone, and the same link goes on from there ([`celaut_pending_link`]). A cancel
 /// ([`celaut_cancel_transfer`]) and a file that fails the check (kind `invalidInput`)
@@ -654,6 +660,10 @@ pub(crate) fn package_error(e: PackageError) -> CelautError {
         PackageError::TooLarge(limit) => CelautError {
             kind: CelautErrorKind::LimitReached,
             message: limit.to_string(),
+        },
+        PackageError::NoSpace { needed, available } => CelautError {
+            kind: CelautErrorKind::NoSpace,
+            message: format!("{needed} {available}"),
         },
         PackageError::Wire(e) => error_of(e.into()),
     }
@@ -1136,6 +1146,17 @@ mod tests {
         assert_eq!(
             package_error(PackageError::Wire(celaut_wire::WireError::Relay("cut".into()))).kind,
             CelautErrorKind::TransferFailed
+        );
+        // Its own kind, not the limit of 4 GiB; the Dart side reads the two sizes.
+        let no_space = package_error(PackageError::NoSpace {
+            needed: 300,
+            available: 20,
+        });
+        assert_eq!(no_space.kind, CelautErrorKind::NoSpace);
+        assert_eq!(no_space.message, "300 20");
+        assert_eq!(
+            package_error(PackageError::TooLarge(4)).kind,
+            CelautErrorKind::LimitReached
         );
     }
 }

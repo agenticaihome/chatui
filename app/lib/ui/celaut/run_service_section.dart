@@ -10,6 +10,7 @@ import '../../bridge/api/celaut_home.dart';
 import '../../bridge/api/celaut_service.dart';
 import '../../celaut/celaut_format.dart';
 import '../../celaut/background_work.dart';
+import '../../celaut/catalog_types.dart';
 import '../../celaut/celaut_strings.dart';
 import '../../celaut/conversation_keep_alive.dart';
 import '../../celaut/egress.dart';
@@ -20,6 +21,7 @@ import '../../bridge/api/celaut_package.dart';
 import '../../celaut/package_channel.dart';
 import '../../celaut/package_library.dart';
 import '../../celaut/payers.dart';
+import '../../celaut/service_presets.dart';
 import '../../celaut/service_transfer.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
@@ -37,8 +39,9 @@ import 'launch_rocket.dart';
 import 'run_confirm_dialog.dart';
 import 'service_info_screen.dart';
 import 'service_transfer_dialog.dart';
-import 'skill_services_sheet.dart';
-import 'skill_store.dart';
+import 'objective_detail_screen.dart';
+import 'objective_store.dart';
+import 'objective_type_missing.dart';
 
 /// Start a service: the ids and the settings go to the launcher.
 typedef LaunchCall = Future<LaunchOutcome> Function({
@@ -57,12 +60,12 @@ typedef StartedCall = Future<void> Function(
   String? name,
 );
 
-/// "Run a service" (`docs/celaut/ui.md`, section 2): the skills of the catalog as a store.
-/// At the top, at all times: the search, two small actions for the service files on this
-/// phone (import one, run the saved ones), and the fields of the skills as chips. Under
-/// them the sections of the store (featured, suggested, new, popular, the fields, all the
-/// skills; see `skill_store.dart`), or the skills that match the search or the chip.
-/// Run on a skill opens a sheet with its ranked services. Run starts
+/// "Run a service" (`docs/celaut/ui.md`, section 2): the objectives of the catalog as a store.
+/// At the top, at all times: the search and two small actions for the service files on this
+/// phone (import one, run the saved ones). Under them the store home (the featured objective,
+/// the shelves by field and "Top objectives"; see `objective_store.dart`), or the objectives that match
+/// the search. An objective opens its page with its ranked services ([ObjectiveDetailScreen]); the
+/// Run pill of a row runs its recommended service. Run starts
 /// the best node by the balancer (`launchService`) after the user confirms it, with the
 /// best node and its start cost. If the service has a chat slot, the
 /// conversation opens; if not, the instance shows in the list of the home screen.
@@ -73,7 +76,8 @@ class RunServiceSection extends StatefulWidget {
     this.wallets = const AppFullWallets(),
     this.onChanged,
     this.newClient,
-    this.loadSkills,
+    this.loadObjectives,
+    this.types,
     this.loadServices,
     this.previewQuote,
     this.launch,
@@ -93,7 +97,23 @@ class RunServiceSection extends StatefulWidget {
     this.trustedNodes,
     this.work,
     this.scan,
+    this.preset,
+    this.presets,
+    this.onPresetDone,
   });
+
+  /// A preset of the wheel of the pencil button (`docs/celaut/presets.md`): the section
+  /// shows nothing and starts it at once, by the same steps as Run on an objective (the
+  /// confirmation with the cost, the wallet, the questions about the variables, filled from
+  /// the preset). [onPresetDone] is called when the launch ends without a start (cancelled
+  /// or failed); after a start, [onStarted] is.
+  final ServicePreset? preset;
+
+  /// The presets, where a start keeps the variables that it used. Tests give their own.
+  final ServicePresets? presets;
+
+  /// The launch of [preset] ended without a start.
+  final VoidCallback? onPresetDone;
 
   /// Read a QR code for the import from a link. Tests give their own.
   final Future<String?> Function(BuildContext context)? scan;
@@ -133,11 +153,14 @@ class RunServiceSection extends StatefulWidget {
   /// Make a new client on a node that forgot the client id. Tests give their own.
   final Future<NewClientView> Function(NodeAddress node)? newClient;
 
-  /// The skills of the catalog. Tests give their own.
-  final Future<List<SkillView>> Function()? loadSkills;
+  /// The objectives of the catalog. Tests give their own.
+  final Future<List<ObjectiveView>> Function()? loadObjectives;
 
-  /// The ranked services of a skill. Tests give their own.
-  final Future<List<SkillServiceView>> Function(String skillBoxId)? loadServices;
+  /// The type ids of the registry (Settings). Tests give their own.
+  final CatalogTypes? types;
+
+  /// The ranked services of an objective. Tests give their own.
+  final Future<List<ObjectiveServiceView>> Function(String objectiveBoxId)? loadServices;
 
   /// The best quote of a service on the nodes of the list. Tests give their own.
   final Future<QuoteView?> Function(String serviceId)? previewQuote;
@@ -177,10 +200,17 @@ class RunServiceSection extends StatefulWidget {
 class _RunServiceSectionState extends State<RunServiceSection> {
   final _search = TextEditingController();
   final _scroll = ScrollController();
-  List<SkillView>? _skills;
+  List<ObjectiveView>? _objectives;
+  late final CatalogTypes _types = widget.types ?? catalogTypes;
 
-  /// The whole list is shown, not only the first [storeShortList] skills.
+  /// The app has no type id of an objective yet: the store says so (Settings).
+  bool get _typeMissing => widget.loadObjectives == null && !_types.hasObjective;
+
+  /// The whole of "Top objectives" is shown, not only its first [storeShortList] rows.
   bool _showAll = false;
+
+  /// The box id of the objective whose Run pill reads its services now.
+  String? _quick;
   bool _loading = true;
   bool _failed = false;
   bool _running = false;
@@ -197,10 +227,23 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   List<LibraryPackageView> _packages = const [];
   late final PackageLibrary _library = widget.library ?? PackageLibrary();
 
+  /// The variables of the last launch, as a preset keeps them; null until the questions
+  /// (or their absence) are known.
+  List<PresetVariable>? _lastEnv;
+
   @override
   void initState() {
     super.initState();
     _readPackages();
+    final preset = widget.preset;
+    if (preset != null) {
+      // Only the launch: the catalog is not read.
+      _loading = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_runPreset(preset));
+      });
+      return;
+    }
     _read();
     final file = widget.importFile;
     if (file != null) {
@@ -227,13 +270,21 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   }
 
   Future<void> _read() async {
+    if (_typeMissing) {
+      setState(() {
+        _objectives = null;
+        _loading = false;
+        _failed = false;
+      });
+      return;
+    }
     setState(() {
       _loading = true;
       _failed = false;
     });
     try {
-      final skills = await (widget.loadSkills ?? celautSkills)();
-      if (mounted) setState(() => _skills = skills);
+      final objectives = await (widget.loadObjectives ?? () => celautObjectives(types: _types.ids))();
+      if (mounted) setState(() => _objectives = objectives);
     } catch (_) {
       // Any failure, also one that is not a Celaut error: the section shows the retry.
       if (mounted) setState(() => _failed = true);
@@ -242,8 +293,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     }
   }
 
-  Future<List<SkillServiceView>> _services(String skillBoxId) =>
-      (widget.loadServices ?? (id) => celautSkillServices(skillBoxId: id))(skillBoxId);
+  Future<List<ObjectiveServiceView>> _services(String objectiveBoxId) =>
+      (widget.loadServices ?? (id) => celautObjectiveServices(types: _types.ids, objectiveBoxId: id))(objectiveBoxId);
 
   Future<QuoteView?> _preview(String serviceId) async {
     final custom = widget.previewQuote;
@@ -256,19 +307,42 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     return quotes.quotes.isEmpty ? null : quotes.quotes.first;
   }
 
-  Future<void> _open(SkillView skill) async {
-    final serviceId = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => SkillServicesSheet(
-        skill: skill,
-        loadServices: _services,
-        previewQuote: _preview,
-        wallets: widget.wallets,
+  /// The page of [objective]; Run there runs the service that it returns. [heroTag] is the tag
+  /// of the mark of the card that the user tapped, which flies to the page.
+  Future<void> _open(ObjectiveView objective, {Object? heroTag, int? rank}) async {
+    final serviceId = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ObjectiveDetailScreen(
+          objective: objective,
+          loadServices: _services,
+          previewQuote: _preview,
+          wallets: widget.wallets,
+          heroTag: heroTag,
+          rank: rank,
+        ),
       ),
     );
-    if (serviceId != null && mounted) await _run(serviceId, name: skill.name);
+    if (serviceId != null && mounted) await _run(serviceId, name: objective.name);
+  }
+
+  /// The Run pill of an objective, as "Get" in a store: its recommended service (the first of
+  /// the ranking) goes to the usual confirmation. If the services cannot be read, or the
+  /// objective has none, its page opens and says why.
+  Future<void> _quickRun(ObjectiveView objective, {Object? heroTag, int? rank}) async {
+    setState(() => _quick = objective.boxId);
+    List<ObjectiveServiceView>? services;
+    try {
+      services = await _services(objective.boxId);
+    } catch (_) {
+      services = null;
+    }
+    if (!mounted) return;
+    setState(() => _quick = null);
+    if (services == null || services.isEmpty) {
+      await _open(objective, heroTag: heroTag, rank: rank);
+      return;
+    }
+    await _run(services.first.serviceId, name: objective.name);
   }
 
   /// Ask before a launch: an instance uses credit until it stops. The dialog shows the
@@ -283,10 +357,18 @@ class _RunServiceSectionState extends State<RunServiceSection> {
         },
       );
 
+  /// Start a preset by the steps of Run: the confirmation with the cost is never skipped.
+  Future<void> _runPreset(ServicePreset preset) async {
+    await _run(preset.serviceId, name: preset.name);
+    // After a start, the list has closed this page already.
+    if (mounted) widget.onPresetDone?.call();
+  }
+
   /// Launch [serviceId]. [name] is what the confirmation calls it; with no name the user
   /// has already confirmed (the launch again after a transfer).
   Future<void> _run(String serviceId, {String? name}) async {
     if (name != null) {
+      _lastEnv = null;
       final choice = await _confirm(serviceId, name);
       if (choice == null || !mounted) return;
       _lastName = name;
@@ -354,7 +436,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   /// What the app asks before it starts the service, after the quotes (a quote is free) and
   /// before the first start:
   ///
-  /// 1. If the interface of the service is not the chat convention of Chatui
+  /// 1. If the interface of the service is not the chat convention of Celaut
   ///    (`docs/celaut/chat.md`), an alert says so, and the user can run it anyway or cancel.
   /// 2. The environment variables that the service declares, one at a time
   ///    (`docs/celaut/env-variables.md`).
@@ -394,6 +476,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
   Future<List<EnvChoice>?> _askBeforeRun(String serviceId, QuotesView quotes) async {
     if (!mounted) return null;
     final ServiceInfoView info;
+    _lastEnv = const [];
     try {
       info = await (widget.inspect ?? readServiceInfo)(serviceId, quotes.quotes.first.address);
     } on CelautError {
@@ -402,7 +485,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
       return await _confirmUnreadable(serviceId) ? const [] : null;
     }
     // The service was cut, or its interface was too large to decode: the app cannot tell if
-    // Chatui supports it, which is not the same as "unsupported".
+    // Celaut supports it, which is not the same as "unsupported".
     if (info.truncated || info.chat == ChatSupportView.unknown) {
       if (!mounted) return null;
       _hideRocket();
@@ -416,16 +499,34 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     if (info.environment.isEmpty) return const [];
     if (!mounted) return null;
     _hideRocket();
+    final declared = info.environment;
     return Navigator.of(context).push<List<EnvChoice>>(
       MaterialPageRoute(
         builder: (_) => EnvQuestionsScreen(
-          declared: info.environment,
+          declared: declared,
           networks: info.networks,
           nodes: envTargetNodes(quotes.quotes, (widget.trustedNodes ?? _trustedNodes)()),
           store: widget.envStore,
+          initial: _presetAnswers(serviceId, declared),
+          onConfirmed: (answers) => _lastEnv = presetVariablesOf(declared, answers),
         ),
       ),
     );
+  }
+
+  /// The answers of the preset that this section starts, if it knows the variables of its
+  /// instance; null asks for each variable, as for a new service.
+  List<EnvAnswer?>? _presetAnswers(String serviceId, List<DeclaredVariableView> declared) {
+    final preset = widget.preset;
+    if (preset == null || !preset.known || preset.serviceId != serviceId.toLowerCase()) return null;
+    Set<String> names;
+    try {
+      names = {for (final n in (widget.envStore ?? EnvStore()).names()) n.name};
+    } catch (_) {
+      // No container: its variables are asked for.
+      names = const {};
+    }
+    return envAnswersOfPreset(declared, preset.variables, names);
   }
 
   static Set<String> _trustedNodes() {
@@ -451,7 +552,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     );
   }
 
-  /// The alert of an interface that Chatui does not support. True to run it anyway.
+  /// The alert of an interface that Celaut does not support. True to run it anyway.
   Future<bool> _confirmUnsupported(String serviceId, ServiceInfoView info) async {
     final l = context.l10n;
     final run = await showDialog<bool>(
@@ -483,7 +584,7 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     return run == true;
   }
 
-  /// The service could not be read: the user cannot be told if Chatui supports it or if it
+  /// The service could not be read: the user cannot be told if Celaut supports it or if it
   /// needs variables. True to run it anyway.
   Future<bool> _confirmUnreadable(String serviceId, {ServiceInfoView? info}) async {
     final l = context.l10n;
@@ -526,6 +627,12 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     final instance = outcome.instance;
     final name = _lastName;
     _name(instance.instanceId, name);
+    final env = _lastEnv;
+    if (env != null) {
+      // What the instance was started with, so that it can be pinned as a preset. No
+      // secret: a typed sensitive value is only "ask".
+      unawaited((widget.presets ?? servicePresets).recordLaunch(instance.instanceId, env));
+    }
     widget.onChanged?.call();
     final onStarted = widget.onStarted;
     if (onStarted != null) {
@@ -789,6 +896,8 @@ class _RunServiceSectionState extends State<RunServiceSection> {
           );
         case CelautErrorKind.limitReached:
           _showLinkProblem(l.celautLinkTooLarge(CelautStrings.bytes(maxLinkBytes)));
+        case CelautErrorKind.noSpace:
+          await _showNoSpace(e, link.url);
         case CelautErrorKind.invalidInput:
           _showLinkProblem(l.celautLinkBadFile(e.message));
         case CelautErrorKind.transferFailed:
@@ -800,6 +909,34 @@ class _RunServiceSectionState extends State<RunServiceSection> {
       if (mounted) await showTransferFailure(context, const PackageRefused(PackageRefusal.noDirectory));
     }
     return null;
+  }
+
+  /// The phone has not enough free space for the download of [url] (issue #151). Continue
+  /// is offered only when the bytes that arrived stay on the phone: a download refused
+  /// before its first byte keeps nothing.
+  Future<void> _showNoSpace(CelautError e, String url) async {
+    final sizes = noSpaceOf(e);
+    final kept = (await _library.pendingLink())?.url == url;
+    if (!mounted) return;
+    final l = context.l10n;
+    if (sizes == null) {
+      _showLinkProblem(CelautStrings.errorText(CelautErrorKind.noSpace));
+      return;
+    }
+    final needed = CelautStrings.bytes(sizes.needed);
+    final available = CelautStrings.bytes(sizes.available);
+    if (!kept) {
+      _showLinkProblem(l.celautLinkNoSpaceRetry(needed, available));
+      return;
+    }
+    _showLinkProblem(
+      l.celautLinkNoSpace(needed, available),
+      action: SnackBarAction(
+        key: const Key('link-retry'),
+        label: l.celautLinkPendingContinue,
+        onPressed: () => unawaited(_importAndTell(() async => ChosenFile.link(url))),
+      ),
+    );
   }
 
   Future<bool> _confirmHttp(String url) async {
@@ -942,13 +1079,13 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     await _run(serviceId);
   }
 
-  /// The skills that match the search, the most backed first ([rankSkills]).
-  List<SkillView> _filtered() {
+  /// The objectives that match the search, the most backed first ([rankObjectives]).
+  List<ObjectiveView> _filtered() {
     final query = _search.text.trim().toLowerCase();
-    return [for (final s in rankSkills(_skills ?? const <SkillView>[])) if (skillMatches(s, query)) s];
+    return [for (final s in rankObjectives(_objectives ?? const <ObjectiveView>[])) if (objectiveMatches(s, query)) s];
   }
 
-  /// A new search shows its skills from the start.
+  /// A new search shows its objectives from the start.
   void _filter(VoidCallback change) {
     setState(change);
     if (_scroll.hasClients) _scroll.jumpTo(0);
@@ -977,10 +1114,12 @@ class _RunServiceSectionState extends State<RunServiceSection> {
 
   @override
   Widget build(BuildContext context) {
+    // A preset: only the dialogs and the rocket of the launch show, over the list.
+    if (widget.preset != null) return const SizedBox.shrink(key: Key('run-preset'));
     final l = context.l10n;
     final t = HomeText.of(context);
     final browsing = _search.text.trim().isEmpty;
-    final skills = _filtered();
+    final objectives = _filtered();
     Widget gutter(Widget child) =>
         Padding(padding: const EdgeInsets.symmetric(horizontal: homeGutter), child: child);
     return Column(
@@ -1009,29 +1148,37 @@ class _RunServiceSectionState extends State<RunServiceSection> {
               controller: _scroll,
               padding: EdgeInsets.fromLTRB(0, 4, 0, 32 + MediaQuery.paddingOf(context).bottom),
               children: [
-                if (_loading)
-                  gutter(Text(l.celautRunLoading, key: const Key('run-loading'), style: t.secondary))
+                if (_typeMissing)
+                  gutter(ObjectiveTypeMissing(onBack: _read))
+                else if (_loading)
+                  gutter(StoreSkeleton(key: const Key('run-loading'), featured: browsing))
                 else if (_failed)
                   gutter(
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l.celautRunCatalogError, key: const Key('run-error'), style: t.secondary),
-                        const SizedBox(height: 6),
-                        OutlinedButton(
-                          key: const Key('run-retry'),
-                          // The theme asks for the full width, which a column of text does not need.
-                          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
-                          onPressed: _read,
-                          child: Text(l.celautRunRetry),
-                        ),
-                      ],
+                    StoreMessage(
+                      icon: Icons.cloud_off_outlined,
+                      text: l.celautRunCatalogError,
+                      textKey: const Key('run-error'),
+                      action: OutlinedButton(
+                        key: const Key('run-retry'),
+                        // The theme asks for the full width, which a column of text does not need.
+                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40), shape: const StadiumBorder()),
+                        onPressed: _read,
+                        child: Text(l.celautRunRetry),
+                      ),
                     ),
                   )
-                else if (skills.isEmpty)
-                  gutter(Text(l.celautRunEmpty, key: const Key('run-empty'), style: t.secondary))
+                else if (objectives.isEmpty)
+                  gutter(
+                    StoreMessage(
+                      icon: browsing ? Icons.storefront_outlined : Icons.search_off,
+                      text: browsing ? l.celautStoreCatalogEmpty : l.celautRunEmpty,
+                      textKey: const Key('run-empty'),
+                    ),
+                  )
+                else if (browsing)
+                  ..._home(context, objectives, box.maxWidth)
                 else
-                  ..._store(context, skills, box.maxWidth, short: browsing && !_showAll),
+                  ..._results(context, objectives),
                 // While a launch runs, its rocket is over the screen ([LaunchRocket]).
               ],
             ),
@@ -1114,74 +1261,166 @@ class _RunServiceSectionState extends State<RunServiceSection> {
     );
   }
 
-  /// The store: one list of [skills] in groups by field, the field as the title of its
-  /// group (issue #122). With [short], only the first [storeShortList] skills and a "Show
-  /// more" action; a search shows all the skills that match.
-  List<Widget> _store(BuildContext context, List<SkillView> skills, double width, {required bool short}) {
+  /// The store home, from [ranked] (all the objectives, most backed first): the featured
+  /// objective, the shelves by field, and "Top objectives" with its first [storeShortList] rows
+  /// and "Show more".
+  List<Widget> _home(BuildContext context, List<ObjectiveView> ranked, double width) {
     final l = context.l10n;
-    final t = HomeText.of(context);
-    final cut = short && skills.length > storeShortList;
-    final shown = cut ? skills.take(storeShortList).toList() : skills;
+    final top = ranked.first;
+    final rankOf = {for (var i = 0; i < ranked.length; i++) ranked[i].boxId: i + 1};
+    final cut = !_showAll && ranked.length > storeShortList;
+    final rows = cut ? ranked.take(storeShortList).toList() : ranked;
+    Widget gutter(Widget child, {Key? key}) =>
+        Padding(key: key, padding: const EdgeInsets.symmetric(horizontal: homeGutter), child: child);
+    final featuredTag = objectiveHeroTag('featured', top);
+    final shelves = storeShelves(ranked);
     return [
-      for (final g in skillGroups(shown))
-        Padding(
-          key: Key('store-group-${g.key}'),
-          padding: const EdgeInsets.fromLTRB(homeGutter, 0, homeGutter, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
-              const SizedBox(height: 8),
-              _cards(g.skills, width),
-            ],
-          ),
+      const SizedBox(height: 4),
+      gutter(
+        ObjectiveFeatureCard(
+          key: const Key('store-featured'),
+          runKey: const Key('store-featured-run'),
+          objective: top,
+          heroTag: featuredTag,
+          busy: _quick == top.boxId,
+          onTap: _running ? null : () => _open(top, heroTag: featuredTag, rank: 1),
+          onRun: _running || _quick != null ? null : () => _quickRun(top, heroTag: featuredTag, rank: 1),
         ),
-      if (_search.text.trim().isEmpty && skills.length > storeShortList)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: homeGutter),
-          child: Align(
+      ),
+      for (final shelf in shelves) ...[
+        const SizedBox(height: 26),
+        gutter(
+          StoreSectionTitle(
+            shelf.key == mixedShelfKey
+                ? (shelves.length == 1 ? l.celautStoreByField : l.celautStoreMoreFields)
+                : shelf.title,
+          ),
+          key: Key('store-shelf-${shelf.key}'),
+        ),
+        const SizedBox(height: 12),
+        _shelf(shelf, rankOf),
+      ],
+      const SizedBox(height: 26),
+      gutter(StoreSectionTitle(l.celautStoreTopObjectives), key: const Key('store-top')),
+      const SizedBox(height: 4),
+      gutter(_rows(rows, width, rankOf: rankOf, place: 'top', showField: true)),
+      if (ranked.length > storeShortList)
+        gutter(
+          Align(
             alignment: AlignmentDirectional.centerStart,
             child: TextButton(
               key: const Key('store-more'),
               onPressed: () => setState(() => _showAll = !_showAll),
-              child: Text(_showAll ? l.celautStoreShowFewer : l.celautStoreShowMore(skills.length - storeShortList)),
+              child: Text(_showAll ? l.celautStoreShowFewer : l.celautStoreShowMore(ranked.length - storeShortList)),
             ),
           ),
         ),
     ];
   }
 
-  /// [skills] as cards: one column on a phone, two on a wide screen.
-  Widget _cards(List<SkillView> skills, double width) {
-    Widget card(SkillView s) => SkillCard(
-          key: Key('run-skill-${s.boxId}'),
-          runKey: Key('run-skill-run-${s.boxId}'),
-          skill: s,
-          onTap: _running ? null : () => _open(s),
-          onRun: _running ? null : () => _open(s),
-        );
+  /// A shelf: its tiles in a row that scrolls sideways, all of one height.
+  Widget _shelf(ObjectiveShelf shelf, Map<String, int> rankOf) {
+    final mixed = shelf.key == mixedShelfKey;
+    return SingleChildScrollView(
+      key: Key('store-shelf-list-${shelf.key}'),
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: homeGutter),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (i, s) in shelf.objectives.indexed) ...[
+              if (i > 0) const SizedBox(width: 12),
+              Builder(
+                builder: (context) {
+                  final tag = objectiveHeroTag('shelf-${shelf.key}', s);
+                  return ObjectiveTile(
+                    key: Key('store-tile-${s.boxId}'),
+                    objective: s,
+                    showField: mixed,
+                    heroTag: tag,
+                    onTap: _running ? null : () => _open(s, heroTag: tag, rank: rankOf[s.boxId]),
+                  );
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// [objectives] as ranked rows, with their rank when [rankOf] is given: one column on a phone,
+  /// two on a wide screen.
+  Widget _rows(
+    List<ObjectiveView> objectives,
+    double width, {
+    Map<String, int>? rankOf,
+    required String place,
+    bool showField = false,
+  }) {
+    Widget row(ObjectiveView s, {required bool divider}) {
+      final tag = objectiveHeroTag(place, s);
+      final rank = rankOf?[s.boxId];
+      return ObjectiveRow(
+        key: Key('run-objective-${s.boxId}'),
+        runKey: Key('run-objective-run-${s.boxId}'),
+        objective: s,
+        rank: rank,
+        heroTag: tag,
+        divider: divider,
+        showField: showField,
+        busy: _quick == s.boxId,
+        onTap: _running ? null : () => _open(s, heroTag: tag, rank: rank),
+        onRun: _running || _quick != null ? null : () => _quickRun(s, heroTag: tag, rank: rank),
+      );
+    }
+
     final columns = width >= 600 ? 2 : 1;
+    final lines = (objectives.length + columns - 1) ~/ columns;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < skills.length; i += columns)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: columns == 1
-                ? card(skills[i])
-                : IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(child: card(skills[i])),
-                        const SizedBox(width: 10),
-                        Expanded(child: i + 1 < skills.length ? card(skills[i + 1]) : const SizedBox.shrink()),
-                      ],
-                    ),
-                  ),
-          ),
+        for (var line = 0; line < lines; line++)
+          columns == 1
+              ? row(objectives[line], divider: line < lines - 1)
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var c = 0; c < columns; c++) ...[
+                      if (c > 0) const SizedBox(width: 20),
+                      Expanded(
+                        child: line * columns + c < objectives.length
+                            ? row(objectives[line * columns + c], divider: line < lines - 1)
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
+                ),
       ],
     );
+  }
+
+  /// The objectives that match a search, as rows in groups by field (issue #122): all of
+  /// them, most backed first in each group, with no rank.
+  List<Widget> _results(BuildContext context, List<ObjectiveView> objectives) {
+    final l = context.l10n;
+    final t = HomeText.of(context);
+    return [
+      for (final g in objectiveGroups(objectives))
+        Padding(
+          key: Key('store-group-${g.key}'),
+          padding: const EdgeInsets.fromLTRB(homeGutter, 8, homeGutter, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text((g.title.isEmpty ? l.celautStoreOtherField : g.title).toUpperCase(), style: t.label),
+              const SizedBox(height: 4),
+              _rows(g.objectives, 0, place: 'search'),
+            ],
+          ),
+        ),
+    ];
   }
 }
 

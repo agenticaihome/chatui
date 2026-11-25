@@ -69,7 +69,7 @@ ChosenFile? chosenFileOf(Object? answer) {
 /// Receives the opened files from the Android side (cold start through `takeIncoming`,
 /// the others through `incoming`) and puts them in [incomingPackages].
 class IncomingPackageChannel {
-  static const channel = MethodChannel('org.celaut.chatui/incoming');
+  static const channel = MethodChannel('org.celaut.superapp/incoming');
   static bool _started = false;
 
   static Future<void> start({IncomingPackages? into}) async {

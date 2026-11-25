@@ -8,7 +8,7 @@ import '../home/home_scene.dart';
 import '../layout.dart';
 import 'run_service_section.dart';
 
-/// Run a service: the store of skills, with the service files of the user and the import
+/// Run a service: the store of objectives, with the service files of the user and the import
 /// of a file at the top, on a screen of its own. The home screen has only the button that opens it,
 /// so the catalog is read only when the user wants to run something.
 class RunServiceScreen extends StatelessWidget {

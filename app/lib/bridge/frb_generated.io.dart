@@ -69,6 +69,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BtcPaymentRequest dco_decode_box_autoadd_btc_payment_request(dynamic raw);
 
   @protected
+  CatalogTypeIds dco_decode_box_autoadd_catalog_type_ids(dynamic raw);
+
+  @protected
   CelautErrorKind dco_decode_box_autoadd_celaut_error_kind(dynamic raw);
 
   @protected
@@ -165,6 +168,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BytesTotalView dco_decode_bytes_total_view(dynamic raw);
+
+  @protected
+  CatalogTypeIds dco_decode_catalog_type_ids(dynamic raw);
 
   @protected
   CelautDatabaseView dco_decode_celaut_database_view(dynamic raw);
@@ -389,6 +395,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<NodeUriView> dco_decode_list_node_uri_view(dynamic raw);
 
   @protected
+  List<ObjectiveServiceView> dco_decode_list_objective_service_view(
+    dynamic raw,
+  );
+
+  @protected
+  List<ObjectiveView> dco_decode_list_objective_view(dynamic raw);
+
+  @protected
   List<PaymentContractView> dco_decode_list_payment_contract_view(dynamic raw);
 
   @protected
@@ -414,12 +428,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<RunningInstanceView> dco_decode_list_running_instance_view(dynamic raw);
-
-  @protected
-  List<SkillServiceView> dco_decode_list_skill_service_view(dynamic raw);
-
-  @protected
-  List<SkillView> dco_decode_list_skill_view(dynamic raw);
 
   @protected
   List<SupportMessageView> dco_decode_list_support_message_view(dynamic raw);
@@ -477,6 +485,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NodeUriView dco_decode_node_uri_view(dynamic raw);
+
+  @protected
+  ObjectiveServiceView dco_decode_objective_service_view(dynamic raw);
+
+  @protected
+  ObjectiveView dco_decode_objective_view(dynamic raw);
 
   @protected
   OnCloseView dco_decode_on_close_view(dynamic raw);
@@ -602,12 +616,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ServiceInfoView dco_decode_service_info_view(dynamic raw);
 
   @protected
-  SkillServiceView dco_decode_skill_service_view(dynamic raw);
-
-  @protected
-  SkillView dco_decode_skill_view(dynamic raw);
-
-  @protected
   SpendingPeriod dco_decode_spending_period(dynamic raw);
 
   @protected
@@ -702,6 +710,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BtcPaymentRequest sse_decode_box_autoadd_btc_payment_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  CatalogTypeIds sse_decode_box_autoadd_catalog_type_ids(
     SseDeserializer deserializer,
   );
 
@@ -826,6 +839,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BytesTotalView sse_decode_bytes_total_view(SseDeserializer deserializer);
+
+  @protected
+  CatalogTypeIds sse_decode_catalog_type_ids(SseDeserializer deserializer);
 
   @protected
   CelautDatabaseView sse_decode_celaut_database_view(
@@ -1118,6 +1134,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<NodeUriView> sse_decode_list_node_uri_view(SseDeserializer deserializer);
 
   @protected
+  List<ObjectiveServiceView> sse_decode_list_objective_service_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ObjectiveView> sse_decode_list_objective_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<PaymentContractView> sse_decode_list_payment_contract_view(
     SseDeserializer deserializer,
   );
@@ -1153,14 +1179,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<RunningInstanceView> sse_decode_list_running_instance_view(
     SseDeserializer deserializer,
   );
-
-  @protected
-  List<SkillServiceView> sse_decode_list_skill_service_view(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  List<SkillView> sse_decode_list_skill_view(SseDeserializer deserializer);
 
   @protected
   List<SupportMessageView> sse_decode_list_support_message_view(
@@ -1226,6 +1244,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NodeUriView sse_decode_node_uri_view(SseDeserializer deserializer);
+
+  @protected
+  ObjectiveServiceView sse_decode_objective_service_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ObjectiveView sse_decode_objective_view(SseDeserializer deserializer);
 
   @protected
   OnCloseView sse_decode_on_close_view(SseDeserializer deserializer);
@@ -1373,12 +1399,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ServiceInfoView sse_decode_service_info_view(SseDeserializer deserializer);
 
   @protected
-  SkillServiceView sse_decode_skill_service_view(SseDeserializer deserializer);
-
-  @protected
-  SkillView sse_decode_skill_view(SseDeserializer deserializer);
-
-  @protected
   SpendingPeriod sse_decode_spending_period(SseDeserializer deserializer);
 
   @protected
@@ -1488,6 +1508,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_btc_payment_request(
     BtcPaymentRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_catalog_type_ids(
+    CatalogTypeIds self,
     SseSerializer serializer,
   );
 
@@ -1647,6 +1673,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bytes_total_view(
     BytesTotalView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_catalog_type_ids(
+    CatalogTypeIds self,
     SseSerializer serializer,
   );
 
@@ -2044,6 +2076,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_objective_service_view(
+    List<ObjectiveServiceView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_objective_view(
+    List<ObjectiveView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_payment_contract_view(
     List<PaymentContractView> self,
     SseSerializer serializer,
@@ -2091,18 +2135,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_running_instance_view(
     List<RunningInstanceView> self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_list_skill_service_view(
-    List<SkillServiceView> self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_list_skill_view(
-    List<SkillView> self,
     SseSerializer serializer,
   );
 
@@ -2201,6 +2233,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_node_uri_view(NodeUriView self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_objective_service_view(
+    ObjectiveServiceView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_objective_view(ObjectiveView self, SseSerializer serializer);
 
   @protected
   void sse_encode_on_close_view(OnCloseView self, SseSerializer serializer);
@@ -2381,15 +2422,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     ServiceInfoView self,
     SseSerializer serializer,
   );
-
-  @protected
-  void sse_encode_skill_service_view(
-    SkillServiceView self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_skill_view(SkillView self, SseSerializer serializer);
 
   @protected
   void sse_encode_spending_period(

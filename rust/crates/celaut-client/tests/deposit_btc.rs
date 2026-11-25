@@ -4,7 +4,7 @@
 use celaut_client::deposit::{
     is_p2wpkh, BtcPayment, DepositError, DEFAULT_BTC_CONFIRMATIONS, MAX_BTC_CONFIRMATIONS,
 };
-use celaut_proto::celaut::contract::Ledger;
+use celaut_proto::celaut::contract::{Ledger, Protocol};
 use celaut_proto::celaut::{Amount, BytesKeyValue, Contract, ContractRate, Peer};
 
 const TOKEN: &str = "1b4e28ba-2fa1-41d2-883f-0016d3cca427";
@@ -17,7 +17,6 @@ fn bitcoin_formal(network: &str, extra: &[(&str, &str)]) -> Vec<u8> {
         ("asset.native", "BTC"),
         ("chain", "bitcoin"),
         ("network", network),
-        ("payment.contract_type.p2wpkh", "p2wpkh"),
         (
             "payment.deposit_token",
             "an OP_RETURN output of the same transaction; its data is the UTF-8 deposit token, at most 80 bytes",
@@ -51,11 +50,15 @@ fn btc_contract(formal: Vec<u8>, kind: &[u8], script: &[u8]) -> Contract {
             prose: "This ledger is Bitcoin.".into(),
             formal,
         }),
+        protocol: Some(Protocol {
+            tags: vec![format!("bitcoin-{}", String::from_utf8_lossy(kind))],
+            prose: "How a payment is made.".into(),
+            formal: b"payment.kind=p2wpkh".to_vec(),
+        }),
         xattrs: vec![
             kv("script", script),
             kv("address", b"bc1q..."),
             kv("token_id", b"BTC"),
-            kv("contract_type", kind),
         ],
     }
 }
@@ -189,4 +192,34 @@ fn amounts() {
     assert!(matches!(pay.mu_for(0), Err(DepositError::BadAmount(_))));
     assert_eq!(pay.mu_for(546).unwrap(), 764_400_000);
     assert!(matches!(pay.payment("bad token", 1000), Err(DepositError::BadToken(_))));
+}
+
+#[test]
+fn the_kind_comes_from_the_protocol_and_not_from_an_xattr() {
+    // nodo removed the xattr contract_type: the kind is in Contract.protocol.tags.
+    let p = peer(vec![(btc_contract(bitcoin_formal("mainnet", &[]), b"p2wpkh", &script()), "1")]);
+    let contract = p.payment_contracts[0].contract.as_ref().unwrap();
+    assert!(contract.xattrs.iter().all(|e| e.key != "contract_type"));
+    assert_eq!(contract.protocol.as_ref().unwrap().tags, vec!["bitcoin-p2wpkh"]);
+    assert!(BtcPayment::of(&p, "mainnet").is_ok());
+    // Another kind in the protocol is refused, with a script that has the shape of P2WPKH.
+    let p = peer(vec![(btc_contract(bitcoin_formal("mainnet", &[]), b"p2tr", &script()), "1")]);
+    assert!(matches!(BtcPayment::of(&p, "mainnet"), Err(DepositError::NotP2wpkh(_))));
+}
+
+#[test]
+fn the_payment_lines_can_be_in_the_formal_of_the_protocol() {
+    // nodo puts payment.* in the formal of the protocol, and the network in the ledger.
+    let protocol_formal = |lines: &[&str]| {
+        let mut c = btc_contract(bitcoin_formal("mainnet", &[]), b"p2wpkh", &script());
+        c.protocol.as_mut().unwrap().formal = lines.join("\n").into_bytes();
+        peer(vec![(c, "1")])
+    };
+    let p = protocol_formal(&["payment.kind=p2wpkh", "payment.min_confirmations=3"]);
+    assert_eq!(BtcPayment::of(&p, "mainnet").unwrap().confirmations(), 3);
+    let p = protocol_formal(&["payment.deposit_token=in the witness"]);
+    assert!(matches!(
+        BtcPayment::of(&p, "mainnet"),
+        Err(DepositError::UnknownBinding(_))
+    ));
 }

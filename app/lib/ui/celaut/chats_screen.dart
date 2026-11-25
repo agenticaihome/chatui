@@ -9,6 +9,7 @@ import '../../celaut/conversations.dart';
 import '../../celaut/launcher.dart';
 import '../../celaut/package_channel.dart';
 import '../../celaut/payers.dart';
+import '../../celaut/service_presets.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/argus_theme.dart';
 import '../home/home_scene.dart';
@@ -17,16 +18,20 @@ import '../layout.dart';
 import 'deposit_screen.dart';
 import 'group_widgets.dart';
 import 'instance_list.dart';
+import 'preset_pin.dart';
+import 'preset_wheel.dart';
 import 'run_service_screen.dart';
-import 'run_service_section.dart' show StartedCall;
+import 'run_service_section.dart';
 
 /// The Chats tab of the home screen, chat first, as Telegram and WhatsApp
 /// (`docs/celaut/ui-chat-first.md`):
 ///
 /// - the list of conversations: each row is an instance whose interface has a chat slot
 ///   (`docs/celaut/chat.md`, section 3);
-/// - the pencil button opens "New conversation": the skills of the catalog and the
+/// - the pencil button opens "New conversation": the objectives of the catalog and the
 ///   service files, then the confirmation, the wallet, the launch, and the conversation.
+///   With presets ("Pin as preset" on the info page of an instance), it opens a wheel of
+///   them first ([PresetWheelButton], `docs/celaut/presets.md`).
 ///
 /// The other tabs of the bottom bar ([HomeTabs]) hold the rest of the app.
 ///
@@ -47,7 +52,16 @@ class ChatsScreen extends StatefulWidget {
     this.openDeposit,
     this.groups,
     this.active = true,
+    this.presets,
+    this.presetPage,
   });
+
+  /// The presets of the wheel of the pencil button. Tests give their own.
+  final ServicePresets? presets;
+
+  /// The launch of a preset, over the list: tests give their own section. It gets the
+  /// preset, what to do after a start, and what to do when the launch ends without one.
+  final Widget Function(ServicePreset preset, StartedCall onStarted, VoidCallback done)? presetPage;
 
   /// The tab shows. On a wide window, Back closes the conversation of the pane only while
   /// the tab shows.
@@ -88,6 +102,7 @@ class ChatsScreenState extends State<ChatsScreen> {
   final _pane = GlobalKey<NavigatorState>();
   late final ConversationNotes _notes = widget.notes ?? conversationNotes;
   late final ChatGroups _groups = widget.groups ?? chatGroups;
+  late final ServicePresets _presets = widget.presets ?? servicePresets;
 
   /// Read the list again (after a change on another screen).
   Future<void> refresh() async => _list.currentState?.refresh();
@@ -144,6 +159,37 @@ class ChatsScreenState extends State<ChatsScreen> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => runPage(context.l10n.chatsNewTitle)),
     );
+    if (mounted) await refresh();
+  }
+
+  /// Start a preset of the wheel by the steps of Run (the confirmation with the cost, the
+  /// wallet, the variables filled from the preset), over the list: the page of the launch
+  /// shows nothing but its dialogs. It closes when the launch ends without a start; after a
+  /// start, [_started] goes back to the list and opens the conversation.
+  Future<void> _startPreset(ServicePreset preset) async {
+    final navigator = Navigator.of(context);
+    late final Route<void> route;
+    void done() {
+      if (route.isActive) navigator.removeRoute(route);
+    }
+
+    route = PageRouteBuilder<void>(
+      opaque: false,
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
+      pageBuilder: (_, _, _) =>
+          widget.presetPage?.call(preset, _started, done) ??
+          RunServiceSection(
+            preset: preset,
+            presets: _presets,
+            wallets: widget.wallets,
+            newClient: widget.newClient,
+            onStarted: _started,
+            onPresetDone: done,
+            showTitle: false,
+          ),
+    );
+    await navigator.push(route);
     if (mounted) await refresh();
   }
 
@@ -222,11 +268,12 @@ class ChatsScreenState extends State<ChatsScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        key: const Key('chats-new'),
+      floatingActionButton: PresetWheelButton(
+        presets: _presets,
         tooltip: l.chatsNewTitle,
-        onPressed: _newChat,
-        child: const Icon(Icons.edit_outlined),
+        onObjectives: _newChat,
+        onPreset: _startPreset,
+        onEdit: (preset) => showPresetEditSheet(context, _presets, preset),
       ),
       body: Column(
         children: [

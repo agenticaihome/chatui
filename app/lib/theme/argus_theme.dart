@@ -3,6 +3,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
+import 'groups/groups.dart';
+import 'palette_look.dart';
+
+export 'groups/groups.dart';
+export 'palette_look.dart';
 
 // The Celaut colours, from the landing page's tokens (app.css). The two
 // default palettes are built from them: deep teal with cream type (dark) and
@@ -91,6 +96,10 @@ class SceneSpec {
     required this.sendBottom,
     required this.sendGlow,
     required this.onSend,
+    this.art,
+    required this.trim,
+    required this.accent,
+    required this.page,
   });
 
   /// The scene for [p]: everything is mixed from its page and accent, so a
@@ -125,6 +134,10 @@ class SceneSpec {
         sendBottom: sendBottom,
         sendGlow: a.withValues(alpha: 0.45),
         onSend: p.onAccent,
+        art: p.art,
+        trim: p.trim,
+        accent: a,
+        page: bg,
       );
     }
     return SceneSpec(
@@ -146,6 +159,10 @@ class SceneSpec {
       sendBottom: sendBottom,
       sendGlow: a.withValues(alpha: 0.4),
       onSend: p.onAccent,
+      art: p.art,
+      trim: p.trim,
+      accent: a,
+      page: bg,
     );
   }
 
@@ -182,7 +199,18 @@ class SceneSpec {
   final Color sendBottom;
   final Color sendGlow;
   final Color onSend;
+
+  /// The drawing of the palette over the scene, or null, and the colours it takes: the
+  /// trim, the accent and the page (lib/theme/scene_art.dart).
+  final SceneArtwork? art;
+  final Color trim;
+  final Color accent;
+  final Color page;
 }
+
+/// The group (a folder in the picker) that a palette is listed in: the app's own palettes,
+/// or a collection of themed palettes (lib/theme/groups/), each with its own look.
+enum PaletteGroup { standard, harryPotter, christmas, gta, marvel, cyberpunk }
 
 /// One complete palette. Two ship as the defaults, the Celaut palettes (ids
 /// 'watchful' and 'ledger', kept so stored choices still resolve); the rest
@@ -206,9 +234,14 @@ class PaletteSpec {
     required this.accentText,
     Color? heading,
     this.sceneGlow = 1,
+    this.look,
+    this.group = PaletteGroup.standard,
+    this.art,
+    Color? trim,
   })  : _name = name,
         _hint = hint,
-        _heading = heading;
+        _heading = heading,
+        _trim = trim;
 
   final String id;
   final String _name;
@@ -231,7 +264,7 @@ class PaletteSpec {
         'nord' => appL10n.themeNordName,
         'solarized' => appL10n.themeSolarizedName,
         'dracula' => appL10n.themeDraculaName,
-        _ => _name,
+        _ => groupPaletteName(appL10n, id) ?? _name,
       };
 
   /// What the palette looks like, in the language of the app.
@@ -251,7 +284,7 @@ class PaletteSpec {
         'nord' => appL10n.themeNordHint,
         'solarized' => appL10n.themeSolarizedHint,
         'dracula' => appL10n.themeDraculaHint,
-        _ => _hint,
+        _ => groupPaletteHint(appL10n, id) ?? _hint,
       };
   final Brightness brightness;
   final Color background;
@@ -277,6 +310,24 @@ class PaletteSpec {
   /// The scene was tuned on near-black pages; a lighter dark page (Celaut's
   /// teal) takes less, so the balance and its lines keep WCAG AA on it.
   final double sceneGlow;
+
+  /// The look of the palette beyond its colours (lib/theme/palette_look.dart), or null for
+  /// the rounded look of the app.
+  final PaletteLook? look;
+
+  /// The second colour of a palette with a look (the metal of a Harry Potter palette): the
+  /// edge of buttons and cards, the ornaments and what the rocket leaves. Decorative only,
+  /// never text. The accent when the palette sets none.
+  Color get trim => _trim ?? accent;
+  final Color? _trim;
+
+  bool get hasLook => look != null;
+
+  /// The folder of the picker that lists the palette.
+  final PaletteGroup group;
+
+  /// The drawing of the palette over its scene, or null.
+  final SceneArtwork? art;
 
   /// The scene the home pages open on.
   SceneSpec get scene => SceneSpec.of(this);
@@ -439,6 +490,7 @@ const allPalettes = [
   nordPalette,
   solarizedPalette,
   draculaPalette,
+  ...groupPalettes,
 ];
 
 PaletteSpec paletteById(String? id, {required Brightness fallback}) {
@@ -460,6 +512,8 @@ class ArgusColors extends ThemeExtension<ArgusColors> {
     this.onAccent = tealDeep,
     this.accentText = coralText,
     this.scene,
+    this.trim = coral,
+    this.look,
   });
 
   factory ArgusColors.fromSpec(PaletteSpec p) => ArgusColors(
@@ -471,6 +525,8 @@ class ArgusColors extends ThemeExtension<ArgusColors> {
         onAccent: p.onAccent,
         accentText: p.accentText,
         scene: p.scene,
+        trim: p.trim,
+        look: p.look,
       );
 
   /// The scene the home pages open on; null outside a palette's theme,
@@ -487,6 +543,14 @@ class ArgusColors extends ThemeExtension<ArgusColors> {
 
   /// Accent used as text on the page background.
   final Color accentText;
+
+  /// The metal of the palette ([PaletteSpec.trim]): decorative only.
+  final Color trim;
+
+  /// The look of the palette ([PaletteSpec.look]), or null for the app's.
+  final PaletteLook? look;
+
+  bool get hasLook => look != null;
 
   /// Secondary text.
   final Color muted;
@@ -531,6 +595,8 @@ class ArgusColors extends ThemeExtension<ArgusColors> {
     Color? onAccent,
     Color? accentText,
     SceneSpec? scene,
+    Color? trim,
+    PaletteLook? look,
   }) =>
       ArgusColors(
         muted: muted ?? this.muted,
@@ -541,6 +607,8 @@ class ArgusColors extends ThemeExtension<ArgusColors> {
         onAccent: onAccent ?? this.onAccent,
         accentText: accentText ?? this.accentText,
         scene: scene ?? this.scene,
+        trim: trim ?? this.trim,
+        look: look ?? this.look,
       );
 
   @override
@@ -555,6 +623,8 @@ class ArgusColors extends ThemeExtension<ArgusColors> {
       onAccent: Color.lerp(onAccent, other.onAccent, t)!,
       accentText: Color.lerp(accentText, other.accentText, t)!,
       scene: t < 0.5 ? scene : other.scene,
+      trim: Color.lerp(trim, other.trim, t)!,
+      look: t < 0.5 ? look : other.look,
     );
   }
 }
@@ -568,8 +638,21 @@ const bodyFont = 'Lato';
 ThemeData argusTheme({required bool watchful}) =>
     argusThemeFor(watchful ? watchfulPalette : ledgerPalette);
 
+/// The outline of a panel of [p] with a corner of [radius]: rounded, or the one of the
+/// palette's look.
+OutlinedBorder panelShapeFor(PaletteSpec p, double radius, {BorderSide side = BorderSide.none}) =>
+    p.look?.shape(radius, side: side) ??
+    RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius), side: side);
+
 ThemeData argusThemeFor(PaletteSpec p) {
   final watchful = p.isDark;
+  final look = p.look;
+  final themed = look != null;
+  // A palette with a look (lib/theme/palette_look.dart): its outlines, an edge of the trim
+  // round each card and dialog, a stronger one round the main buttons, and its labels.
+  final trimEdge = look?.edge(p) ?? BorderSide.none;
+  const plainButtonText = TextStyle(fontFamily: bodyFont, fontWeight: FontWeight.w700, letterSpacing: 0.6);
+  final buttonText = look?.buttonText ?? plainButtonText;
   final scheme = ColorScheme(
     brightness: p.brightness,
     primary: p.accent,
@@ -661,9 +744,7 @@ ThemeData argusThemeFor(PaletteSpec p) {
       color: p.surface,
       elevation: 0,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(cardRadius),
-      ),
+      shape: panelShapeFor(p, cardRadius, side: trimEdge),
     ),
     dividerTheme: DividerThemeData(
       color: watchful ? p.outline : p.cardBorder,
@@ -719,34 +800,40 @@ ThemeData argusThemeFor(PaletteSpec p) {
         foregroundColor: p.onAccent,
         elevation: 0,
         minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(buttonRadius),
-        ),
-        textStyle: const TextStyle(
-          fontFamily: bodyFont,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
-        ),
+        shape: panelShapeFor(p, buttonRadius, side: look?.buttonEdge(p) ?? BorderSide.none),
+        textStyle: buttonText,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: p.ink,
         minimumSize: const Size.fromHeight(52),
-        side: BorderSide(color: p.accent),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(buttonRadius),
-        ),
+        side: BorderSide(color: themed ? p.trim : p.accent, width: themed ? 1.4 : 1),
+        shape: panelShapeFor(p, buttonRadius),
+        textStyle: themed ? buttonText : null,
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: p.accentText,
+        textStyle: themed ? buttonText : null,
+        shape: themed ? panelShapeFor(p, buttonRadius) : null,
       ),
     ),
+    floatingActionButtonTheme: look != null
+        ? FloatingActionButtonThemeData(
+            backgroundColor: p.accent,
+            foregroundColor: p.onAccent,
+            shape: panelShapeFor(p, cardRadius, side: look.buttonEdge(p)),
+          )
+        : null,
+    chipTheme: themed ? ChipThemeData(shape: panelShapeFor(p, 12, side: BorderSide(color: p.outline))) : null,
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: p.background,
       indicatorColor: p.accent.withValues(alpha: 0.18),
+      indicatorShape: themed
+          ? panelShapeFor(p, 24, side: BorderSide(color: p.trim.withValues(alpha: 0.7)))
+          : null,
       elevation: 0,
       height: 68,
       // Left to the scheme, the selected icon took onSecondaryContainer,
@@ -771,13 +858,19 @@ ThemeData argusThemeFor(PaletteSpec p) {
       backgroundColor: watchful ? p.surface : p.ink,
       contentTextStyle: TextStyle(fontFamily: bodyFont, color: watchful ? p.ink : p.background),
     ),
-    progressIndicatorTheme: ProgressIndicatorThemeData(color: p.accent),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: p.accent,
+      linearTrackColor: themed ? p.trim.withValues(alpha: 0.25) : null,
+    ),
     dialogTheme: DialogThemeData(
       backgroundColor: p.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(cardRadius),
-      ),
+      shape: panelShapeFor(p, cardRadius, side: trimEdge),
     ),
+    bottomSheetTheme: look != null
+        ? BottomSheetThemeData(
+            shape: look.sheetShape(cardRadius, side: trimEdge),
+          )
+        : null,
   );
 }
 
@@ -801,7 +894,7 @@ class Hairline extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 1,
-      color: gold ? accentOf(context) : Theme.of(context).dividerColor,
+      color: gold ? ArgusColors.of(context).trim : Theme.of(context).dividerColor,
     );
   }
 }
@@ -980,16 +1073,16 @@ class CellMarkPainter extends CustomPainter {
       oldDelegate.live != live || oldDelegate.born != born || oldDelegate.grid != grid;
 }
 
-/// The wordmark beside [CellMark]: "Chat" in Playfair Display 800, in the accent's text
-/// colour, as on the landing page, and then "ui" in mint, the other colour of the mark:
-/// Chatui, in lower case except the C.
+/// The wordmark beside [CellMark]: "Cela" in Playfair Display 800, in the accent's text
+/// colour, as on the landing page, and then "ut" in mint, the other colour of the mark:
+/// Celaut, in lower case except the C.
 class CelautWordmark extends StatelessWidget {
   const CelautWordmark({super.key, this.size = 26, this.textAlign});
   final double size;
   final TextAlign? textAlign;
 
   /// The name of the app, for a screen reader and for a title.
-  static const name = 'Chatui';
+  static const name = 'Celaut';
 
   @override
   Widget build(BuildContext context) {
@@ -1003,9 +1096,9 @@ class CelautWordmark extends StatelessWidget {
     );
     return Text.rich(
       TextSpan(
-        text: 'Chat',
+        text: 'Cela',
         children: [
-          TextSpan(text: 'ui', style: TextStyle(color: mintOf(context))),
+          TextSpan(text: 'ut', style: TextStyle(color: mintOf(context))),
         ],
       ),
       semanticsLabel: name,

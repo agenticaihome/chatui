@@ -57,13 +57,13 @@ void main() {
         '',
         'ergo:9f...',
         '{"a":1}',
-        '{"chatui_env":1,',
-        '{"chatui_env":1,"n":"A","v":"x"}', // no mark
-        '{"chatui_env":1,"n":"A","v":1,"s":true}', // value is not text
-        '{"chatui_env":1,"n":"1A","v":"x","s":true}', // bad name
-        '{"chatui_env":1,"n":"__nodo_instance_name","v":"x","s":true}', // reserved
-        '{"chatui_env":1,"n":"A","v":"","s":true}', // empty value
-        '{"chatui_env":1,"n":"A","v":"a\\u0000b","s":true}', // NUL
+        '{"superapp_env":1,',
+        '{"superapp_env":1,"n":"A","v":"x"}', // no mark
+        '{"superapp_env":1,"n":"A","v":1,"s":true}', // value is not text
+        '{"superapp_env":1,"n":"1A","v":"x","s":true}', // bad name
+        '{"superapp_env":1,"n":"__nodo_instance_name","v":"x","s":true}', // reserved
+        '{"superapp_env":1,"n":"A","v":"","s":true}', // empty value
+        '{"superapp_env":1,"n":"A","v":"a\\u0000b","s":true}', // NUL
       ]) {
         expect(EnvShare.tryParse(bad), isNull, reason: '$bad');
       }

@@ -71,7 +71,7 @@ TextEditingValue replaceWordAtCursor(TextEditingValue v, String word) {
   );
 }
 
-/// The corrector of the keyboard of the app (section 5.7, "In chatui"). It knows the words
+/// The corrector of the keyboard of the app (section 5.7, "In Celaut"). It knows the words
 /// of the conversation and of the suggestions of the service, and for a word that the user
 /// writes it proposes words that start with it, then words that are close to it. It has no
 /// dictionary, so it never changes a word by itself: the user taps a proposal.

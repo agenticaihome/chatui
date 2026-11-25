@@ -290,7 +290,7 @@ async fn ts_must_not_go_back() {
     );
     // Same ts, other content: stale too.
     let mut changed = newer.clone();
-    changed.mu_per_call.clear();
+    changed.rates.clear();
     common::resign(&mut changed, &vectors);
     let err = fetch_peer(&changed, &vectors.public_key, &store)
         .await

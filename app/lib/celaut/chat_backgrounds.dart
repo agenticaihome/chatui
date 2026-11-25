@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
+import '../theme/argus_theme.dart' show SceneSpec;
+import '../theme/scene_art.dart';
 
 /// One selectable chat background. [paint] draws it on [size]; [dark] is
 /// the brightness of the app theme. 'none' paints nothing, so the theme
@@ -36,6 +38,9 @@ void _pattern(Canvas c, Size s, bool dark, void Function(Canvas c, Offset at, Pa
 
 final List<ChatBackground> chatBackgrounds = [
   ChatBackground('none', 'none', (c, s, d) {}),
+  // The scene of the app's theme, with its drawing in a Harry Potter palette. It needs the
+  // theme: [ChatBackgroundPainter] paints it from its scene; without one it paints nothing.
+  ChatBackground('theme', 'theme', (c, s, d) {}),
   ChatBackground('dawn', 'dawn', (c, s, d) => _gradient(
       c, s, d ? const [Color(0xFF1B1F3A), Color(0xFF3A2540)] : const [Color(0xFFFCE9E0), Color(0xFFE6E4FA)])),
   ChatBackground('ocean', 'ocean', (c, s, d) => _gradient(
@@ -80,17 +85,26 @@ final List<ChatBackground> chatBackgrounds = [
 ChatBackground chatBackgroundById(String id) =>
     chatBackgrounds.firstWhere((b) => b.id == id, orElse: () => chatBackgrounds.first);
 
-/// Paints the background [id] behind its child.
+/// Paints the background [id] behind its child. [scene] is the scene of the theme, for the
+/// 'theme' background.
 class ChatBackgroundPainter extends CustomPainter {
-  const ChatBackgroundPainter(this.id, this.dark);
+  const ChatBackgroundPainter(this.id, this.dark, {this.scene});
   final String id;
   final bool dark;
+  final SceneSpec? scene;
 
   @override
-  void paint(Canvas canvas, Size size) => chatBackgroundById(id).paint(canvas, size, dark);
+  void paint(Canvas canvas, Size size) {
+    final theme = scene;
+    if (id == 'theme') {
+      if (theme != null) paintChatThemeBackground(canvas, size, theme, dark: dark);
+      return;
+    }
+    chatBackgroundById(id).paint(canvas, size, dark);
+  }
 
   @override
-  bool shouldRepaint(ChatBackgroundPainter old) => old.id != id || old.dark != dark;
+  bool shouldRepaint(ChatBackgroundPainter old) => old.id != id || old.dark != dark || old.scene != scene;
 }
 
 /// Localised name of the background [id].
@@ -102,5 +116,6 @@ String chatBackgroundLabel(AppLocalizations t, String id) => switch (id) {
       'dots' => t.chatBgDots,
       'waves' => t.chatBgWaves,
       'diamonds' => t.chatBgDiamonds,
+      'theme' => t.chatBgTheme,
       _ => t.chatBgNone,
     };

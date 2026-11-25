@@ -26,6 +26,29 @@ pub struct BytesKeyValue {
     #[prost(bytes = "vec", optional, tag = "2")]
     pub value: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
 }
+/// A setting of a service. It has the same form as each replaceable component
+/// (tags, prose, formal), plus the value. A setting is the decision of an author that a
+/// node enforces. Nodes compare a setting by the exact bytes of its formal, and never by
+/// its tags or its prose. A node that does not know the formal, or does not understand
+/// the value, does not run the service. In one list, two policies do not have the same
+/// formal, and a sender sorts the list by formal (bytes, ascending). The order does not
+/// change the meaning. A policy with an empty formal is not valid.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Policy {
+    /// Names, for a reader. A node does not use them to identify the setting.
+    #[prost(string, repeated, tag = "1")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// The text, for an implementer. A node does not use it to identify the setting.
+    #[prost(string, tag = "2")]
+    pub prose: ::prost::alloc::string::String,
+    /// The definition of the setting. It is what nodes compare. It is not empty. A
+    /// published formal never changes: a new meaning is a new formal.
+    #[prost(bytes = "vec", tag = "3")]
+    pub formal: ::prost::alloc::vec::Vec<u8>,
+    /// The setting in this message. Its form is defined by the formal.
+    #[prost(bytes = "vec", tag = "4")]
+    pub value: ::prost::alloc::vec::Vec<u8>,
+}
 /// One entry of a list of key-value entries, with an Amount value. The list follows the
 /// same rules as a list of BytesKeyValue.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -61,32 +84,28 @@ pub struct Uint64KeyValue {
     pub value: ::core::option::Option<u64>,
 }
 /// A payment contract or a reputation proof on a ledger. The ledger gives the chain and
-/// its rules. The xattrs give all the values that are specific to the ledger.
+/// its rules. The protocol gives the kind of payment contract on that ledger. The xattrs
+/// give the values of this contract.
 ///
-/// Keys of xattrs:
-/// "script": the script bytes that receive the payment (on Ergo, the propositionBytes;
-/// on Bitcoin, the scriptPubKey). On a reputation proof, the ErgoTree of the reputation
-/// contract.
-/// "address": the address of the wallet on the ledger, as text, for a person. Senders do
-/// not set it now. A reader uses it only if there is no script.
-/// "token_id": the asset: the name of the native asset (for example "ERG" or "BTC"), or
-/// the id of the token. On a reputation proof, the token id of the proof.
-/// "contract_type": an identifier of the kind of payment contract, as UTF-8 text. It
-/// does not depend on the wallet. A reputation proof does not have it.
-/// "owner_public_key" and "owner_signature": on a reputation proof only, the owner
-/// attestation. The public key is the key that published the proof, in the encoding
-/// that the ledger declaration gives. The signature is by that key, on a text that
-/// contains the id of the peer that announces the proof. The ledger declaration gives
-/// the text. The attestation proves only that the owner of the key accepts this peer as
-/// the holder of the proof. If the attestation is missing or does not verify, the
-/// reader does not credit the proof to the peer.
+/// The formal field of the protocol of a payment contract defines the keys of xattrs of
+/// that contract: what they mean, how they are encoded and which of them are required.
+/// A reputation proof has no protocol. The formal field of its ledger defines its keys.
+/// They include the owner attestation: the key that published the proof, and its
+/// signature on a text that contains the id of the peer that announces the proof. The
+/// attestation proves only that the owner of the key accepts this peer as the holder of
+/// the proof. If the attestation is missing or does not verify, the reader does not
+/// credit the proof to the peer.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Contract {
     /// The ledger of the contract.
     #[prost(message, optional, tag = "1")]
     pub ledger: ::core::option::Option<contract::Ledger>,
-    /// The values that are specific to the ledger. See the keys above.
-    #[prost(message, repeated, tag = "2")]
+    /// The payment protocol of the contract.
+    #[prost(message, optional, tag = "2")]
+    pub protocol: ::core::option::Option<contract::Protocol>,
+    /// The values of this contract. The formal field of the protocol defines the keys. On
+    /// a reputation proof, the formal field of the ledger defines them.
+    #[prost(message, repeated, tag = "3")]
     pub xattrs: ::prost::alloc::vec::Vec<BytesKeyValue>,
 }
 /// Nested message and enum types in `Contract`.
@@ -103,6 +122,27 @@ pub mod contract {
         #[prost(string, tag = "2")]
         pub prose: ::prost::alloc::string::String,
         /// The network, the units and the rules of the ledger, as sorted key=value lines.
+        #[prost(bytes = "vec", tag = "3")]
+        pub formal: ::prost::alloc::vec::Vec<u8>,
+    }
+    /// The kind of payment contract on the ledger, with the same three parts as
+    /// DataFormat. A ledger can have more than one kind of contract. The formal field
+    /// defines the keys of xattrs and the way to pay. Nodes compare it byte for byte,
+    /// and never the tags or the prose. A node that does not know the formal cannot pay
+    /// to the contract, and it does not use the contract. A payment contract has a
+    /// protocol with a formal that is not empty. A reputation proof does not have one.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Protocol {
+        /// Names of the kind of contract, for a reader. A node does not use them to
+        /// identify it.
+        #[prost(string, repeated, tag = "1")]
+        pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+        /// A text that explains the kind of contract to an implementer. A node does not
+        /// use it to identify it.
+        #[prost(string, tag = "2")]
+        pub prose: ::prost::alloc::string::String,
+        /// The definition of the kind of contract. It is what nodes compare. A formal
+        /// that was published never changes: a new meaning is a new formal.
         #[prost(bytes = "vec", tag = "3")]
         pub formal: ::prost::alloc::vec::Vec<u8>,
     }
@@ -264,6 +304,32 @@ pub mod service {
             /// Only for information: the node does not charge it.
             #[prost(message, repeated, tag = "4")]
             pub mu_per_call: ::prost::alloc::vec::Vec<super::super::AmountKeyValue>,
+            /// The settings of the slot. A node that does not know a setting, or does
+            /// not understand its value, does not run the service. Nodes older than this
+            /// field ignore it. In ConfigurationFile.gateway the node ignores these
+            /// settings. The value of each setting is one word in UTF-8. A slot that does
+            /// not set a setting has the default of that setting. These settings are
+            /// valid here:
+            ///    * access: how a third party reaches the slot. "any" (the default),
+            ///      "direct" or "tunnel". The node enforces it only in ServiceTunnel. A
+            ///      direct connection does not go through the node, so for a direct
+            ///      connection "tunnel" is only a declaration for callers. Its formal is
+            ///      the lines "default=any", "place=api.slot", "setting=access" and
+            ///      "values=any,direct,tunnel", in this sequence, joined by a newline.
+            ///    * tunnel_auth: how ServiceTunnel finds the instance. "token" (the
+            ///      default): the caller sends the instance token. "address": the caller
+            ///      sends the Instance.Uri that the node published for the slot, and no
+            ///      token. Its formal is the lines "default=token", "place=api.slot",
+            ///      "setting=tunnel_auth" and "values=address,token", in this sequence,
+            ///      joined by a newline.
+            ///    * wake: "never" (the default) or "on_tunnel". With "on_tunnel", a
+            ///      ServiceTunnel connection wakes a hibernated instance. Its formal is the
+            ///      lines "default=never", "place=api.slot", "setting=wake" and
+            ///      "values=never,on_tunnel", in this sequence, joined by a newline.
+            /// A node refuses a service that has wake=on_tunnel or tunnel_auth=address on
+            /// a slot with access=direct. See Policy.
+            #[prost(message, repeated, tag = "5")]
+            pub policies: ::prost::alloc::vec::Vec<super::super::Policy>,
         }
     }
     /// One group of identical instances that run at the same time.
@@ -380,14 +446,36 @@ pub mod service {
             /// The entries of the directory.
             #[prost(message, repeated, tag = "1")]
             pub branch: ::prost::alloc::vec::Vec<filesystem::ItemBranch>,
-            /// Attributes of the whole tree. Only on the root Filesystem: a reader
-            /// ignores them on a subdirectory. Key "read_mode": "rw" (the default) or
-            /// "ro". Another value is an error. With "ro", the service can write only in
-            /// /tmp and /run. Every entry must then have all the metadata keys, and no
-            /// directory can have "shared". The node can then make a compressed image
-            /// and mount it read-only.
+            /// Settings of the whole tree. Only on the root Filesystem (the one that
+            /// Container.filesystem holds): a subdirectory has none. A node that does
+            /// not know a policy does not run the service. See Policy.
+            /// read_mode: "rw" (the default) or "ro". With "ro", the service can write
+            /// only in /tmp and /run. The setting entry_metadata must be present, and
+            /// every entry must have all its keys. The node can then make a compressed
+            /// image and mount it read-only. Its formal is the lines "default=rw",
+            /// "place=filesystem.root", "setting=read_mode" and "values=ro,rw", in this
+            /// sequence, joined by a newline.
+            /// entry_metadata: the entries carry metadata in ItemBranch.xattrs. Its
+            /// value is empty. The keys are:
+            ///    * mode: the file type and the permission bits, as in st_mode.
+            ///    * uid: the user id of the owner.
+            ///    * gid: the group id of the owner.
+            ///    * mtime_ns: the modification time in nanoseconds. It is 0 on a
+            ///      symbolic link.
+            ///    * device.major, device.minor: the numbers of a block or character
+            ///      device entry. They are 0 on any other entry.
+            ///    * device.is_block: 1 for a block device, 0 for any other entry.
+            /// The values are base-10 integers as UTF-8 text. An entry has all the keys
+            /// or none. An entry with no keys gets the default of the node. A node
+            /// ignores other keys. A node that finds one of the keys without this
+            /// setting does not run the service. Its formal is the lines
+            /// "encoding=base-10 integers as UTF-8 text", "entry=all keys or none",
+            /// "keys=device.is_block,device.major,device.minor,gid,mode,mtime_ns,uid",
+            /// "nondevice=device.is_block, device.major and device.minor are 0",
+            /// "place=filesystem.root" and "setting=entry_metadata", in this sequence,
+            /// joined by a newline.
             #[prost(message, repeated, tag = "2")]
-            pub xattrs: ::prost::alloc::vec::Vec<super::super::BytesKeyValue>,
+            pub policies: ::prost::alloc::vec::Vec<super::super::Policy>,
         }
         /// Nested message and enum types in `Filesystem`.
         pub mod filesystem {
@@ -397,20 +485,38 @@ pub mod service {
                 /// The name of the file, the link or the directory.
                 #[prost(string, tag = "1")]
                 pub name: ::prost::alloc::string::String,
-                /// Attributes of the entry. Every entry has all or none of these keys:
-                /// "mode", "uid", "gid", "mtime_ns", "device.major", "device.minor",
-                /// "device.is_block". Their values are base-10 integers as UTF-8 text. On
-                /// an entry that is not a device, the three device keys are "0". Keys for
-                /// a shared directory:
-                /// "shared": "true" exports the directory to the child services.
-                /// "guest": "true" gets the directory from the parent service. A service
-                /// with "guest" does not start if its parent does not export that share.
-                /// "access": "ro" or "rw". The default is "rw".
-                /// "share_tag": the name of the share. The default is the path.
-                /// "share_env": the name of an environment variable. Its value selects
-                /// the share.
+                /// The values of the entry. The setting "entry_metadata" of the root
+                /// Filesystem defines the keys. Without that setting, a node reads
+                /// nothing from here.
                 #[prost(message, repeated, tag = "5")]
                 pub xattrs: ::prost::alloc::vec::Vec<super::super::super::BytesKeyValue>,
+                /// Settings of the entry. Only the setting "share" is valid here, and
+                /// only on a directory. A node that does not know a policy does not run
+                /// the service. See Policy.
+                /// share: the directory is shared with other instances. Its value is
+                /// key=value lines in UTF-8, sorted by key and joined by a newline, with
+                /// no empty key and no repeated key. The keys are:
+                ///    * role (required): "shared": the instance exports the directory to
+                ///      the children that it starts. "guest": the instance receives the
+                ///      directory from the parent that started it. If no parent exported
+                ///      the directory to this instance, the node does not start it.
+                ///      "network": the instance shares the directory with the members of
+                ///      the network that the key network gives.
+                ///    * access: the mount mode, "rw" (the default) or "ro".
+                ///    * tag: the name of the share, in place of the path. It matches
+                ///      another tag only if the two have the same bytes. The characters
+                ///      are [A-Za-z0-9][A-Za-z0-9._@:+-]*.
+                ///    * env: the name of an environment variable of the Configuration, as
+                ///      a POSIX variable name. The value of the variable selects the share.
+                ///    * network: the tag of the network. Only with role=network.
+                /// Another key makes the value not valid. A share cannot be in the tree
+                /// of another share. Two shares of one role cannot have the same tag. Its
+                /// formal is the lines "access.default=rw",
+                /// "keys=access,env,network,role,tag", "place=filesystem.directory",
+                /// "role.values=guest,network,shared" and "setting=share", in this
+                /// sequence, joined by a newline.
+                #[prost(message, repeated, tag = "6")]
+                pub policies: ::prost::alloc::vec::Vec<super::super::super::Policy>,
                 #[prost(oneof = "item_branch::Item", tags = "2, 3, 4")]
                 pub item: ::core::option::Option<item_branch::Item>,
             }
@@ -449,10 +555,11 @@ pub mod service {
             /// The path of the executable, as path segments. No arguments.
             #[prost(string, repeated, tag = "1")]
             pub entry_path: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-            /// Other start options of the service, as keys and values. The node does not
-            /// read them now.
+            /// Settings of the start. No setting is defined here now, so a node
+            /// refuses a service that has one. The list exists now so that a setting
+            /// defined later is safe on nodes that are old. See Policy.
             #[prost(message, repeated, tag = "2")]
-            pub xattrs: ::prost::alloc::vec::Vec<super::super::BytesKeyValue>,
+            pub policies: ::prost::alloc::vec::Vec<super::super::Policy>,
         }
         /// Where the service reads its configuration.
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -575,9 +682,6 @@ pub struct Configuration {
     /// uses its value as the name of the instance.
     #[prost(message, repeated, tag = "1")]
     pub environment_variables: ::prost::alloc::vec::Vec<BytesKeyValue>,
-    /// Not used. Senders do not set it, and receivers ignore it.
-    #[prost(int32, repeated, tag = "2")]
-    pub spec_slot: ::prost::alloc::vec::Vec<i32>,
     /// The most that the start can cost the caller, in MU. The node charges all of it to
     /// the caller, and only this: no node charges the build of the service to the account
     /// of the caller. The node takes the cost of the build from this amount. What is left
@@ -588,8 +692,18 @@ pub struct Configuration {
     /// EstimatedCost.cost plus a default balance. The node calculates the default balance
     /// from the resources at the start, for its own default number of maintenance
     /// periods.
-    #[prost(message, optional, tag = "3")]
+    #[prost(message, optional, tag = "2")]
     pub initial_mu: ::core::option::Option<Amount>,
+    /// The offer that the caller accepts for this start: the EstimatedCost that the same
+    /// node signed, as the node sent it. If the offer is valid for this start, the node
+    /// keeps its price: it prices the instance, and signs the quote of its start, at the
+    /// launch_scarcity of the offer. The offer is valid if the node signed it, its
+    /// valid_until is not past, and the maintenance costs of the offer are what the node
+    /// computes for this service and these resources at its launch_scarcity. In all
+    /// other cases the node ignores the offer and prices the start at its price of now.
+    /// An absent offer has the same effect.
+    #[prost(message, optional, tag = "3")]
+    pub offer: ::core::option::Option<EstimatedCost>,
 }
 /// What the node gives to an instance when it starts it. The node writes it, serialized,
 /// to the file "/__config__" in the root of the instance.
@@ -727,6 +841,7 @@ pub struct DescendantTunnel {
 /// The cost to run a service on the node. The node that answers sets it.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EstimatedCost {
+    /// The price.
     /// The cost that the start spends, in MU. It is the cost to build the service, plus
     /// the cost to build its initial children. It does not include a balance, for the
     /// service or for its children. If the service is already built, its build cost is
@@ -769,12 +884,20 @@ pub struct EstimatedCost {
     /// The length of one maintenance period, in seconds.
     #[prost(int32, tag = "4")]
     pub maintenance_seconds_loop: i32,
+    /// The load of the node that its price comes from, at the time of the offer: for
+    /// each resource, a key ("cpu", "mem" or "disk") and the scarcity in parts per
+    /// million, from 0 (plentiful) to 1000000 (exhausted). The node uses it at the start
+    /// to keep the price of the offer. A caller does not need it. The list follows the
+    /// rules of a list of Uint64KeyValue. It is empty when valid_until is 0.
+    #[prost(message, repeated, tag = "5")]
+    pub launch_scarcity: ::prost::alloc::vec::Vec<Uint64KeyValue>,
+    /// The promise on the price.
     /// True if the node promises a limit on the price. The limit is set by
     /// price_volatility and volatility_period_seconds. A maintenance period of the
     /// instance must not charge more than that limit. A client that sees a larger charge
     /// can report the node. False means that the node makes no promise. The other two
     /// fields have no meaning then. False is the default value of this field.
-    #[prost(bool, tag = "5")]
+    #[prost(bool, tag = "6")]
     pub price_bounded: bool,
     /// The highest relative rise of the price in one volatility period. For example, 0.10
     /// means that the price can rise by 10 percent in each period. The price at the time
@@ -782,24 +905,42 @@ pub struct EstimatedCost {
     /// is the number of the period of t, counted from the launch of the instance. The
     /// price can fall without limit. A reader that gets a value that is not a finite
     /// number, or a value below 0, reads it as 0.
-    #[prost(float, tag = "6")]
+    #[prost(float, tag = "7")]
     pub price_volatility: f32,
     /// The length of one volatility period, in seconds. The first period starts at the
     /// launch of the instance. If the value is 0, the whole life of the instance is one
     /// period. A reader that gets a value below 0 reads it as 0.
-    #[prost(int32, tag = "7")]
+    #[prost(int32, tag = "8")]
     pub volatility_period_seconds: i32,
+    /// The time of the offer.
+    /// The unix time, in seconds, until which the node keeps the price of this offer for
+    /// a start. A caller that sends the offer in Configuration.offer before this time
+    /// gets an instance at the price of the offer: the quote in the start movement of
+    /// the instance has the same init_maintenance_cost, max_maintenance_cost and price
+    /// bound as the offer. 0 means that the node makes no promise for the start, and
+    /// the node does not sign the offer. A caller then does not hold the node to the
+    /// figures, and uses price_volatility as the room between the offer and the launch.
+    #[prost(int64, tag = "9")]
+    pub valid_until: i64,
     /// The unix time of the next scheduled close of the activity window of the node, in
     /// seconds. 0 means that no close is scheduled. It is an absolute time, so it does
     /// not change while the answer travels. It is not a promise that the instance lives
     /// until this time: the node can stop for a cause that is not in its schedule. It is
     /// also not a promise of a long life when it is 0.
-    #[prost(int64, tag = "8")]
+    #[prost(int64, tag = "10")]
     pub closes_at: i64,
     /// What the node does with a running instance when the window closes. A node that
     /// does not set this field reads as ON_CLOSE_REFUSE.
-    #[prost(enumeration = "OnClose", tag = "9")]
+    #[prost(enumeration = "OnClose", tag = "11")]
     pub on_close: i32,
+    /// The signature.
+    /// The signature of the node over this offer, with the key and the scheme of its
+    /// Peer, in lowercase hexadecimal. The celaut-gateway layer gives the text that the
+    /// node signs. It covers every other field, so a caller cannot change the offer. It
+    /// is empty when valid_until is 0. A caller that receives a valid_until with no valid
+    /// signature reads valid_until as 0.
+    #[prost(string, tag = "12")]
+    pub signature: ::prost::alloc::string::String,
 }
 /// The hours in which a node takes new work, and what it does with a running instance
 /// when it closes. It describes one repeating day: the same spans every day.
@@ -1119,73 +1260,78 @@ pub struct BalanceMovement {
 /// The answer of GetBalanceStatement.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BalanceStatement {
-    /// The account, as a hash: blake2b-256 hex of "celaut-ledger-account:" followed by
-    /// the client_id or the instance token. Never the credential itself, so that a
-    /// statement can be shown to others.
-    #[prost(string, tag = "1")]
-    pub account_ref: ::prost::alloc::string::String,
-    /// The first movement that the request asked for. 0 means none given.
-    #[prost(uint64, tag = "2")]
-    pub from_seq: u64,
-    /// The last movement that the request asked for. 0 means none given.
-    #[prost(uint64, tag = "3")]
-    pub to_seq: u64,
-    /// The movements of the range, in ascending seq order and with no gap. When the
-    /// caller reads its own account up to the head, the last movement is the charge for
-    /// this answer. If the node holds fewer movements than the range, because of its
-    /// retention or its limit, they are the first it holds from from_seq: the caller asks
-    /// again from the last seq it received.
-    #[prost(message, repeated, tag = "4")]
-    pub movements: ::prost::alloc::vec::Vec<BalanceMovement>,
-    /// The balance of the account at the head, in MU.
-    #[prost(message, optional, tag = "5")]
-    pub balance: ::core::option::Option<Amount>,
-    /// The last movement of the account when the node answered. The balance is the
-    /// balance after that movement. 0 for an account with no movement.
-    #[prost(uint64, tag = "6")]
-    pub head_seq: u64,
-    /// The hash of the last movement. For an account with no movement, its genesis hash.
-    #[prost(string, tag = "7")]
-    pub head_hash: ::prost::alloc::string::String,
-    /// The first movement that the node still holds. Older ones were deleted when they
-    /// passed its retention, and the first movement it holds hangs from the hash of a
-    /// movement that it no longer has.
-    #[prost(uint64, tag = "8")]
-    pub oldest_seq: u64,
-    /// How long the node keeps the movements of a dead account, in days, after its last
-    /// movement. 0 means for ever, which is the default: the movements of an account that
-    /// lives, and of a dead account with anything alive below it, are never deleted. A
-    /// reader treats 0 as at least ledger.MIN_PEER_RETENTION_DAYS.
-    #[prost(uint32, tag = "9")]
-    pub retention_days: u32,
+    /// The envelope of the signature.
     /// When the node answered, in unix seconds, on the clock of the node.
-    #[prost(int64, tag = "10")]
+    #[prost(int64, tag = "1")]
     pub ts: i64,
     /// The signature of the node, with the key and the scheme of its Peer, in lowercase
     /// hexadecimal. The celaut-gateway layer gives the text that it signs. A statement
     /// without a valid signature is not valid.
-    #[prost(string, tag = "11")]
+    #[prost(string, tag = "2")]
     pub signature: ::prost::alloc::string::String,
     /// True when the node that signs did not write the movements. It read the statement
     /// of a descendant from the next node, checked the signature of that node, and
-    /// signs it again for its own caller. The digest covers it only when it is true.
-    #[prost(bool, tag = "12")]
+    /// signs it again for its own caller. The digest always covers it, as 1 or 0.
+    #[prost(bool, tag = "3")]
     pub relayed: bool,
+    /// Which account.
+    /// The account, as a hash: blake2b-256 hex of "celaut-ledger-account:" followed by
+    /// the client_id or the instance token. Never the credential itself, so that a
+    /// statement can be shown to others.
+    #[prost(string, tag = "4")]
+    pub account_ref: ::prost::alloc::string::String,
     /// In the answer to a read with instance_ref: the service of the instance that the
     /// statement is about, as the lowercase hexadecimal of its content hash. The caller
     /// can then know which service each descendant runs. Empty when the node does not
-    /// know it, and in the answer to a read without instance_ref. The digest covers it
-    /// only when it is not empty.
-    #[prost(string, tag = "13")]
+    /// know it, and in the answer to a read without instance_ref. The digest always covers
+    /// it. When it is empty, its place in the digest is empty.
+    #[prost(string, tag = "5")]
     pub service_id: ::prost::alloc::string::String,
     /// In the answer to a read with instance_ref: the instance_ref of the request. The
     /// node signs that the statement is the account of that descendant, so it cannot say
     /// later that the statement was of another account. A reader refuses an answer to a
     /// read with instance_ref that does not have the same instance_ref. A node that
     /// relays sets the instance_ref that its own caller asked for. Empty in the answer to
-    /// a read without instance_ref. The digest covers it only when it is not empty.
-    #[prost(string, tag = "14")]
+    /// a read without instance_ref. The digest always covers it. When it is empty, its place
+    /// in the digest is empty.
+    #[prost(string, tag = "6")]
     pub instance_ref: ::prost::alloc::string::String,
+    /// The range that the request asked for.
+    /// The first movement that the request asked for. 0 means none given.
+    #[prost(uint64, tag = "7")]
+    pub from_seq: u64,
+    /// The last movement that the request asked for. 0 means none given.
+    #[prost(uint64, tag = "8")]
+    pub to_seq: u64,
+    /// The movements of the range, in ascending seq order and with no gap. When the
+    /// caller reads its own account up to the head, the last movement is the charge for
+    /// this answer. If the node holds fewer movements than the range, because of its
+    /// retention or its limit, they are the first it holds from from_seq: the caller asks
+    /// again from the last seq it received.
+    #[prost(message, repeated, tag = "9")]
+    pub movements: ::prost::alloc::vec::Vec<BalanceMovement>,
+    /// The state of the account.
+    /// The balance of the account at the head, in MU.
+    #[prost(message, optional, tag = "10")]
+    pub balance: ::core::option::Option<Amount>,
+    /// The last movement of the account when the node answered. The balance is the
+    /// balance after that movement. 0 for an account with no movement.
+    #[prost(uint64, tag = "11")]
+    pub head_seq: u64,
+    /// The hash of the last movement. For an account with no movement, its genesis hash.
+    #[prost(string, tag = "12")]
+    pub head_hash: ::prost::alloc::string::String,
+    /// The first movement that the node still holds. Older ones were deleted when they
+    /// passed its retention, and the first movement it holds hangs from the hash of a
+    /// movement that it no longer has.
+    #[prost(uint64, tag = "13")]
+    pub oldest_seq: u64,
+    /// How long the node keeps the movements of a dead account, in days, after its last
+    /// movement. 0 means for ever, which is the default: the movements of an account that
+    /// lives, and of a dead account with anything alive below it, are never deleted. A
+    /// reader treats 0 as at least ledger.MIN_PEER_RETENTION_DAYS.
+    #[prost(uint32, tag = "14")]
+    pub retention_days: u32,
 }
 /// An execution receipt (docs/EXECUTION_RECEIPTS.md): a statement that the node signs
 /// about one execution that it runs. It gives a client evidence against the node. It is
@@ -1201,133 +1347,241 @@ pub struct BalanceStatement {
 /// A field that the kind does not use is empty or zero, and the signature covers it too.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExecutionReceipt {
+    /// The envelope of the signature.
     /// "start", "checkpoint" or "close".
     #[prost(string, tag = "1")]
     pub kind: ::prost::alloc::string::String,
     /// The peer_id of the node that signs: its public key, in lowercase hexadecimal.
     #[prost(string, tag = "2")]
     pub peer_id: ::prost::alloc::string::String,
+    /// The scheme of the signature, as on the Peer, without the prose.
+    #[prost(message, optional, tag = "3")]
+    pub signature_scheme: ::core::option::Option<peer::SignatureScheme>,
+    /// When the node signed, in unix seconds, on the clock of the node.
+    #[prost(int64, tag = "4")]
+    pub ts: i64,
+    /// The signature, in lowercase hexadecimal. The celaut-gateway layer gives the text
+    /// that the node signs. A receipt without a valid signature is not valid.
+    #[prost(string, tag = "5")]
+    pub signature: ::prost::alloc::string::String,
+    /// The execution.
     /// The name of the execution: blake2b-256 hex of the UTF-8 bytes of the instance
     /// token followed by the 32 bytes of the public key (not its hexadecimal text). The
     /// client, who has the token, can calculate it. A receipt never contains the token.
     /// In a DescendantTunnel stream, the name is blake2b-256 hex of the UTF-8 bytes of
     /// "celaut-execution-ref:" and the instance_ref, followed by the 32 bytes of the
     /// public key: the caller has the instance_ref and not the token.
-    #[prost(string, tag = "3")]
+    #[prost(string, tag = "6")]
     pub execution_name: ::prost::alloc::string::String,
-    /// When the node signed, in unix seconds, on the clock of the node.
-    #[prost(int64, tag = "4")]
-    pub ts: i64,
+    /// Only in "start": the service, the environment, the funding and what the node reserved.
     /// Only in "start". The service of the instance, as the content hash with which the
     /// registry of the node keeps it.
-    #[prost(message, optional, tag = "5")]
+    #[prost(message, optional, tag = "7")]
     pub service_id: ::core::option::Option<metadata::hash_tag::Hash>,
     /// Only in "start". blake2b-256 hex of envs_salt followed by the UTF-8 of the
     /// canonical text of the environment variables that the service got. The
     /// celaut-gateway layer gives the canonical text.
-    #[prost(string, tag = "6")]
+    #[prost(string, tag = "8")]
     pub envs_digest: ::prost::alloc::string::String,
     /// Only in "start". 16 random bytes that the node selects for each start. The
     /// signature does not cover it: it lets the holder of the receipt show the digest
     /// to others and keep the values secret. A verifier refuses a salt of another
     /// length, because nothing separates the salt from the canonical text.
-    #[prost(bytes = "vec", tag = "7")]
+    #[prost(bytes = "vec", tag = "9")]
     pub envs_salt: ::prost::alloc::vec::Vec<u8>,
     /// Only in "start". The Configuration.initial_mu of the start, in MU: what the node
     /// charged the caller, the build included. It is the amount of the "start" movement
     /// of the instance in its balance statement.
-    #[prost(message, optional, tag = "8")]
+    #[prost(message, optional, tag = "10")]
     pub initial_mu: ::core::option::Option<Amount>,
-    /// Only in "checkpoint" and "close". The stream: "tunnel" (ServiceTunnel) or
-    /// "observe" (Observe).
-    #[prost(string, tag = "9")]
-    pub plane: ::prost::alloc::string::String,
-    /// Only in "checkpoint" and "close". A random identifier of the stream, in
-    /// lowercase hexadecimal, that the node selects when the stream starts.
-    #[prost(string, tag = "10")]
-    pub session: ::prost::alloc::string::String,
-    /// Only in "checkpoint" and "close" of a tunnel. The slot of the tunnel.
-    #[prost(string, tag = "11")]
-    pub slot: ::prost::alloc::string::String,
-    /// Only in "checkpoint" and "close". The number of the checkpoint in the stream: 1
-    /// for the first, and one more for each next checkpoint.
-    #[prost(uint64, tag = "12")]
-    pub seq: u64,
-    /// Only in "checkpoint" and "close". The events into the instance: for a tunnel,
-    /// the messages from the caller that the node sent to the service; for Observe,
-    /// the packets with direction "IN".
-    #[prost(uint64, tag = "13")]
-    pub in_events: u64,
-    /// The bytes of these events.
-    #[prost(uint64, tag = "14")]
-    pub in_bytes: u64,
-    /// The hash chain of these events. The celaut-gateway layer gives how to calculate
-    /// it.
-    #[prost(string, tag = "15")]
-    pub in_head: ::prost::alloc::string::String,
-    /// The events out of the instance: for a tunnel, the messages from the service that
-    /// the node sent to the caller; for Observe, the packets with direction "OUT".
-    #[prost(uint64, tag = "16")]
-    pub out_events: u64,
-    /// The bytes of these events.
-    #[prost(uint64, tag = "17")]
-    pub out_bytes: u64,
-    /// The hash chain of these events.
-    #[prost(string, tag = "18")]
-    pub out_head: ::prost::alloc::string::String,
-    /// Only for a tunnel, and always there. What the node charged the instance for this
-    /// tunnel up to the checkpoint, in MU: the charge to open it and the traffic it
-    /// billed. It is the sum of the "tunnel" movements of this session in the balance
-    /// statement. The chains cover only the messages that the meter accepted.
-    #[prost(message, optional, tag = "19")]
-    pub mu_charged: ::core::option::Option<Amount>,
-    /// Only in "checkpoint" and "close". What the node can see of the traffic of the
-    /// instance: "client-tunnel" (all the bytes of this tunnel, and nothing else),
-    /// "instance-tap" (the packets of the instance that the capture got, with the bytes
-    /// that it holds: the capture cuts a long frame and can drop packets under load) or
-    /// "counters-only" (only counts and lengths).
-    #[prost(string, tag = "20")]
-    pub coverage: ::prost::alloc::string::String,
-    /// Only for Observe. The capture mode of the session: "pcap" or "conntrack".
-    #[prost(string, tag = "21")]
-    pub capture_mode: ::prost::alloc::string::String,
-    /// Only for Observe. Why the capture is not full. Empty when it is full.
-    #[prost(string, tag = "22")]
-    pub degraded_reason: ::prost::alloc::string::String,
-    /// The scheme of the signature, as on the Peer, without the prose.
-    #[prost(message, optional, tag = "23")]
-    pub signature_scheme: ::core::option::Option<peer::SignatureScheme>,
-    /// The signature, in lowercase hexadecimal. The celaut-gateway layer gives the text
-    /// that the node signs. A receipt without a valid signature is not valid.
-    #[prost(string, tag = "24")]
-    pub signature: ::prost::alloc::string::String,
     /// Only in "start". What the node reserved for the instance at the start: the
     /// resolved figures, with the floors of the node applied, and not what the manifest
     /// declared. They are what the maintenance charge prices. The values are those of
     /// Sysresources, with the same units. Zero in a start that the node gave to a peer:
     /// the executor reserved them and this node does not attest them. This is the CFS CPU
     /// period that the node reserved, in microseconds.
-    #[prost(uint64, tag = "25")]
+    #[prost(uint64, tag = "11")]
     pub cpu_period: u64,
     /// Only in "start". The CFS CPU quota that the node reserved, in microseconds.
-    #[prost(uint64, tag = "26")]
+    #[prost(uint64, tag = "12")]
     pub cpu_quota: u64,
     /// Only in "start". The memory limit that the node reserved, in bytes.
-    #[prost(uint64, tag = "27")]
+    #[prost(uint64, tag = "13")]
     pub mem_limit: u64,
     /// Only in "start". The disk space that the node reserved, in bytes.
-    #[prost(uint64, tag = "28")]
+    #[prost(uint64, tag = "14")]
     pub disk_space: u64,
     /// Only in "start". The guest kernel that the instance boots, as the SHA-256 hex
     /// with which the kernel store of the node keeps it. A device tag fixes it. Empty
     /// if the node does not know it (a start that the node gave to a peer).
-    #[prost(string, tag = "29")]
+    #[prost(string, tag = "15")]
     pub kernel: ::prost::alloc::string::String,
     /// Only in "start". The chip of each device that the node attached at the start,
     /// sorted. Empty if the instance has no devices, and in a start that the node gave to a
     /// peer.
-    #[prost(string, repeated, tag = "30")]
+    #[prost(string, repeated, tag = "16")]
     pub devices: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Only in "checkpoint" and "close": the stream and what went through it.
+    /// Only in "checkpoint" and "close". The stream: "tunnel" (ServiceTunnel) or
+    /// "observe" (Observe).
+    #[prost(string, tag = "17")]
+    pub plane: ::prost::alloc::string::String,
+    /// Only in "checkpoint" and "close". A random identifier of the stream, in
+    /// lowercase hexadecimal, that the node selects when the stream starts.
+    #[prost(string, tag = "18")]
+    pub session: ::prost::alloc::string::String,
+    /// Only in "checkpoint" and "close" of a tunnel. The slot of the tunnel.
+    #[prost(string, tag = "19")]
+    pub slot: ::prost::alloc::string::String,
+    /// Only in "checkpoint" and "close". The number of the checkpoint in the stream: 1
+    /// for the first, and one more for each next checkpoint.
+    #[prost(uint64, tag = "20")]
+    pub seq: u64,
+    /// Only in "checkpoint" and "close". The events into the instance: for a tunnel,
+    /// the messages from the caller that the node sent to the service; for Observe,
+    /// the packets with direction "IN".
+    #[prost(uint64, tag = "21")]
+    pub in_events: u64,
+    /// The bytes of these events.
+    #[prost(uint64, tag = "22")]
+    pub in_bytes: u64,
+    /// The hash chain of these events. The celaut-gateway layer gives how to calculate
+    /// it.
+    #[prost(string, tag = "23")]
+    pub in_head: ::prost::alloc::string::String,
+    /// The events out of the instance: for a tunnel, the messages from the service that
+    /// the node sent to the caller; for Observe, the packets with direction "OUT".
+    #[prost(uint64, tag = "24")]
+    pub out_events: u64,
+    /// The bytes of these events.
+    #[prost(uint64, tag = "25")]
+    pub out_bytes: u64,
+    /// The hash chain of these events.
+    #[prost(string, tag = "26")]
+    pub out_head: ::prost::alloc::string::String,
+    /// Only for a tunnel, and always there. What the node charged the instance for this
+    /// tunnel up to the checkpoint, in MU: the charge to open it and the traffic it
+    /// billed. It is the sum of the "tunnel" movements of this session in the balance
+    /// statement. The chains cover only the messages that the meter accepted.
+    #[prost(message, optional, tag = "27")]
+    pub mu_charged: ::core::option::Option<Amount>,
+    /// Only in "checkpoint" and "close". What the node can see of the traffic of the
+    /// instance: "client-tunnel" (all the bytes of this tunnel, and nothing else),
+    /// "instance-tap" (the packets of the instance that the capture got, with the bytes
+    /// that it holds: the capture cuts a long frame and can drop packets under load) or
+    /// "counters-only" (only counts and lengths).
+    #[prost(string, tag = "28")]
+    pub coverage: ::prost::alloc::string::String,
+    /// Only for Observe: how the capture was made.
+    /// Only for Observe. The capture mode of the session: "pcap" or "conntrack".
+    #[prost(string, tag = "29")]
+    pub capture_mode: ::prost::alloc::string::String,
+    /// Only for Observe. Why the capture is not full. Empty when it is full.
+    #[prost(string, tag = "30")]
+    pub degraded_reason: ::prost::alloc::string::String,
+}
+/// Signed messages of one node that show a fault of that node. A receiver checks them
+/// with the public key of that node only, and does not trust the node that sends them.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FaultEvidence {
+    /// The reason of the fault, as the reasons of the reputation events: for example
+    /// "killed_with_mu" or "maintenance_overcharged".
+    #[prost(string, tag = "1")]
+    pub reason: ::prost::alloc::string::String,
+    /// The peer_id of the node that the evidence accuses: its public key, in lowercase
+    /// hexadecimal. That node signed each statement and each receipt.
+    #[prost(string, tag = "2")]
+    pub accused: ::prost::alloc::string::String,
+    /// Pages of balance statements of the accused node, in the order of their seqs. The
+    /// celaut-gateway layer gives which pages each reason needs.
+    #[prost(message, repeated, tag = "3")]
+    pub statements: ::prost::alloc::vec::Vec<BalanceStatement>,
+    /// Execution receipts of the accused node, for "statement_contradicts_receipt".
+    #[prost(message, repeated, tag = "4")]
+    pub receipts: ::prost::alloc::vec::Vec<ExecutionReceipt>,
+}
+/// One opinion of a ReputationProof. It has the same parts as an opinion box of a
+/// reputation proof on a ledger.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReputationOpinion {
+    /// What kind of object the opinion is about, as R4 on the ledger. A node is the
+    /// CELAUT_NODE_TYPE_NFT_ID that the celaut-gateway layer gives.
+    #[prost(string, tag = "1")]
+    pub r#type: ::prost::alloc::string::String,
+    /// The object of the opinion, as R5 on the ledger. For a node, its peer_id.
+    #[prost(string, tag = "2")]
+    pub object: ::prost::alloc::string::String,
+    /// How much of its opinion the publisher puts on the object, on the scale of the
+    /// reputation of the publisher. A fault report has 0: the score of the same object
+    /// already counts the fault.
+    #[prost(uint64, tag = "3")]
+    pub amount: u64,
+    /// True for an opinion for the object, false for an opinion against it, as R8 on
+    /// the ledger.
+    #[prost(bool, tag = "4")]
+    pub positive: bool,
+    /// Free content, as R9 on the ledger. For a fault report, UTF-8 JSON with the key
+    /// "reason".
+    #[prost(bytes = "vec", tag = "5")]
+    pub content: ::prost::alloc::vec::Vec<u8>,
+    /// Only in a fault report: the signed messages that prove the fault. Absent when
+    /// the fault rests on what only the publisher knows.
+    #[prost(message, optional, tag = "6")]
+    pub evidence: ::core::option::Option<FaultEvidence>,
+}
+/// The opinions of a node about other nodes, signed with its identity key. It is the
+/// off-chain form of a reputation proof on a ledger, and it holds the pointers to the
+/// proofs of the node on ledgers (ledger_proofs). A receiver keeps only the newest
+/// proof of each publisher.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReputationProof {
+    /// The peer_id of the node that signs: its public key, in lowercase hexadecimal. It
+    /// is the id of the proof.
+    #[prost(string, tag = "1")]
+    pub publisher: ::prost::alloc::string::String,
+    /// The scheme of the signature, as on the Peer, without the prose.
+    #[prost(message, optional, tag = "2")]
+    pub signature_scheme: ::core::option::Option<peer::SignatureScheme>,
+    /// When the publisher signed, in unix seconds. A receiver refuses a proof that is
+    /// not newer than the last proof that it accepted from the same publisher.
+    #[prost(int64, tag = "3")]
+    pub ts: i64,
+    /// The nonce of the proof of work (#677). The work of the proof is the number of
+    /// leading zero bits of the hash of the proof with this nonce (see
+    /// offchain_proof.pow_bits). The publisher tries nonces until the hash has the zero
+    /// bits that it wants. The signature covers it, so a node that passes the proof on
+    /// cannot change it. A proof with nonce 0 has the work of that one hash, which is
+    /// no more than any other single try.
+    #[prost(uint64, tag = "4")]
+    pub pow_nonce: u64,
+    /// The signature, in lowercase hexadecimal. The celaut-gateway layer gives the text
+    /// that the node signs.
+    #[prost(string, tag = "5")]
+    pub signature: ::prost::alloc::string::String,
+    /// The opinions. The signature covers them in this order.
+    #[prost(message, repeated, tag = "6")]
+    pub opinions: ::prost::alloc::vec::Vec<ReputationOpinion>,
+    /// The proofs of the publisher on ledgers, as pointers: each Contract names the ledger,
+    /// the script and the token of one proof, and carries the owner attestation (in its
+    /// xattrs) by which the wallet that owns the proof vouches for the publisher. They are
+    /// pointers: the opinions of such a proof are on the ledger, not here. The signature
+    /// covers them, so a node that passes the proof on cannot add or remove one. A reader
+    /// credits a pointer only when the attestation verifies for the publisher. The list
+    /// is empty when the publisher has no proof on a ledger.
+    #[prost(message, repeated, tag = "7")]
+    pub ledger_proofs: ::prost::alloc::vec::Vec<Contract>,
+}
+/// The answer of PushReputationProof.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReputationProofAck {
+    /// True if the node checked the proof and took it: it keeps the proof when the
+    /// publisher is a peer of the node, and it scores the faults that the evidence in it
+    /// proves. False if it refused the proof.
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    /// Why the node refused the proof. Empty if accepted is true.
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
 }
 /// The answer of StartService.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -1345,47 +1599,72 @@ pub struct ServiceInstance {
     #[prost(message, optional, tag = "3")]
     pub receipt: ::core::option::Option<ExecutionReceipt>,
 }
-/// What a node announces about itself: its addresses, its prices, its reputation
-/// proofs, its resources and its identity. The node signs it. A reader refuses a Peer
+/// What a node announces about itself: its addresses, its prices, its resources and its
+/// identity. The node signs it. A reader refuses a Peer
 /// without a public_key and a signature, or with a signature that does not verify.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Peer {
-    /// The reputation proofs of the node, each with its owner attestation.
-    #[prost(message, repeated, tag = "1")]
-    pub reputation_proofs: ::prost::alloc::vec::Vec<Contract>,
-    /// All the addresses of the node.
-    #[prost(message, repeated, tag = "2")]
-    pub uri: ::prost::alloc::vec::Vec<peer::Uri>,
-    /// The payment contracts that the node accepts, and the value of each in MU. They are
-    /// the same for all the addresses.
-    #[prost(message, repeated, tag = "3")]
-    pub payment_contracts: ::prost::alloc::vec::Vec<ContractRate>,
-    /// The rates of the node. Keys: "ram_mu_per_gib_second" (and
-    /// "ram_mu_per_gib_second:<architecture>"), "cpu_mu_per_vcpu_second",
-    /// "disk_mu_per_gib_second", "net_mu_per_gib", "build_mu", "tunnel_open_mu",
-    /// "modify_resources_mu", "statement_query_mu", "statement_row_mu",
-    /// "scarcity_max_multiplier". The values of the "_mu" keys
-    /// are in MU. Each RAM, CPU and disk rate is a base price. When a resource is scarce,
-    /// the node multiplies its rate by a factor from 1 to scarcity_max_multiplier. The
-    /// other rates do not change. scarcity_max_multiplier has no unit. The node does not
-    /// send a rate of 0. A reader ignores a key that it does not know.
-    #[prost(message, repeated, tag = "4")]
-    pub mu_per_call: ::prost::alloc::vec::Vec<AmountKeyValue>,
+    /// The identity of the node and the signature over the rest of the message.
     /// The public key of the identity of the node, in the encoding that
     /// signature_scheme gives, as 64 lowercase hexadecimal characters. It is the id of
     /// the peer. A reader refuses a key with uppercase characters or spaces.
-    #[prost(string, tag = "5")]
+    #[prost(string, tag = "1")]
     pub public_key: ::prost::alloc::string::String,
+    /// The signature scheme. The signature covers it, so a relay cannot change it.
+    #[prost(message, optional, tag = "2")]
+    pub signature_scheme: ::core::option::Option<peer::SignatureScheme>,
+    /// The unix time of the announcement, in seconds. A reader accepts a Peer only if its
+    /// ts is more than the ts of the last Peer that it accepted for the same public_key.
+    #[prost(int64, tag = "3")]
+    pub ts: i64,
     /// The signature, by public_key, of the text "<public_key>|<ts>|<content digest>", in
     /// lowercase hexadecimal. The content digest covers all the other fields of the
     /// Peer. The celaut-gateway layer specifies the digest. The signature proves that
     /// the holder of the key made this content. Thus a node can accept the Peer from a
     /// relay, and no challenge is necessary.
-    #[prost(string, tag = "6")]
+    #[prost(string, tag = "4")]
     pub signature: ::prost::alloc::string::String,
-    /// The signature scheme. The signature covers it, so a relay cannot change it.
-    #[prost(message, optional, tag = "7")]
-    pub signature_scheme: ::core::option::Option<peer::SignatureScheme>,
+    /// Where the node is.
+    /// All the addresses of the node.
+    #[prost(message, repeated, tag = "5")]
+    pub uri: ::prost::alloc::vec::Vec<peer::Uri>,
+    /// What the node charges, and what it limits.
+    /// The payment contracts that the node accepts, and the value of each in MU. They are
+    /// the same for all the addresses.
+    #[prost(message, repeated, tag = "6")]
+    pub payment_contracts: ::prost::alloc::vec::Vec<ContractRate>,
+    /// The rates of the node. Keys: "ram_mu_per_gib_second" (and
+    /// "ram_mu_per_gib_second:<architecture>"), "cpu_mu_per_vcpu_second",
+    /// "disk_mu_per_gib_second", "net_mu_per_gib", "build_mu", "tunnel_open_mu",
+    /// "modify_resources_mu", "statement_query_mu", "statement_row_mu",
+    /// "scarcity_max_multiplier". The keys "net_mu_per_gib" and "connection_open_mu" (one
+    /// connection) can also have the form "<key>:<network>", with the network as in
+    /// limits (a DNS host name in lowercase, or "*"): the price for the instances that reach that network, in place of the
+    /// general rate of the same name. A network without such a key has the general rate.
+    /// The values of the "_mu" keys are in MU. Each RAM, CPU and disk rate is a base price. When a resource is scarce,
+    /// the node multiplies its rate by a factor from 1 to scarcity_max_multiplier. The
+    /// other rates do not change. scarcity_max_multiplier has no unit. The node does not
+    /// send a rate of 0. A reader ignores a key that it does not know.
+    #[prost(message, repeated, tag = "7")]
+    pub rates: ::prost::alloc::vec::Vec<AmountKeyValue>,
+    /// The limits of the node, as keys with a number. A key has the form
+    /// "<limit>:<network>". The network is a DNS host name in lowercase, as a tag of
+    /// Service.Network. Only these networks have keys: a pow: network is a set of peers
+    /// and uses no access of this node to a third party. A reader splits the key at the
+    /// first ":". The tag "*" is every network that has no key of its own. The limits
+    /// are for one client (the caller that pays for the instance). With the prefix
+    /// "global_" the limit is for all the clients together: when it is full, the node
+    /// refuses a new connection even if the client is within its own limits. Limits:
+    /// "max_concurrent_connections", "max_connections_per_day",
+    /// "max_connections_per_month", "max_gib_per_day" and "max_gib_per_month". A day and
+    /// a month are the calendar days and months in UTC. The node gives a limit because
+    /// its access to a network is a limited supply. The price of the same network is in
+    /// rates. A limit that is absent is not a promise of no limit. It is an offer: the
+    /// quote (EstimatedCost) is the authority for one instance, and the node refuses an
+    /// instance that goes beyond a limit. A reader ignores a key that it does not know.
+    #[prost(message, repeated, tag = "8")]
+    pub limits: ::prost::alloc::vec::Vec<Uint64KeyValue>,
+    /// What the node can run.
     /// The maximum resources that the node supports, one entry for each architecture
     /// that it runs. If the list is not empty, the node does not run an architecture
     /// that is not in it. If the list is empty, the node gives no data about its
@@ -1395,16 +1674,8 @@ pub struct Peer {
     /// If the node did not measure a score, the score is absent, never 0. Before a
     /// caller asks for a cost or for availability, it can skip a node whose entry does
     /// not fit the request.
-    #[prost(message, repeated, tag = "8")]
+    #[prost(message, repeated, tag = "9")]
     pub resources: ::prost::alloc::vec::Vec<ArchitectureResources>,
-    /// The hours in which the node takes new work. If the message is absent, the node
-    /// gives no schedule: a reader does not assume that the node is open or closed. An
-    /// empty list of spans means that the node is always open. It is the schedule that
-    /// the node has now: it can change, and the node then announces a new Peer with a
-    /// higher ts. It is not a promise. The quote (EstimatedCost.closes_at and on_close)
-    /// is the authority for one instance.
-    #[prost(message, optional, tag = "9")]
-    pub activity_window: ::core::option::Option<ActivityWindow>,
     /// The devices that the node can attach directly to an instance. One entry is one
     /// device, with its architecture. The node repeats an entry for each device that it
     /// has. The number of entries with the same architecture is the maximum number of
@@ -1420,10 +1691,14 @@ pub struct Peer {
     /// architecture.
     #[prost(message, repeated, tag = "10")]
     pub devices: ::prost::alloc::vec::Vec<Device>,
-    /// The unix time of the announcement, in seconds. A reader accepts a Peer only if its
-    /// ts is more than the ts of the last Peer that it accepted for the same public_key.
-    #[prost(int64, tag = "99")]
-    pub ts: i64,
+    /// The hours in which the node takes new work. If the message is absent, the node
+    /// gives no schedule: a reader does not assume that the node is open or closed. An
+    /// empty list of spans means that the node is always open. It is the schedule that
+    /// the node has now: it can change, and the node then announces a new Peer with a
+    /// higher ts. It is not a promise. The quote (EstimatedCost.closes_at and on_close)
+    /// is the authority for one instance.
+    #[prost(message, optional, tag = "11")]
+    pub activity_window: ::core::option::Option<ActivityWindow>,
 }
 /// Nested message and enum types in `Peer`.
 pub mod peer {

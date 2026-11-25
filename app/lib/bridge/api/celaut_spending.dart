@@ -38,7 +38,7 @@ Future<String> celautNodeCredit({required NodeAddress node}) =>
     RustLib.instance.api.crateApiCelautSpendingCelautNodeCredit(node: node);
 
 /// The fee that the node of the instance advertises for a move of MU
-/// (`modify_deposit_mu` in `Peer.mu_per_call`), in MU; empty if it advertises none (nodo
+/// (`modify_deposit_mu` in `Peer.rates`), in MU; empty if it advertises none (nodo
 /// charges nothing today). It reads what the app already knows of the node.
 Future<String> celautMoveFee({required String instanceId}) => RustLib
     .instance

@@ -11,7 +11,7 @@ import 'package:argus_wallet/ui/celaut/closing_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// The activity window of nodo#344 and the funding sum of nodo#636 (chatui#129).
+/// The activity window of nodo#344 and the funding sum of nodo#636 (superapp#129).
 
 QuoteView _quote({
   String cost = '500',

@@ -1,6 +1,6 @@
 # Celaut client plan
 
-This plan puts the Celaut part of chatui into milestones. The design is in the notes
+This plan puts the Celaut part of the app into milestones. The design is in the notes
 in `docs/celaut/` (decisions, ui, wire, balancer, catalog). This plan follows those
 decisions and does not change them. Each milestone ends with a check that a reviewer
 can run.
@@ -15,14 +15,14 @@ that closes the plan (#43), and the chat-first UI on top of it. **The plan is co
 | M0: build from source, CI, debug APK in CI | Done (PR #1). CI runs rust, flutter and android on each pull request |
 | `celaut-proto` and the design notes (`docs/celaut/`) | Done (merged from `celaut-crates` in `160d24c`) |
 | M0b: trimmed wallet and new identity | Done (PR #3). English and Spanish (PR #12) |
-| `bee-rpc-over-grpc-rs` (M1a) | Done. Tag `v0.1.0` (`a832abc`), a git dependency of `celaut-wire`. GPL-3.0-only, as chatui (section 7, decision 10) |
+| `bee-rpc-over-grpc-rs` (M1a) | Done. Tag `v0.1.0` (`a832abc`), a git dependency of `celaut-wire`. GPL-3.0-only, as Celaut (section 7, decision 10) |
 | M1: connect to a node and show its advertisement | Done (PR #9) |
 | M2: quote, start, tunnel, stop on free credit | Done (PR #11). Checked on our own node from the client crate and from the app in the emulator (M2 in section 5). A phone, a node on the internet and more than one node: section 0.1 |
 | M3: deposit with the wallet | Done (PR #13, #15). The wallet of the app pays; the deposit asks for its PIN or fingerprint. One deposit of 0.01 ERG on mainnet from the app in the emulator to our node on 2026-10-13: the node accepted it and the client got 10 000 000 MU (`docs/celaut/deposit-e2e.md`) |
 | Home screen (ui.md, section 2) | Done (PR #15, #16, #31, #38). Running instances, "Run a service" and one card of state (decision of 2026-10-16). The Nodes screen adds a node by address or QR code (`docs/celaut/wire.md`, section 6) |
 | One wallet (ui.md, section 1) | Done (PR #40, #41). The app holds one Ergo wallet with its seed. There are no watch-only wallets, no offline signing and no default payer. At each start the app removes the watched wallets and every wallet after the first of the user order, with its seed |
 | M4: conversation screen | Done (PR #17 to #25, and the closing PR). Checked on 2026-10-21 on our node with `echo-chat` v1 from the app in the emulator: launch, conversation, history after a lost connection, cost so far, stop (M4 in section 5). A phone: section 0.1 |
-| Run by skill, availability of the nodes, reasons of a refusal | Done (PR #30, #31, #32, #35, #36, #37, and the closing PR). Run asks first, with the best node and its start cost; the screen lists every skill of the catalog. Checked in the emulator on 2026-10-21. A phone: section 0.1 |
+| Run by objective, availability of the nodes, reasons of a refusal | Done (PR #30, #31, #32, #35, #36, #37, and the closing PR). Run asks first, with the best node and its start cost; the screen lists every objective of the catalog. Checked in the emulator on 2026-10-21. A phone: section 0.1 |
 | Descendants of nodo#631 | Done in code (statements with `instance_ref`, `child_bound` and `stop`, `DescendantTunnel`, a confirmation for each paid read). Not checked on a real node: `docs/celaut/descendants.md`, section 12 |
 | M5: privacy (Tor) | Done (PR #29, and the closing PR). Off by default, Arti inside the app, or an external SOCKS5 proxy, for the nodes, every HTTP request of the Rust core and the updater of the app (`docs/celaut/network.md`). Checked in the emulator on 2026-10-21 (M5 in section 5). A phone and onion addresses: section 0.1 |
 | Open questions (section 7) | Answered on 2026-10-11 to 2026-10-16 |
@@ -57,7 +57,7 @@ Checks of the closing PR, on 2026-10-21, on Ubuntu 22.04 x86_64 (WSL2 with KVM),
 An Android app that uses Celaut services with no intermediary:
 
 1. Find nodes (on-chain directory, or an address or QR code from the user).
-2. Find services (celaut-project/skills catalog, or a service hash).
+2. Find services (Celaut Registry (celaut-project/registry), or a service hash).
 3. Get quotes from the nodes, select one with the balancer, and launch the service.
 4. Pay the node from the wallet of the app (one deposit and one client id per node).
 5. Use the service through `ServiceTunnel`, for example in a conversation screen.
@@ -95,7 +95,7 @@ celaut-client   connect, client ids, quotes, start/stop, deposits, tunnels
   ├─ celaut-wire      TLS identity check, gRPC; uses bee-rpc (external crate)
   │    └─ celaut-proto    prost types (exists on celaut-crates)
   ├─ celaut-balancer  port of the nodo execution balancer (balancer.md)
-  ├─ celaut-catalog   node directory and skills catalog from the explorer (catalog.md)
+  ├─ celaut-catalog   node directory and objectives catalog from the explorer (catalog.md)
   └─ wallet-core / ergo-tx   deposit transaction (needs an R4 register on one output)
 ```
 
@@ -107,7 +107,7 @@ Crates to add in `rust/crates/`:
 | `celaut-wire` | rustls `ServerCertVerifier` that checks the identity extension (wire.md section 1) and returns the peer_id; the Celaut calls on top of the `bee-rpc` crate (repo `bee-rpc-over-grpc-rs`: framing, blocks, signal, generic bidi call; wire.md section 2). Not ported in this repo | tonic 0.14 (no generated stubs, because each method is `stream Buffer -> stream Buffer`), tokio-rustls, rustls 0.23 with ring (already in the workspace) |
 | `celaut-client` | Typed RPCs, PoW of GenerateClient (blake2b-512), a store for client ids and instance tokens per peer_id, a quote cache, a local TCP listener on 127.0.0.1 that sends each connection through `ServiceTunnel` | celaut-wire, blake2 |
 | `celaut-balancer` | Filter, score, MU conversion, event log (balancer.md) | celaut-proto |
-| `celaut-catalog` | Explorer queries for node boxes and skills; ranking (catalog.md) | wallet-net (explorer HTTP) |
+| `celaut-catalog` | Explorer queries for node boxes and objectives; ranking (catalog.md) | wallet-net (explorer HTTP) |
 
 The FRB surface stays small and uses plain types:
 
@@ -135,8 +135,8 @@ source. CI runs on master and builds the debug APK. Check: the CI `android` job.
 
 **M0b: trimmed wallet and new identity** (decisions.md). Remove the DeFi crates and
 screens, the dApp browser, the CoinGecko prices and the app fee. Label "Celaut",
-applicationId `org.celaut.chatui`, flutter_zxing scanner, updater on the
-celaut-project/chatui releases. Check: the APK runs on GrapheneOS without Play
+applicationId `org.celaut.superapp`, flutter_zxing scanner, updater on the
+celaut-project/superapp releases. Check: the APK runs on GrapheneOS without Play
 Services; `flutter test` and `cargo test` pass.
 
 Start M0b from master. A partial trim exists on the machine of Josemi, but it will
@@ -145,7 +145,7 @@ not be pushed. Do not wait for it.
 The items of M0b, as master had them at `160d24c` (all done in PR #3; Spanish in PR #12):
 
 - `namespace` and `applicationId` are `com.argus.argus_wallet`
-  (`app/android/app/build.gradle.kts`). Change both to `org.celaut.chatui`, and move
+  (`app/android/app/build.gradle.kts`). Change both to `org.celaut.superapp`, and move
   `MainActivity` to the new package.
 - `android:label` is "Argus" (`app/android/app/src/main/AndroidManifest.xml`).
 - The updater reads `arkadianet/Argus` (`app/lib/build_info.dart`,
@@ -209,8 +209,7 @@ Facts from nodo dev `e3d12301` that differ from the first notes:
   (the same message), and refuses an older `ts`, or an equal `ts` with another digest.
 - The node checks `Peer.signature_scheme` before the key (`speaks_our_signature_scheme`).
   The client does the same: one component that names Ed25519 as nodo defines it.
-- The digest covers the expiry and the transport of each URI, the reputation proofs,
-  the scheme and every resource field with its presence. `benchmark` is sorted by the
+- The digest covers the expiry and the transport of each URI, the scheme and every resource field with its presence. `benchmark` is sorted by the
   text of each entry, and a repeated key stays (it is not "sorted by key").
 - GenerateClient: the client proposes a random UUID4 as `client_id`. With a proof of
   work the node uses the id in the challenge, and the difficulty in the challenge
@@ -409,7 +408,7 @@ Read-only check on 2026-10-13, our node (nodo `ec1274d`): the node advertises th
 contract on mainnet, with the token in R4, 1 MU per nanoERG; GenerateDepositToken gives a
 36-character token; free credit 4 500 000 MU. No transaction.
 
-**M4: conversation screen.** The instance data is in one database for the app, not per wallet (`docs/celaut/ui.md`). Select a skill or a service hash, launch it, and talk to
+**M4: conversation screen.** The instance data is in one database for the app, not per wallet (`docs/celaut/ui.md`). Select an objective or a service hash, launch it, and talk to
 it through the tunnel. Show the cost so far. Back leaves the screen and the instance runs
 on; Stop is in the menu (the rule is in `docs/celaut/ui-chat-first.md`, section 5, and
 waits for the confirmation of Josemi). First write the "chat" convention (HTTP with JSON, decision 3 in section 7).
@@ -417,7 +416,7 @@ Check: a conversation with a simple echo service that follows it.
 
 What M4 has (PR #17 to #25, and the closing PR): the convention (`docs/celaut/chat.md`),
 `ChatClient`, `ChatScreen` with the history and the cost so far, the detector of the chat slot, the launch on the best
-node, the skill catalog and its picker, the filter on the advertised resources, and an
+node, the objective catalog and its picker, the filter on the advertised resources, and an
 Android foreground service while a conversation is open. After a launch, the screen
 says that the service starts and reads the history again until the service answers
 (`ChatClient.syncWhenStarted`, chat.md section 9).
@@ -427,7 +426,7 @@ that covers the protocol only, and its section 10 has the conformance tests that
 service must pass. The app sends image and audio files (`file_picker`, the system document
 picker), shows them in the bubbles and gives the text and the files back to the field when a
 send fails. The flows are in `docs/celaut/ui-chat-first.md`, section 7. The services of the
-sibling repositories that read the files are not described in chatui.
+sibling repositories that read the files are not described in superapp.
 
 Check on 2026-10-21, on our node (x86_64 with KVM, nodo `ec1274d`, default config), from
 the debug APK of the closing PR in the x86_64 emulator (Android 15, AOSP), the node at
@@ -519,7 +518,7 @@ the host got 404 (no latest release) and its GitHub counter did not move. With T
 8. **Node directory:** no bootstrap list in the app. Only on-chain node boxes and
    nodes that the user adds by address or QR code.
 9. **Release key:** changed on 2026-10-12. CI signs the release APKs with a key used
-   only for chatui. The key is in the secrets of the GitHub environment `release`,
+   only for Celaut. The key is in the secrets of the GitHub environment `release`,
    which accepts only tags `v*` and needs Josemi's approval before each signing job.
    Steps: set `appVersion` and `appBuildNumber` in `build_info.dart` and `pubspec.yaml`,
    merge, then push the tag `v<appVersion>`. The `release` workflow builds the APKs,
@@ -528,8 +527,8 @@ the host got 404 (no latest release) and its GitHub counter did not move. With T
    the test on GrapheneOS.
 
 10. **License (decided, 2026-10-12):** `bee-rpc` is GPL-3.0-only and the app links it
-    into `libwallet_ffi.so`. Josemi decided that chatui is GPL-3.0-only. `LICENSE` has
-    the text, and `NOTICE.md` keeps the MIT notice of Argus, from which chatui is
+    into `libwallet_ffi.so`. Josemi decided that Celaut is GPL-3.0-only. `LICENSE` has
+    the text, and `NOTICE.md` keeps the MIT notice of Argus, from which Celaut is
     forked. The workspace `license` is `GPL-3.0-only`.
 
 11. **Wallets, storage and home screen (decided, 2026-10-13):** full wallets (seed,

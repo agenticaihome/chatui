@@ -69,6 +69,7 @@ fn peer_with(
                     key: "token_id".into(),
                     value: Some(b"ERG".to_vec()),
                 }],
+                ..Default::default()
             }),
             mu_per_unit: mu(rate),
         }];
@@ -107,13 +108,13 @@ async fn session_with(
     open_with(peer, peer_id, more).await
 }
 
-/// A session with a node that advertises `rates` (key, MU) in `mu_per_call`.
+/// A session with a node that advertises `rates` (key, MU) in `rates`.
 async fn session_priced(
     rates: &[(&str, &str)],
     more: Vec<Vec<Buffer>>,
 ) -> NodeSession<FixedStreams> {
     let (mut peer, _) = peer_with(1, None, None);
-    peer.mu_per_call = rates
+    peer.rates = rates
         .iter()
         .map(|(k, v)| AmountKeyValue {
             key: (*k).into(),

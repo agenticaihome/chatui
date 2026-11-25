@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Chatui';
+  String get appTitle => 'Celaut';
 
   @override
   String get commonCancel => 'Cancel';
@@ -267,9 +267,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautResourcesTitle => 'Resources';
-
-  @override
-  String get celautProofsLabel => 'Reputation proofs';
 
   @override
   String get celautNoUris => 'The node advertises no address.';
@@ -538,10 +535,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatBgDiamonds => 'Diamonds';
 
   @override
+  String get chatBgTheme => 'Theme';
+
+  @override
   String get addressBookTitle => 'Address book';
 
   @override
-  String get settingsAboutRowTitle => 'About Chatui';
+  String get settingsAboutRowTitle => 'About Celaut';
 
   @override
   String get settingsAboutRowSubtitle => 'Version, release notes, licenses';
@@ -634,7 +634,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutUpdatesNote =>
-      'Off by default. When on, Chatui asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app\'s signing key before Android is asked to install it.';
+      'Off by default. When on, Celaut asks api.github.com for the latest release once a day as it starts. \"Check now\" does the same on request, even with this off. Nothing else is sent: no account, token, app version or device identifier. A download comes from github.com and is checked against this app\'s signing key before Android is asked to install it.';
 
   @override
   String get aboutThisBuild => 'This build';
@@ -658,7 +658,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutLightClientNote =>
-      'Chatui is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.';
+      'Celaut is a light client: it talks to public Ergo nodes over HTTPS and never sends your keys anywhere.';
 
   @override
   String get aboutSigningCertificate => 'Signing certificate';
@@ -791,6 +791,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeObsidianHint => 'True black, steel accent';
 
   @override
+  String get displayPaletteGroupChristmas => 'Christmas';
+
+  @override
+  String get themeXmasEveNightName => 'Christmas Eve';
+
+  @override
+  String get themeXmasEveDayName => 'Christmas Morning';
+
+  @override
+  String get themeXmasEveHint => 'Christmas · red, pine and gold';
+
+  @override
+  String get themeXmasSnowNightName => 'Snowy Night';
+
+  @override
+  String get themeXmasSnowDayName => 'Snowy Day';
+
+  @override
+  String get themeXmasSnowHint => 'Christmas · ice white and silver blue';
+
+  @override
+  String get themeXmasGingerNightName => 'Gingerbread Night';
+
+  @override
+  String get themeXmasGingerDayName => 'Gingerbread Day';
+
+  @override
+  String get themeXmasGingerHint => 'Christmas · ginger, icing and red';
+
+  @override
+  String get themeXmasTreeNightName => 'Christmas Tree Night';
+
+  @override
+  String get themeXmasTreeDayName => 'Christmas Tree Day';
+
+  @override
+  String get themeXmasTreeHint => 'Christmas · pine green and golden lights';
+
+  @override
   String get themeHarborName => 'Harbor';
 
   @override
@@ -803,6 +842,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeEmberHint => 'Warm charcoal, copper accent';
 
   @override
+  String get displayPaletteGroupGta => 'Grand Theft Auto';
+
+  @override
+  String get themeGtaViceNightName => 'Vice City Night';
+
+  @override
+  String get themeGtaViceDayName => 'Vice City Day';
+
+  @override
+  String get themeGtaViceHint =>
+      'GTA · neon pink and teal, shoulder pads included';
+
+  @override
+  String get themeGtaSantosNightName => 'Los Santos Night';
+
+  @override
+  String get themeGtaSantosDayName => 'Los Santos Day';
+
+  @override
+  String get themeGtaSantosHint =>
+      'GTA · orange sunset, purple smog, palm trees';
+
+  @override
+  String get themeGtaLibertyNightName => 'Liberty City Night';
+
+  @override
+  String get themeGtaLibertyDayName => 'Liberty City Day';
+
+  @override
+  String get themeGtaLibertyHint =>
+      'GTA · steel and taxi yellow, honking optional';
+
+  @override
+  String get themeGtaWantedNightName => 'Wanted Night';
+
+  @override
+  String get themeGtaWantedDayName => 'Wanted Day';
+
+  @override
+  String get themeGtaWantedHint =>
+      'GTA · police red and blue, five stars (not the hotel kind)';
+
+  @override
   String get themeParchmentName => 'Parchment';
 
   @override
@@ -813,6 +895,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeFrostHint => 'Cool white, slate-blue accent';
+
+  @override
+  String get displayPaletteGroupMarvel => 'Marvel';
+
+  @override
+  String get themeIronManNightName => 'Iron Man Night';
+
+  @override
+  String get themeIronManDayName => 'Iron Man Day';
+
+  @override
+  String get themeIronManHint => 'Marvel · red and gold';
+
+  @override
+  String get themeSpiderManNightName => 'Spider-Man Night';
+
+  @override
+  String get themeSpiderManDayName => 'Spider-Man Day';
+
+  @override
+  String get themeSpiderManHint => 'Marvel · red and blue, web';
+
+  @override
+  String get themeHulkNightName => 'Hulk Night';
+
+  @override
+  String get themeHulkDayName => 'Hulk Day';
+
+  @override
+  String get themeHulkHint => 'Marvel · gamma green and purple';
+
+  @override
+  String get themeThorNightName => 'Thor Night';
+
+  @override
+  String get themeThorDayName => 'Thor Day';
+
+  @override
+  String get themeThorHint => 'Marvel · storm and lightning';
 
   @override
   String get themeCyberpunkName => 'Cyberpunk';
@@ -831,6 +952,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeAppleDarkHint => 'True black, system blue';
+
+  @override
+  String get displayPaletteGroupCyberpunk => 'Cyberpunk';
+
+  @override
+  String get themeCyberCityNightName => 'Night City by Night';
+
+  @override
+  String get themeCyberCityDayName => 'Night City by Day';
+
+  @override
+  String get themeCyberCityHint => 'Cyberpunk · acid yellow and teal';
+
+  @override
+  String get themeCyberNoirNightName => 'Neon Noir Night';
+
+  @override
+  String get themeCyberNoirDayName => 'Neon Noir Day';
+
+  @override
+  String get themeCyberNoirHint => 'Cyberpunk · magenta and cyan';
+
+  @override
+  String get themeCyberNetrunnerNightName => 'Netrunner Night';
+
+  @override
+  String get themeCyberNetrunnerDayName => 'Netrunner Day';
+
+  @override
+  String get themeCyberNetrunnerHint => 'Cyberpunk · terminal green on black';
+
+  @override
+  String get themeCyberRainNightName => 'Blade Rain Night';
+
+  @override
+  String get themeCyberRainDayName => 'Blade Rain Day';
+
+  @override
+  String get themeCyberRainHint => 'Cyberpunk · teal and orange in the rain';
 
   @override
   String get themeMaterialLightName => 'Material Light';
@@ -861,6 +1021,84 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeDraculaHint => 'Deep indigo, purple accent';
+
+  @override
+  String get displayPaletteGroupStandard => 'Standard';
+
+  @override
+  String get displayPaletteGroupHarryPotter => 'Harry Potter';
+
+  @override
+  String get themeLionNightName => 'Gryffindor Night';
+
+  @override
+  String get themeLionDayName => 'Gryffindor Day';
+
+  @override
+  String get themeLionHint => 'Harry Potter · scarlet and gold';
+
+  @override
+  String get themeSerpentNightName => 'Slytherin Night';
+
+  @override
+  String get themeSerpentDayName => 'Slytherin Day';
+
+  @override
+  String get themeSerpentHint => 'Harry Potter · emerald and silver';
+
+  @override
+  String get themeRavenNightName => 'Ravenclaw Night';
+
+  @override
+  String get themeRavenDayName => 'Ravenclaw Day';
+
+  @override
+  String get themeRavenHint => 'Harry Potter · blue and bronze';
+
+  @override
+  String get themeBadgerNightName => 'Hufflepuff Night';
+
+  @override
+  String get themeBadgerDayName => 'Hufflepuff Day';
+
+  @override
+  String get themeBadgerHint => 'Harry Potter · yellow and black';
+
+  @override
+  String get themeHogwartsNightName => 'Hogwarts Night';
+
+  @override
+  String get themeHogwartsDayName => 'Hogwarts Day';
+
+  @override
+  String get themeHogwartsHint => 'Harry Potter · stone and candlelight';
+
+  @override
+  String get themePatronusNightName => 'Patronus Night';
+
+  @override
+  String get themePatronusDayName => 'Patronus Day';
+
+  @override
+  String get themePatronusHint => 'Harry Potter · silver light';
+
+  @override
+  String get themeForestNightName => 'Forest Night';
+
+  @override
+  String get themeForestDayName => 'Forest Day';
+
+  @override
+  String get themeForestHint => 'Harry Potter · Forbidden Forest';
+
+  @override
+  String get themePhoenixNightName => 'Phoenix Night';
+
+  @override
+  String get themePhoenixDayName => 'Phoenix Day';
+
+  @override
+  String get themePhoenixHint => 'Harry Potter · Order of the Phoenix';
 
   @override
   String get networkConnectedNode => 'Connected node';
@@ -1181,12 +1419,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String updateCardVersion(String version) {
-    return 'Chatui $version';
+    return 'Celaut $version';
   }
 
   @override
   String updateCardVersionDate(String version, String date) {
-    return 'Chatui $version · $date';
+    return 'Celaut $version · $date';
   }
 
   @override
@@ -1236,7 +1474,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String updateAssetNote(String name, String size) {
-    return '$name · $size. Before anything is installed, Chatui checks the file against the checksum GitHub lists and against the key this app is signed with.';
+    return '$name · $size. Before anything is installed, Celaut checks the file against the checksum GitHub lists and against the key this app is signed with.';
   }
 
   @override
@@ -1247,7 +1485,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String updateNoticeAvailable(String version) {
-    return 'Chatui $version is available.';
+    return 'Celaut $version is available.';
   }
 
   @override
@@ -1303,11 +1541,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateErrorDownloadTooLarge =>
-      'The download is larger than Chatui will accept.';
+      'The download is larger than Celaut will accept.';
 
   @override
   String get updateErrorStorage =>
-      'Chatui could not save the download. Is the phone out of storage?';
+      'Celaut could not save the download. Is the phone out of storage?';
 
   @override
   String get updateErrorLargerThanListed =>
@@ -1330,7 +1568,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateRejectedAppKeyUnknown =>
-      'Chatui could not read its own signing key, so it cannot check this download. It has been deleted.';
+      'Celaut could not read its own signing key, so it cannot check this download. It has been deleted.';
 
   @override
   String get updateCheckFailed => 'The update check failed.';
@@ -1350,7 +1588,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateInstallPermission =>
-      'Android needs your permission first. Allow Chatui to install apps on the next screen, then tap Install again.';
+      'Android needs your permission first. Allow Celaut to install apps on the next screen, then tap Install again.';
 
   @override
   String get updateInstallerFailed =>
@@ -1361,7 +1599,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get walletSettingsRemoveBody =>
-      'This removes the wallet from this device. Chatui does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.';
+      'This removes the wallet from this device. Celaut does not keep a copy of the recovery phrase; the paper you wrote when creating this wallet is the only way back in. After that, you can create or restore another wallet.';
 
   @override
   String get walletSettingsRemoveFailed => 'Could not remove wallet';
@@ -1442,7 +1680,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get walletSettingsBackupNote =>
-      'Chatui does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.';
+      'Celaut does not keep a copy of the recovery phrase. The paper you wrote at create or restore is the only way back in.';
 
   @override
   String get walletSettingsRemoveWallet => 'Remove wallet';
@@ -1599,7 +1837,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coinSelectionNone => 'No boxes chosen — Chatui will pick them.';
+  String get coinSelectionNone => 'No boxes chosen — Celaut will pick them.';
 
   @override
   String coinRawUnits(int count, String amount) {
@@ -1645,7 +1883,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get spendUnconfirmedNote =>
-      'Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Chatui spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.';
+      'Off: money you receive, and the change from your own sends, waits for one confirmation (the next block, usually a few minutes) before Celaut spends it. On: it can be spent at once, but if the transaction that brought it is dropped, the one spending it fails too. Either way, coins a pending transaction is already spending are never used again.';
 
   @override
   String get rentNoChargeZeroRate =>
@@ -2042,7 +2280,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tokenBurnDetail =>
-      'These units are left out of every output of the transaction and stop existing. Nobody, including Chatui, can bring them back.';
+      'These units are left out of every output of the transaction and stop existing. Nobody, including Celaut, can bring them back.';
 
   @override
   String get tokenBurnBackToYou => 'Back to you';
@@ -2298,7 +2536,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String tokenLeaveFor(String host) {
-    return 'Leave Chatui for $host?';
+    return 'Leave Celaut for $host?';
   }
 
   @override
@@ -2559,7 +2797,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get discoverIntro =>
-      'What Chatui can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.';
+      'What Celaut can do beyond sending and receiving. Each one says what it is, what you can do with it, and what to watch for before it opens.';
 
   @override
   String get discoverTools => 'Tools';
@@ -2822,7 +3060,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get overviewPrototypeBody =>
-      'Chatui is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.';
+      'Celaut is an unaudited prototype. Transactions on Ergo are irreversible — use only funds you can afford to lose.';
 
   @override
   String get overviewGotIt => 'Got it';
@@ -4202,7 +4440,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sendAutoInputsNote =>
-      'Chatui will pick boxes for you. Choose some to control exactly what this transaction spends.';
+      'Celaut will pick boxes for you. Choose some to control exactly what this transaction spends.';
 
   @override
   String sendShortBy(String amount) {
@@ -6020,22 +6258,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautRunTitle => 'Run a service';
 
   @override
-  String get celautRunSearchHint => 'Search skills and tags';
+  String get celautRunSearchHint => 'Search objectives and tags';
 
   @override
-  String get celautRunLoading => 'Loading skills…';
+  String get celautRunLoading => 'Loading objectives…';
 
   @override
-  String get celautRunEmpty => 'No skill matches.';
+  String get celautRunEmpty => 'No objective matches.';
 
   @override
-  String get celautRunCatalogError => 'The skill catalog is not available now.';
+  String get celautRunCatalogError =>
+      'The objective catalog is not available now.';
 
   @override
   String get celautRunRetry => 'Try again';
 
   @override
-  String get celautRunNoServices => 'No service has this skill yet.';
+  String get celautRunNoServices => 'No service has this objective yet.';
 
   @override
   String get celautRunButton => 'Run';
@@ -6524,7 +6763,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautEnvDeclUnreadableBody =>
-      'The app could not read the interface and the variables of this service, so it cannot tell if Chatui supports it or if it needs variables. Run it anyway, or cancel.';
+      'The app could not read the interface and the variables of this service, so it cannot tell if Celaut supports it or if it needs variables. Run it anyway, or cancel.';
 
   @override
   String get celautEnvRunWithout => 'Run anyway';
@@ -6564,11 +6803,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serviceInfoChatSupported =>
-      'It follows the chat convention of Chatui, so it opens as a conversation.';
+      'It follows the chat convention of Celaut, so it opens as a conversation.';
 
   @override
   String get serviceInfoChatUnsupported =>
-      'Chatui does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Chatui cannot open a conversation with it.';
+      'Celaut does not support its interface: no port speaks the chat convention (tcp, then http2, grpc and chat above it). It can run, but Celaut cannot open a conversation with it.';
 
   @override
   String get serviceInfoChatUnknown =>
@@ -6677,11 +6916,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautChatUnsupportedTitle =>
-      'Chatui does not support this interface';
+      'Celaut does not support this interface';
 
   @override
   String get celautChatUnsupportedBody =>
-      'This service does not follow the chat convention that Chatui uses, so Chatui cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.';
+      'This service does not follow the chat convention that Celaut uses, so Celaut cannot open a conversation with it. If you run it, it shows in Compute, and you cannot talk to it from here.';
 
   @override
   String get celautChatRunAnyway => 'Run anyway';
@@ -7368,7 +7607,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get btcMainnetWarnBody =>
-      'On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Chatui is new: use small amounts.';
+      'On mainnet the coins have value, and a send cannot be undone. The Bitcoin wallet of Celaut is new: use small amounts.';
 
   @override
   String get btcMainnetWarnOk => 'Use mainnet';
@@ -7799,6 +8038,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'This node does not support descendants.';
 
   @override
+  String get celautErrorNoSpace => 'The phone has not enough free space.';
+
+  @override
   String get celautErrorOnionNeedsTor =>
       'An onion address needs Tor. Turn on Tor in the network settings: the Tor client of the app or an external proxy such as Orbot.';
 
@@ -7959,8 +8201,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serviceInfoWorkloadOr => 'or';
 
   @override
-  String get celautSkillsIntro =>
-      'Pick a skill to see the services that do it.';
+  String get celautObjectivesIntro =>
+      'Pick an objective to see the services that do it.';
 
   @override
   String get celautStoreOtherField => 'Other';
@@ -7974,67 +8216,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get celautStoreShowFewer => 'Show fewer';
 
   @override
-  String get celautSkillAbout => 'About this skill';
+  String get celautObjectiveAbout => 'About this objective';
 
   @override
-  String celautSkillField(String field) {
-    return 'Field: $field';
-  }
-
-  @override
-  String get celautSkillTestBanner =>
+  String get celautObjectiveTestBanner =>
       'Most results are tests. Check before you trust them.';
 
   @override
-  String get celautSkillRecommended => 'Recommended';
+  String get celautObjectiveRecommended => 'Recommended';
 
   @override
-  String celautSkillOtherOptions(String count) {
+  String celautObjectiveOtherOptions(String count) {
     return 'Other options ($count)';
   }
 
   @override
-  String celautSkillRating(String level) {
+  String celautObjectiveRating(String level) {
     return 'Rating: $level';
   }
 
   @override
-  String get celautSkillRatingHigh => 'High';
+  String get celautObjectiveRatingHigh => 'High';
 
   @override
-  String get celautSkillRatingMedium => 'Medium';
+  String get celautObjectiveRatingMedium => 'Medium';
 
   @override
-  String get celautSkillRatingLow => 'Low';
+  String get celautObjectiveRatingLow => 'Low';
 
   @override
-  String celautSkillRatingExact(String score) {
+  String celautObjectiveRatingExact(String score) {
     return 'Exact rating: $score of 1';
   }
 
   @override
-  String get celautSkillDeclared => 'Declared by the publisher';
+  String get celautObjectiveDeclared => 'Declared by the publisher';
 
   @override
-  String get celautSkillFromResults =>
+  String get celautObjectiveFromResults =>
       'Seen only in test results, not declared by a publisher';
 
   @override
-  String get celautSkillUnverified => 'Unverified';
+  String get celautObjectiveUnverified => 'Unverified';
 
   @override
-  String celautSkillServiceId(String id) {
+  String celautObjectiveServiceId(String id) {
     return 'Service id $id';
   }
 
   @override
-  String get celautSkillIdCopied => 'Service id copied';
+  String get celautObjectiveIdCopied => 'Service id copied';
 
   @override
-  String get celautSkillUse => 'Use this service';
+  String get celautObjectiveUse => 'Use this service';
 
   @override
-  String get celautRunServicesTitle => 'Services with this skill';
+  String get celautRunServicesTitle => 'Services with this objective';
 
   @override
   String get celautRunBest => 'Best';
@@ -8070,40 +8307,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get celautStoreFeaturedHint =>
-      'One skill of each field, from the publisher with the most reputation';
+      'One objective of each field, from the publisher with the most reputation';
 
   @override
   String get celautStoreSuggested => 'Suggested for you';
 
   @override
   String get celautStoreSuggestedHint =>
-      'In the fields of the skills that you ran';
+      'In the fields of the objectives that you ran';
 
   @override
   String get celautStoreNew => 'New';
 
   @override
-  String get celautStoreNewHint => 'The last skills published on Ergo';
+  String get celautStoreNewHint => 'The last objectives published on Ergo';
 
   @override
   String get celautStorePopular => 'Popular';
 
   @override
-  String get celautStorePopularHint => 'The skills with the most services';
+  String get celautStorePopularHint => 'The objectives with the most services';
 
   @override
   String get celautStoreCategories => 'Categories';
 
   @override
-  String get celautStoreAll => 'All skills';
+  String get celautStoreAll => 'All objectives';
 
   @override
-  String celautStoreSkills(int count) {
+  String celautStoreObjectives(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count skills',
-      one: '1 skill',
+      other: '$count objectives',
+      one: '1 objective',
     );
     return '$_temp0';
   }
@@ -8547,6 +8784,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String celautLinkNoSpace(String needed, String available) {
+    return 'Not enough free space. The download needs $needed and the phone has $available free. Free some space, then tap Continue.';
+  }
+
+  @override
+  String celautLinkNoSpaceRetry(String needed, String available) {
+    return 'Not enough free space. The download needs $needed and the phone has $available free. Free some space, then try again.';
+  }
+
+  @override
   String celautLinkBadFile(String reason) {
     return 'The link does not give a valid service: $reason. Its bytes were deleted.';
   }
@@ -8853,4 +9100,231 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get celautHomeBalancesNote =>
       'The balance is what the node says now. The spending comes from the last statement that the app read on each node, and here it includes what your running instances still hold. Open a node to read it, by day or by week.';
+
+  @override
+  String get registrySettingsTitle => 'Celaut Registry';
+
+  @override
+  String get registrySettingsRowSubtitle => 'Type ids of the registry';
+
+  @override
+  String get registrySettingsIntro =>
+      'The Celaut Registry keeps its boxes on Ergo. Each kind of box has a type id. The app reads the catalog of objectives with these ids. Registry: https://github.com/celaut-project/registry';
+
+  @override
+  String get registryTypesGroup => 'Type ids';
+
+  @override
+  String get registryTypeObjective => 'Objective type id';
+
+  @override
+  String get registryTypeBenchmark => 'Benchmark type id';
+
+  @override
+  String get registryTypeCoverage => 'Coverage type id';
+
+  @override
+  String get registryTypeResult => 'Result type id';
+
+  @override
+  String get registryTypeObjectiveHelper =>
+      'Empty by default. With no id, the catalog is empty.';
+
+  @override
+  String get registryTypeInvalid => 'Enter 64 hexadecimal characters.';
+
+  @override
+  String get registryTypeInvalidOrEmpty =>
+      'Enter 64 hexadecimal characters, or leave it empty.';
+
+  @override
+  String get registryRestoreDefault => 'Restore default';
+
+  @override
+  String get registryTypesSaved => 'Type ids saved.';
+
+  @override
+  String get registryNoObjectiveTitle => 'No objective type id';
+
+  @override
+  String get registryNoObjectiveBody =>
+      'The catalog has no objectives, because the objective type id is empty. Enter the id in the settings of the Celaut Registry.';
+
+  @override
+  String get registryOpenSettings => 'Open the registry settings';
+
+  @override
+  String get celautStoreMostBacked => 'Most backed';
+
+  @override
+  String celautStoreRank(int rank) {
+    return 'Number $rank';
+  }
+
+  @override
+  String celautStoreRunObjective(String name) {
+    return 'Run $name';
+  }
+
+  @override
+  String get celautStoreOpenHint => 'Opens the page of the objective';
+
+  @override
+  String get celautStoreTopObjectives => 'Top objectives';
+
+  @override
+  String get celautStoreMoreFields => 'More fields';
+
+  @override
+  String get celautStoreByField => 'By field';
+
+  @override
+  String get celautStoreCatalogEmpty => 'The catalog has no objectives yet.';
+
+  @override
+  String celautObjectiveRunService(String action, String rating) {
+    return '$action this service (rating: $rating)';
+  }
+
+  @override
+  String get celautObjectiveStatRank => 'Rank';
+
+  @override
+  String get celautObjectiveStatRankNote => 'most backed';
+
+  @override
+  String get celautObjectiveStatServices => 'Services';
+
+  @override
+  String get celautObjectiveStatServicesNote => 'declared';
+
+  @override
+  String get celautObjectiveStatBacking => 'Backing';
+
+  @override
+  String get celautObjectiveStatBackingNote => 'of the publisher';
+
+  @override
+  String get celautObjectiveStatBlock => 'Block';
+
+  @override
+  String get celautObjectiveStatBlockNote => 'published';
+
+  @override
+  String get celautObjectiveMore => 'more';
+
+  @override
+  String get celautObjectiveLess => 'less';
+
+  @override
+  String get celautObjectiveServicesLoading => 'Loading the services…';
+
+  @override
+  String get presetPin => 'Pin as preset';
+
+  @override
+  String get presetPinNote =>
+      'Start a new instance of this service with the same settings from the ✏ button of Chats.';
+
+  @override
+  String get presetPinBody =>
+      'The ✏ button of Chats will show it on a wheel. One tap starts a new instance of this service with the same variables. You still see the cost and confirm it before it starts.';
+
+  @override
+  String get presetPinUnknown =>
+      'This phone does not know the variables that this instance was started with (it started on an earlier version of the app, or on another phone): the launch asks for them.';
+
+  @override
+  String presetPinAsks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count secret values were typed and not saved, so the preset does not keep them: the launch asks for them each time.',
+      one:
+          'One secret value was typed and not saved, so the preset does not keep it: the launch asks for it each time.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get presetPinAction => 'Pin';
+
+  @override
+  String get presetPinnedDone =>
+      'Pinned. Hold or tap the ✏ button of Chats to start it.';
+
+  @override
+  String presetPinned(String name) {
+    return 'Pinned to the ✏ button as \"$name\"';
+  }
+
+  @override
+  String get presetUnpin => 'Unpin';
+
+  @override
+  String presetFull(int max) {
+    return 'The wheel holds $max presets. Remove one first: long-press it on the wheel.';
+  }
+
+  @override
+  String get presetNameLabel => 'Name on the wheel';
+
+  @override
+  String get presetRemove => 'Remove from the wheel';
+
+  @override
+  String presetRemoved(String name) {
+    return '\"$name\" removed from the wheel';
+  }
+
+  @override
+  String get presetWheelHint =>
+      'Opens your presets. Slide to one and let go to start it.';
+
+  @override
+  String get presetWheelObjectives => 'Objectives';
+
+  @override
+  String get presetWheelObjectivesLabel => 'Objectives: choose a new service';
+
+  @override
+  String presetWheelStart(String name) {
+    return 'Start $name';
+  }
+
+  @override
+  String get presetWheelEditHint => 'Rename or remove';
+
+  @override
+  String get iosLimitsTitle => 'On iPhone, the app works only while it is open';
+
+  @override
+  String get iosLimitsConversations =>
+      'Conversations do not stay connected when the app is in the background or closed. Your messages wait on the node, and the app syncs them when you open it.';
+
+  @override
+  String get iosLimitsNotifications =>
+      'No notification arrives for a new message while the app is suspended.';
+
+  @override
+  String get iosLimitsTopUp =>
+      'Automatic top-up (Keep running) does not always work. It runs only while the app runs, and iOS stops it when the app is suspended or closed. When the balance of an instance runs out, the node stops the instance.';
+
+  @override
+  String get iosLimitsOk => 'I understand';
+
+  @override
+  String get celautKeepMacNote =>
+      'On a Mac, automatic top-up works only while Celaut is open and the Mac is awake. If you quit the app (⌘Q) or the Mac sleeps, nothing is added, and the node stops the instance when its balance runs out.';
+
+  @override
+  String get scanFromImageNote =>
+      'On a Mac the app cannot scan with the camera. Choose an image of the QR code, for example a screenshot (⇧⌘4).';
+
+  @override
+  String get scanChooseImage => 'Choose an image';
+
+  @override
+  String get scanNoCodeInImage => 'No QR code was found in this image.';
 }

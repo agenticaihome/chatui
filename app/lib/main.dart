@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'bitcoin/bitcoin_settings.dart';
+import 'celaut/app_suspension.dart';
 import 'celaut/auto_top_up.dart';
 import 'celaut/background_work.dart';
 import 'celaut/cards_effects.dart';
 import 'celaut/chat_groups.dart';
+import 'celaut/service_presets.dart';
 import 'celaut/chat_prefs.dart';
+import 'celaut/catalog_types.dart';
 import 'celaut/incoming_package.dart';
 import 'l10n/l10n.dart';
 import 'services/address_label_service.dart';
@@ -30,6 +33,7 @@ import 'theme/theme_controller.dart';
 import 'ui/contacts_screen.dart';
 import 'ui/create_wallet_screen.dart';
 import 'ui/dashboard_screen.dart';
+import 'ui/ios_limits.dart';
 import 'ui/receive_screen.dart';
 import 'ui/restore_wallet_screen.dart';
 import 'ui/send_screen.dart';
@@ -74,8 +78,10 @@ Future<void> main() async {
     spendPolicy.load().catchError((_) {}),
     previewSettings.load().catchError((_) {}),
     chatPrefs.load().catchError((_) {}),
+    catalogTypes.load().catchError((_) {}),
     cardsSettings.load().catchError((_) {}),
     chatGroups.load().catchError((_) {}),
+    servicePresets.load().catchError((_) {}),
   ]);
   networkController.priceRefresher = tokenPricer.refresh;
   runApp(const ArgusApp());
@@ -105,7 +111,23 @@ class _ArgusAppState extends State<ArgusApp> with WidgetsBindingObserver {
     // The automatic top-up checks the instances once a minute, only if the user turned it
     // on (Settings, Compute).
     unawaited(autoTopUp.start());
+    // iOS: the chats close before the app is suspended and reconnect when it is in front
+    // again; the top-up checks at once then, as it could not run meanwhile (docs/ios.md).
+    appSuspension.start();
+    appSuspension.register(suspend: () async {}, resume: (_) => autoTopUp.check());
+    // iOS: what does not work there, once, at the first start.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showIosLimits());
     notificationService.init().then((_) => notificationService.openLaunchTap());
+  }
+
+  Future<void> _showIosLimits() async {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+    try {
+      await showIosLimitsOnce(context);
+    } catch (_) {
+      // No preferences store: the warnings show at the next start.
+    }
   }
 
   @override

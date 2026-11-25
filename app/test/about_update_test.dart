@@ -53,8 +53,8 @@ ReleaseInfo release({String notes = 'What is new.', List<ReleaseAsset>? assets})
       publishedAt: DateTime.utc(2026, 10, 20, 12),
       assets: assets ??
           [
-            ReleaseAsset(name: 'chatui-1.0.0-beta.2-arm64-v8a.apk', size: 50254123, url: Uri.parse(assetUrl('chatui-1.0.0-beta.2-arm64-v8a.apk'))),
-            ReleaseAsset(name: 'chatui-1.0.0-beta.2-universal.apk', size: 101372707, url: Uri.parse(assetUrl('chatui-1.0.0-beta.2-universal.apk'))),
+            ReleaseAsset(name: 'superapp-1.0.0-beta.2-arm64-v8a.apk', size: 50254123, url: Uri.parse(assetUrl('superapp-1.0.0-beta.2-arm64-v8a.apk'))),
+            ReleaseAsset(name: 'superapp-1.0.0-beta.2-universal.apk', size: 101372707, url: Uri.parse(assetUrl('superapp-1.0.0-beta.2-universal.apk'))),
           ],
     );
 
@@ -148,7 +148,7 @@ void main() {
 
       expect(find.byKey(const Key('update-card')), findsOneWidget);
       expect(find.text('Update available'), findsOneWidget);
-      expect(find.textContaining('Chatui 1.0.0-beta.2'), findsOneWidget);
+      expect(find.textContaining('Celaut 1.0.0-beta.2'), findsOneWidget);
       expect(find.textContaining('Version 1.0.0-beta.2 is available'), findsOneWidget);
     });
 
@@ -176,10 +176,10 @@ void main() {
       // The day it was published where the reader is, not where GitHub is.
       final local = DateTime.utc(2026, 10, 20, 12).toLocal();
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      expect(find.text('Chatui 1.0.0-beta.2 · ${local.day} ${months[local.month - 1]} ${local.year}'), findsOneWidget);
+      expect(find.text('Celaut 1.0.0-beta.2 · ${local.day} ${months[local.month - 1]} ${local.year}'), findsOneWidget);
       expect(find.byKey(const Key('update-download')), findsOneWidget);
       expect(find.text('Download and verify'), findsOneWidget);
-      expect(find.textContaining('chatui-1.0.0-beta.2-arm64-v8a.apk · 47.9 MB'), findsOneWidget);
+      expect(find.textContaining('superapp-1.0.0-beta.2-arm64-v8a.apk · 47.9 MB'), findsOneWidget);
       await tester.tap(find.byKey(const Key('update-download')));
       expect(stub.downloads, 1);
     });
@@ -310,8 +310,8 @@ void main() {
       final cert = fakeCertificate(7);
       final good = signedApk(cert);
       final gh = FakeGitHub()
-        ..releaseBody = releaseJson('v1.0.0-beta.2', assets: [assetJson('chatui-1.0.0-beta.2-arm64-v8a.apk', good)]);
-      gh.files[assetUrl('chatui-1.0.0-beta.2-arm64-v8a.apk')] = Served.bytes(good);
+        ..releaseBody = releaseJson('v1.0.0-beta.2', assets: [assetJson('superapp-1.0.0-beta.2-arm64-v8a.apk', good)]);
+      gh.files[assetUrl('superapp-1.0.0-beta.2-arm64-v8a.apk')] = Served.bytes(good);
       final real = FakePlatform(Directory('${dir.path}/updates'))..certificates = [cert];
       final svc = UpdateService(platform: real, clientFactory: gh.create, current: AppVersion.tryParse('1.0.0-beta.1'));
 
@@ -335,8 +335,8 @@ void main() {
       addTearDown(() => dir.deleteSync(recursive: true));
       final foreign = signedApk(fakeCertificate(99));
       final gh = FakeGitHub()
-        ..releaseBody = releaseJson('v1.0.0-beta.2', assets: [assetJson('chatui-1.0.0-beta.2-arm64-v8a.apk', foreign)]);
-      gh.files[assetUrl('chatui-1.0.0-beta.2-arm64-v8a.apk')] = Served.bytes(foreign);
+        ..releaseBody = releaseJson('v1.0.0-beta.2', assets: [assetJson('superapp-1.0.0-beta.2-arm64-v8a.apk', foreign)]);
+      gh.files[assetUrl('superapp-1.0.0-beta.2-arm64-v8a.apk')] = Served.bytes(foreign);
       final real = FakePlatform(Directory('${dir.path}/updates'))..certificates = [fakeCertificate(7)];
       final svc = UpdateService(platform: real, clientFactory: gh.create, current: AppVersion.tryParse('1.0.0-beta.1'));
 

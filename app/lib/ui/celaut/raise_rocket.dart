@@ -85,6 +85,7 @@ class RaiseStageState extends State<RaiseStage> with SingleTickerProviderStateMi
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final colors = ArgusColors.of(context);
     return SizedBox(
       width: 120,
       height: 132,
@@ -96,8 +97,10 @@ class RaiseStageState extends State<RaiseStage> with SingleTickerProviderStateMi
               raise: _raise,
               body: scheme.onSurface,
               window: accentOf(context),
-              flame: rustFor(context),
+              flame: colors.hasLook ? colors.accent : rustFor(context),
               pad: scheme.outline,
+              trim: colors.hasLook ? colors.trim : null,
+              look: colors.look,
             ),
           ),
         ),
@@ -115,6 +118,8 @@ class RaisePainter extends CustomPainter {
     required this.window,
     required this.flame,
     required this.pad,
+    this.trim,
+    this.look,
   }) : super(repaint: raise);
 
   final Animation<double> raise;
@@ -122,6 +127,13 @@ class RaisePainter extends CustomPainter {
   final Color window;
   final Color flame;
   final Color pad;
+
+  /// The trim of a palette with a look, or null.
+  final Color? trim;
+
+  /// The look of the palette, or null: its details on the rocket, and what it leaves as it
+  /// rises and when it stands.
+  final PaletteLook? look;
 
   /// The rocket is drawn at this scale, so that it fits the stage flat as well as upright.
   static const _scale = 0.8;
@@ -160,11 +172,31 @@ class RaisePainter extends CustomPainter {
       flame: flame,
       // The flame shows when it stands, at its full length.
       flicker: t >= 0.999 ? 1.0 : null,
+      trim: trim,
+      look: look,
     );
     canvas.restore();
+
+    // A palette with a look: what the rocket leaves on its way up, and round its nose when
+    // it stands.
+    final themed = look;
+    if (themed != null && t > 0) {
+      final metal = trim ?? window;
+      final nose = pivot + Offset.fromDirection(-pi / 2 + (1 - t) * pi / 2, 74 * _scale);
+      if (t >= 0.999) {
+        themed.paintRocketBurst(canvas, nose, 0.35, trim: metal, accent: window);
+      } else {
+        themed.paintRocketRise(canvas, pivot, nose, t, trim: metal);
+      }
+    }
   }
 
   @override
   bool shouldRepaint(RaisePainter old) =>
-      old.body != body || old.window != window || old.flame != flame || old.pad != pad;
+      old.body != body ||
+      old.window != window ||
+      old.flame != flame ||
+      old.pad != pad ||
+      old.trim != trim ||
+      old.look != look;
 }

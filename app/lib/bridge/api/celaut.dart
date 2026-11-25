@@ -132,6 +132,11 @@ enum CelautErrorKind {
   /// The address is an onion and the route is direct: only Tor (the client of the app or
   /// an external proxy) opens it. The app makes no lookup of the name.
   onionNeedsTor,
+
+  /// The phone has not enough free space for a download. The message is the bytes that it
+  /// needs (with the space that stays free) and the bytes that are free: `"<needed>
+  /// <available>"`.
+  noSpace,
 }
 
 /// One key and its value, as text.
@@ -276,13 +281,10 @@ class PeerInfoView {
   final PlatformInt64 ts;
   final List<NodeUriView> uris;
 
-  /// The rates of the node (`mu_per_call`), in MU, sorted by key.
+  /// The rates of the node (`rates`), in MU, sorted by key.
   final List<KeyValueView> rates;
   final List<PaymentContractView> paymentContracts;
   final List<NodeResourcesView> resources;
-
-  /// How many reputation proofs the advertisement has. M1 does not check them.
-  final int reputationProofs;
 
   const PeerInfoView({
     required this.peerId,
@@ -291,7 +293,6 @@ class PeerInfoView {
     required this.rates,
     required this.paymentContracts,
     required this.resources,
-    required this.reputationProofs,
   });
 
   @override
@@ -301,8 +302,7 @@ class PeerInfoView {
       uris.hashCode ^
       rates.hashCode ^
       paymentContracts.hashCode ^
-      resources.hashCode ^
-      reputationProofs.hashCode;
+      resources.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -314,6 +314,5 @@ class PeerInfoView {
           uris == other.uris &&
           rates == other.rates &&
           paymentContracts == other.paymentContracts &&
-          resources == other.resources &&
-          reputationProofs == other.reputationProofs;
+          resources == other.resources;
 }

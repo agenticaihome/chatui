@@ -17,7 +17,7 @@ On the info page of a running instance, "Time and credit" has two buttons: **Add
   `NodeSession::top_up` and `NodeSession::take_back`.
 - **The fee.** nodo charges no fee for `ModifyDeposit` (`manager.modify_deposit` writes a
   `top_up` or a `withdrawal` row on each side and nothing else). A node that charges one
-  advertises it in `Peer.mu_per_call` as `modify_deposit_mu` (Josemi, PR #148): the sheet
+  advertises it in `Peer.rates` as `modify_deposit_mu` (Josemi, PR #148): the sheet
   then says "The node charges X for this move" (FFI `celaut_move_fee`); with no such key it
   says "The node charges no fee for this move".
 - **The sheet.** An amount in MU (typed, or a quick value: +100 000, +1 000 000, +10 000 000
@@ -53,7 +53,7 @@ On the info page of a running instance, "Time and credit" has two buttons: **Add
 - **The balance now** comes from `GetClientMetrics`. It is free.
 - **The spending** comes from the signed balance statements of the node
   (`GetBalanceStatement`). A read costs MU (`statement_query_mu` + `statement_row_mu` for
-  each movement, from `Peer.mu_per_call`) and writes a `statement_query` movement. So:
+  each movement, from `Peer.rates`) and writes a `statement_query` movement. So:
   - the app never reads a statement by itself, in the background or on a timer;
   - each read is one tap, after a question with the most that it can cost (the fixed price
     and the price of one page of **100 movements**, Josemi PR #148);

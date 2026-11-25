@@ -168,6 +168,7 @@ fn ergo_rate(token: &str, rate: &str) -> ContractRate {
                 key: "token_id".into(),
                 value: Some(token.as_bytes().to_vec()),
             }],
+            ..Default::default()
         }),
         mu_per_unit: mu(rate),
     }
@@ -410,4 +411,46 @@ fn ledger_chain_reads_the_tag_of_a_node_with_or_without_the_network() {
     assert_eq!(ledger_chain("ergo-0123456789abcdef"), "ergo");
     assert_eq!(ledger_chain("bitcoin-regtest"), "bitcoin");
     assert_eq!(ledger_chain("bitcoin"), "bitcoin");
+}
+
+#[test]
+fn a_contract_with_a_protocol_still_gives_the_erg_rate() {
+    // nodo (Contract.protocol, field 2) moved xattrs to field 3: the token_id is still
+    // read from the xattrs, and the protocol does not change the rate.
+    let mut rate = ergo_rate("ERG", "4");
+    rate.contract.as_mut().unwrap().protocol = Some(celaut_proto::celaut::contract::Protocol {
+        tags: vec!["ergo-p2pk".into()],
+        prose: String::new(),
+        formal: b"payment.kind=p2pk".to_vec(),
+    });
+    let peer = Peer {
+        payment_contracts: vec![rate],
+        ..Default::default()
+    };
+    assert_eq!(erg_rate(&peer), Ok(4));
+}
+
+#[test]
+fn a_service_with_policies_is_ranked_like_any_other() {
+    // The policies of the container are settings for the node: the balancer ranks by the
+    // quote and the standing only, so a service that has policies has the same score.
+    use celaut_proto::celaut::service::container::Filesystem;
+    use celaut_proto::celaut::Policy;
+    use celaut_proto::Message;
+    let filesystem = Filesystem {
+        policies: vec![Policy {
+            tags: vec!["read_mode".into()],
+            prose: String::new(),
+            formal: b"read_mode".to_vec(),
+            value: b"ro".to_vec(),
+        }],
+        ..Default::default()
+    };
+    let bytes = filesystem.encode_to_vec();
+    assert_eq!(Filesystem::decode(bytes.as_slice()).unwrap().policies.len(), 1);
+    let ranked = rank(vec![
+        candidate("b", flat("1000"), Some(1)),
+        candidate("a", flat("500"), Some(1)),
+    ]);
+    assert_eq!(order(&ranked), vec!["a", "b"]);
 }

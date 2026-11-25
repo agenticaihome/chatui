@@ -26,6 +26,11 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["time", "net", "io-util", "rt", "fs", "sync"] }
 
+# statvfs, with no unsafe code: the free space of the phone before a download (issue #151).
+# Already in the tree (tempfile).
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1", features = ["fs"] }
+
 [dev-dependencies]
 tokio-stream = { version = "0.1", default-features = false }
 tokio = { workspace = true, features = ["time", "net", "io-util", "rt", "test-util"] }

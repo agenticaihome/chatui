@@ -5,7 +5,7 @@ mod common;
 use celaut_client::peer::{check_ts, content_digest, signed_payload, verify_signature, PeerError};
 use celaut_client::Seen;
 use celaut_proto::celaut::peer::signature_scheme::Protocol as SchemeProtocol;
-use celaut_proto::celaut::AmountKeyValue;
+use celaut_proto::celaut::{AmountKeyValue, Uint64KeyValue};
 
 #[test]
 fn digest_payload_and_signature_equal_nodo() {
@@ -42,7 +42,7 @@ fn the_vector_peers_cover_the_edge_cases() {
         .find(|p| p.name == "edge")
         .unwrap()
         .peer();
-    assert_eq!(edge.mu_per_call.len(), 3);
+    assert_eq!(edge.rates.len(), 3);
     let res = edge.resources[0].resources.clone().unwrap();
     assert_eq!(res.blkio_weight, Some(0));
     assert_eq!(res.cpu_period, None);
@@ -127,15 +127,23 @@ fn every_changed_field_breaks_the_signature() {
             }),
         ),
         (
-            "mu_per_call",
+            "rates",
             Box::new(|p| {
-                p.mu_per_call.push(AmountKeyValue {
+                p.rates.push(AmountKeyValue {
                     key: "z".into(),
                     value: None,
                 })
             }),
         ),
-        ("proof", Box::new(|p| p.reputation_proofs.clear())),
+        (
+            "limits",
+            Box::new(|p| {
+                p.limits.push(Uint64KeyValue {
+                    key: "max_gib_per_day:*".into(),
+                    value: Some(1),
+                })
+            }),
+        ),
         (
             "resources",
             Box::new(|p| p.resources[0].resources.as_mut().unwrap().mem_limit = Some(1)),
@@ -269,4 +277,29 @@ fn ts_rules() {
             last: i64::MAX
         })
     );
+}
+
+#[test]
+fn the_protocol_of_a_contract_is_part_of_the_digest() {
+    // nodo adds the formal, the sorted tags and the prose of Contract.protocol to the
+    // text of each payment contract (node_identity._canonical_contract_message).
+    let vectors = common::vectors();
+    let base = vectors.peers[0].peer();
+    let with = |tags: &[&str], prose: &str, formal: &[u8]| {
+        let mut peer = base.clone();
+        peer.payment_contracts[0].contract.as_mut().unwrap().protocol =
+            Some(celaut_proto::celaut::contract::Protocol {
+                tags: tags.iter().map(|t| t.to_string()).collect(),
+                prose: prose.into(),
+                formal: formal.to_vec(),
+            });
+        content_digest(&peer)
+    };
+    let none = content_digest(&base);
+    let a = with(&["b", "a"], "text", b"formal");
+    assert_ne!(a, none);
+    assert_eq!(a, with(&["a", "b"], "text", b"formal"));
+    assert_ne!(a, with(&["a", "b"], "other", b"formal"));
+    assert_ne!(a, with(&["a", "b"], "text", b"other"));
+    assert_ne!(a, with(&["a"], "text", b"formal"));
 }

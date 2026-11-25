@@ -4,7 +4,7 @@ Revision 1 (2026-11-10), proposal of issue #120. Language: ASD-STE100 (Simplifie
 English).
 
 This document is the specification of the "cards" interface. A service that follows it can
-show a **deck** of cards on the full screen of chatui. The user moves through the cards with a
+show a **deck** of cards on the full screen of Celaut. The user moves through the cards with a
 swipe, a tap on a button or a key. Each move is a **decision** that goes to the service. The
 goal is to collect decisions from the user fast: a shopping list in a shop, the triage of
 messages, approvals, flash cards, moderation.
@@ -389,7 +389,7 @@ to its log, and gives no chat message for it.
 
 Issue #120 plans a last phase for the quality of the widget. Everything in it is a feature of
 the client. The wire of this document does not change, except the optional `sound` of an
-action (section 5.5), and the service cannot require any of it. Revision 1 of chatui has the base widget only (sections 5 to 7). The last phase adds:
+action (section 5.5), and the service cannot require any of it. Revision 1 of Celaut has the base widget only (sections 5 to 7). The last phase adds:
 
 - a reflection on the image (or, on a card with no image, behind the texts) that follows the gyroscope (low-pass, limited angle) and the
   finger;
@@ -422,9 +422,9 @@ the effects keep 60 frames per second or turn themselves down.
 | U7 | 60 frames per second on a low-end phone, measured; the effects turn down when the rate falls |
 | U8 | The text and the buttons keep their contrast and size in each theme, with a frame |
 
-### 13.2 What chatui does
+### 13.2 What Celaut does
 
-The last phase is built in chatui (`app/lib/celaut/cards_effects.dart`,
+The last phase is built in Celaut (`app/lib/celaut/cards_effects.dart`,
 `app/lib/ui/celaut/cards_look.dart`, `cards_screen.dart`, Settings > Cards). The only change to the wire is the
 optional `sound` of an action (section 5.5).
 

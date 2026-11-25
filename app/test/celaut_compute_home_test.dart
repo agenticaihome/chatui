@@ -174,7 +174,7 @@ void main() {
     final wallets = tester.getTopLeft(find.byKey(const Key('compute-home-wallets'))).dy;
     expect(nodes, lessThan(credit));
     expect(credit, lessThan(wallets));
-    expect(find.text('Chatui', findRichText: true), findsOneWidget);
+    expect(find.text('Celaut', findRichText: true), findsOneWidget);
   });
 
   testWidgets('the detail of each node and of the money is not on the home screen', (tester) async {
